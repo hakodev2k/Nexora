@@ -1,6 +1,7 @@
 # Security and Privacy Requirements
 
 **Document ID:** `NX-SEC-001`  
+**Version:** `1.1-draft`  
 **Status:** Working draft  
 **Principle:** Private by default, least privilege, defense in depth.
 
@@ -10,7 +11,7 @@
 |---|---|---|
 | `Public` | Public GitHub metadata, public news URL | Integrity, source attribution, cache policy. |
 | `Internal` | System configuration không chứa secret, job metadata | Authenticated access, role policy, audit khi quản trị. |
-| `Private` | Tasks, notes, documents, calendar, assets, career data | Ownership isolation, authorization, protected backups. |
+| `Private` | Personal/Workspace tasks, notes, documents, calendar, comments, assets, career data | Space/membership isolation, authorization, protected backups. |
 | `Sensitive` | Finance, identity/profile details, invoices | Private controls + limited export/logging + stronger audit. |
 | `Secret` | Passwords, API keys, tokens, recovery codes, DB/SSH credentials | Application-level encryption, reveal controls, no plaintext logs/search/index/cache. |
 
@@ -35,11 +36,14 @@ Module owner MUST khai báo classification cho từng field nhạy cảm. Nếu 
 |---|---:|---|---|
 | `AZ-001` | P0 | Authorization MUST được enforce server-side cho mọi endpoint/action. | Ẩn button không được coi là control; direct API tests bị từ chối. |
 | `AZ-002` | P0 | Quyền Admin sử dụng `module.action`; default deny. | Permission thiếu/unknown/removed đều deny. |
-| `AZ-003` | P0 | Quyền action và data scope được đánh giá độc lập. | Có `tasks.view` không tự động cho phép xem Tasks của mọi user nếu chưa có scope tương ứng. |
+| `AZ-003` | P0 | Quyền action, module enablement, Space membership và resource data scope được đánh giá độc lập. | Có `tasks.view` không tự cho xem mọi Personal/Workspace Task hoặc module bị disable. |
 | `AZ-004` | P0 | SuperAdmin global access không được dùng để bypass audit cho privileged data access. | Access User/Vault/Finance data ghi actor, target, reason/context và outcome theo policy. |
 | `AZ-005` | P0 | Client không thể tự chọn role, owner, permission, price result, audit actor hoặc security state. | Tampered payload bị ignore/reject; authoritative values lấy server-side. |
 | `AZ-006` | P0 | Cache/search/read model không được trả dữ liệu vượt access policy hiện tại. | Permission/share revoke được phản ánh trong bounded time đã định; query-time check bảo vệ stale index. |
 | `AZ-007` | P0 | Hệ thống ngăn xóa, disable hoặc hạ quyền SuperAdmin cuối cùng. | Concurrent attempts vẫn giữ ít nhất một active SuperAdmin. |
+| `AZ-008` | P0 | Hệ thống ngăn cross-workspace access qua direct ID, child, file, comment, search, dashboard, export, cache và job. | Mandatory negative matrix đạt 100% cho hai Workspace và role khác nhau. |
+| `AZ-009` | P0 | Last Workspace Owner invariant được enforce transactionally. | Concurrent remove/downgrade/leave vẫn giữ ít nhất một active Owner. |
+| `AZ-010` | P0 | Workspace Owner/Admin authority không cấp system-admin access; system Admin không tự là Workspace Member/Admin. | Bidirectional privilege-escalation tests fail. |
 
 ## 4. Encryption và key management outcomes
 
@@ -73,9 +77,10 @@ Lựa chọn thuật toán, KDF, key store và rotation interval là architectur
 |---|---:|---|---|
 | `ADMSEC-001` | P0 | Permission/role change phải audit old/new values và actor. | Failed/successful changes có event; không chứa unrelated sensitive fields. |
 | `ADMSEC-002` | P0 | Admin không thể grant permission cao hơn authority được delegation policy cho phép. | Privilege escalation tests thất bại; chỉ SuperAdmin quản lý Admin authority baseline. |
-| `ADMSEC-003` | P0 | Truy cập dữ liệu User bằng quyền quản trị cần explicit privileged path, không trộn với personal view. | UI/API cho biết đang dùng admin scope; audit event phân biệt rõ. |
+| `ADMSEC-003` | P0 | Truy cập dữ liệu Personal/Workspace bằng quyền hệ thống cần explicit privileged path, không trộn với member/personal view. | UI/API cho biết Space và admin scope; audit event phân biệt rõ. |
 | `ADMSEC-004` | P1 | Reason capture cho privileged access vào Vault/Finance/User data là `PROPOSED`. | Không đóng Phase 4/8 trước khi decision xác định field, validation và retention. |
 | `ADMSEC-005` | P0 | Impersonation không thuộc baseline; nếu bổ sung phải có requirement/security review riêng. | Không có hidden “login as” behavior. |
+| `ADMSEC-006` | P0 | Invitation/member lookup/mentions không được enumerate account hoặc resource ngoài authorized Workspace context. | Unknown/inaccessible identity có safe response; mention resolver giữ scope. |
 
 ## 7. Web/API security
 

@@ -1,6 +1,7 @@
 # Non-functional Requirements
 
 **Document ID:** `NX-NFR-001`  
+**Version:** `1.1-draft`  
 **Status:** Working draft  
 **Note:** Numeric targets marked `PROPOSED` require measurement profile approval in Phase 0/1.
 
@@ -51,6 +52,7 @@ Measurement phải dùng dataset, hardware, browser và network profile được
 | `REL-005` | P0 | Concurrent update conflict không được âm thầm overwrite dữ liệu quan trọng. | Optimistic concurrency/version strategy test cho aggregate đã chỉ định. |
 | `REL-006` | P0 | Cache là optimization, không là source of truth cho dữ liệu không thể tái tạo. | Flush Redis không làm mất persistent business data; app phục hồi có kiểm soát. |
 | `REL-007` | P1 | Scheduled job có missed-run policy rõ (`skip`, `catch-up`, `coalesce`). | Restart qua schedule boundary cho outcome đúng từng job type. |
+| `REL-008` | P0 | Asynchronous collaborative writes phải detect conflict và không silent overwrite. | Concurrent member edits trả deterministic success/conflict; resolution giữ latest authorized state. |
 
 Local-first baseline không có uptime SLA. Availability/SLO production phải được quyết định ở Phase 8.
 
@@ -60,7 +62,7 @@ Local-first baseline không có uptime SLA. Availability/SLO production phải �
 |---|---:|---|---|
 | `CAP-001` | P0 | Không load toàn bộ user data vào memory cho list/search/export. | Code/performance test với dataset lớn hơn baseline. |
 | `CAP-002` | P0 | File size, request size, page size, export size và job concurrency có configurable bounds. | Boundary tests và documented defaults. |
-| `CAP-003` | P1 | Baseline capacity profile phải xác định số user, record/module, file volume và job rate trước performance sign-off. | Versioned load profile + report. |
+| `CAP-003` | P1 | Baseline capacity profile phải xác định số User, Workspace, memberships, concurrent collaborators, record/module, comments/files và job rate. | Versioned load profile + report. |
 | `CAP-004` | P1 | Thiết kế không phụ thuộc sticky in-memory session nếu mục tiêu Phase 8 yêu cầu nhiều app instance. | Architecture decision/test theo deployment target. |
 
 ## 6. Observability và diagnosability
@@ -96,12 +98,13 @@ Local-first baseline không có uptime SLA. Availability/SLO production phải �
 
 | ID | Pri | Requirement | Verification |
 |---|---:|---|---|
-| `MNT-001` | P0 | Module boundary và dependency direction được document bằng ADR/architecture spec trước implementation tương ứng. | Architecture review; không có circular domain coupling chưa justify. |
+| `MNT-001` | P0 | Module boundary, manifest, supported Space và dependency direction được document trước implementation. | Architecture/Module Contract review; không có direct cross-module table access hoặc circular coupling chưa justify. |
 | `MNT-002` | P0 | API/schema change có version/migration/compatibility strategy. | Contract tests và upgrade test. |
 | `MNT-003` | P0 | Automated test pyramid bao phủ domain rules, authorization, persistence integration và P0 E2E flows. | CI report; required suites pass trước merge/release. |
 | `MNT-004` | P0 | Lint/build/test/security scan có deterministic command và documented local setup. | Clean checkout chạy được theo README. |
 | `MNT-005` | P1 | Feature flags/module enablement không được bypass server authorization hoặc để schema half-configured. | Flag off/on migration and access tests. |
 | `MNT-006` | P0 | Không commit credential, production data hoặc personal sensitive sample. | Secret scan + sanitized fixture review. |
+| `MNT-007` | P0 | Mỗi developer-built module pass install/enable/disable/upgrade và cross-workspace contract tests. | Module không được release khi disable làm mất data hoặc enablement bypass permission. |
 
 ## 10. Local deployment requirements
 

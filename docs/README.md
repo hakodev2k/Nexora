@@ -6,10 +6,10 @@ Bộ tài liệu này là nguồn yêu cầu chính thức (single source of tru
 
 | Thuộc tính | Giá trị |
 |---|---|
-| Phiên bản | `1.0-draft` |
+| Phiên bản | `1.1-draft` |
 | Ngày lập baseline | `2026-09-04` |
 | Trạng thái | Requirement baseline chờ Product Owner review |
-| Phạm vi hiện tại | Local-first, multi-user web application |
+| Phạm vi hiện tại | Local-first, Personal Space + Team Workspace, asynchronous collaboration |
 | Công nghệ đã định hướng | ReactJS, .NET, SQL, Redis |
 
 ## Bắt đầu từ đâu
@@ -21,6 +21,16 @@ Bộ tài liệu này là nguồn yêu cầu chính thức (single source of tru
 5. [Non-functional requirements](requirements/04-non-functional-requirements.md) — UX, accessibility, performance, reliability, observability và quality gates.
 6. [Role/permission matrix](requirements/05-role-and-permission-matrix.md) — mô hình quyền theo `module.action`.
 7. [Decision log và traceability](requirements/06-decisions-and-traceability.md) — giả định, câu hỏi mở, quy trình thay đổi và Definition of Done.
+8. [Module Platform](requirements/07-module-platform.md) — contract, lifecycle và enablement cho module do developer phát triển.
+9. [Workspaces và asynchronous collaboration](requirements/08-workspaces-and-collaboration.md) — space ownership, membership, assignment, comments, mentions và conflict handling.
+
+## Product decisions đã chốt trong v1.1
+
+- Team Workspace và collaboration được thiết kế ngay từ Phase 1.
+- Collaboration v1 là bất đồng bộ; chưa có live cursor hoặc simultaneous real-time co-editing.
+- Module mới chỉ do trusted Nexora developers phát triển và ship bằng code.
+- Admin/User chỉ enable, configure và sử dụng module trong authority được cấp.
+- No-code Module Builder và executable third-party marketplace được defer.
 
 ## Delivery phases
 

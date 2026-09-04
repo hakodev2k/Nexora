@@ -1,14 +1,16 @@
 # Phase 8 — Hardening, Recovery and Deployment Readiness
 
 **Phase ID:** `NX-PH-08`  
+**Version:** `1.1-draft`  
 **Outcome:** Nexora có bằng chứng về security, reliability, recoverability, operability và upgrade path để Product Owner quyết định có triển khai ngoài môi trường local hay không.  
 **Important:** Phase này chuẩn bị và đánh giá; không tự động quyết định cloud/VPS/Kubernetes hoặc thực hiện production deployment.
 
 ## 1. Entry criteria
 
 - Scope/module catalog cho target release đã locked.
+- Module manifests, dependencies, `supportedSpaces` và system/workspace enablement matrix đã locked.
 - Các phase được chọn đã đạt exit criteria hoặc có accepted exception.
-- Không còn unresolved ownership/permission/encryption semantics.
+- Không còn unresolved Personal/Workspace ownership, membership, permission, collaboration hoặc encryption semantics.
 - Data migrations và supported upgrade source version được liệt kê.
 - Deployment target candidates, expected users/data/jobs và risk appetite có owner.
 
@@ -33,6 +35,7 @@
 | `P08-REL-004` | P0 | Rollback/roll-forward strategy accounts for database schema and irreversible data migration. | Rehearsal from target previous version; no unsafe app/schema mismatch. |
 | `P08-REL-005` | P0 | Feature/module enablement has dependency validation and safe default. | Cannot enable module without migrations/config; disable doesn't corrupt data. |
 | `P08-REL-006` | P1 | Release notes include breaking behavior, migration, security changes, known limits and rollback notes. | Operator can identify required action before deploy. |
+| `P08-REL-007` | P0 | Module install/upgrade/disable/uninstall orchestration kiểm tra manifest version, dependencies, migrations, contributions, active jobs và rollback compatibility. | Contract/migration rehearsal không mất module data; stale contribution/route/job không còn executable. |
 
 ## 4. Backup and restore
 
@@ -46,7 +49,7 @@
 | `P08-BKP-002` | P0 | Backup encrypted/integrity-protected with access/audit/retention controls. | Unauthorized reader cannot inspect; corruption detected before restore. |
 | `P08-BKP-003` | P0 | Automated backup job reports start/outcome/size/duration/restore-point ID and alerts final failure. | Simulated destination/quota/network failure visible and retried within policy. |
 | `P08-BKP-004` | P0 | Restore targets explicit isolated environment by default and requires privileged confirmation. | Wrong-environment/overwrite guard test pass; event audited. |
-| `P08-BKP-005` | P0 | Full restore rehearsal validates login, ownership, files, search rebuild, jobs, Finance ledger and Vault decrypt. | Approved checklist passes within RTO; data point meets RPO. |
+| `P08-BKP-005` | P0 | Full restore rehearsal validates login, Spaces/memberships, module enablement, ownership, comments/activity, files, search rebuild, jobs, Finance ledger and Vault decrypt. | Approved checklist passes within RTO; data point meets RPO. |
 | `P08-BKP-006` | P0 | Restore/rebuild does not replay historical notifications/webhooks/jobs unintentionally. | Queued/run state reconciliation tests pass. |
 | `P08-BKP-007` | P1 | Periodic restore verification and backup expiry/deletion are automated with safe reports. | At least one scheduled rehearsal/verification cadence approved. |
 
@@ -67,8 +70,8 @@
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P08-CAP-001` | P0 | Production-like capacity profile states users, concurrent sessions, records/module, file size/volume, search index, schedules/webhooks and external rates. | Load dataset/script versioned; no vague “fast enough”. |
-| `P08-CAP-002` | P0 | Load/soak/spike tests verify approved latency/error/resource budgets and no cross-user data leak. | Report includes percentiles, saturation, bottleneck and pass/fail. |
+| `P08-CAP-001` | P0 | Production-like capacity profile states users, Workspaces/members, concurrent sessions, records/module, comments/activity, file size/volume, search index, schedules/webhooks and external rates. | Load dataset/script versioned; no vague “fast enough”. |
+| `P08-CAP-002` | P0 | Load/soak/spike tests verify approved latency/error/resource budgets and no cross-user/cross-workspace data leak. | Report includes percentiles, saturation, bottleneck and pass/fail. |
 | `P08-CAP-003` | P0 | Job concurrency/backpressure prevents background work starving interactive traffic. | Price/feed/search/backup burst scenario remains within approved bounds. |
 | `P08-CAP-004` | P0 | SQL/index/query/cache tuning based on measured workload; Redis loss/restart behavior tested. | No unbounded query/N+1 on P0 flows; cache rebuild safe. |
 | `P08-CAP-005` | P1 | Scaling trigger/runbook defined if target requires growth. | Operator knows metric/threshold/action and stateful dependency constraint. |
@@ -88,8 +91,8 @@
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
 | `P08-DAT-001` | P0 | Retention/purge rules defined for active/trash/audit/activity/notifications/jobs/search cache/backups/files/import/export artifacts. | Automated jobs/dry-run reports match policy; legal/operational exceptions documented. |
-| `P08-DAT-002` | P0 | User disable/delete/transfer/export workflow covers every released module and external side effect. | Data inventory reconciliation leaves no orphan share/job/secret/file. |
-| `P08-DAT-003` | P0 | Export schemas/versioning and sensitive-field controls documented; generated artifact expires/cleans safely. | Cross-user/privacy tests pass; download token bounded. |
+| `P08-DAT-002` | P0 | User/Workspace/member disable/delete/leave/transfer/export workflow covers every released module and external side effect. | Data inventory reconciliation leaves no orphan resource/comment/share/job/secret/file. |
+| `P08-DAT-003` | P0 | Export schemas/versioning and sensitive-field controls documented; generated artifact expires/cleans safely. | Cross-user/cross-workspace/privacy tests pass; download token bounded. |
 | `P08-DAT-004` | P0 | Permanent delete versus backup retention limitation is disclosed and implemented per approved policy. | UI/docs do not promise immediate erasure from immutable backup if untrue. |
 
 ## 9. Upgrade and disaster scenarios
@@ -106,6 +109,10 @@ Mandatory rehearsals:
 8. Full environment loss and restore from backup within approved RPO/RTO.
 9. Credential compromise/session revoke/security incident tabletop.
 10. TLS certificate/provider outage/rate-limit and alert/runbook execution.
+11. Member removal/role downgrade while editing, mentioned, assigned hoặc automation queued.
+12. Workspace archive/delete/restore với resources, comments, files, shares, jobs và module settings.
+13. Module upgrade/disable/uninstall với migrations, search/dashboard contributions và queued jobs.
+14. Concurrent async edits verify conflict response; không yêu cầu live cursor/CRDT.
 
 ## 10. Go-live decision checklist
 
@@ -113,6 +120,7 @@ Product Owner and technical/security owner must explicitly decide:
 
 - target users/network exposure and whether production deployment proceeds;
 - accepted/deferred modules and known limitations;
+- Workspace/collaboration limits và module enablement/rollback matrix;
 - capacity/SLO/RPO/RTO/cost/operations ownership;
 - authentication/MFA/recovery/admin access policy;
 - backup/key escrow and incident contacts;
@@ -128,4 +136,5 @@ Phase 8 is complete when:
 - performance/capacity and observability evidence meet approved targets;
 - Critical/High security/reliability/data-loss findings are closed;
 - runbooks, alerts, retention, backup and key rotation are operational;
+- cross-workspace, membership-revocation, async-conflict và module-lifecycle suites pass;
 - Product Owner records `Go`, `No-Go` hoặc `Remain Local` — cả ba đều là kết quả hợp lệ nếu có rationale.
