@@ -1,13 +1,13 @@
 # Phase 7 — Personal Assets, Digital Assets and Career/Learning
 
 **Phase ID:** `NX-PH-07`  
-**Version:** `1.1-draft`  
-**Outcome:** User quản lý vòng đời tài sản vật lý/số và hồ sơ nghề nghiệp/học tập trong Space được module hỗ trợ bằng files, reminders, search, sharing, finance links và Vault references.  
-**Status:** Toàn bộ domain Phase 7 là `PROPOSED`; phải đóng `DEC-PRD-014` trước khi cam kết scope.
+**Version:** `1.2-draft`  
+**Outcome:** User quản lý vòng đời tài sản vật lý/số và hồ sơ nghề nghiệp/học tập cá nhân bằng files, reminders, search, sharing, Finance links và Vault references.  
+**Status:** Các module Phase 7 thuộc Release 1 theo `DEC-PRD-025`; field/state/lifecycle chi tiết vẫn cần discovery trước implementation.
 
 ## 1. Scope proposal
 
-### P0 nếu domain được duyệt
+### Committed module scope; P0 details cần Product Owner duyệt
 
 - Personal Inventory/Devices/Electronics, purchase info, serial/model, warranty, invoice/accessories.
 - Digital Assets: Domains, Hosting, VPS metadata, SSL certificates, Online Services, Software Licenses metadata, expiration tracking.
@@ -22,20 +22,19 @@ Depreciation/maintenance, asset relations/components, automatic domain/certifica
 
 Remote device control/MDM, password/credential duplication outside Vault, VPS shell/SSH execution, registrar/hosting write operations, automatic job application, candidate scraping, AI resume writing/matching, HR/payroll/time billing.
 
-### Space support gate
+### Personal ownership gate
 
-- `DEC-PRD-019` phải khóa `supportedSpaces` cho từng module Phase 7; “Personal” trong tên module không tự động cấm hoặc cho phép Workspace.
-- Career/Resume/Learning mặc định Personal-only cho tới khi có privacy, Guest và field-level sharing decision.
-- Inventory/Digital Assets có thể hỗ trợ Workspace sau khi ownership, member removal, assignment/custody và sensitive-field permission được duyệt.
-- Resource không đổi Space qua generic update; link tới Finance/Vault/File phải cùng Space hoặc qua explicit audited policy.
+- Mọi module Phase 7 là Personal-only trong Release 1.
+- Resource không đổi owner qua generic update; link tới Finance/Vault/File phải cùng User.
+- Sharing vẫn cần field-level projection để không lộ serial, salary, contact, private notes hoặc secret reference.
 
 ## 2. Shared boundary rules
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P07-BND-001` | P0 | Invoice/resume/certificate files use File Service; access follows owning resource/Space. | Direct cross-workspace download fails; lifecycle relation correct. |
+| `P07-BND-001` | P0 | Invoice/resume/certificate files use File Service; access follows owning User/resource. | Direct cross-user download fails; lifecycle relation correct. |
 | `P07-BND-002` | P0 | Password/API key/private key/activation secret live in Vault; Asset stores only optional Vault reference. | Asset API/search/export never returns secret value; deleted/revoked reference handled. |
-| `P07-BND-003` | P0 | Purchase/payment relation may reference Finance record but does not duplicate/edit Finance ledger implicitly. | Link/unlink leaves transaction unchanged; cross-Space reference blocked unless explicit policy. |
+| `P07-BND-003` | P0 | Purchase/payment relation may reference Finance record but does not duplicate/edit Finance ledger implicitly. | Link/unlink leaves transaction unchanged; cross-user reference blocked. |
 | `P07-BND-004` | P0 | Expiry/due events emit Reminder/Notification intents; source module owns the expiry date and rule. | Date edit/cancel invalidates stale queued alert. |
 | `P07-BND-005` | P0 | Sharing is read-only and field-selective for resources containing serial/contact/private notes. | Shared view excludes fields not in approved projection. |
 
@@ -45,12 +44,12 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P07-AST-001` | P0 | Asset có owning Space, creator, name, category/type, manufacturer/model, status, notes và optional image/files. | Space/creator set server-side; Personal private default; invalid type/state rejected. |
+| `P07-AST-001` | P0 | Asset có owner, creator, name, category/type, manufacturer/model, status, notes và optional image/files. | Owner/creator set server-side; private default; invalid type/state rejected. |
 | `P07-AST-002` | P0 | Device/Electronics là asset types hoặc subtype đã quyết định, không duplicate record. | Type-specific fields round-trip; migration/change type guarded. |
 | `P07-AST-003` | P0 | Serial number/identifier classification là `Sensitive`; masked in list/share/export by policy. | Search/result/log/audit do not expose full value without authorized detail. |
 | `P07-AST-004` | P0 | Asset state proposal: `Active`, `Stored`, `Loaned`, `Repair`, `Sold`, `Disposed`, `Lost`, `Archived`. | Transition/history defined; sold/disposed does not delete purchase/warranty evidence. |
 | `P07-AST-005` | P0 | Trash/restore/purge preserves or blocks dependencies according to aggregate policy. | Accessories/files/warranty not orphaned or silently purged. |
-| `P07-AST-006` | P1 | Asset parent/component/accessory relation prevents cycles and cross-Space links. | Graph/cycle/reparent tests pass. |
+| `P07-AST-006` | P1 | Asset parent/component/accessory relation prevents cycles and cross-user links. | Graph/cycle/reparent tests pass. |
 
 ### 3.2 Purchase and warranty
 
@@ -156,7 +155,7 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 - Resume file replaced after application; job/company merge; interview rescheduled across timezone.
 - Vault/Finance/file reference deleted/revoked or belongs another user.
 - Sharing projection accidentally includes private notes/serial/salary/contact.
-- Member/Guest bị remove hoặc module disable khi file/reminder/monitor job đang queued.
+- User/module/support access bị disable/revoke khi file/reminder/monitor job đang queued.
 
 ## 10. Verification scenarios
 
@@ -164,10 +163,10 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 2. Shared asset/resume omits serial/private note/credential/job-feedback fields by default.
 3. Domain/certificate expiry edit cancels stale notification and schedules exact new instant.
 4. Job application keeps exact resume version after resume update.
-5. Admin action without `access_all` cannot search/export User career/assets.
+5. Admin action permission không thể search/export career/assets của User khác nếu thiếu active support/emergency context.
 6. Remote domain/certificate check (if P1) passes SSRF/rate-limit/degraded-state tests.
-7. Workspace asset (nếu module hỗ trợ) còn nguyên khi creator/custodian rời team và không lộ cho Workspace khác.
-8. Personal-only Career/Resume/Learning chặn create/move/search từ Workspace context.
+7. Asset của User A không lộ cho User B hoặc Admin không có active module support grant.
+8. Personal-only Career/Resume/Learning chặn create/move/search với owner User khác.
 
 ## 11. Exit criteria
 
@@ -175,5 +174,5 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 - Boundaries with Vault/Finance/Files/Notifications/Search approved and tested.
 - Sensitive field/search/share/export projections pass negative tests.
 - Expiry/reminder idempotency/timezone/update tests pass.
-- `supportedSpaces` từng module được khóa; cross-workspace/removed-member/module-disabled tests pass.
+- Personal ownership từng module được khóa; cross-user/revoked-support/module-disabled tests pass.
 - Responsive/accessibility P0 journeys pass; no Critical/High finding remains.

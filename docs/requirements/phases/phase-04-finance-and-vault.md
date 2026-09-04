@@ -1,20 +1,20 @@
 # Phase 4 — Finance and Vault
 
 **Phase ID:** `NX-PH-04`  
-**Version:** `1.1-draft`  
-**Outcome:** User quản lý dữ liệu tài chính thủ công và secret có thể khôi phục trong Space được module cho phép, bằng controls phù hợp với dữ liệu `Sensitive`/`Secret`.  
-**Depends on:** Phase 1 Space/membership/Module Platform/security; Phase 3 files/search (metadata only for Vault); approved encryption/key/backup design.
+**Version:** `1.2-draft`  
+**Outcome:** User quản lý dữ liệu tài chính thủ công và secret cá nhân có thể khôi phục, bằng controls phù hợp với dữ liệu `Sensitive`/`Secret`.  
+**Depends on:** Phase 1 personal ownership/Module Platform/security/support access; Phase 3 files/search (metadata only for Vault); approved encryption/key/backup design.
 
 ## 1. Release safety gate
 
 Không bắt đầu lưu real Vault secret trước khi `DEC-SEC-002` được duyệt và có automated tests chứng minh encryption, tamper detection, key separation, redaction và restore. Không đóng Phase 4 nếu chỉ chứng minh CRUD mà chưa chứng minh backup + key recovery.
 
-`DEC-PRD-019` phải khóa `supportedSpaces` riêng cho Finance và Vault. Trước decision đó:
+Finance và Vault Release 1 đều Personal-only theo `DEC-PRD-024`:
 
-- Finance/Vault không được suy ra là shareable chỉ vì Nexora có Team Workspace.
-- Vault P0 được coi là Personal-only; team vault/shared secret vẫn Deferred.
-- Nếu Finance hỗ trợ Workspace, mọi aggregate/export/job phải scope theo Workspace membership + module permission.
-- Mọi relation Finance/Vault phải cùng Space hoặc đi qua explicit, audited cross-Space policy; generic update không được đổi owning Space.
+- Không có team Finance, Team Vault hoặc shared secret.
+- Mọi aggregate/export/job phải scope theo owner User + module permission/context.
+- Mọi relation Finance/Vault phải cùng owner; generic update không được đổi owner.
+- Admin support grant không tự cấp `vault.reveal/copy/export`; sensitive action vẫn cần dedicated permission/control.
 
 ## 2. Scope proposal
 
@@ -45,7 +45,7 @@ Bank/Open Banking sync, investment/portfolio/tax/accounting, payment initiation,
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P04-ACC-001` | P0 | User tạo Account với name, type, currency và opening balance/date trong Space được Finance hỗ trợ. | Owning Space/creator server-side; invalid currency/precision rejected; duplicate name policy rõ. |
+| `P04-ACC-001` | P0 | User tạo Account với name, type, currency và opening balance/date. | Owner/creator server-side; invalid currency/precision rejected; duplicate name policy rõ. |
 | `P04-ACC-002` | P0 | Type baseline: `Cash`, `Bank`, `Wallet`, `Other`; type không tự quyết định external integration. | CRUD/filter consistent; type migration không mất transactions. |
 | `P04-ACC-003` | P0 | Current balance được tính từ opening balance + posted transactions theo rule duy nhất. | Ledger test cases khớp UI/report; không tin balance client gửi. |
 | `P04-ACC-004` | P0 | Account currency không đổi tùy tiện sau khi có transaction. | Update bị block hoặc có explicit migration workflow được test. |
@@ -56,7 +56,7 @@ Bank/Open Banking sync, investment/portfolio/tax/accounting, payment initiation,
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P04-TXN-001` | P0 | Transaction có type, account(s), amount > 0, currency, transaction date, optional category/payee/note/tags. | Money uses decimal; Space/account/category scopes validated. |
+| `P04-TXN-001` | P0 | Transaction có type, account(s), amount > 0, currency, transaction date, optional category/payee/note/tags. | Money uses decimal; owner/account/category scopes validated. |
 | `P04-TXN-002` | P0 | Income làm tăng và Expense làm giảm account balance; sign convention không được thay đổi giữa API/UI/report. | Golden ledger suite pass. |
 | `P04-TXN-003` | P0 | Transfer là một logical operation liên kết hai legs, atomic và không tính là income/expense mặc định. | Fault giữa hai legs rollback/compensate; report không double-count. |
 | `P04-TXN-004` | P0 | Edit/delete/restore transaction cập nhật balance/report nhất quán và concurrency-safe. | Cache/read model invalidated; repeated delete/restore idempotent. |
@@ -84,7 +84,7 @@ Bank/Open Banking sync, investment/portfolio/tax/accounting, payment initiation,
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P04-BIL-001` | P0 | Bill có title/payee, amount/currency, due date, status, optional category/account/reminder. | Status/amount/date validation; Space scope. |
+| `P04-BIL-001` | P0 | Bill có title/payee, amount/currency, due date, status, optional category/account/reminder. | Status/amount/date validation; owner scope. |
 | `P04-BIL-002` | P0 | Bill state đề xuất: `Upcoming`, `Due`, `Overdue`, `PartiallyPaid` (P1), `Paid`, `Cancelled`. | Derived due/overdue uses user timezone; paid status linked to payments. |
 | `P04-BIL-003` | P0 | Mark paid có thể tạo/link Transaction atomically; retry không duplicate. | Bill/payment/transaction remain consistent after fault. |
 | `P04-BIL-004` | P0 | Reminder intent phát theo configured lead time; cancel/paid/reschedule invalidates stale job. | No alert after paid/cancelled; retry idempotent. |
@@ -103,7 +103,7 @@ Bank/Open Banking sync, investment/portfolio/tax/accounting, payment initiation,
 | `P04-DEB-001` | P1 | Debt/Loan model có principal, direction, interest/repayment semantics only after dedicated refinement. | Không ship calculator nếu chưa có rounding/schedule tests. |
 | `P04-RPT-001` | P0 | Reports tối thiểu: account balance, monthly income/expense, category breakdown, cash flow. | Totals match golden ledger; filters/timezone/currency labeled. |
 | `P04-RPT-002` | P0 | Charts có table/text equivalent và không tải unbounded transaction set client-side. | Accessibility/performance tests pass. |
-| `P04-RPT-003` | P0 | Report generation/export rechecks Space, membership, module và privileged scope; privileged export audited. | Actor ở Workspace khác/Admin-no-scope cannot infer totals. |
+| `P04-RPT-003` | P0 | Report generation/export rechecks owner, module và privileged scope; privileged export audited. | User khác/Admin-no-support cannot infer totals. |
 
 ## 6. Vault item model
 
@@ -139,10 +139,10 @@ Metadata có thể gồm: title, type, username/account label, URL/host, tags/fo
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P04-VAC-001` | P0 | Reveal/Copy require owner or explicit `vault.reveal/copy` + valid data scope + contextual control. | Admin action-only/no-scope denied; stale recent-auth denied if enabled. |
+| `P04-VAC-001` | P0 | Reveal/Copy trong baseline chỉ dành cho owner ở Self context với `vault.reveal/copy` và contextual control phù hợp. | Share/support/emergency context hoặc stale recent-auth bị từ chối; policy privileged Vault khác cần decision riêng. |
 | `P04-VAC-002` | P0 | Every reveal/copy attempt success/failure creates redacted audit event. | Actor, target ID, action, outcome present; secret absent. |
 | `P04-VAC-003` | P0 | Client masks by default, auto-remasks và không persist plaintext in local/session storage/cache. | Browser storage/network cache inspection pass. |
-| `P04-VAC-004` | P0 | SuperAdmin global access dùng explicit privileged flow, không ordinary personal Vault route. | UI context/reason/re-auth per decision; event distinguishes privileged access. |
+| `P04-VAC-004` | P0 | SuperAdmin emergency context không tự cấp `vault.reveal` hoặc `vault.copy`; policy xem Vault metadata/secret trong emergency còn phải được chốt riêng. | Ordinary Vault route luôn owner-scoped; chưa có approved Vault emergency policy thì reveal/copy của User khác bị từ chối. |
 | `P04-VAC-005` | P0 | Public/anonymous share prohibited; authenticated Vault sharing/export remain disabled until `DEC-PRD-008`. | Share registry rejects type; no bulk plaintext export route. |
 
 ## 8. Encryption, keys, rotation và recovery
@@ -163,11 +163,11 @@ Metadata có thể gồm: title, type, username/account label, URL/host, tags/fo
 - Finance receipts use File Service with Sensitive classification.
 - Vault attachments are P1 and require same encryption/access policy as payload, not generic public preview.
 - Finance item sharing is `PROPOSED` P1 read-only; Vault public sharing is out.
-- Workspace collaboration không mặc nhiên cho phép comment/mention trên Finance/Vault; capability này cần field-level disclosure, notification-redaction và audit decision riêng.
+- Team comments/mentions và group access không thuộc Release 1. External Finance sharing vẫn cần field-level projection; Vault public sharing là out.
 
 ## 10. Permissions và audit
 
-Namespaces/actions theo permission matrix. Finance `export`, `purge`, `access_all`; Vault `reveal`, `copy`, `export`, `purge`, `access_all`; permission/key/security configuration là sensitive.
+Namespaces/actions theo permission matrix. Finance `export`, `purge`; Vault `reveal`, `copy`, `export`, `purge`; support/emergency access, permission/key/security configuration là sensitive.
 
 Audit bắt buộc: privileged Finance view/export, transaction purge/restore/adjustment, import/export, Vault create metadata (không secret), reveal/copy/update/delete/restore/purge/export attempt, key rotation, decrypt/tamper failure, security-setting change, backup/restore.
 
@@ -181,21 +181,21 @@ Audit bắt buộc: privileged Finance view/export, transaction purge/restore/ad
 - Two-tab secret update; reveal then logout/session revoke; browser back/cache.
 - Admin permission revoked during export/reveal.
 - Backup contains DB but missing files/key, or key exists but wrong environment.
-- Member bị remove, Workspace/module bị disable hoặc Space context đổi khi report/export/job đang chạy.
-- Cross-Space account/category/transaction/file/Vault reference hoặc ciphertext context swap.
+- User/module/support permission bị disable/revoke khi report/export/job đang chạy.
+- Cross-user account/category/transaction/file/Vault reference hoặc ciphertext context swap.
 
 ## 12. Verification scenarios
 
 1. Golden ledger: income/expense/transfer/edit/delete/restore yields exact balances/reports.
 2. Duplicate “mark bill paid” request creates one logical payment/transaction.
-3. User/Workspace A cannot infer User/Workspace B Finance totals via dashboard/search/export/direct ID.
+3. User A cannot infer User B Finance totals via dashboard/search/export/direct ID; Admin without active grant cannot view them.
 4. Secret marker never appears in SQL plaintext, Redis, search, logs, audit, browser storage or unencrypted backup.
 5. Ciphertext tamper and item/owner swap fail closed without corrupting data.
 6. Interrupted key rotation resumes and every test item remains decryptable.
 7. Restore into isolated environment requires correct key and reproduces finance + Vault integrity.
 8. SuperAdmin privileged reveal meets re-auth/reason/audit policy; ordinary route cannot bypass.
-9. Finance Workspace (nếu enabled) giữ dữ liệu khi creator rời team và chặn removed Member/disabled module.
-10. Vault Personal-only policy chặn tạo/move/link secret vào Workspace trong baseline.
+9. Finance personal-owner policy chặn cross-user account/transaction/report relation và stale Admin support access.
+10. Vault Personal-only policy chặn tạo/move/link secret sang User khác; support view không tự reveal/copy/export.
 
 ## 13. Exit criteria
 
@@ -205,5 +205,5 @@ Audit bắt buộc: privileged Finance view/export, transaction purge/restore/ad
 - No plaintext Secret in prohibited sink; no Critical/High security finding.
 - Mobile/desktop manual-entry, bill/reminder, reveal/copy/trash/restore journeys pass.
 - Admin/SuperAdmin privileged access and audit evidence pass.
-- `supportedSpaces` của Finance/Vault được khóa; cross-workspace và removed-member/module-disabled tests pass cho capability đã bật.
+- Personal ownership của Finance/Vault được khóa; cross-user, revoked-support và module-disabled tests pass.
 - Known limits (no bank sync, no public Vault share, currency behavior) visible/documented.

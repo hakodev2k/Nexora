@@ -1,7 +1,7 @@
 # Security and Privacy Requirements
 
 **Document ID:** `NX-SEC-001`  
-**Version:** `1.1-draft`  
+**Version:** `1.2-draft`  
 **Status:** Working draft  
 **Principle:** Private by default, least privilege, defense in depth.
 
@@ -11,7 +11,7 @@
 |---|---|---|
 | `Public` | Public GitHub metadata, public news URL | Integrity, source attribution, cache policy. |
 | `Internal` | System configuration không chứa secret, job metadata | Authenticated access, role policy, audit khi quản trị. |
-| `Private` | Personal/Workspace tasks, notes, documents, calendar, comments, assets, career data | Space/membership isolation, authorization, protected backups. |
+| `Private` | Tasks, Projects, notes, documents, calendar, files, assets, career data của User | Cross-user isolation, authorization, protected backups. |
 | `Sensitive` | Finance, identity/profile details, invoices | Private controls + limited export/logging + stronger audit. |
 | `Secret` | Passwords, API keys, tokens, recovery codes, DB/SSH credentials | Application-level encryption, reveal controls, no plaintext logs/search/index/cache. |
 
@@ -29,6 +29,8 @@ Module owner MUST khai báo classification cho từng field nhạy cảm. Nếu 
 | `AUTH-006` | P0 | Reset/recovery token là single-use, time-bound, đủ entropy và không lưu/log plaintext. | Replay/expired token thất bại; password change revoke sessions theo policy. |
 | `AUTH-007` | P1 | MFA cho SuperAdmin/Admin là `PROPOSED` bắt buộc trước production exposure. | Decision `DEC-SEC-004` phải đóng trước Phase 8; nếu bật, recovery flow được test. |
 | `AUTH-008` | P0 | Disabled account không tạo session mới; session hiện tại bị thu hồi trong giới hạn đã định. | Disable user chặn UI/API/background actions của user đó. |
+| `AUTH-009` | P0 | Public registration chỉ kích hoạt account sau khi email được xác minh bằng token single-use, time-bound. | Unverified account không vào business modules; expired/replayed token bị từ chối; verified account dùng ngay không cần Admin approval. |
+| `AUTH-010` | P0 | Registration, verification resend và recovery có anti-abuse/rate-limit và response chống account enumeration. | Automation không spam email vô hạn hoặc xác định email đã tồn tại qua response. |
 
 ## 3. Authorization và access evaluation
 
@@ -36,14 +38,14 @@ Module owner MUST khai báo classification cho từng field nhạy cảm. Nếu 
 |---|---:|---|---|
 | `AZ-001` | P0 | Authorization MUST được enforce server-side cho mọi endpoint/action. | Ẩn button không được coi là control; direct API tests bị từ chối. |
 | `AZ-002` | P0 | Quyền Admin sử dụng `module.action`; default deny. | Permission thiếu/unknown/removed đều deny. |
-| `AZ-003` | P0 | Quyền action, module enablement, Space membership và resource data scope được đánh giá độc lập. | Có `tasks.view` không tự cho xem mọi Personal/Workspace Task hoặc module bị disable. |
-| `AZ-004` | P0 | SuperAdmin global access không được dùng để bypass audit cho privileged data access. | Access User/Vault/Finance data ghi actor, target, reason/context và outcome theo policy. |
+| `AZ-003` | P0 | Quyền action, System/User module enablement, personal ownership và share/support grant được đánh giá độc lập. | Có `tasks.view` không tự cho Admin xem Task User khác hoặc module bị disable. |
+| `AZ-004` | P0 | Role SuperAdmin không tự cấp quyền đọc business data của User khác; chỉ active support grant hoặc emergency break-glass flow được phép. | Normal route bị từ chối; emergency bắt buộc target User/module, reason, immutable audit và immediate User notification. |
 | `AZ-005` | P0 | Client không thể tự chọn role, owner, permission, price result, audit actor hoặc security state. | Tampered payload bị ignore/reject; authoritative values lấy server-side. |
 | `AZ-006` | P0 | Cache/search/read model không được trả dữ liệu vượt access policy hiện tại. | Permission/share revoke được phản ánh trong bounded time đã định; query-time check bảo vệ stale index. |
 | `AZ-007` | P0 | Hệ thống ngăn xóa, disable hoặc hạ quyền SuperAdmin cuối cùng. | Concurrent attempts vẫn giữ ít nhất một active SuperAdmin. |
-| `AZ-008` | P0 | Hệ thống ngăn cross-workspace access qua direct ID, child, file, comment, search, dashboard, export, cache và job. | Mandatory negative matrix đạt 100% cho hai Workspace và role khác nhau. |
-| `AZ-009` | P0 | Last Workspace Owner invariant được enforce transactionally. | Concurrent remove/downgrade/leave vẫn giữ ít nhất một active Owner. |
-| `AZ-010` | P0 | Workspace Owner/Admin authority không cấp system-admin access; system Admin không tự là Workspace Member/Admin. | Bidirectional privilege-escalation tests fail. |
+| `AZ-008` | P0 | Hệ thống ngăn cross-user access qua direct ID, child, file, search, dashboard, export, share metadata, cache và job. | Mandatory negative matrix đạt 100% cho ít nhất hai User và các role khác nhau. |
+| `AZ-009` | P0 | Support grant/share grant không thay đổi owner và không mở action ngoài phạm vi đã cấp. | Read-only grant không gọi create/update/delete/export/reveal; hết hạn/revoke chặn request mới. |
+| `AZ-010` | P0 | Admin permission và module enablement không tự cấp data access; Admin phải có action phù hợp và support grant hợp lệ cho User/module. | Admin có `tasks.view` nhưng không có active Task support grant bị từ chối. |
 
 ## 4. Encryption và key management outcomes
 
@@ -77,10 +79,14 @@ Lựa chọn thuật toán, KDF, key store và rotation interval là architectur
 |---|---:|---|---|
 | `ADMSEC-001` | P0 | Permission/role change phải audit old/new values và actor. | Failed/successful changes có event; không chứa unrelated sensitive fields. |
 | `ADMSEC-002` | P0 | Admin không thể grant permission cao hơn authority được delegation policy cho phép. | Privilege escalation tests thất bại; chỉ SuperAdmin quản lý Admin authority baseline. |
-| `ADMSEC-003` | P0 | Truy cập dữ liệu Personal/Workspace bằng quyền hệ thống cần explicit privileged path, không trộn với member/personal view. | UI/API cho biết Space và admin scope; audit event phân biệt rõ. |
-| `ADMSEC-004` | P1 | Reason capture cho privileged access vào Vault/Finance/User data là `PROPOSED`. | Không đóng Phase 4/8 trước khi decision xác định field, validation và retention. |
+| `ADMSEC-003` | P0 | Admin chỉ truy cập dữ liệu User qua explicit support path khi có active grant cho đúng User và đúng một module. | Ordinary Admin module route không nhận `UserId` tùy ý; UI/API hiển thị support context và expiry. |
+| `ADMSEC-004` | P0 | SuperAdmin emergency/break-glass access khi chưa có User consent bắt buộc nhập lý do trước khi truy cập. | Blank/whitespace reason bị từ chối; mọi attempt success/failure được audit. |
 | `ADMSEC-005` | P0 | Impersonation không thuộc baseline; nếu bổ sung phải có requirement/security review riêng. | Không có hidden “login as” behavior. |
-| `ADMSEC-006` | P0 | Invitation/member lookup/mentions không được enumerate account hoặc resource ngoài authorized Workspace context. | Unknown/inaccessible identity có safe response; mention resolver giữ scope. |
+| `ADMSEC-006` | P0 | Registration, restricted-share User lookup và Admin support lookup không được enumerate account ngoài authorized context. | Unknown/inaccessible identity có safe response; lookup result giữ scope. |
+| `ADMSEC-007` | P0 | User cấp support grant read-only cho một module với một trong ba duration: `24Hours` (mặc định), `CustomExpiry`, `UntilRevoked`. | Grant không chứa nhiều module; expiry/revoke boundary được server enforce. |
+| `ADMSEC-008` | P0 | Bất kỳ Admin nào có đủ permission của module và permission sử dụng support access có thể dùng grant; grant không gắn độc quyền với một Admin. | Admin thiếu một trong hai permission bị từ chối; mỗi lần dùng ghi đúng actor. |
+| `ADMSEC-009` | P0 | Mỗi lần SuperAdmin bắt đầu emergency access phải thông báo ngay cho User qua Notification Center và các mandatory security channels đã duyệt. | Notification intent tạo cùng security event; retry idempotent; reason không lộ dữ liệu nhạy cảm không cần thiết. |
+| `ADMSEC-010` | P0 | Support và emergency access mặc định read-only; action nhạy cảm như export, reveal/copy Secret, purge hoặc impersonation không được suy ra từ quyền xem. | Server từ chối mutation/sensitive action nếu thiếu dedicated approved control. |
 
 ## 7. Web/API security
 
@@ -121,4 +127,5 @@ Một phase không được nghiệm thu nếu:
 - secret có thể xuất hiện plaintext trong database, backup, cache, search hoặc logs;
 - migration/rollback làm mất security metadata;
 - privileged action bắt buộc chưa audit;
+- support/emergency access không enforce consent/scope/expiry/reason/immediate notification;
 - security decisions chặn phase trong decision log vẫn `Open`.

@@ -1,214 +1,357 @@
 # Phase 2 — Productivity
 
 **Phase ID:** `NX-PH-02`  
-**Version:** `1.1-draft`  
-**Outcome:** User và Workspace Member có thể lập kế hoạch, phân công và cộng tác bất đồng bộ trên Tasks, Projects, Calendar/Events và Reminders trong đúng Personal Space hoặc Team Workspace trên desktop/mobile.  
-**Depends on:** Phase 1 identity, Space ownership, Workspace membership, Module Platform, audit, trash, file, notification và scheduler contracts.
+**Version:** `1.2-draft`  
+**Status:** Project, Task và Calendar business behavior approved; remaining Productivity modules continue discovery  
+**Outcome:** Mỗi User quản lý Project, Task, Calendar/Event và Reminder của chính mình trên desktop/mobile, không có Workspace hoặc team collaboration.  
+**Depends on:** Phase 1 identity/email verification, personal ownership, Module Platform, sharing/support access, audit, trash, notifications, scheduler và timezone contracts.
 
-## 1. Proposed scope split
+## 1. Confirmed scope
 
-### P0 (`PROPOSED`, cần `DEC-PRD-001..003`)
+### 1.1 Approved Release 1 behavior in this revision
 
-- Tasks, subtasks, status, priority, due date, tags, attachments, checklist.
-- Projects với task grouping cơ bản.
-- Calendar và Events gồm all-day/timed event.
-- Reminders độc lập và reminder gắn Task/Event.
-- Recurring Tasks/Events mức đã duyệt.
-- Today/Upcoming/Overdue views và daily planner dạng derived view.
-- Personal/Workspace scope cho Task, Project, Calendar/Event theo module manifest.
-- Task/Project assignment, comments/replies, mentions, follows, activity và notifications.
-- Optimistic concurrency/version check để không silent overwrite khi nhiều Member sửa.
+- Projects và Tasks theo state, field, view, search, filter, history và Trash rules bên dưới.
+- Task tự tạo một read-only Calendar Event và là source of truth.
+- Manual personal Calendar Event.
+- Một Reminder cho mỗi Task/Event; In-app + Email + Browser Push đồng thời.
+- Calendar import/export file `.ics`.
+- Read-only Task/Project sharing theo module policy.
+- Cross-user isolation và Admin support/SuperAdmin emergency access.
 
-### P1
+### 1.2 Explicit exclusions for Project/Task/Calendar
 
-- Goals, Habits, recurring activity nâng cao.
-- Time Tracking và Pomodoro.
-- Weekly Planner, templates/import/export, project progress summaries.
+- Workspace, assignment cho User khác, comments/replies/mentions/follows và team collaboration.
+- Task có thể tồn tại ngoài Project hoặc chuyển sang Project khác.
+- Reopen Project đã Completed/Skipped.
+- Sửa Task từ Calendar.
+- Project hiển thị như Calendar Event.
+- Calendar Event sharing.
+- Recurring manual Calendar Event và import recurring `.ics`.
+- External calendar synchronization, attendees/invitations/resource booking.
+- Drag/drop hoặc resize Event trực tiếp trên Calendar.
+- Project/Task import và export trong Release 1.
+- Live presence/realtime co-editing.
 
-### Deferred/out
+### 1.3 Committed modules còn cần discovery
 
-Live presence/cursors, character-level co-editing, chat/voice/video realtime, external calendar sync, external event invitation/attendee và resource booking. External read-only sharing không tạo membership, assignment hoặc quyền chỉnh sửa Workspace.
+Planner, Goals, Habits, Time Tracking và Pomodoro vẫn thuộc Master Catalog Release 1 theo `DEC-PRD-025`, nhưng các requirement cũ chỉ là proposal. Chúng chưa đạt Definition of Ready và không được tự suy diễn từ Project/Task/Calendar.
 
-## 2. Primary user journeys
+## 2. Terminology và aggregate boundaries
 
-1. Tạo Task nhanh → đặt due/priority/reminder → xem Today → hoàn thành.
-2. Tạo Project → thêm/di chuyển Tasks → theo dõi open/completed/overdue.
-3. Tạo timed/all-day Event theo timezone → nhận reminder → chỉnh một occurrence hoặc series (nếu recurrence P0).
-4. Tạo reminder độc lập → nhận in-app notification → snooze/dismiss.
-5. Xóa nhầm Task/Event → restore từ Trash mà không mất sub-items/attachments.
-6. Tìm/fil­ter theo status, dates, project, priority, tags trên mobile/desktop.
-7. Workspace Member nhận Task được giao → trao đổi bằng comment/reply/mention → follow activity → hoàn thành.
-8. Hai Member sửa cùng một Task/Project → phiên stale được cảnh báo và phải reload/merge/retry explicit.
+| Term | Meaning |
+|---|---|
+| Project | Aggregate root chứa toàn bộ Tasks của Project. |
+| Task | Work item bắt buộc thuộc đúng một Project và không đổi Project. |
+| Task Calendar Event | Read-only projection được Task tạo/cập nhật/xóa khỏi active Calendar. |
+| Manual Event | Event cá nhân độc lập do User tạo trực tiếp trong Calendar. |
+| Terminal Task | Task `Completed` hoặc `Skipped`; vẫn editable khi Project còn active. |
+| Terminal Project | Project `Completed` hoặc `Skipped`; Project + Tasks read-only vĩnh viễn. |
+| Overdue Task | Task NotStarted/InProgress có EndDateTime đã qua; đây là computed flag, không phải state. |
 
-## 3. Tasks
+Project xóa/restore/purge là aggregate operation bao gồm Tasks. Task có history/lifecycle riêng khi Project vẫn active.
 
-### 3.1 Task data và validation
+## 3. Project requirements
 
-| ID | Pri | Requirement | Acceptance criteria |
-|---|---:|---|---|
-| `P02-TSK-001` | P0 | User tạo Task với title bắt buộc; description, status, priority, dates, project, tags là optional theo scope. | Whitespace-only/over-limit title bị từ chối; owning Space và creator set server-side. |
-| `P02-TSK-002` | P0 | Date semantics phân biệt date-only và datetime; due không bị đổi ngày theo timezone. | Cross-timezone round-trip pass; validation cho invalid start/due rule đã duyệt. |
-| `P02-TSK-003` | P0 | Status model có stable values và valid transitions. | UI/API dùng cùng state; unknown transition bị từ chối. |
-| `P02-TSK-004` | P0 | Priority có stable ordering và không bị trộn với status. | Sort/filter đúng; missing priority có behavior rõ. |
-| `P02-TSK-005` | P0 | User update Task theo concurrency strategy, không silent overwrite. | Two-tab edit conflict được detect/resolve theo policy. |
-| `P02-TSK-006` | P0 | Complete Task ghi completion timestamp; reopen xử lý timestamp/history nhất quán. | Complete/reopen idempotent; Today/metrics cập nhật đúng. |
-| `P02-TSK-007` | P0 | Task soft-delete/restore giữ subtask, checklist, tags, reminders và attachment relations theo aggregate policy. | Restore không orphan/duplicate; active share/reminder behavior đúng policy. |
-
-Status default `PROPOSED`: `Todo`, `InProgress`, `Done`, `Cancelled`. Product Owner có thể chọn model đơn giản hơn; mã requirement giữ nguyên.
-
-### 3.2 Subtasks và checklists
+### 3.1 Fields và validation
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P02-TSK-008` | P0 | Task hỗ trợ subtasks với depth limit được quyết định; cycle bị cấm. | Không gán chính nó/descendant làm parent; move giữ Space/project rules. |
-| `P02-TSK-009` | P0 | Parent completion behavior khi subtask còn mở phải được cấu hình cố định. | UI cảnh báo/chặn/allow đúng decision; không âm thầm complete children. |
-| `P02-TSK-010` | P0 | Checklist item có text, order, checked state; reorder/update concurrency-safe. | Duplicate/retry không mất item; progress tính đúng. |
-| `P02-TSK-011` | P0 | Checklist không đồng nghĩa subtask và không xuất hiện độc lập trong global views. | Search/reminder không coi checklist item là Task trừ khi decision đổi. |
+| `P02-PRJ-001` | P0 | Project required fields: `Title`, `Description`, `StartDateTime`, `EndDateTime`. | Blank required field bị từ chối; End phải sau Start; owner set server-side. |
+| `P02-PRJ-002` | P0 | Optional fields: Priority P0–P3, nhiều Tag, color hoặc icon, Notes. | Optional field round-trip đúng; unknown priority/tag ownership bị từ chối. |
+| `P02-PRJ-003` | P0 | Project mới mặc định `NotStarted`. | Create không truyền status tạo đúng NotStarted; tampered terminal default bị chặn. |
+| `P02-PRJ-004` | P0 | Project date range do User nhập; Task ngoài range được cảnh báo nhưng User có thể xác nhận để lưu. | Không auto-clamp Task; confirmation outcome và override được history/audit theo policy. |
+| `P02-PRJ-005` | P0 | Priority ordering: P0 cao nhất, P3 thấp nhất. Project và Task dùng chung một Tag catalog riêng của User. | Sort/filter đúng; User khác hoặc module khác không dùng nhầm tag catalog. |
 
-### 3.3 Tags, attachments, filter và views
+### 3.2 Project state
 
-| ID | Pri | Requirement | Acceptance criteria |
-|---|---:|---|---|
-| `P02-TSK-012` | P0 | User gắn/bỏ tag thuộc cùng Space; normalization/duplicate rule nhất quán. | Case/whitespace behavior đúng; không dùng tag từ Space khác. |
-| `P02-TSK-013` | P0 | Attachment dùng File Service và thừa hưởng Task access/lifecycle. | Direct file access cross-workspace thất bại; orphan cleanup đúng. |
-| `P02-TSK-014` | P0 | List có pagination, sort và filters status/priority/project/tag/due range. | Filter kết hợp đúng và access-scoped; URL/query state usable trên mobile. |
-| `P02-TSK-015` | P0 | Views `Today`, `Upcoming`, `Overdue`, `Completed` có timezone/date rules duy nhất. | Boundary midnight/timezone tests; cancelled không bị coi completed nếu decision không nói vậy. |
-| `P02-TSK-016` | P1 | Saved filter/view không mở rộng access scope. | Revoked/deleted item không xuất hiện qua saved view. |
-
-### 3.4 Recurring Tasks
+| Code | Vietnamese | Meaning |
+|---|---|---|
+| `NotStarted` | Chưa làm | Project chưa bắt đầu. |
+| `InProgress` | Đang làm | Project đang được thực hiện. |
+| `Completed` | Hoàn thành | Project kết thúc thành công; terminal. |
+| `Skipped` | Bỏ qua | User không tiếp tục Project; terminal. |
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P02-REC-001` | P0/P1 | Recurrence rule hỗ trợ subset đã duyệt (daily/weekly/monthly/custom) với timezone và end condition. | Rule invalid bị từ chối; DST/month-end cases documented/tested. |
-| `P02-REC-002` | P0/P1 | Quyết định generate occurrence on schedule hay upon completion; không được trộn behavior. | Retry không tạo duplicate occurrence; missed-run policy test. |
-| `P02-REC-003` | P0/P1 | Edit hỗ trợ rõ `this occurrence` và/hoặc `series`; exception có trace tới series. | Edit/delete một occurrence không corrupt future series. |
-| `P02-REC-004` | P0 | Stop/delete recurrence ngăn future creation nhưng không tự xóa historical completed occurrence. | Job queued kiểm tra series state trước create. |
+| `P02-PRJ-010` | P0 | Khi mọi Task đều Completed/Skipped, hệ thống hỏi User xác nhận có hoàn thành Project hay không. | Không auto-complete Project; cancel confirmation giữ state hiện tại. |
+| `P02-PRJ-011` | P0 | User có thể Complete Project khi còn Task NotStarted/InProgress sau warning, confirmation và mandatory reason. | Blank reason bị từ chối; child Task states giữ nguyên. |
+| `P02-PRJ-012` | P0 | Skip Project giữ nguyên state của mọi Task. | Không tự skip/complete/delete child Tasks. |
+| `P02-PRJ-013` | P0 | Completed/Skipped Project không được reopen hoặc chuyển sang state trước. | UI không có action; direct API transition bị từ chối. |
+| `P02-PRJ-014` | P0 | Project terminal và toàn bộ Tasks bên trong trở thành read-only; không tạo thêm Task. | Update/create/history-restore/Task state change đều bị chặn. |
+| `P02-PRJ-015` | P0 | Task còn dở trong terminal Project không thể tiếp tục hoặc chuyển sang Project khác. | Không có clone/move/continue action ngầm. |
+| `P02-PRJ-016` | P0/TBD | Behavior InProgress → NotStarted chưa được Product Owner chốt. | Implementation không tự cho phép/chặn trước khi `DEC-PRD-032` đóng. |
 
-### 3.5 Workspace assignment và collaboration
-
-| ID | Pri | Requirement | Acceptance criteria |
-|---|---:|---|---|
-| `P02-COL-001` | P0 | Task/Project trong Workspace có thể gán cho một active Member; multiple assignees là P1 trừ khi decision đổi. Personal Task chỉ gán owner. | Assignee phải thuộc cùng Workspace và có module access; removed/suspended Member không được gán mới. |
-| `P02-COL-002` | P0 | Authorized Member có thể comment, reply và mention trên Task/Project được phép xem. | Comment được scope theo resource/Space; mention chỉ notify actor hợp lệ; delete/edit giữ history policy. |
-| `P02-COL-003` | P0 | Member có thể follow/unfollow resource; assignee/commenter có auto-follow policy rõ. | Notification fan-out idempotent; revoke membership/module access dừng delivery và access. |
-| `P02-COL-004` | P0 | Activity hiển thị actor, action, timestamp và safe summary cho assignment/status/due/comment changes. | Không log secret/body đầy đủ; activity không mở rộng permission. |
-| `P02-COL-005` | P0 | Update dùng version/precondition và trả conflict có current-version metadata an toàn. | Hai Member sửa stale version không silent overwrite; client có reload/merge/retry explicit. |
-| `P02-COL-006` | P0 | Resource vẫn thuộc Workspace khi creator/assignee rời Workspace. | Không orphan; attribution giữ theo retention; queued jobs re-check membership và access. |
-
-## 4. Projects
+### 3.3 Project views
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P02-PRJ-001` | P0 | User tạo Project với name bắt buộc, description/status/dates optional trong current Space. | Owning Space set server-side; validation và concurrency như Task. |
-| `P02-PRJ-002` | P0 | Baseline `PROPOSED`: Task thuộc tối đa một Project nhưng có thể không thuộc Project. | Move/unassign atomic; cross-Space project assignment bị chặn. |
-| `P02-PRJ-003` | P0 | Project detail hiển thị scoped tasks, counts và progress definition rõ. | Count không bao gồm trashed/unauthorized; status filters consistent. |
-| `P02-PRJ-004` | P0 | Archive/complete Project không tự complete Tasks nếu chưa có explicit confirmation/rule. | Open task handling được báo; background reminder không mất ngầm. |
-| `P02-PRJ-005` | P0 | Delete/restore Project có policy cho Tasks (`detach`, `cascade trash`, hoặc block) được Product Owner duyệt. | Transaction/fault tests không orphan hoặc mất Tasks. |
-| `P02-PRJ-006` | P1 | Project hỗ trợ external sharing chỉ khi Task visibility semantics được định nghĩa. | Share Project không tự lộ private/Workspace Task ngoài approved composition. |
+| `P02-PRJ-020` | P0 | Projects page có `Grid` và `Table`; default là Grid. | Preference/default không bị nhầm với Task Kanban. |
+| `P02-PRJ-021` | P0 | Project card/Table row chỉ bắt buộc hiển thị Title, StartDateTime và EndDateTime. | Ba field nhất quán và timezone-correct. |
+| `P02-PRJ-022` | P0 | Filter theo Tag, time range và Status. | Filter kết hợp đúng owner scope và Project range rule đã thiết kế. |
+| `P02-PRJ-023` | P0 | Search Project chỉ theo Title. | Description/Notes/Task text không match; partial/case behavior phải thống nhất. |
+| `P02-PRJ-024` | P0 | Default sort là Title A–Z. | Tie-break ổn định để pagination không duplicate/missing. |
+| `P02-PRJ-025` | P0 | Khi mở Project, Task view mặc định là Kanban. | Projects Grid default không ảnh hưởng detail default. |
 
-Project state default `PROPOSED`: `Active`, `Completed`, `Archived`. Workspace membership/assignment dùng collaboration contract; Project không tự định nghĩa một team model khác.
-
-## 5. Calendar và Events
-
-### 5.1 Calendar
+### 3.4 Project history và Trash
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P02-CAL-001` | P0 | User có ít nhất một Personal Calendar; Workspace có Calendar khi module manifest hỗ trợ Workspace và được enable. | Event luôn thuộc calendar hợp lệ trong cùng Space. |
-| `P02-CAL-002` | P0 | Day/week/month/list views hiển thị event theo user timezone và responsive. | All-day không trượt ngày; overlapping timed events vẫn đọc/operate được. |
-| `P02-CAL-003` | P0 | Calendar filter/visibility là preference per-user, không phải permission. | Hide calendar không xóa event hoặc reminder. |
-| `P02-CAL-004` | P0 | Workspace Calendar/Event tuân theo membership, module permission và async collaboration contract. | Removed Member hoặc disabled module không đọc/sửa qua URL, search, reminder hoặc stale session. |
+| `P02-PRJ-030` | P0 | Mọi thay đổi Project tạo immutable version/history entry. | Field/state/reason/actor/time có trace; history không sửa/xóa bởi User. |
+| `P02-PRJ-031` | P0 | Delete Project đưa cả Project và toàn bộ Tasks vào Trash. | Operation atomic; active search/Calendar/share/reminder không còn expose aggregate. |
+| `P02-PRJ-032` | P0 | Project/Tasks trong Trash giữ vô thời hạn tới khi User purge. | Không auto-purge theo tuổi. |
+| `P02-PRJ-033` | P0 | Restore Project khôi phục toàn bộ Tasks như state tại lúc xóa. | Không restore partial tree; Task Calendar projections trở lại theo current Task state. |
+| `P02-PRJ-034` | P0 | Không bao giờ restore riêng Task khi Project cha vẫn ở Trash. | Task restore endpoint trả domain error an toàn. |
+| `P02-PRJ-035` | P0 | Permanent delete Project yêu cầu confirmation và purge toàn aggregate. | Không còn Task, Calendar projection, reminder hoặc active share; audit event không bị purge. |
 
-### 5.2 Events
-
-| ID | Pri | Requirement | Acceptance criteria |
-|---|---:|---|---|
-| `P02-EVT-001` | P0 | Tạo Event với title; loại `AllDay` hoặc `Timed`; start/end validation rõ. | End trước start bị từ chối; all-day lưu date semantics. |
-| `P02-EVT-002` | P0 | Timed Event lưu instant + originating timezone cần thiết để recurrence/display đúng. | User đổi display timezone không làm thay đổi instant. |
-| `P02-EVT-003` | P0 | Event hỗ trợ description/location/tags/attachments theo scope đã duyệt. | External content encoded; files scoped. |
-| `P02-EVT-004` | P0 | Update/delete/restore Event xử lý linked reminders và recurrence exceptions. | Reminder không fire cho deleted/cancelled event; restore theo policy. |
-| `P02-EVT-005` | P0/P1 | Recurring Events theo rule subset, exception và edit-series semantics đã quyết định. | DST, month-end, single occurrence update/delete tests pass. |
-| `P02-EVT-006` | P1 | Calendar/Event sharing chỉ read-only và không tạo invitation semantics. | Viewer không edit; hidden/private fields policy được test. |
-
-External sync và attendees/invites bên ngoài Nexora là deferred. Workspace Calendar nội bộ là P0 khi module khai báo hỗ trợ `Workspace`; live co-editing/presence không thuộc scope.
-
-## 6. Reminders
+### 3.5 Project sharing
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P02-RMD-001` | P0 | User tạo reminder độc lập hoặc linked tới supported resource. | Linked resource/Space/access được validate; unknown type bị chặn. |
-| `P02-RMD-002` | P0 | Reminder có due instant/date rule, timezone, message safe và state rõ. | Invalid/past-time behavior theo decision; secret không được nhúng. |
-| `P02-RMD-003` | P0 | Scheduler phát idempotent notification; retry không duplicate. | Same occurrence key tạo tối đa một logical notification. |
-| `P02-RMD-004` | P0 | User `dismiss`, `snooze`, `cancel`; action/state transitions atomic. | Snooze tạo next trigger đúng; stale job kiểm tra state. |
-| `P02-RMD-005` | P0 | Update/delete/complete resource nguồn áp dụng reminder policy rõ. | Complete Task không nhận reminder cũ; Event reschedule cập nhật trigger. |
-| `P02-RMD-006` | P1 | Quiet hours/channel preferences áp dụng qua Notification Center. | Critical/non-critical rules nhất quán. |
+| `P02-PRJ-040` | P0 | Khi Project resource type được SuperAdmin cho share, owner có thể tạo read-only link theo ba shared access modes. | Link mode/expiry/revoke tuân theo `PDS-SHR`; Admin support viewer không tạo link thay owner. |
+| `P02-PRJ-041` | P0 | Project link hiển thị Project và toàn bộ Tasks; owner không thể ẩn Task riêng. | New/current active Task tự xuất hiện; Task trong Trash không hiện. |
+| `P02-PRJ-042` | P0 | Viewer thấy Task detail: Title, Description, Acceptance Criteria, Priority, Tags, Start, End, Status, Overdue. | Không lộ Reminder, history, backward reason, audit hoặc internal security metadata. |
+| `P02-PRJ-043` | P0 | Project share luôn live/current, không snapshot. | Update hợp lệ hiển thị trên request sau; revoke/expiry/trash chặn. |
 
-Reminder state default `PROPOSED`: `Scheduled`, `Triggered`, `Snoozed`, `Dismissed`, `Cancelled`, `Failed`.
+## 4. Task requirements
 
-## 7. Planner, Goals, Habits, Time Tracking và Pomodoro
-
-### 7.1 Daily/Weekly Planner
-
-Planner P0 là derived view của Tasks/Events/Reminders, không sao chép record. Drag/reorder hoặc daily intention notes là P1.
+### 4.1 Cardinality, fields và validation
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P02-PLN-001` | P0 | Today view tổng hợp đúng resource được phép trong selected Space, theo timezone. | Không trộn Personal/Workspace ngoài explicit cross-Space view; stale/deleted item không hiển thị. |
-| `P02-PLN-002` | P1 | Reorder/plan-for-day không làm đổi due date trừ khi user chọn explicit action. | UI phân biệt scheduling preference và business due date. |
+| `P02-TSK-001` | P0 | Mỗi Task bắt buộc thuộc đúng một Project. | Create thiếu/invalid/cross-user Project bị từ chối. |
+| `P02-TSK-002` | P0 | Task không được chuyển sang Project khác sau khi tạo. | API ignore/reject ProjectId change; history restore không bypass invariant. |
+| `P02-TSK-003` | P0 | Required fields: Project, Title, StartDateTime, EndDateTime. | Blank Title hoặc End ≤ Start bị từ chối. |
+| `P02-TSK-004` | P0 | Optional: Description, Acceptance Criteria, Priority P0–P3, nhiều Tag và một Reminder. | Missing optional field save được; duplicate tag normalized theo catalog rule. |
+| `P02-TSK-005` | P0 | Acceptance Criteria hỗ trợ text và checklist. | Mode/data round-trip; checklist order/check state không biến thành child Task. |
+| `P02-TSK-006` | P0 | Một Task có tối đa một Reminder. Update thay giá trị Reminder hiện có; request tạo một Reminder độc lập thứ hai bị từ chối. | Không có thời điểm nào tồn tại hai active reminders cho cùng Task. |
+| `P02-TSK-007` | P0 | Task ngoài Project date range được warning; chỉ lưu sau User confirmation. | Cancel không persist; confirm persist Task không đổi Project dates. |
 
-### 7.2 Proposed P1 modules
+Subtasks và Task attachments chưa được Product Owner chốt trong revision này; không được coi Acceptance Criteria checklist là subtask.
 
-| ID | Pri | Requirement |
-|---|---:|---|
-| `P02-GOL-001` | P1 | Goal có title, timeframe, status và optional measurable target; relation với Task/Habit không cascade ngầm. |
-| `P02-HAB-001` | P1 | Habit có schedule/timezone, check-in, skip và streak rule minh bạch; timezone change không rewrite history. |
-| `P02-TIM-001` | P1 | Time entry có start/end/duration, optional Task/Project; overlap/rounding/manual edit policy rõ. |
-| `P02-POM-001` | P2 | Pomodoro timer là client/user session feature; refresh/background behavior và notification permission rõ, không tuyên bố độ chính xác khi browser suspended. |
+### 4.2 Task state machine
 
-## 8. Search, sharing, permissions và audit integration
+| Code | Vietnamese | Meaning |
+|---|---|---|
+| `NotStarted` | Chưa làm | Chưa bắt đầu. |
+| `InProgress` | Đang làm | Đang thực hiện. |
+| `Completed` | Hoàn thành | Đã hoàn thành. |
+| `Skipped` | Bỏ qua | Task chưa hoàn thành nhưng User không muốn làm nữa. |
 
-- Phase 2 cung cấp search projection contract; Global Search UI phát hành Phase 3.
-- Workspace collaboration dùng membership/role/module access; external read-only share vẫn dùng Sharing Engine.
-- Share support P0: Task item `PROPOSED`; Project/Calendar collection là P1 sau composition decision.
-- Personal resource dùng owner policy; Workspace resource dùng membership + Workspace role + module action; Admin theo `tasks/projects/calendar.*` + scope; SuperAdmin privileged access.
-- Audit bắt buộc: permanent delete, privileged access, share lifecycle, import/export, recurrence/automation failure có security impact.
-- Assignment, comments, mentions và normal edits/completions vào Activity History; privileged/security actions vào Audit.
+| From | To | Rule |
+|---|---|---|
+| NotStarted | InProgress hoặc Completed | Forward, không cần reason. |
+| NotStarted | Skipped | Cho phép, không cần reason. |
+| InProgress | Completed hoặc Skipped | Forward/terminate, không cần reason. |
+| InProgress | NotStarted | Backward, bắt buộc reason. |
+| Completed | InProgress hoặc NotStarted | Backward, bắt buộc reason; chỉ khi Project active. |
+| Completed | Skipped | Không đi trực tiếp; phải reopen về active state với reason trước. |
+| Skipped | InProgress hoặc NotStarted | Backward/reopen, bắt buộc reason; chỉ khi Project active. |
 
-## 9. Edge cases bắt buộc
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-TSK-010` | P0 | State mới mặc định NotStarted, trừ create từ Kanban InProgress column thì state khởi tạo InProgress. | Create từ terminal column bị chặn; form full vẫn bắt buộc. |
+| `P02-TSK-011` | P0 | Forward transition tự do; backward transition phải có non-empty reason. | UI/API cùng rule; reason lưu history nhưng không xuất hiện trong share view. |
+| `P02-TSK-012` | P0 | Skipped chỉ thể hiện Task chưa hoàn thành bị User dừng từ NotStarted/InProgress. | Không coi Skipped là Completed trong metric trừ khi metric ghi “terminal”. |
+| `P02-TSK-013` | P0 | Completed/Skipped Task vẫn editable nếu Project active. | Field edit được; state backward vẫn yêu cầu reason. |
+| `P02-TSK-014` | P0 | Project terminal override Task action: toàn bộ Task read-only dù Task state nào. | Direct Task endpoint rechecks Project state. |
 
-- Midnight, DST và user đổi timezone.
-- Recurrence on day 29/30/31; missed scheduler run; duplicate retry.
-- Parent/subtask cycle và complete-parent-while-child-open.
-- Project deleted/archived có open tasks.
-- Reminder/job queued khi resource/user bị deleted/disabled.
-- Concurrent reorder/checklist update/two-tab task edit.
-- Attachment upload partial hoặc file bị quarantine/missing.
-- Permission/share revoked khi detail đang mở.
-- Member bị remove/suspend khi đang edit, assigned hoặc có job/reminder queued.
-- Module bị disable tại Workspace khi view/search/dashboard/job còn cache.
-- Cross-Workspace relation, tag, attachment, assignment hoặc calendar move.
+### 4.3 Time, overdue và Calendar projection
 
-## 10. Phase verification scenarios
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-TSK-020` | P0 | Task có StartDateTime và EndDateTime theo User timezone; server lưu instant an toàn. | DST/timezone round-trip; End > Start. |
+| `P02-TSK-021` | P0 | Đến StartDateTime không tự chuyển NotStarted sang InProgress. | Scheduler không tạo state transition; User tự đổi. |
+| `P02-TSK-022` | P0 | Qua EndDateTime khi Task NotStarted/InProgress: giữ state và computed `Overdue=true`. | Completed/Skipped không Overdue; không persist state Overdue riêng. |
+| `P02-TSK-023` | P0 | Save Task tự tạo/cập nhật một Task Calendar Event. | Retry idempotent; Task có tối đa một active projection. |
+| `P02-TSK-024` | P0 | Đồng bộ một chiều Task → Calendar; Task Event read-only và mở Task detail. | Calendar edit endpoint từ chối Task Event mutation. |
+| `P02-TSK-025` | P0 | Completed/Skipped Task Event vẫn hiển thị với source status; Task vào Trash làm projection ẩn. | Restore qua active Project làm projection quay lại; terminal Project vẫn hiển thị read-only Task Events theo data state. |
 
-1. Hai Workspace tạo Tasks trùng title; Member Workspace A không thấy/search/export được Task Workspace B.
-2. User tạo recurring Task có reminder, scheduler retry, chỉ một occurrence/notification được tạo.
-3. User reschedule recurring Event một occurrence; future series không đổi ngoài decision.
-4. Xóa/restore Project theo selected child policy không mất Task/attachment.
-5. Timezone switch giữ instant event và date-only due date đúng semantics.
-6. Admin có `tasks.view` nhưng không `access_all` không xem được private Task User.
-7. Mobile user tạo, filter, complete, snooze và restore mà không cần desktop-only action.
-8. Member assign/comment/mention/follow Task; notification đúng recipient và revoke access chặn detail.
-9. Hai Member cập nhật cùng version; request stale nhận conflict và không ghi đè âm thầm.
-10. Creator rời Workspace; Project/Task/comments/files vẫn thuộc Workspace và không orphan.
+### 4.4 Reminder
 
-## 11. Exit criteria
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-RMD-001` | P0 | Task Reminder được đặt bằng exact datetime hoặc preset 15 phút trước StartDateTime. | Preset tính đúng timezone; invalid instant có validation rõ. |
+| `P02-RMD-002` | P0 | Khi đến hạn, Reminder đồng thời tạo In-app notification, Email và Browser Push. | Ba delivery attempts độc lập; retry không tạo duplicate logical notification. |
+| `P02-RMD-003` | P0 | Complete/Skip Task, terminal Project hoặc delete Task/Project hủy pending Reminder. | Queued stale job rechecks resource state trước delivery. |
+| `P02-RMD-004` | P0 | Update Task time/reminder cập nhật scheduler atomically. | Old trigger không fire sau successful reschedule. |
 
-- Scope P0 đã được Product Owner khóa; `DEC-PRD-002/003` đóng.
-- P0 requirements và negative authorization tests pass.
-- Recurrence/reminder job idempotency, timezone và restart tests pass.
-- Today/Upcoming/Overdue definitions có testable business rules.
-- Responsive/accessibility P0 journeys pass.
-- Search projections và dashboard read contracts sẵn sàng cho Phase 3.
-- Workspace assignment/comment/mention/follow/activity và conflict scenarios pass.
-- Cross-workspace, removed-member và disabled-module negative matrix pass.
-- Không có Critical/High security/data-integrity finding mở.
+Independent Reminder, snooze/dismiss và quiet hours chưa được Product Owner chốt; không suy ra từ Task/Event Reminder.
+
+### 4.5 Project Task views
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-VIW-001` | P0 | Project detail có Kanban theo state và Table; default Kanban. | Hai view dùng cùng filtered dataset/state. |
+| `P02-VIW-002` | P0 | Kanban có bốn columns theo Task states và hỗ trợ kéo Task giữa states. | Transition/reason rules được enforce; failed move rollback UI. |
+| `P02-VIW-003` | P0 | User reorder Task thủ công trong cùng column. | Stable order persisted; concurrent retry không duplicate/mất Task. |
+| `P02-VIW-004` | P0 | Create trong Kanban chỉ có ở NotStarted/InProgress và luôn mở full Task form. | Required fields không bị bypass; created state khớp source column. |
+| `P02-VIW-005` | P0 | Kanban card hiển thị Title, Priority, Start, End và Overdue. | Optional Priority có empty behavior; timezone đúng. |
+| `P02-VIW-006` | P0 | Table columns: Title, Status, Priority, StartDateTime, EndDateTime. | Sort/render nhất quán với Kanban. |
+| `P02-VIW-007` | P0 | Filter Task chỉ theo Status và time range. | Combination đúng; không tự thêm Project/Priority/Tag filter trong approved scope. |
+| `P02-VIW-008` | P0 | Search Task trong Project theo Title và Tag. | Description/Acceptance Criteria không match. |
+| `P02-VIW-009` | P0 | Card/row/detail mở Task detail. | Direct route rechecks owner/module/Project state. |
+
+### 4.6 Task history và Trash
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-HIS-001` | P0 | Mọi thay đổi Task tạo immutable version với actor/time/changed data. | Create/edit/state/reason/tags/time/reminder/delete/restore có trace phù hợp. |
+| `P02-HIS-002` | P0 | User có thể restore toàn bộ old Task version khi Project active; restore tạo current revision mới. | Không rewrite/delete history; invariant/validation được re-evaluate. |
+| `P02-HIS-003` | P0 | Delete Task đưa vào Trash vô thời hạn tới User purge. | Active views/search/Calendar/share/reminder không expose Task. |
+| `P02-HIS-004` | P0 | Không restore Task nếu parent Project terminal. | Domain error rõ; không reopen Project. |
+| `P02-HIS-005` | P0 | Không restore Task riêng khi Project parent ở Trash. | Chỉ Project aggregate restore khôi phục child. |
+| `P02-HIS-006` | P0 | Permanent delete Task yêu cầu confirmation và invalidates Calendar projection/share/reminder; audit/history retention theo policy. | Retry idempotent; no orphan relations. |
+
+## 5. Calendar requirements
+
+### 5.1 Calendar views, filter và search
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-CAL-001` | P0 | Calendar hiển thị Task Calendar Events và Manual Events của current User. | Không hiển thị Project như Event; cross-user data absent. |
+| `P02-CAL-002` | P0 | Views: Month, Week, Day, Agenda; default Day. | Desktop/mobile usable; selected date/timezone retained appropriately. |
+| `P02-CAL-003` | P0 | Overlapping Events được phép; save phải cảnh báo nhưng không block sau confirmation. | Both Events remain visible/readable; cancellation of warning does not save. |
+| `P02-CAL-004` | P0 | Filter theo Status và time range. | Task-status và Manual-Event-status options được phân biệt rõ trong UI. |
+| `P02-CAL-005` | P0 | Search theo Title của mọi Event và Project Title của Task-generated Event. | Manual Event không match Project; Description không thuộc approved search fields. |
+| `P02-CAL-006` | P0 | Không drag/drop hoặc resize để sửa; chỉ edit trong detail form. | Direct gesture không persist; Task Event form read-only và link về Task. |
+
+### 5.2 Manual Event fields
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-EVT-001` | P0 | Required: Title, Description, Start, End. | Blank field hoặc End ≤ Start bị từ chối với Timed Event. |
+| `P02-EVT-002` | P0 | Optional capability chỉ gồm một Reminder và All-day flag trong approved scope. | Không recurrence/location/meeting URL/tag/attachment/color field nếu chưa có decision. |
+| `P02-EVT-003` | P0 | All-day Event dùng date semantics và có thể kéo dài một hoặc nhiều ngày. | Không lệch ngày khi timezone đổi; end-date convention documented/tested. |
+| `P02-EVT-004` | P0 | Timed Event dùng instant + User timezone; đổi account timezone giữ instant và đổi display time. | Event 09:00 zone A hiển thị corresponding local time zone B sau change. |
+| `P02-EVT-005` | P0 | Manual Event có tối đa một Reminder với exact datetime hoặc preset 15 phút trước Start, phát cả ba channels. | Same rules/idempotency như Task Reminder. |
+
+### 5.3 Manual Event state
+
+| Code | Meaning |
+|---|---|
+| `Scheduled` | Event dự kiến/đang chờ User xử lý. |
+| `Completed` | Event đã hoàn thành; terminal. |
+| `Canceled` | Event bị hủy; terminal. |
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-EVT-010` | P0 | Manual Event mới mặc định Scheduled. | Create không truyền state tạo Scheduled. |
+| `P02-EVT-011` | P0 | “Delete” Manual Event chuyển state sang Canceled, không đưa Trash. | Reminder bị cancel; Event vẫn tồn tại. |
+| `P02-EVT-012` | P0 | Canceled Event vẫn hiển thị trên Calendar với kiểu gạch ngang. | Filter Canceled hoạt động; visual không chỉ dựa vào màu. |
+| `P02-EVT-013` | P0 | Completed/Canceled Event read-only và không reopen. | UI/API update bị chặn. |
+| `P02-EVT-014` | P0 | Event qua End mà vẫn Scheduled giữ nguyên và hiển thị bình thường, không Overdue marker hoặc auto-complete. | Scheduler/time passage không mutate state/visual overdue. |
+| `P02-EVT-015` | P0 | Không có user-facing version history cho Manual Event; security/operational audit vẫn ghi create/edit/complete/cancel theo policy. | History UI absent; audit không chứa body quá mức cần thiết. |
+
+### 5.4 Sharing và synchronization
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-CAL-010` | P0 | Calendar Event không shareable qua generic Sharing Engine. | Share action/API bị từ chối cho Task Event và Manual Event. |
+| `P02-CAL-011` | P0 | Release 1 không đồng bộ trực tiếp với Google Calendar, Outlook hoặc external service. | Không polling/webhook/OAuth sync; `.ics` file operation không bị coi là sync. |
+| `P02-CAL-012` | P0 | Calendar hỗ trợ manual import và export file `.ics`. | Permission, file validation, timezone và report requirements pass. |
+
+## 6. ICS import requirements
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-ICS-001` | P0 | Mỗi supported VEVENT được import thành Manual Event của current User, không Task/Project relation. | Imported record owner server-side; không tạo Task hoặc Task Calendar Event. |
+| `P02-ICS-002` | P0 | Import xử lý per-record/partial success. | Một invalid entry không rollback valid entries; report deterministic. |
+| `P02-ICS-003` | P0 | Entry recurring (ví dụ có RRULE/recurrence semantics) bị skip. | Mixed file vẫn import valid non-recurring entries. |
+| `P02-ICS-004` | P0 | Entry thiếu Title, Description, Start hoặc End, hoặc time range invalid, bị skip. | Không tự điền placeholder/default business data. |
+| `P02-ICS-005` | P0 | Source UID được lưu; UID đã tồn tại bị skip, không update hoặc duplicate. | Import cùng file hai lần tạo đúng một Event/UID. |
+| `P02-ICS-006` | P0 | VALARM/reminder trong file bị bỏ qua. | Imported Event không có Reminder. |
+| `P02-ICS-007` | P0 | Mọi imported Event có state Scheduled bất kể source status. | CANCELLED/CONFIRMED/TENTATIVE source đều normalize Scheduled nếu entry hợp lệ. |
+| `P02-ICS-008` | P0 | Datetime có timezone khác được quy đổi sang User account timezone nhưng giữ instant. | Cross-zone golden cases pass; all-day giữ date semantics. |
+| `P02-ICS-009` | P0 | Import report nêu tổng, imported, skipped và reason theo entry. | Recurring/invalid/duplicate UID có reason phân biệt; không lộ content nhạy cảm vào log. |
+
+## 7. ICS export requirements
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-ICS-020` | P0 | User chọn source: Manual Events, Task Events hoặc cả hai. | File chỉ chứa selected source types. |
+| `P02-ICS-021` | P0 | User chọn states/statuses cần export theo selected source types. | Manual và Task status vocabulary không bị trộn sai. |
+| `P02-ICS-022` | P0 | User chọn toàn bộ Calendar hoặc custom time range. | All option không yêu cầu range; invalid range rejected. |
+| `P02-ICS-023` | P0 | Custom range chỉ gồm Event có Start và End đều nằm hoàn toàn trong range. | Overlap một phần bị loại; boundary equality behavior documented/tested. |
+| `P02-ICS-024` | P0 | Export toàn bộ supported Event business information ngoại trừ Reminder. | Title/Description/time/all-day/status/source-safe metadata round-trip theo schema; no VALARM. |
+| `P02-ICS-025` | P0 | History, audit, transition reason, internal ID/security metadata không export. | File inspection/projection whitelist pass. |
+| `P02-ICS-026` | P0 | Export dùng timezone semantics của User và encoding/schema documented. | Imported by compliant calendar preserves intended instants/dates. |
+
+## 8. Account timezone
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-TZ-001` | P0 | Default timezone tự nhận từ browser; User có thể đổi trong account settings. | Detection failure có fallback; saved preference thắng detection ở session sau. |
+| `P02-TZ-002` | P0 | Timed Task/Event lưu instant; timezone change chỉ đổi display. | Existing scheduled instant/reminder không bị dịch chuyển. |
+| `P02-TZ-003` | P0 | All-day date không đổi khi User đổi timezone. | Cross-timezone test giữ calendar dates. |
+
+## 9. Notification integration — approved partial baseline
+
+| ID | Pri | Requirement | Acceptance criteria |
+|---|---:|---|---|
+| `P02-NTF-001` | P0 | Notification Center chứa Task/Calendar Reminder, Security/Account, Support/Emergency và Module/System categories. | Category/source stored and owner-scoped. |
+| `P02-NTF-002` | P0 | Task/Event Reminder luôn tạo In-app, Email và Browser Push delivery đồng thời. | Independent channel attempts, idempotency và retry pass. |
+| `P02-NTF-003` | P0 | Notification giữ tới khi User tự xóa; không auto-expire. | Age-based purge không xóa active inbox row. |
+| `P02-NTF-004` | P0 | Delete inbox notification không xóa Audit Event liên quan. | Security/support audit retention độc lập. |
+
+Channel policy cho non-reminder notifications, read/unread/bulk actions, module/category mute và quiet hours đang Open tại `DEC-NTF-004..006`.
+
+## 10. Permissions và support access
+
+- User CRUD Project/Task/Calendar của chính mình khi module enabled.
+- SuperAdmin quyết định Tasks/Projects sharing capability; Calendar Event luôn non-shareable.
+- Share viewer read-only theo Public/Authenticated/Restricted mode.
+- Admin chỉ read trong đúng module nếu có active User support grant + required action.
+- SuperAdmin normal module route không browse data User khác; emergency path cần reason/audit/immediate notification.
+- Share/support/emergency không cấp import/export, history restore, purge, reveal/copy hoặc mutation.
+- Project/Task `import/export` actions không tồn tại trong Release 1; Calendar `import/export` tồn tại.
+
+## 11. Edge cases bắt buộc
+
+- Project complete confirmation đúng lúc Task status thay đổi ở tab khác.
+- Project terminal trong khi Task edit/restore/reminder request đang in flight.
+- Task nằm Trash khi Project terminal hoặc Project vào Trash.
+- Project restore cùng tên/ID relation; Task Calendar projection rebuild idempotent.
+- Backward drag thiếu reason, duplicate request hoặc UI optimistic move thất bại.
+- Task vượt Project range; time boundary/DST/timezone change.
+- Reminder queued khi Task/Event/Project bị terminal, canceled, trashed, purged hoặc module/User disabled.
+- Project live share trong lúc Task add/update/trash; revoke/expiry/access race.
+- `.ics` mixed valid/invalid/recurring/duplicate UID, malformed timezone, all-day multi-day và large bounded file.
+- Export range partial-overlap, source/status selection và timezone boundaries.
+- User A direct-ID/search/count/file/calendar/import/export attempt vào User B data.
+- Admin support grant sai module/expired/revoked và SuperAdmin emergency without reason.
+
+## 12. Verification scenarios
+
+1. Tạo Project → tạo Task bắt buộc → Task Event xuất hiện read-only trên Calendar.
+2. Drag Task forward; drag backward yêu cầu reason; history ghi đúng revision.
+3. Task qua End giữ state và hiện Overdue; đến Start không auto-transition.
+4. Complete Project có open Tasks chỉ sau warning + reason; Project/Tasks sau đó read-only và không reopen.
+5. Delete/restore Project khôi phục full aggregate; không restore child riêng; purge invalidates share/reminders/calendar projection.
+6. Project link ở ba modes hiển thị live full Task projection nhưng không history/reason/reminder/audit.
+7. Manual Event overlap warning; Canceled gạch ngang; Completed/Canceled không sửa/reopen; past Scheduled bình thường.
+8. Timezone change giữ instant; all-day date không đổi.
+9. Import mixed `.ics` tạo đúng valid non-recurring non-duplicate Scheduled Events, no VALARM, report đầy đủ.
+10. Export selected source/status/full-or-range, range chỉ fully-contained, no Reminder/internal metadata.
+11. Reminder đến hạn tạo đúng một logical notification và ba delivery attempts.
+12. Cross-user/share/support/emergency authorization matrix pass.
+
+## 13. Disposition of version 1.1 proposals
+
+| Previous requirement group | Disposition |
+|---|---|
+| Workspace assignment/comments/mentions/follows (`P02-COL-*`) | Superseded by personal-only `DEC-PRD-024`. |
+| Workspace Calendar/Space switching | Superseded. |
+| Recurring Calendar Event | Excluded from approved Release 1 Calendar scope. |
+| Project/Task import/export | Explicitly Deferred until after Release 1. |
+| Task recurrence, subtasks, attachments, independent Reminder/snooze | Open; not approved by current answers. |
+| Goals/Habits/Time Tracking/Pomodoro/Planner | Committed modules, detailed discovery pending. |
+
+## 14. Exit criteria
+
+- Every approved requirement above maps to API/data/UX design and automated acceptance tests.
+- `DEC-PRD-032/033` and `DEC-NTF-004..006` are closed or explicitly separated from the implementable slice.
+- Project/Task state, terminal aggregate, history/Trash/share/reminder/Calendar projection tests pass.
+- Calendar Event, timezone và `.ics` import/export tests pass.
+- Cross-user/share/support/emergency negative matrix reaches 100%.
+- Email/Browser Push provider failure does not block In-app or core CRUD.
+- Desktop/mobile/accessibility and no Critical/High security/data-integrity finding remain.

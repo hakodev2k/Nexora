@@ -1,7 +1,7 @@
 # Non-functional Requirements
 
 **Document ID:** `NX-NFR-001`  
-**Version:** `1.1-draft`  
+**Version:** `1.2-draft`  
 **Status:** Working draft  
 **Note:** Numeric targets marked `PROPOSED` require measurement profile approval in Phase 0/1.
 
@@ -34,7 +34,7 @@ Measurement phải dùng dataset, hardware, browser và network profile được
 
 | ID | Pri | Target `PROPOSED` | Điều kiện |
 |---|---:|---|---|
-| `PERF-001` | P0 | P95 API read/write tương tác thông thường ≤ 500 ms server time; P99 ≤ 1,500 ms. | Không tính external provider; representative local profile. |
+| `PERF-001` | P0 | P95 API read/write tương tác thông thường ≤ 500 ms server time; P99 ≤ 1,500 ms. | Không tính external provider; representative production-like Public SaaS profile. |
 | `PERF-002` | P0 | Paginated list mặc định ≤ 50 items và không có unbounded endpoint. | API contract/static test. |
 | `PERF-003` | P1 | LCP ≤ 2.5 s, INP ≤ 200 ms, CLS ≤ 0.1 cho P0 routes ở profile đã duyệt. | Lab + browser telemetry nếu có. |
 | `PERF-004` | P0 | Search P95 ≤ 1 s với baseline dataset; kết quả đầu tiên không đợi index toàn hệ thống rebuild. | Load test với access filtering. |
@@ -52,9 +52,9 @@ Measurement phải dùng dataset, hardware, browser và network profile được
 | `REL-005` | P0 | Concurrent update conflict không được âm thầm overwrite dữ liệu quan trọng. | Optimistic concurrency/version strategy test cho aggregate đã chỉ định. |
 | `REL-006` | P0 | Cache là optimization, không là source of truth cho dữ liệu không thể tái tạo. | Flush Redis không làm mất persistent business data; app phục hồi có kiểm soát. |
 | `REL-007` | P1 | Scheduled job có missed-run policy rõ (`skip`, `catch-up`, `coalesce`). | Restart qua schedule boundary cho outcome đúng từng job type. |
-| `REL-008` | P0 | Asynchronous collaborative writes phải detect conflict và không silent overwrite. | Concurrent member edits trả deterministic success/conflict; resolution giữ latest authorized state. |
+| `REL-008` | P0 | Concurrent writes từ nhiều tab/session của cùng User phải detect conflict và không silent overwrite. | Stale edit trả deterministic success/conflict; resolution giữ latest authorized state. |
 
-Local-first baseline không có uptime SLA. Availability/SLO production phải được quyết định ở Phase 8.
+Nexora là Public SaaS; availability/SLO cụ thể vẫn phải được đo và duyệt ở Phase 8 trước khi công bố. Local environment chỉ phục vụ development/test, không phải deployment model sản phẩm.
 
 ## 5. Capacity và scalability
 
@@ -62,7 +62,7 @@ Local-first baseline không có uptime SLA. Availability/SLO production phải �
 |---|---:|---|---|
 | `CAP-001` | P0 | Không load toàn bộ user data vào memory cho list/search/export. | Code/performance test với dataset lớn hơn baseline. |
 | `CAP-002` | P0 | File size, request size, page size, export size và job concurrency có configurable bounds. | Boundary tests và documented defaults. |
-| `CAP-003` | P1 | Baseline capacity profile phải xác định số User, Workspace, memberships, concurrent collaborators, record/module, comments/files và job rate. | Versioned load profile + report. |
+| `CAP-003` | P1 | Baseline capacity profile phải xác định số User, concurrent sessions, record/User/module, files, notifications, shares và job rate. | Versioned production-like load profile + report. |
 | `CAP-004` | P1 | Thiết kế không phụ thuộc sticky in-memory session nếu mục tiêu Phase 8 yêu cầu nhiều app instance. | Architecture decision/test theo deployment target. |
 
 ## 6. Observability và diagnosability
@@ -83,7 +83,8 @@ Local-first baseline không có uptime SLA. Availability/SLO production phải �
 | `DAT-002` | P0 | Date-only (birthday/due date nếu không có time) không được tự chuyển ngày vì timezone. | Cross-timezone round-trip giữ nguyên calendar date. |
 | `DAT-003` | P0 | Money dùng decimal/fixed-precision và luôn gắn currency; không dùng binary floating point. | Calculation/rounding tests theo currency rule. |
 | `DAT-004` | P0 | Recurrence có timezone, start, end/count và DST behavior rõ. | Test spring-forward/fall-back hoặc equivalent zone transition. |
-| `DAT-005` | P1 | Ngôn ngữ UI, default locale, currency và first-day-of-week là `TBD`. | `DEC-PRD-006` đóng trước content freeze. |
+| `DAT-005` | P0 | Múi giờ mặc định tự nhận từ trình duyệt và User có thể đổi trong account settings. | Detection có fallback rõ; thay đổi giữ instant và chỉ đổi giờ hiển thị cho timed Event. |
+| `DAT-006` | P1 | Ngôn ngữ UI, default locale, currency và first-day-of-week vẫn là `TBD`. | `DEC-PRD-006` đóng trước content freeze. |
 
 ## 8. Backup, recovery và durability
 
@@ -98,15 +99,15 @@ Local-first baseline không có uptime SLA. Availability/SLO production phải �
 
 | ID | Pri | Requirement | Verification |
 |---|---:|---|---|
-| `MNT-001` | P0 | Module boundary, manifest, supported Space và dependency direction được document trước implementation. | Architecture/Module Contract review; không có direct cross-module table access hoặc circular coupling chưa justify. |
+| `MNT-001` | P0 | Module boundary, manifest, personal ownership và dependency direction được document trước implementation. | Architecture/Module Contract review; không có direct cross-module table access hoặc circular coupling chưa justify. |
 | `MNT-002` | P0 | API/schema change có version/migration/compatibility strategy. | Contract tests và upgrade test. |
 | `MNT-003` | P0 | Automated test pyramid bao phủ domain rules, authorization, persistence integration và P0 E2E flows. | CI report; required suites pass trước merge/release. |
 | `MNT-004` | P0 | Lint/build/test/security scan có deterministic command và documented local setup. | Clean checkout chạy được theo README. |
 | `MNT-005` | P1 | Feature flags/module enablement không được bypass server authorization hoặc để schema half-configured. | Flag off/on migration and access tests. |
 | `MNT-006` | P0 | Không commit credential, production data hoặc personal sensitive sample. | Secret scan + sanitized fixture review. |
-| `MNT-007` | P0 | Mỗi developer-built module pass install/enable/disable/upgrade và cross-workspace contract tests. | Module không được release khi disable làm mất data hoặc enablement bypass permission. |
+| `MNT-007` | P0 | Mỗi developer-built module pass install/enable/disable/upgrade và cross-user contract tests. | Module không được release khi disable làm mất data hoặc enablement bypass permission. |
 
-## 10. Local deployment requirements
+## 10. Local development requirements
 
 | ID | Pri | Requirement | Verification |
 |---|---:|---|---|
@@ -115,6 +116,15 @@ Local-first baseline không có uptime SLA. Availability/SLO production phải �
 | `LOC-003` | P0 | Environment-specific config tách khỏi source và có safe development defaults. | Missing required secret fail-fast với hướng dẫn không nhạy cảm. |
 | `LOC-004` | P1 | Seed/demo data là tùy chọn, idempotent và không trộn vào user data thật. | Chạy lại seed không duplicate; production mode không tự seed. |
 
-## 11. Quality gate chung
+## 11. Public SaaS readiness
+
+| ID | Pri | Requirement | Verification |
+|---|---:|---|---|
+| `SAA-001` | P0 | Production profile phải cô lập data theo User trên mọi API, search, cache, file, export và background job. | Cross-user matrix đạt 100%; aggregate/count/timing không lộ dữ liệu có ý nghĩa. |
+| `SAA-002` | P0 | Public registration, email verification, login, share-link và password-recovery endpoints có abuse/rate controls. | Load/abuse tests không tạo spam, enumeration hoặc resource exhaustion không kiểm soát. |
+| `SAA-003` | P0 | Email, Browser Push và In-app delivery failure được quan sát độc lập; provider outage không làm sập core CRUD. | Fault injection cho từng provider; retry/backoff và degraded state đúng. |
+| `SAA-004` | P0 | Production deployment có TLS, protected secrets, backup/restore, alerting, capacity evidence và incident runbooks trước public launch. | Phase 8 go-live checklist có evidence và owner cho từng control. |
+
+## 12. Quality gate chung
 
 Mỗi phase phải có: acceptance mapping, automated test evidence, responsive/accessibility smoke test, security negative tests, migration/rollback evidence nếu đổi schema, log redaction check và danh sách known limitations được duyệt.

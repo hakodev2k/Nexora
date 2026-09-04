@@ -1,9 +1,9 @@
 # Phase 6 — Developer Toolbox, GitHub Discovery and Automation
 
 **Phase ID:** `NX-PH-06`  
-**Version:** `1.1-draft`  
-**Outcome:** User dùng utility an toàn, khám phá public GitHub repositories và cấu hình automation có giới hạn trong đúng Space/module authority, quan sát được và không tạo side effect trùng.  
-**Depends on:** Module Platform/Space/membership, jobs/scheduler, notifications, Vault references, audit, search, external HTTP/SSRF policy.
+**Version:** `1.2-draft`  
+**Outcome:** User dùng utility an toàn, khám phá public GitHub repositories và cấu hình automation cá nhân có giới hạn trong đúng owner/module authority, quan sát được và không tạo side effect trùng.  
+**Depends on:** Module Platform/personal ownership, jobs/scheduler, notifications, Vault references, audit, search, external HTTP/SSRF policy.
 
 ## 1. Scope decisions
 
@@ -55,8 +55,8 @@ Arbitrary user code/shell/SQL execution, unrestricted server network proxy, GitH
 | `P06-TBX-003` | P0 | Tool output được render như data, không execute HTML/script/Markdown unsafe content. | Malicious corpus cannot execute. |
 | `P06-TBX-004` | P0 | Tool không tự log/store clipboard/input chứa potential secret. | Marker secret absent logs/audit/history/telemetry. |
 | `P06-TBX-005` | P0 | Copy/download requires explicit user action and preserves declared encoding/newline semantics. | Round-trip fixtures pass; filename safe. |
-| `P06-TBX-006` | P1 | Optional history/favorites are opt-in, private, clearable and warn about sensitive inputs. | Default off; cross-Space/user/storage tests pass. |
-| `P06-TBX-008` | P0 | Tool manifest khai báo `supportedSpaces`, execution location, permissions, input classification và contribution routes. | Unsupported Space/disabled module/direct route bị chặn; manifest contract tests pass. |
+| `P06-TBX-006` | P1 | Optional history/favorites are opt-in, private, clearable and warn about sensitive inputs. | Default off; cross-user/storage tests pass. |
+| `P06-TBX-008` | P0 | Tool manifest khai báo personal ownership, execution location, permissions, input classification và contribution routes. | Wrong owner/disabled module/direct route bị chặn; manifest contract tests pass. |
 | `P06-TBX-007` | P0 | Mobile UI supports paste/run/copy/error without horizontal page break; code panes may scroll internally. | Representative viewport and keyboard tests. |
 
 ## 4. Data, encoding và format tools
@@ -140,13 +140,13 @@ Week boundary `PROPOSED`: ISO week Monday 00:00–next Monday 00:00 UTC; UI hi�
 | `P06-GHD-003` | P0 | Filters language/topic/created range/min stars validated and reflected in query/URL/state. | Unsupported/invalid filter safe; reset works; ranking definition remains clear. |
 | `P06-GHD-004` | P0 | Manual refresh idempotent/coalesced, rate-limit aware; UI shows last attempt/success/cache age. | Concurrent clicks do not storm API; 403/429 reset info safe. |
 | `P06-GHD-005` | P0 | Cache key includes query/filter/window/rule version and has explicit freshness. | One filter cannot receive cached result of another; stale-while-error labeled. |
-| `P06-GHD-006` | P1 | Saved repository/filter thuộc User hoặc Space được manifest hỗ trợ; saving không gọi GitHub write API. | Cross-Space isolation; deleted public repo handled as unavailable. |
+| `P06-GHD-006` | P1 | Saved repository/filter thuộc User; saving không gọi GitHub write API. | Cross-user isolation; deleted public repo handled as unavailable. |
 
 ## 10. Automation model
 
 ### 10.1 Core concepts
 
-- `AutomationDefinition`: owning Space, creator, name, version, enabled state, trigger, approved actions, mappings, policy.
+- `AutomationDefinition`: owner User, creator, name, version, enabled state, trigger, approved actions, mappings, policy.
 - `Trigger`: manual, schedule P0; event/webhook P1.
 - `Run`: immutable execution attempt with status/times/version/correlation.
 - `StepRun`: bounded input/output metadata with redaction.
@@ -158,20 +158,20 @@ Week boundary `PROPOSED`: ISO week Monday 00:00–next Monday 00:00 UTC; UI hi�
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P06-AUT-001` | P0 | User tạo automation chỉ từ trigger/action types do trusted Nexora module đăng ký và được enable trong current Space. | Unknown/disabled/arbitrary code/action rejected server-side. |
+| `P06-AUT-001` | P0 | User tạo automation chỉ từ trigger/action types do trusted Nexora module đăng ký và được enable cho account. | Unknown/disabled/arbitrary code/action rejected server-side. |
 | `P06-AUT-002` | P0 | Validate trước enable: schema, references, permissions, schedule/timezone, cycles/limits. | Invalid definition cannot enable/run. |
 | `P06-AUT-003` | P0 | Schedule supports timezone/start/end/missed-run policy and next-run preview. | DST/restart/missed boundary golden tests. |
 | `P06-AUT-004` | P0 | Manual run và scheduled run create unique run with idempotency/concurrency policy. | Duplicate trigger/retry does not duplicate business side effect. |
-| `P06-AUT-005` | P0 | Run executes với explicit authority snapshot/delegation và rechecks current Space, membership, module, resource, permission và secret availability trước side effect. | Removed/disabled user, revoked membership/grant, disabled module hoặc deleted resource prevents action safely. |
+| `P06-AUT-005` | P0 | Run executes với explicit authority snapshot và rechecks current User, module, resource, permission và secret availability trước side effect. | Disabled User, revoked permission/support, disabled module hoặc deleted resource prevents action safely. |
 | `P06-AUT-006` | P0 | Enable/disable/update/delete/retry/cancel/manual execute are separate authorized/audited actions. | Admin `view` cannot execute/configure; stale queued run obeys disable policy. |
 | `P06-AUT-007` | P0 | Run states: `Queued`, `Running`, `Succeeded`, `PartiallySucceeded` (if multi-step), `Failed`, `Cancelled`, `TimedOut`, `Skipped`. | Valid transitions enforced; restart recovers stuck runs by policy. |
-| `P06-AUT-008` | P0 | Per-automation/Workspace/user/system concurrency, timeout, retry/backoff and max attempts configurable within admin bounds. | Runaway/retry storm prevented; reason visible. |
+| `P06-AUT-008` | P0 | Per-automation/User/system concurrency, timeout, retry/backoff and max attempts configurable within admin bounds. | Runaway/retry storm prevented; reason visible. |
 | `P06-AUT-009` | P0 | Inputs/outputs/logs are bounded, redacted and retention-controlled. | Marker secret absent; huge payload not persisted. |
 | `P06-AUT-010` | P0 | Failure emits idempotent Notification according to preference/severity. | One logical final failure alert; intermediate retry not spam unless configured. |
 | `P06-AUT-011` | P1 | Dry-run/test mode must not claim no side effect unless every action supports verified simulation. | Unsupported action clearly blocks or labels test as real. |
 | `P06-AUT-012` | P1 | Definition export/import excludes secret values and validates action availability/version. | Imported definition requires rebind secret refs; cannot elevate permission. |
 | `P06-AUT-013` | P0 | Module disable/upgrade/uninstall validates active definitions, queued runs, schedules và contribution versions. | Disable stops new triggers, queued run follows explicit cancel/skip policy, data/history remains recoverable. |
-| `P06-AUT-014` | P0 | Workspace Automation không tiếp tục dưới quyền creator sau khi membership/role mất hiệu lực. | Creator removal hoặc permission downgrade is detected before run/step; no ambient authority. |
+| `P06-AUT-014` | P0 | Automation không tiếp tục sau khi owner bị disabled hoặc required permission/module/secret access mất hiệu lực. | State/permission downgrade được detect trước run/step; no ambient authority. |
 
 ## 11. Approved P0 automation use cases proposal
 
@@ -193,10 +193,10 @@ Internal jobs and user-visible automations must remain distinct even if sharing 
 
 ## 13. Permissions và audit
 
-- `developer_tools.view/execute/configure`; `github_discovery.view/execute/configure`; `automation.view/create/update/delete/execute/configure/access_all`.
+- `developer_tools.view/execute/configure`; `github_discovery.view/execute/configure`; `automation.view/create/update/delete/execute/configure`; mọi truy cập User khác vẫn cần support/emergency context.
 - Network tool execution/configuration, automation enable/execute/retry/cancel, secret binding, webhook config, privileged runs and backup trigger audited.
 - Utility input/output and secret value never copied into Audit Log.
-- Saved GitHub/tool history and automation definitions follow declared Personal/Workspace support; per-user preferences remain private.
+- Saved GitHub/tool history and automation definitions are personal; preferences remain private.
 
 ## 14. Critical edge cases
 
@@ -206,7 +206,7 @@ Internal jobs and user-visible automations must remain distinct even if sharing 
 - Scheduler restart/DST/missed run, duplicate webhook, stale definition version, revoked secret/permission.
 - Workflow partial success, cancel race, retry after side effect succeeded but acknowledgement failed.
 - n8n disconnected or sends old schema/version.
-- Workspace/module disabled, Member removed hoặc action contribution upgraded giữa enqueue và execute.
+- User/module/permission disabled hoặc action contribution upgraded giữa enqueue và execute.
 
 ## 15. Verification scenarios
 
@@ -217,7 +217,7 @@ Internal jobs and user-visible automations must remain distinct even if sharing 
 5. Same automation trigger delivered twice yields one logical side effect and traceable run attempts.
 6. Permission/secret revoked after queue but before run causes safe skip/fail, not unauthorized action.
 7. Webhook/HTTP tests block all prohibited network targets if P1 ships.
-8. Disable module hoặc remove Workspace Member sau enqueue làm run skip/fail đúng policy, không tạo side effect.
+8. Disable User/module hoặc revoke permission sau enqueue làm run skip/fail đúng policy, không tạo side effect.
 9. User/Admin không thể upload/đăng ký executable module, trigger hoặc action ngoài developer-shipped registry.
 
 ## 16. Exit criteria
@@ -227,5 +227,5 @@ Internal jobs and user-visible automations must remain distinct even if sharing 
 - Automation authority/idempotency/retry/concurrency/redaction/cancellation tests pass.
 - SSRF/network surface disabled or passes approved security suite.
 - Job/run/failure metrics, history and alerts are operational.
-- Module contribution/version lifecycle, supported Space và removed-member/disabled-module tests pass.
+- Module contribution/version lifecycle, personal ownership và disabled-User/module tests pass.
 - No Critical/High findings; responsive/accessibility P0 journeys pass.

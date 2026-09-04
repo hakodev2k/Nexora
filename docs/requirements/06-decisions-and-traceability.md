@@ -1,160 +1,211 @@
 # Decisions, Assumptions and Traceability
 
 **Document ID:** `NX-GOV-001`  
-**Version:** `1.1-draft`  
-**Status:** Active requirement governance
+**Version:** `1.2-draft`  
+**Status:** Active requirement governance  
+**Last decision update:** `2026-09-04`
 
 ## 1. Requirement status lifecycle
 
 `Proposed → Reviewed → Approved → Implementing → Verified → Released`
 
-Ngoài luồng chính có `Blocked`, `Deferred`, `Rejected`, `Deprecated`. Chỉ Product Owner (product behavior/scope) hoặc owner được ủy quyền (technical target trong guardrail đã duyệt) mới chuyển requirement thành `Approved`.
+Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded`, `Deprecated`. Chỉ Product Owner duyệt product behavior/scope. Technical/security owner chỉ được chốt implementation trong guardrail không làm đổi behavior đã duyệt.
 
-## 2. Product decisions đã xác nhận
+## 2. Product direction decisions
 
 | ID | Decision | Status | Consequence |
 |---|---|---|---|
-| `DEC-PRD-015` | Team Workspace và collaboration phải được thiết kế ngay từ đầu. | Approved | Phase 1 phải có Personal/Workspace ownership, membership, roles và isolation. |
-| `DEC-PRD-016` | Module mới chỉ do trusted developers phát triển/ship bằng code; Admin/User chỉ enable/configure/use. | Approved | Module Contract/Registry là core; no-code builder và executable upload được defer. |
-| `DEC-PRD-017` | Collaboration v1 là bất đồng bộ. | Approved | Assignment, comments, mentions, activity, notifications, versions và conflict detection P0; live cursor/CRDT/OT out. |
+| `DEC-PRD-015` | Team Workspace và collaboration phải được thiết kế ngay từ đầu. | **Superseded** bởi `DEC-PRD-024` | Không được dùng làm requirement Release 1. |
+| `DEC-PRD-016` | Module mới chỉ do trusted developers phát triển/ship bằng code; Admin/User không author hoặc upload executable module. | Approved | Module Contract/Registry là core; no-code builder và third-party executable marketplace Deferred. |
+| `DEC-PRD-017` | Collaboration v1 là bất đồng bộ. | **Superseded** bởi `DEC-PRD-024` | Release 1 không có team collaboration. |
+| `DEC-PRD-022` | Nexora là Public SaaS do chủ sở hữu Nexora vận hành tập trung. | Approved | Production readiness, public attack surface, email delivery, capacity và operations là release requirements. |
+| `DEC-PRD-023` | Bất kỳ ai cũng có thể self-register; account chỉ active sau email verification và được dùng ngay, không cần Admin approval. | Approved | Phase 1 phải có registration/verification/anti-abuse flow. |
+| `DEC-PRD-024` | Release 1 là personal-only: mỗi User là một cá nhân độc lập, tự nhập/quản lý data; không có Workspace, memberships, group ownership hoặc team collaboration. | Approved | Ownership, queries, roles, search, files, jobs và tests chuyển sang cross-user isolation. |
+| `DEC-PRD-025` | Release 1 gồm toàn bộ module đã có requirement hiện tại; mỗi module phải hoàn thành theo approved scope, không phải demo/placeholder. | Approved | Có thể chia milestone nội bộ nhưng release chỉ complete khi catalog/acceptance đã duyệt hoàn thành. |
+| `DEC-PRD-026` | Dữ liệu chủ yếu được nhập thủ công; import file chỉ hỗ trợ ở module/format đã duyệt. | Approved | External synchronization không phải dependency mặc định. |
 
-## 3. Baseline assumptions cần xác nhận
+## 3. Module, administration, sharing và support decisions
+
+| ID | Decision | Status | Consequence |
+|---|---|---|---|
+| `DEC-PRD-027` | Mọi module Release 1 mặc định bật cho User mới. | Approved | SuperAdmin có thể thay registration-default policy về sau. |
+| `DEC-PRD-028` | SuperAdmin enable/disable module theo User; SuperAdmin quản lý module và action permission theo Admin. | Approved | User/Admin không tự bypass module disable hoặc tự nâng permission. |
+| `DEC-PRD-029` | Resource sharing luôn read-only với ba mode: Public Link, Authenticated Link (bất kỳ User đăng nhập có link) và Restricted Users. | Approved | Không có password-link hoặc edit/comment qua link trong Release 1. |
+| `DEC-PRD-030` | SuperAdmin quyết định theo từng module/resource type việc sharing có được phép. | Approved | Manifest/registry + system policy gate share action. |
+| `DEC-PRD-031` | Share hỗ trợ expiry/revoke và hiển thị dữ liệu mới nhất; resource bị xóa/trash làm link không truy cập được. | Approved | Share tham chiếu live resource, không tạo snapshot/copy. |
+| `DEC-SEC-010` | Admin chỉ xem dữ liệu User khi User cấp support grant read-only cho đúng một module. | Approved | Admin cần cả module permission và active grant. |
+| `DEC-SEC-011` | Support duration có ba option: 24 giờ (default), custom expiry hoặc tới khi User revoke; bất kỳ Admin đủ permission có thể dùng. | Approved | Grant gắn User + module, không gắn độc quyền một Admin; use/expiry/revoke audited. |
+| `DEC-SEC-012` | SuperAdmin chỉ xem dữ liệu User không consent trong emergency flow; bắt buộc reason, audit và immediate User notification. | Approved | Không có ambient global data browsing hoặc hidden impersonation. |
+
+## 4. Project và Task decisions
+
+| ID | Decision | Status |
+|---|---|---|
+| `DEC-TSK-001` | Mọi Task phải thuộc đúng một Project và không được chuyển sang Project khác. | Approved |
+| `DEC-TSK-002` | Task states: `NotStarted` (Chưa làm), `InProgress` (Đang làm), `Completed` (Hoàn thành), `Skipped` (Bỏ qua). | Approved |
+| `DEC-TSK-003` | Forward transition tự do; backward transition bắt buộc nhập reason. `Skipped` được chọn từ NotStarted hoặc InProgress cho Task chưa hoàn thành mà User không muốn tiếp tục. | Approved |
+| `DEC-TSK-004` | Task required fields: Project, Title, StartDateTime, EndDateTime. Optional: Description, Acceptance Criteria text/checklist, Priority P0–P3, nhiều Tag và một Reminder. | Approved |
+| `DEC-TSK-005` | P0 là priority cao nhất, P3 thấp nhất; Project/Task dùng chung tag catalog riêng của User, module khác dùng catalog riêng. | Approved |
+| `DEC-TSK-006` | Task điều khiển read-only Calendar Event một chiều; Calendar không sửa Task. Event giữ lại khi Task Completed/Skipped và hiển thị source status. | Approved |
+| `DEC-TSK-007` | Task active quá EndDateTime giữ business state và có computed Overdue flag; đến StartDateTime không tự đổi state. | Approved |
+| `DEC-TSK-008` | Một Task có tối đa một Reminder: exact datetime hoặc preset 15 phút trước Start; phát đồng thời In-app, Email, Browser Push. | Approved |
+| `DEC-TSK-009` | Project detail có Kanban/Table, mặc định Kanban; Projects page có Grid/Table, mặc định Grid. | Approved |
+| `DEC-TSK-010` | Task Completed/Skipped vẫn sửa được nếu Project active; mọi thay đổi versioned, có thể restore toàn bộ version cũ thành revision mới. | Approved |
+| `DEC-TSK-011` | Task delete vào Trash vô thời hạn; User tự purge. Không restore Task nếu Project terminal hoặc Project cha vẫn ở Trash. | Approved |
+| `DEC-PRJ-001` | Project required: Title, Description, StartDateTime, EndDateTime; optional Priority, Tag, color/icon, notes; default state NotStarted. | Approved |
+| `DEC-PRJ-002` | Project states: NotStarted, InProgress, Completed, Skipped. Completed/Skipped là terminal, không reopen; Project và Tasks trở thành read-only, không thêm Task. | Approved |
+| `DEC-PRJ-003` | Nếu mọi Task terminal, hệ thống hỏi xác nhận complete Project. User vẫn có thể complete khi còn Task mở sau warning + mandatory reason. | Approved |
+| `DEC-PRJ-004` | Skip Project giữ nguyên child Task states; các Task chưa xong không được tiếp tục sau khi Project terminal. | Approved |
+| `DEC-PRJ-005` | Task ngoài khoảng Project được lưu sau warning + confirmation. Calendar chỉ hiển thị Task, không hiển thị Project. | Approved |
+| `DEC-PRJ-006` | Delete Project đưa cả aggregate vào Trash vô thời hạn; restore Project khôi phục toàn bộ Tasks; không restore Task riêng khi parent ở Trash. | Approved |
+| `DEC-PRJ-007` | Project share hiển thị live Project và toàn bộ Tasks/chi tiết Task; owner không ẩn Task riêng; history/reasons/reminders/audit không hiển thị. | Approved |
+| `DEC-PRJ-008` | Project/Task import và export không thuộc Release 1; hai capability được xem xét cùng nhau sau Release 1. | Approved |
+
+Chi tiết field, view, filter, search, state transition, Calendar projection, history và lifecycle nằm tại [Phase 2 — Productivity](phases/phase-02-productivity.md).
+
+## 5. Calendar decisions
+
+| ID | Decision | Status |
+|---|---|---|
+| `DEC-CAL-001` | Calendar có Task-generated Event và manual personal Event; view Month/Week/Day/Agenda, mặc định Day. | Approved |
+| `DEC-CAL-002` | Overlap được phép nhưng phải cảnh báo; không drag/drop/resize, chỉ sửa qua detail form. | Approved |
+| `DEC-CAL-003` | Manual Event required: Title, Description, Start, End; optional: một Reminder và All-day (một hoặc nhiều ngày). | Approved |
+| `DEC-CAL-004` | Manual Event states: Scheduled, Completed, Canceled; delete nghĩa là Canceled. Completed/Canceled read-only, không reopen; Canceled vẫn hiện gạch ngang. | Approved |
+| `DEC-CAL-005` | Event qua End nhưng còn Scheduled vẫn hiển thị bình thường, không auto-state hoặc overdue marker. | Approved |
+| `DEC-CAL-006` | Calendar filters: Status, time range. Search: Title và Project Title cho Task-generated Event. | Approved |
+| `DEC-CAL-007` | Event cá nhân không được chia sẻ bằng link; không external calendar synchronization trong Release 1. | Approved |
+| `DEC-CAL-008` | Calendar import/export `.ics`; import luôn tạo manual Event, không Task; recurring/invalid/duplicate UID entries bị skip và báo cáo. | Approved |
+| `DEC-CAL-009` | Import không lấy VALARM; mọi imported Event thành Scheduled; datetime quy đổi về User timezone. | Approved |
+| `DEC-CAL-010` | Export cho User chọn source type, statuses và toàn bộ hoặc custom time range; custom range chỉ lấy Event nằm hoàn toàn trong khoảng. | Approved |
+| `DEC-CAL-011` | Export toàn bộ supported Event data trừ Reminder; no history/audit/internal metadata. | Approved |
+| `DEC-CAL-012` | User timezone tự nhận từ browser và có thể đổi; đổi timezone giữ instant, chỉ thay display time. | Approved |
+
+## 6. Notification decisions đang làm rõ
+
+| ID | Decision | Status |
+|---|---|---|
+| `DEC-NTF-001` | Task/Event Reminder luôn phát đồng thời In-app, Email và Browser Push. | Approved |
+| `DEC-NTF-002` | Notification Center chứa Reminder, Security/Account, Support/Emergency và Module/System notifications. | Approved |
+| `DEC-NTF-003` | Notification tồn tại tới khi User tự xóa; không auto-expire. | Approved |
+| `DEC-NTF-004` | Channel policy cho notification không phải Reminder. | **Open — câu hỏi kế tiếp** |
+| `DEC-NTF-005` | Notification Center actions: open source, read/unread, mark-all-read, bulk delete. | **Open — câu hỏi kế tiếp** |
+| `DEC-NTF-006` | User có được mute module/category; security notifications nào mandatory. | **Open — câu hỏi kế tiếp** |
+
+## 7. Baseline assumptions còn hiệu lực
 
 | ID | Assumption | Tác động nếu sai |
 |---|---|---|
-| `ASM-001` | Nexora ban đầu dùng bởi một nhóm nhỏ trên môi trường local/private. | Security topology, capacity và onboarding phải đổi nếu public Internet sớm. |
-| `ASM-002` | Một account tương ứng một user identity; User có một Personal Space và có thể thuộc nhiều Team Workspace. | Identity federation/multiple identities sẽ cần decision mới nếu phát sinh. |
-| `ASM-003` | User tự nhập dữ liệu Finance/Tasks/Knowledge/Vault ở phase đầu. | Import/sync sẽ trở thành critical path nếu manual không đủ. |
-| `ASM-004` | External share link là read-only; Workspace members cộng tác/edit/comment bất đồng bộ theo permission. | Realtime co-editing hoặc edit-through-share cần security/concurrency architecture mới. |
-| `ASM-005` | GitHub Discovery chỉ dùng public data và không cần GitHub login. | OAuth/token storage/rate limit/privacy scope đổi nếu cần account features. |
-| `ASM-006` | “Top weekly popular” nghĩa repository tạo trong tuần hiện tại, sort tổng stars giảm dần. | Ranking/data snapshot thay đổi nếu metric là stars gained. |
-| `ASM-007` | Không có AI/LLM feature; AI News chỉ là category. | Architecture/cost/privacy/UX mở rộng nếu policy đổi. |
-| `ASM-008` | Phase plan trong bộ tài liệu này là đề xuất, chưa phải release commitment. | Timeline/resourcing cần cập nhật sau prioritization. |
+| `ASM-001` | Một account tương ứng một User identity và một personal data boundary. | Multiple identities/account merge cần decision/migration mới. |
+| `ASM-002` | External share chỉ read-only; authenticated-link viewer không trở thành collaborator hoặc owner. | Edit/collaboration cần authorization model mới. |
+| `ASM-003` | User tự nhập dữ liệu Finance/Tasks/Knowledge/Vault; integration chỉ là capability được duyệt riêng. | Provider sync trở thành critical path nếu manual không đủ. |
+| `ASM-004` | GitHub Discovery chỉ dùng public data và không cần GitHub login. | OAuth/token/privacy scope đổi nếu cần private account features. |
+| `ASM-005` | “Top weekly popular” nghĩa repository tạo trong tuần hiện tại, sort tổng stars giảm dần. | Ranking/data snapshot thay đổi nếu metric là stars gained. |
+| `ASM-006` | Không có AI/LLM feature; AI News chỉ là category. | Architecture/cost/privacy/UX mở rộng nếu policy đổi. |
+| `ASM-007` | Phase là milestone delivery nội bộ; mọi committed module vẫn thuộc cùng Release 1. | Release acceptance thay đổi nếu Product Owner tách release train. |
 
-## 4. Open decision backlog
+## 8. Open product decision backlog
 
-### 3.1 Product decisions
-
-| ID | Decision cần chốt | Chặn phase | Owner đề xuất |
+| ID | Decision cần chốt | Chặn phase | Owner |
 |---|---|---:|---|
-| `DEC-PRD-001` | Module P0/P1/P2 cuối cùng và phần nào của candidate catalog bị defer/remove/merge | 0 | Product Owner |
-| `DEC-PRD-002` | Tasks–Projects cardinality, status model và recurring task behavior | 2 | Product Owner |
-| `DEC-PRD-003` | Calendar recurrence, invitation/attendee/shared calendar scope | 2 | Product Owner |
 | `DEC-PRD-004` | Notes, Knowledge Article và Document là resource riêng hay content types trên cùng engine | 3 | Product + Architecture |
 | `DEC-PRD-005` | Dashboard widget set và customization level | 3 | Product Owner |
-| `DEC-PRD-006` | UI language, locale, timezone default, currency set và first day of week | 1 | Product Owner |
+| `DEC-PRD-006` | UI language, locale, currency set và first day of week | 1 | Product Owner |
 | `DEC-PRD-007` | Finance transfer, split transaction, budget period và debt workflow | 4 | Product Owner |
 | `DEC-PRD-008` | Vault sharing/import/export có được phép không | 4 | Product + Security |
 | `DEC-PRD-009` | News ingestion: RSS only hay thêm curated/manual sources | 5 | Product Owner |
 | `DEC-PRD-010` | Shopee acquisition method và legal/operational constraints | 5 | Product + Legal/Tech |
 | `DEC-PRD-011` | Price alert rule: absolute target, percentage drop, lowest-price và cooldown | 5 | Product Owner |
-| `DEC-PRD-012` | Developer Toolbox P0 tool list và server-side network tools có được bật không | 6 | Product + Security |
-| `DEC-PRD-013` | Automation v1 là scheduler đơn giản hay workflow graph; n8n scope | 6 | Product + Architecture |
-| `DEC-PRD-014` | Module nào trong Personal/Digital Assets/Career thực sự committed | 7 | Product Owner |
-| `DEC-PRD-018` | Workspace role defaults, ai được tạo Workspace, invite policy và Guest visibility | 0/1 | Product Owner |
-| `DEC-PRD-019` | Module nào hỗ trợ Personal, Workspace hoặc cả hai; đặc biệt Finance/Vault | Theo module | Product + Security |
-| `DEC-PRD-020` | Member removal: unassign/reassign Tasks, pending approvals và notification history | 1/2 | Product Owner |
-| `DEC-PRD-021` | Comment edit/delete window, moderation và reply depth | 2/3 | Product Owner |
+| `DEC-PRD-012` | Developer Toolbox P0 tool list và server-side network tools | 6 | Product + Security |
+| `DEC-PRD-013` | Automation v1 workflow graph và n8n boundary | 6 | Product + Architecture |
+| `DEC-PRD-014` | Field/state/lifecycle chi tiết cho Personal Assets, Digital Assets và Career | 7 | Product Owner |
+| `DEC-PRD-032` | Project InProgress → NotStarted có được phép và có cần reason hay không | 2 | Product Owner |
+| `DEC-PRD-033` | Task subtasks/attachments và independent Reminder có thuộc approved Phase 2 scope hay không | 2 | Product Owner |
+| `DEC-PRD-034` | Notification non-reminder channels, actions, mute và quiet-hours | 1/2 | Product Owner |
+| `DEC-SHR-001` | Default/max expiration presets cho external share link | 1 | Product Owner + Security |
+| `DEC-SHR-002` | Existing share bị revoke ngay hay chỉ cấm tạo mới khi SuperAdmin tắt sharing của module | 1 | Product Owner + Security |
+| `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
+| `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
+| `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 
-### 3.2 Technical/security decisions
+## 9. Technical/security decisions
 
 | ID | Decision cần chốt | Chặn phase |
 |---|---|---:|
 | `DEC-TEC-001` | React framework/build tool, routing, state/data-fetching conventions | 1 |
-| `DEC-TEC-002` | .NET target version, architecture/module boundaries, API style | 1 |
-| `DEC-TEC-003` | SQL engine, ORM/data access, migration ownership | 1 |
-| `DEC-TEC-004` | Authentication/session implementation | 1 |
-| `DEC-TEC-005` | Redis use cases, fallback behavior và key isolation | 1 |
-| `DEC-TEC-006` | File storage provider abstraction và local implementation | 1/3 |
-| `DEC-TEC-007` | Search implementation/index consistency strategy | 3 |
-| `DEC-TEC-008` | Background job/scheduler engine | 2/5 |
-| `DEC-TEC-009` | Notification channel providers | 5/8 |
+| `DEC-TEC-002` | .NET target version, modular architecture và API style | 1 |
+| `DEC-TEC-003` | SQL engine, ORM/data access, migrations | 1 |
+| `DEC-TEC-004` | Authentication/session/email-verification implementation | 1 |
+| `DEC-TEC-005` | Redis use cases, fallback và per-User key isolation | 1 |
+| `DEC-TEC-006` | File storage abstraction và local/production implementation | 1/3 |
+| `DEC-TEC-007` | Search implementation/index consistency | 3 |
+| `DEC-TEC-008` | Background scheduler/job engine | 1/2 |
+| `DEC-TEC-009` | Email và Browser Push providers/delivery architecture | 1/2/8 |
 | `DEC-TEC-010` | Logging/metrics/tracing stack | 1 |
 | `DEC-TEC-011` | Backup format/tool, retention, RPO/RTO | 8 |
-| `DEC-TEC-012` | Docker/reverse proxy/hosting/cloud/domain/TLS/CDN topology | 8 |
-| `DEC-TEC-013` | Module registry/manifest/package boundaries, versioning và migration orchestration | 1 |
-| `DEC-TEC-014` | Workspace/Personal ownership representation và query isolation strategy | 1 |
-| `DEC-TEC-015` | Optimistic concurrency/conflict response/revalidation strategy cho async collaboration | 1/2 |
-| `DEC-SEC-001` | Password hashing scheme và parameter upgrade policy | 1 |
+| `DEC-TEC-012` | Public SaaS hosting, reverse proxy, domain, TLS, CDN và scaling topology | 8 |
+| `DEC-TEC-013` | Module registry/manifest/package/version/migration orchestration | 1 |
+| `DEC-TEC-014` | Personal owner representation và mandatory query isolation strategy | 1 |
+| `DEC-TEC-015` | Optimistic concurrency/version restore strategy cho same-User multi-tab edits | 1/2 |
+| `DEC-SEC-001` | Password hashing scheme và parameter upgrade | 1 |
 | `DEC-SEC-002` | Secret encryption envelope, key store, versioning và rotation | 4 |
-| `DEC-SEC-003` | Admin privileged data scope/reason capture workflow | 1/4 |
-| `DEC-SEC-004` | MFA/recent-auth requirements cho Admin/SuperAdmin/Vault | 4/8 |
-| `DEC-SEC-005` | Audit retention/integrity/export strategy | 1/8 |
-| `DEC-SEC-006` | Upload malware scanning, quotas và unsafe content policy | 3/8 |
-| `DEC-SEC-007` | SSRF policy cho HTTP Client, webhook, feed và crawler | 5/6 |
-| `DEC-SEC-008` | Workspace Guest/restricted-resource permission và anti-enumeration policy | 1 |
-| `DEC-SEC-009` | Invitation token, local delivery và member revocation propagation | 1 |
+| `DEC-SEC-003` | Support/emergency session token, propagation và audit integrity | 1 |
+| `DEC-SEC-004` | MFA/recent-auth cho Admin/SuperAdmin/Vault | 4/8 |
+| `DEC-SEC-005` | Audit retention/integrity/export | 1/8 |
+| `DEC-SEC-006` | Upload malware scanning, quotas, unsafe content | 3/8 |
+| `DEC-SEC-007` | SSRF policy cho tools/webhooks/feeds/crawler | 5/6 |
+| `DEC-SEC-008` | Restricted-user lookup anti-enumeration | 1 |
+| `DEC-SEC-009` | Verification/recovery email token lifetime và resend limits | 1 |
 
-## 5. Decision record rule
+## 10. Decision record rule
 
-Mỗi decision khi đóng phải ghi: context, considered options, decision, rationale, consequences, security/data/migration impact, owner, date và link tới requirement bị ảnh hưởng. Architecture decision không được thay đổi product behavior đã approved nếu chưa qua change control.
+Mỗi decision khi đóng phải ghi: context, considered options, decision, rationale, consequences, security/data/migration impact, owner, date và link tới requirement bị ảnh hưởng. Không sửa lịch sử để làm như decision mới luôn tồn tại; decision cũ được giữ và đánh dấu `Superseded`.
 
-## 6. Traceability chain
+## 11. Traceability chain
 
-Mỗi P0/P1 requirement phải trace được theo chuỗi:
+Mỗi P0/P1 requirement phải trace được:
 
 `Goal → Requirement ID → User story/use case → Design/ADR → Work item/PR → Test case → Verification evidence → Release`
 
 Minimum metadata cho work item/PR:
 
 - requirement ID(s);
-- decision/ADR link nếu có;
-- acceptance criteria được đáp ứng;
-- security/data migration impact;
+- decision/ADR link;
+- acceptance criteria;
+- security/data/migration impact;
 - test evidence và known limitations.
 
-## 7. Change control
+## 12. Definition of Ready
 
-1. Người đề xuất nêu requirement hiện tại, thay đổi mong muốn và lý do.
-2. Phân tích tác động đến scope/phase, permission, privacy/security, data migration, API/UI, test và docs.
-3. Product Owner duyệt behavior/scope; technical/security owner duyệt guardrails tương ứng.
-4. Cập nhật requirement/decision ID trước hoặc cùng implementation.
-5. Không sửa lịch sử để làm như decision mới luôn tồn tại; ghi version/changelog.
+Feature chỉ sẵn sàng development khi có actor/problem, in/out scope, happy/alternate/error states, fields/validation, state transitions, personal ownership, module enablement, permission/share/support policy, retention, audit/notification/search/file/job integration, acceptance criteria và mọi blocking decision đã đóng.
 
-## 8. Definition of Ready cho feature
+## 13. Definition of Done
 
-Feature chỉ sẵn sàng development khi có:
-
-- user/actor và problem statement;
-- in-scope/out-of-scope;
-- happy path, alternate/error/empty/loading states;
-- business rules và state transitions;
-- Personal/Workspace ownership, module enablement, membership/permission/share policy;
-- data fields, classification, validation, retention và migration impact;
-- audit/notification/search/file/job integration;
-- measurable acceptance criteria;
-- dependencies/decisions/risks đã đóng hoặc có owner/date.
-
-## 9. Definition of Done cho feature/phase
-
-- P0 acceptance criteria pass; P1 defer có approval.
-- Code review, build, automated tests và security checks pass.
-- Authorization negative tests và cross-user/cross-workspace isolation tests pass.
+- P0 acceptance criteria pass; P1 defer có Product Owner approval.
+- Code review/build/tests/security checks pass.
+- Cross-user isolation pass cho UI/API/direct ID/search/count/file/cache/export/job.
 - Responsive/accessibility/error-state QA hoàn thành.
-- Migration, backup/restore impact và rollback path được chứng minh nếu liên quan.
-- Logging/audit/notification không lộ sensitive data.
-- Docs, API contract, runbook/operational note được cập nhật.
-- Known limitations/remaining risk có owner và không mâu thuẫn release gate.
+- Migration/backup/restore/rollback evidence có khi liên quan.
+- Logs/audit/notification không lộ private/secret data.
+- Docs/API/runbook được cập nhật và known risk có owner.
 
-## 10. Initial risk register
+## 14. Risk register
 
-| ID | Risk | Mức | Mitigation/decision |
+| ID | Risk | Mức | Mitigation |
 |---|---|---|---|
-| `RSK-001` | Catalog quá rộng làm sản phẩm không có usable vertical slice | High | Phase gate, P0 scope cap, defer candidate modules. |
-| `RSK-002` | Retrofit ownership/permission gây data leak | Critical | Phase 1 trước business module; mandatory negative tests. |
-| `RSK-003` | Vault key management sai làm lộ hoặc mất secret | Critical | Security design/review/rotation/restore rehearsal trước Phase 4 exit. |
-| `RSK-004` | Scraping Shopee không ổn định hoặc vi phạm điều kiện provider | High | `DEC-PRD-010`, adapter, rate limit, degraded/manual fallback. |
-| `RSK-005` | Search/cache trả stale permission data | High | Query-time access enforcement + invalidation bound tests. |
-| `RSK-006` | Automation retry tạo duplicate side effect | High | Idempotency key, run history, retry/compensation requirements. |
-| `RSK-007` | Direct network tools gây SSRF | Critical | Disabled-by-default server egress hoặc strict policy; security tests. |
-| `RSK-008` | Local deployment bị hiểu nhầm là không cần security | High | Same security baseline; only availability/capacity targets differ. |
-| `RSK-009` | Backup có nhưng không restore được hoặc thiếu key/files | Critical | Full inventory + isolated restore rehearsal. |
-| `RSK-010` | Duplicate concepts (Read Later, Files, Licenses, Warranty) phân mảnh data | Medium | Boundary decisions trong module catalog. |
-| `RSK-011` | Workspace membership/cache/search/job sai scope gây cross-workspace leak | Critical | Space context server-side, query-time checks, revocation bound và mandatory matrix. |
-| `RSK-012` | Module disable/upgrade làm mất data hoặc để job/route hoạt động | High | Module lifecycle contract, dependency/migration checks và contract tests. |
-| `RSK-013` | Async concurrent edits silent overwrite | High | Optimistic concurrency, version history và conflict-resolution UX. |
-| `RSK-014` | System role và Workspace role bị trộn tạo privilege escalation | Critical | Hai role layers độc lập, default deny và bidirectional escalation tests. |
+| `RSK-001` | Release 1 gồm quá nhiều module làm timeline/cost tăng mạnh | Critical | Milestone nội bộ, dependency order, feature DoR và evidence; không hạ module thành placeholder. |
+| `RSK-002` | Cross-user authorization lỗi gây data leak trên Public SaaS | Critical | Owner context server-side + mandatory negative matrix ở mọi data path. |
+| `RSK-003` | Vault key management sai làm lộ/mất Secret | Critical | Encryption design/review/rotation/restore rehearsal. |
+| `RSK-004` | Public registration/share endpoints bị spam, enumeration hoặc abuse | High | Verification, rate-limit, anti-automation, generic responses và monitoring. |
+| `RSK-005` | Search/cache trả stale permission data | High | Query-time authorization + invalidation bound. |
+| `RSK-006` | Job/import/reminder retry tạo duplicate effect | High | Idempotency keys, UID/source keys, run history. |
+| `RSK-007` | Server-side network tools gây SSRF | Critical | Disabled-by-default egress hoặc strict policy/test. |
+| `RSK-008` | Email/Push provider outage làm mất notification | High | Independent delivery attempts, retry/backoff, operational alert. |
+| `RSK-009` | Backup thiếu files/key hoặc không restore được | Critical | Full inventory + isolated restore rehearsal. |
+| `RSK-010` | Module disable/upgrade làm mất data hoặc còn stale job/route | High | Lifecycle contract + dependency/migration tests. |
+| `RSK-011` | Support/emergency access bị lạm dụng | Critical | Consent, one-module scope, expiry, read-only, reason, audit, immediate notification. |
+| `RSK-012` | Task/Project terminal/trash/history rules không atomic | High | Aggregate transaction, state-machine tests, restore/purge scenarios. |
+| `RSK-013` | `.ics` import gây duplicate/timezone/data loss | High | UID dedupe, per-record validation/report, UTC+zone semantics. |
 
-## 11. Review checklist dành cho Product Owner
+## 15. Product Owner review queue
 
-Ưu tiên xác nhận tiếp: Workspace role/invite/default visibility, module supported Space, member-removal policy, comment moderation, phase order, committed module list, locale/currency, Productivity scope, Knowledge content model, Finance/Vault Workspace support, Shopee/Automation và Phase 7 modules.
+Ngay sau commit này, requirement interview tiếp tục từ ba decision Notification đang Open (`DEC-NTF-004..006`), sau đó chuyển sang Knowledge/Documents. Mọi câu trả lời tiếp theo phải được cập nhật vào requirement và Decision Log trước implementation.

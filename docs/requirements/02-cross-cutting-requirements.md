@@ -1,46 +1,50 @@
 # Cross-cutting Platform Requirements
 
 **Document ID:** `NX-PRD-002`  
-**Version:** `1.1-draft`  
+**Version:** `1.2-draft`  
 **Status:** Working draft  
 **Applies to:** Mọi phase và mọi module, trừ khi có ngoại lệ được ghi rõ.
 
-Workspace/collaboration chi tiết xem [Workspaces and Asynchronous Collaboration](08-workspaces-and-collaboration.md). Module lifecycle/enablement chi tiết xem [Module Platform](07-module-platform.md).
+Personal ownership, sharing và privileged support access chi tiết xem [Personal Data, Sharing and Support Access](08-workspaces-and-collaboration.md). Module lifecycle/enablement chi tiết xem [Module Platform](07-module-platform.md).
 
 ## 1. Identity, ownership và privacy boundary
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `OWN-001` | P0 | Mỗi business record phù hợp MUST thuộc đúng một owning Space: Personal Space hoặc Team Workspace. | Tạo record thiếu/đa owner bị từ chối; Space lấy từ authoritative route/context, không tin UserId/WorkspaceId do client tự chọn. |
-| `OWN-002` | P0 | Mọi read/list/count/search/export MUST lọc theo current Space, membership, role, action và resource access. | Test User/Workspace A không thấy resource private/restricted của B qua UI, API, search, export, direct ID hoặc aggregate count. |
+| `OWN-001` | P0 | Mỗi business record MUST thuộc đúng một User/Personal Space. | Tạo record thiếu/đa owner bị từ chối; owner lấy từ authenticated server context, không tin `UserId` do client tự chọn. |
+| `OWN-002` | P0 | Mọi read/list/count/search/export/job MUST lọc theo owner, module enablement, action và resource/share/support access. | User A không thấy hoặc suy ra dữ liệu User B qua UI, API, search, export, direct ID, cache, job hoặc aggregate count. |
 | `OWN-003` | P0 | Resource mới MUST là private mặc định. | Không tạo share/public visibility ngầm; anonymous request nhận kết quả không tiết lộ sự tồn tại của resource. |
-| `OWN-004` | P0 | Chuyển resource giữa Personal/Workspace hoặc hai Workspace chỉ qua dedicated policy và phải audit. | Không có generic update cho owning Space; event ghi actor, old/new Space, reason và outcome. |
-| `OWN-005` | P0 | Disabled/deleted/removed User không được làm mất Workspace-owned data họ tạo. | Member removal xử lý assignments/jobs/access; creator tách khỏi owner; personal-data lifecycle riêng. |
-| `OWN-006` | P0 | Resource type MUST đăng ký capability và supported Space: shareable, collaborative, searchable, trashable, exportable, attachable. | Registry được kiểm thử; UI không hiển thị action/scope không hỗ trợ. |
-| `OWN-007` | P0 | Creator/editor/assignee không đồng nghĩa owning Space. | Member rời Workspace không chuyển hoặc xóa resource; history vẫn trace actor theo retention. |
+| `OWN-004` | P0 | Release 1 không cho chuyển ownership resource sang User khác. | Không có generic owner update; tampered owner field bị ignore/reject. |
+| `OWN-005` | P0 | Disable/delete account phải xử lý data, shares, reminders, jobs và retention bằng workflow rõ; không implicit purge. | Account state change không làm mất dữ liệu ngoài policy hoặc để background action tiếp tục trái phép. |
+| `OWN-006` | P0 | Resource type MUST đăng ký capability: shareable, searchable, trashable, exportable, attachable và notification-capable. | Registry được kiểm thử; UI không hiển thị action không hỗ trợ. |
+| `OWN-007` | P0 | Creator/editor metadata không thay thế owner và không thể spoof từ client. | History trace đúng actor; API không cho đổi owner qua create/update thông thường. |
 
 ## 2. Sharing Engine
 
 ### 2.1 Share model
 
-External Sharing Engine hỗ trợ `Item` và `Collection`; mặc định read-only. Mỗi share tham chiếu resource bằng type + stable identifier và không sao chép business data. Workspace collaboration là membership-based và được đặc tả riêng.
+External Sharing Engine hỗ trợ `Item` và `Collection`; mọi share luôn read-only. Mỗi share tham chiếu resource bằng type + stable identifier, luôn hiển thị dữ liệu mới nhất và không sao chép business data.
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `SHR-001` | P0 | Chỉ Personal owner hoặc Workspace actor có `share.create` trên resource mới được tạo external share. | Edit/comment permission không tự cấp share; action thành công được audit. |
-| `SHR-002` | P0 | Hỗ trợ đúng ba access mode: `AnyoneWithLink`, `RequiredLogin`, `PasswordProtected`. | Mỗi mode có automated test cho anonymous/authenticated/wrong password/valid password. |
+| `SHR-001` | P0 | Chỉ owner của resource đang active và được module policy cho phép mới tạo external share. | Admin/support viewer không tạo share thay User; action thành công được audit. |
+| `SHR-002` | P0 | Hỗ trợ đúng ba access mode: `PublicLink`, `AuthenticatedLink`, `RestrictedUsers`. | Automated matrix cho anonymous, authenticated non-listed, listed và revoked/expired access. |
 | `SHR-003` | P0 | Share token MUST đủ ngẫu nhiên, không tuần tự và không xuất hiện trong application logs. | Token enumeration test thất bại; log scan không chứa full token. |
-| `SHR-004` | P0 | Password share MUST được hash; không lưu plaintext hoặc reversible ciphertext. | Database inspection không khôi phục được password; comparison dùng password verification routine. |
+| `SHR-004` | P0 | `RestrictedUsers` chỉ cấp xem cho account cụ thể do owner chọn và vẫn yêu cầu authenticated session. | User không nằm trong allowlist bị từ chối; identifier lookup không enumerate account ngoài policy. |
 | `SHR-005` | P0 | Share có `Active`, `Expired`, `Revoked`; owner có thể revoke ngay. | Link bị từ chối sau revoke/expiration, kể cả khi cached; transition được audit. |
 | `SHR-006` | P0 | Expiration hỗ trợ không hết hạn hoặc timestamp cụ thể theo user timezone khi nhập. | Server lưu instant chuẩn; boundary ngay trước/sau expiry được test. |
 | `SHR-007` | P0 | Xóa/trash resource nguồn MUST vô hiệu hóa truy cập qua share. | Link không bypass trash; restore không tự re-enable share đã revoke. |
-| `SHR-008` | P0 | Required-login share chỉ cấp quyền cho session hợp lệ, không biến resource thành public. | Logout hoặc session expiry chặn access; không index bởi global/public search. |
+| `SHR-008` | P0 | `AuthenticatedLink` cho phép bất kỳ User Nexora đã đăng nhập và có link xem resource; không biến resource thành public search result. | Logout/session expiry chặn access; authenticated User có link xem được; global/public search không index. |
 | `SHR-009` | P1 | Owner xem được danh sách link, mode, created/expiry/status và last accessed (nếu retention cho phép). | Management view không hiển thị secret/token đầy đủ sau khi tạo. |
-| `SHR-010` | P1 | Có rate limit và abuse control cho anonymous/password access. | Brute-force test kích hoạt throttle mà không khóa owner khỏi resource. |
+| `SHR-010` | P1 | Có rate limit và abuse control cho public/authenticated link access. | Enumeration/traffic abuse kích hoạt throttle mà không khóa owner khỏi resource. |
+| `SHR-011` | P0 | SuperAdmin cấu hình theo từng module/resource type việc tạo share có được phép hay không. | Module/resource bị policy-disable không hiển thị share action và API từ chối tạo link mới. |
+| `SHR-012` | P0 | Owner có thể đặt expiration và revoke link; resource vào Trash hoặc bị permanent-delete làm link không còn truy cập được. | Boundary expiry/revoke/delete tests chặn cả cached/stale link. |
+| `SHR-013` | P0 | Shared view luôn đọc phiên bản dữ liệu hiện tại, không phải snapshot, trừ khi resource spec nói khác. | Update hợp lệ của owner xuất hiện trên link; field projection và access được re-evaluate mỗi request. |
+| `SHR-014` | P0 | Share chỉ hiển thị business fields được resource projection duyệt; history, audit, transition reason, reminder và internal metadata không được lộ mặc định. | Projection tests không serialize nguyên entity hoặc trường nội bộ. |
 
 ### 2.2 Không thuộc sharing baseline
 
-Edit/comment qua external share link, public discovery/indexing và link analytics nâng cao là `OUT`. Edit/comment bên trong Workspace được điều khiển bởi membership/permission, không phải share link.
+Edit/comment/assignment qua share link, public discovery/indexing, password-protected link và link analytics nâng cao là `OUT`. Calendar Event cá nhân không shareable. Project share composition được định nghĩa trong Phase 2.
 
 ## 3. Trash và lifecycle dữ liệu
 
@@ -57,7 +61,7 @@ Edit/comment qua external share link, public discovery/indexing và link analyti
 
 ### 4.1 Event bắt buộc
 
-Authentication; user/system/workspace role/permission administration; Workspace/member/module lifecycle; privileged data access; share create/access/revoke; comment moderation; Vault reveal/copy/delete/export; Finance export; permanent delete/restore; automation execution/configuration; backup/restore; integration credential change và security setting change.
+Authentication/email verification; user/system role/permission/module administration; support grant; emergency access; privileged data access; share create/access/revoke; Vault reveal/copy/delete/export; Finance export; permanent delete/restore; automation execution/configuration; backup/restore; integration credential change và security setting change.
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
@@ -72,16 +76,20 @@ Authentication; user/system/workspace role/permission administration; Workspace/
 
 ### 5.1 Baseline channel
 
-`In-app` là P0 khi module đầu tiên cần notification. Browser, email, mobile push và webhook là `PROPOSED` và phải có provider/channel decision riêng.
+Notification Center là hộp thư tập trung cho Reminder, bảo mật/tài khoản, support/emergency access và mọi module/system event. Với Task/Event Reminder, `In-app`, `Email` và `Browser Push` đều là P0 và phải được phát đồng thời. Provider implementation vẫn là technical decision.
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
 | `NTF-001` | P0 | Module nguồn phát notification intent có idempotency key; Notification Center quản lý delivery/read state. | Retry cùng key không tạo duplicate notification. |
-| `NTF-002` | P0 | Notification chỉ được gửi tới User còn membership/resource access và không làm lộ dữ liệu. | Sau member removal/permission/module/resource revoke, deep link kiểm tra lại; preview không chứa secret/restricted body. |
-| `NTF-003` | P0 | User có thể xem, mark read/unread và mark all read trong scope của mình. | User A không thao tác notification User B bằng direct ID. |
-| `NTF-004` | P0 | User có preference theo Workspace/module/event category; security-critical event có thể là `ALWAYS`. | Mute Workspace không tắt security event trái policy; preference giữa Workspace độc lập. |
+| `NTF-002` | P0 | Notification chỉ được gửi tới đúng User và deep link phải kiểm tra lại current owner/access/resource/module state. | User A không đọc notification hoặc mở resource của User B; preview không chứa secret/restricted body. |
+| `NTF-003` | P0 | User xem và xóa notification của chính mình; read/unread, mark-all-read và bulk actions còn chờ Product Owner trả lời. | User A không thao tác notification User B bằng direct ID; unsupported action không xuất hiện. |
+| `NTF-004` | P0 | Task/Event Reminder không có channel preference: luôn phát cả In-app, Email và Browser Push. Preference/mute cho notification khác đang `TBD`. | Tắt browser permission hoặc một provider lỗi không chặn hai delivery channel còn lại. |
 | `NTF-005` | P1 | Delivery attempt có trạng thái `Pending`, `Sent`, `Failed`, `Suppressed` và reason an toàn. | Failure retry theo policy; UI/admin log không lộ credential provider. |
-| `NTF-006` | P1 | Quiet hours/timezone behavior phải nhất quán với loại cảnh báo. | Non-critical event hoãn đúng; critical event theo override policy đã duyệt. |
+| `NTF-006` | P1/TBD | Quiet hours và channel policy cho notification không phải Reminder phải được Product Owner quyết định. | Không tự triển khai suppression/delay behavior khi chưa duyệt. |
+| `NTF-007` | P0 | Notification Center chứa bốn nhóm: Task/Calendar Reminder; Security/Account; Support/Emergency Access; Module/System. | Mỗi notification có category/source; filter/render không làm lộ data. |
+| `NTF-008` | P0 | Notification được giữ đến khi User tự xóa; không có auto-expiration trong Release 1. | Retention job không xóa inbox item theo tuổi; User delete chỉ tác động notification của mình. |
+| `NTF-009` | P0 | Xóa notification khỏi inbox không xóa hoặc thay đổi Audit Event liên quan. | Security/support audit vẫn tồn tại theo audit retention. |
+| `NTF-010` | P0 | Delivery từng channel độc lập, có idempotency/retry và failure status. | Email failure không ngăn In-app/Push; retry không tạo duplicate logical notification. |
 
 ## 6. File Storage và attachments
 
@@ -89,7 +97,7 @@ Authentication; user/system/workspace role/permission administration; Workspace/
 |---|---:|---|---|
 | `FIL-001` | P0 | Upload MUST kiểm tra authorization, size, allowed type và filename normalization. | File vượt limit/type cấm/path traversal bị từ chối. |
 | `FIL-002` | P0 | Download MUST kiểm tra quyền resource tại thời điểm request; URL không vĩnh viễn bypass access. | Direct URL của User A không dùng được bởi User B. |
-| `FIL-003` | P0 | Storage metadata có owning Space, uploader actor, size, content type, checksum, created-at và lifecycle state. | Member removal không xóa Workspace file; corrupt/mismatched upload được phát hiện; query giữ scope. |
+| `FIL-003` | P0 | Storage metadata có owner User/Personal Space, uploader actor, size, content type, checksum, created-at và lifecycle state. | User state change tuân theo retention; corrupt/mismatched upload được phát hiện; query giữ owner scope. |
 | `FIL-004` | P0 | File được gọi bằng opaque ID; original filename không được dùng làm storage path tin cậy. | Duplicate/unicode/special filenames không overwrite nhau. |
 | `FIL-005` | P1 | Orphan cleanup chỉ xóa object không còn reference sau grace period và phải idempotent. | Shared/referenced file không bị xóa; retry an toàn. |
 | `FIL-006` | P1 | Malware scanning strategy và file quota là decision trước khi cho upload từ untrusted/public channel. | Decision được duyệt hoặc upload channel đó bị disable. |
@@ -98,7 +106,7 @@ Authentication; user/system/workspace role/permission administration; Workspace/
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `SET-001` | P0 | Tách System, Workspace, Module và User settings/preferences. | Workspace role không sửa system setting; module disabled không mất config/data nếu policy không yêu cầu. |
+| `SET-001` | P0 | Tách System, Module và User settings/preferences. | User/Admin không sửa system setting ngoài grant; module disabled không mất config/data nếu policy không yêu cầu. |
 | `SET-002` | P0 | Giá trị nhạy cảm không trả lại plaintext sau khi lưu; UI chỉ cho replace/revoke. | GET API trả masked/metadata; audit khi credential thay đổi. |
 | `SET-003` | P0 | Setting có validation, default rõ ràng và behavior khi missing. | Fresh install chạy với documented defaults hoặc setup gate. |
 | `SET-004` | P1 | Thay đổi setting ảnh hưởng scheduler/security phải atomic và auditable. | Invalid config không làm mất config tốt trước đó. |
@@ -107,7 +115,7 @@ Authentication; user/system/workspace role/permission administration; Workspace/
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `IMP-001` | P1 | Mỗi format import phải có version/schema, target Space, validation, preview và báo lỗi theo record. | Không import vào Space sai/không có quyền; user biết imported/skipped/failed counts. |
+| `IMP-001` | P1 | Mỗi format import phải có version/schema, target owner, validation và báo lỗi theo record. | Không import cho User khác; User biết imported/skipped/failed counts và lý do. |
 | `IMP-002` | P1 | Import retry không tạo duplicate khi cùng source/idempotency key. | Chạy lại file cho kết quả dự đoán được. |
 | `EXP-001` | P0/P1 | Export chỉ gồm dữ liệu actor được phép truy cập và phải audit với Finance/Vault/admin data. | Cross-user leak tests pass; export nhạy cảm yêu cầu control riêng. |
 | `EXP-002` | P1 | Export phải mô tả format/version/timezone/encoding và không ghi secret vào server log. | File round-trip hoặc schema validation pass. |
@@ -119,7 +127,7 @@ Authentication; user/system/workspace role/permission administration; Workspace/
 |---|---:|---|---|
 | `JOB-001` | P0 | Mỗi scheduled/background job có stable type, run ID, status, started/finished time và safe error summary. | Admin/user được phép xem history; secret redaction pass. |
 | `JOB-002` | P0 | Job có idempotency/retry policy và không tạo duplicate business effects. | Fault-injection retry giữ đúng một logical outcome. |
-| `JOB-003` | P0 | Job kiểm tra Module/System/Workspace enablement, membership/authority và resource state trước side effect. | Disabled module/Workspace/User, removed Member, revoked integration hoặc deleted resource không tiếp tục action sai. |
+| `JOB-003` | P0 | Job kiểm tra System/User module enablement, actor/owner authority và resource state trước side effect. | Disabled module/User, revoked permission/integration hoặc deleted resource không tiếp tục action sai. |
 | `JOB-004` | P1 | Provider rate limit/backoff/circuit behavior được xử lý và hiển thị degraded status. | 429/timeout không gây retry storm; manual refresh nhận feedback rõ. |
 | `INT-001` | P0 | Integration credential dùng secret storage, least privilege và có revoke/replace flow. | Không lưu plaintext trong config/log/audit; connection test không lộ secret. |
 | `INT-002` | P0 | Lỗi integration không làm hỏng core manual workflow. | Provider outage chỉ degrade module phụ thuộc; core CRUD vẫn hoạt động. |
