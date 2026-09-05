@@ -35,7 +35,10 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-009` | Documents được tổ chức bằng Folder, Tag và quan hệ page cha-con. | Approved | Folder/page hierarchy constraints còn cần làm rõ; mọi relation owner-scoped. |
 | `DEC-KNW-011` | Page mới mặc định Draft; Draft ↔ Published; cả Draft/Published có thể Archive; Unarchive khôi phục đúng trạng thái trước Archive. | Approved | Archived record phải lưu previous non-archived state; Published không tự thay đổi visibility. |
 | `DEC-KNW-012` | Folder trong Documents được lồng tối đa hai cấp. | Approved | Root Folder là cấp 1, child Folder là cấp 2; không có grandchild/cycle. |
+| `DEC-KNW-013` | Quan hệ page cha-con là single-parent tree tối đa hai cấp. | Approved | Một page có tối đa một page cha; root page là cấp 1, child page là cấp 2; không có grandchild/cycle. |
 | `DEC-KNW-015` | DocumentType không được thay đổi sau khi tạo page. | Approved | Không có convert type hoặc update/import/restore bypass trong Release 1. |
+| `DEC-KNW-016` | Một Document page không bắt buộc thuộc Folder và được thuộc tối đa một Folder. | Approved | Folder membership có cardinality `0..1`; không có multi-folder membership. |
+| `DEC-KNW-017` | Xóa Folder chứa child Folder/pages đưa toàn bộ cây Folder và các page trong cây vào Trash. | Approved | Không chuyển contents lên parent/root; toàn bộ aggregate ngừng xuất hiện và share access bị chặn theo Trash policy. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -138,11 +141,11 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-010` | Required/optional fields theo từng DocumentType | 3 | Product Owner |
-| `DEC-KNW-013` | Page cha-con là single-parent tree hay multi-parent graph; behavior khi move/delete | 3 | Product Owner |
 | `DEC-KNW-014` | Archived Document có giữ active share link hay tạm chặn share | 3 | Product Owner + Security |
-| `DEC-KNW-016` | Một Document page được nằm trong không, một hay nhiều Folder | 3 | Product Owner |
-| `DEC-KNW-017` | Xóa Folder chứa child Folder/pages xử lý contents thế nào | 3 | Product Owner |
 | `DEC-KNW-018` | Draft/Published có đều được tạo share không và active share xử lý thế nào khi đổi state | 3 | Product Owner + Security |
+| `DEC-KNW-019` | Restore Folder từ Trash có khôi phục toàn bộ cây và có cho restore riêng page/child Folder hay không | 3 | Product Owner |
+| `DEC-KNW-020` | Xóa parent page xử lý child pages thế nào | 3 | Product Owner |
+| `DEC-KNW-021` | Parent page và child page có bắt buộc cùng Folder hay được nằm ở Folder khác/root | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 

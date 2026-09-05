@@ -74,8 +74,10 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-010` | P0 | Published không làm Document public; chỉ active share grant mới cho viewer khác xem. | Publish không tạo share/token/index public hoặc thay owner/access. |
 | `P03-DOC-011` | P0 | Published Document vẫn editable và mỗi Save tạo version như Draft. | Update/Save được phép theo owner/module policy; share view đọc current saved version. |
 | `P03-DOC-012` | P0 | Archived Document read-only nhưng User có thể unarchive về đúng Draft/Published state trước khi Archive. | Save/content mutation khi Archived bị chặn; unarchive không tự publish/unpublish khác previous state. |
-| `P03-DOC-013` | P0 | Documents hỗ trợ Folder tối đa hai cấp, Tag và page cha-con. | Không tạo Folder cấp 3/cycle; cross-user relation/cardinality behavior theo `DEC-KNW-013/016/017`. |
+| `P03-DOC-013` | P0 | Documents hỗ trợ Folder tối đa hai cấp, Tag và page cha-con dạng single-parent tree tối đa hai cấp. | Không tạo Folder/page cấp 3 hoặc cycle; mọi relation owner-scoped. |
 | `P03-DOC-014` | P0 | DocumentType là immutable business field sau create. | Direct update, version restore, import và forged payload không thay đổi type. |
+| `P03-DOC-015` | P0 | Một Document page có optional Folder membership và được thuộc tối đa một Folder. | Page ở root hoặc đúng một Folder; request gắn nhiều Folder/cross-user Folder bị từ chối. |
+| `P03-DOC-016` | P0 | Một Document page có tối đa một parent page và page hierarchy có tối đa hai cấp. | Root page có thể chứa child page; child page không nhận child page khác; move concurrent không tạo cycle/cấp 3. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -147,6 +149,7 @@ State transitions:
 | `P03-ORG-004` | P1 | Template tạo copy mới cho current User; không giữ share/secret/history của source. | Instantiate idempotency/field reset/cross-user authorization tests pass. |
 | `P03-ORG-005` | P0 | Archive là non-destructive active-but-hidden state; khác Trash và không vô hiệu access trừ policy. | Archived item tìm được bằng filter; restore/unarchive đúng. |
 | `P03-ORG-006` | P0 | Folder hierarchy có tối đa hai cấp và không có cycle. | Root Folder có thể chứa child Folder; child Folder không nhận child Folder khác; move concurrent không tạo cycle/cấp 3. |
+| `P03-ORG-007` | P0 | Xóa Folder là aggregate delete: đưa Folder, toàn bộ child Folder và mọi page thuộc cây Folder vào Trash. | Không orphan hoặc tự chuyển page lên root; list/search/direct/share access không trả aggregate đã trash; retry idempotent. |
 
 ## 9. Global Search
 
@@ -228,7 +231,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011/012/015` đã Approved; `DEC-PRD-005`, `DEC-KNW-010/013/014/016..018`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011..013`, `DEC-KNW-015..017` đã Approved; `DEC-PRD-005`, `DEC-KNW-010/014/018..021`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.
