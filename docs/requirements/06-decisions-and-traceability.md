@@ -49,6 +49,9 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-023` | User được xóa riêng một child page khi parent vẫn active nhưng phải xác nhận cảnh báo. | Approved | Chỉ child được đưa vào Trash; parent và sibling pages không đổi. |
 | `DEC-KNW-024` | Root/child structure không được thay đổi sau khi page được tạo. | Approved | `ParentPageId` là immutable: root không attach thành child; child không detach hoặc đổi parent qua update/import/restore. |
 | `DEC-KNW-025` | Child page bị xóa riêng chỉ được restore sau khi parent đã active/được restore trước. | Approved | Nếu parent ở Trash thì chặn child restore cho tới khi parent được restore; parent đã permanent delete thì child không thể restore. |
+| `DEC-KNW-026` | Một Document page được gắn tối đa một Tag và User được tạo Tag ngay trong create/edit form. | Approved | Tag relation có cardinality `0..1`; inline-create tạo Tag trong Documents catalog của current User để tái sử dụng. |
+| `DEC-KNW-027` | Một page chỉ được dùng Icon hoặc cover image, không được dùng đồng thời cả hai. | Approved | Visual metadata có exclusive cardinality `0..1`; source/file constraints còn cần chốt riêng. |
+| `DEC-KNW-028` | User bắt buộc chọn rõ DocumentType và EditorMode trong mỗi lần tạo page. | Approved | Không có default, remembered selection hoặc silent inference; hai field vẫn immutable sau create. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -150,9 +153,9 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
-| `DEC-KNW-026` | Một page được gắn bao nhiêu Tag và có cho tạo Tag ngay trong form hay không | 3 | Product Owner |
-| `DEC-KNW-027` | Page được dùng Icon, cover image hoặc cả hai; source/upload behavior của visual metadata | 3 | Product Owner + Security |
-| `DEC-KNW-028` | Create page phải chọn DocumentType/EditorMode mỗi lần hay có default | 3 | Product Owner |
+| `DEC-KNW-029` | Icon lấy từ nguồn nào; cover image upload/URL, format, size và crop behavior | 3 | Product Owner + Security |
+| `DEC-KNW-030` | Tag, Folder và Icon/cover có được thay đổi sau create hay không | 3 | Product Owner |
+| `DEC-KNW-031` | Xóa Tag đang được page sử dụng xử lý relation thế nào | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 

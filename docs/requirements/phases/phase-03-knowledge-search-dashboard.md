@@ -87,6 +87,9 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-023` | P0 | Active share link vẫn cho phép xem Archived Document read-only. | Archive từ Published không revoke/suspend active link; Archive không cho tạo link mới; suspended/expired/revoked link không được kích hoạt bởi Archive. |
 | `P03-DOC-024` | P0 | Create page bắt buộc `DocumentType`, `EditorMode` và non-blank `Title`; content body được phép trống. Optional metadata gồm Tags, Folder cho root, Parent cho child, Icon hoặc cover image. | Missing/blank required field bị từ chối; root không chọn Parent, child không chọn Folder riêng; không tự thêm Description/Summary. |
 | `P03-DOC-025` | P0 | Document Title được phép trùng trong cùng Folder, page tree và toàn bộ module. | Không có unique-title constraint hoặc auto-rename; list/search/breadcrumb dùng type/path/stable ID để phân biệt. |
+| `P03-DOC-026` | P0 | Mỗi page có tối đa một Tag; User có thể chọn Tag hiện có hoặc tạo Tag ngay trong create/edit form. | Không gắn nhiều Tag; inline-create owner-scoped, validate/normalize như Documents Tag catalog và cho phép tái sử dụng. |
+| `P03-DOC-027` | P0 | Visual metadata của page là optional exclusive choice: một Icon hoặc một cover image, không đồng thời cả hai. | Payload có cả Icon và cover bị từ chối; absent visual hợp lệ; source/file policy theo `DEC-KNW-029`. |
+| `P03-DOC-028` | P0 | Mỗi create flow bắt buộc User chọn rõ DocumentType và EditorMode, không có default hoặc remembered value. | Form không preselect/silent infer; thiếu một lựa chọn không submit; cả hai immutable sau create. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -242,7 +245,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004` và `DEC-KNW-001..025` đã Approved; `DEC-PRD-005`, `DEC-KNW-026..028`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004` và `DEC-KNW-001..028` đã Approved; `DEC-PRD-005`, `DEC-KNW-029..031`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.
