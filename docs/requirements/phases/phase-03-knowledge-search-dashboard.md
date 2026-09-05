@@ -82,6 +82,9 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-018` | P0 | Restore parent page là aggregate restore, khôi phục parent và toàn bộ child pages thuộc aggregate tại thời điểm xóa. | Không selective restore hoặc tạo duplicate relation/version; page tree khôi phục đúng cấu trúc; retry idempotent. |
 | `P03-DOC-019` | P0 | User có thể xóa riêng child page của parent đang active sau explicit confirmation warning. | Confirmation nêu rõ child sẽ vào Trash; parent/siblings không đổi; cancel không mutation; confirmed retry idempotent. |
 | `P03-DOC-020` | P0 | Root/child relation được xác định khi tạo và không được thay đổi sau đó. | `ParentPageId` immutable; update, version restore, import hoặc forged payload không attach/detach/reparent page. |
+| `P03-DOC-021` | P0 | Child page bị xóa riêng chỉ được restore khi original parent đang active. | Parent ở Trash trả conflict yêu cầu restore parent trước; parent permanent delete chặn restore; không promote child thành root. |
+| `P03-DOC-022` | P0 | Chỉ Published Document được tạo share link; chuyển Published về Draft suspend mọi link còn tồn tại. | Draft không tạo share mới và suspended link không truy cập được; publish lại chỉ re-activate link chưa expired/revoked. |
+| `P03-DOC-023` | P0 | Active share link vẫn cho phép xem Archived Document read-only. | Archive từ Published không revoke/suspend active link; Archive không cho tạo link mới; suspended/expired/revoked link không được kích hoạt bởi Archive. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -89,9 +92,10 @@ State transitions:
 
 | From | To | Rule |
 |---|---|---|
-| Draft | Published | Cho phép; Document vẫn private nếu chưa có share. |
-| Published | Draft | Cho phép; share behavior theo `DEC-KNW-018`. |
-| Draft hoặc Published | Archived | Cho phép; lưu previous state, chuyển page sang read-only; share behavior theo `DEC-KNW-014`. |
+| Draft | Published | Cho phép; Document vẫn private nếu chưa có share; link suspended còn hiệu lực được kích hoạt lại. |
+| Published | Draft | Cho phép; mọi share link được suspend nhưng giữ nguyên token/configuration. |
+| Draft | Archived | Cho phép; lưu Draft làm previous state, chuyển page sang read-only; không kích hoạt suspended link. |
+| Published | Archived | Cho phép; lưu Published làm previous state, chuyển page sang read-only; active link tiếp tục cho xem. |
 | Archived | Previous Draft/Published | Cho phép qua Unarchive; không được chọn một state khác previous state. |
 
 ### 3.3 Versioning and sharing
@@ -236,7 +240,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011..013`, `DEC-KNW-015..017`, `DEC-KNW-019..024` đã Approved; `DEC-PRD-005`, `DEC-KNW-010/014/018/025`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011..025` trừ `DEC-KNW-010` đã Approved; `DEC-PRD-005`, `DEC-KNW-010`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

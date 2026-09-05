@@ -36,15 +36,18 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-011` | Page mới mặc định Draft; Draft ↔ Published; cả Draft/Published có thể Archive; Unarchive khôi phục đúng trạng thái trước Archive. | Approved | Archived record phải lưu previous non-archived state; Published không tự thay đổi visibility. |
 | `DEC-KNW-012` | Folder trong Documents được lồng tối đa hai cấp. | Approved | Root Folder là cấp 1, child Folder là cấp 2; không có grandchild/cycle. |
 | `DEC-KNW-013` | Quan hệ page cha-con là single-parent tree tối đa hai cấp. | Approved | Một page có tối đa một page cha; root page là cấp 1, child page là cấp 2; không có grandchild/cycle. |
+| `DEC-KNW-014` | Active share link của Published Document vẫn cho phép xem read-only khi Document chuyển sang Archived. | Approved | Archived không cho tạo share mới; chỉ link đang active lúc Archive tiếp tục hoạt động, subject to expiry/revoke. |
 | `DEC-KNW-015` | DocumentType không được thay đổi sau khi tạo page. | Approved | Không có convert type hoặc update/import/restore bypass trong Release 1. |
 | `DEC-KNW-016` | Một Document page không bắt buộc thuộc Folder và được thuộc tối đa một Folder. | Approved | Folder membership có cardinality `0..1`; không có multi-folder membership. |
 | `DEC-KNW-017` | Xóa Folder chứa child Folder/pages đưa toàn bộ cây Folder và các page trong cây vào Trash. | Approved | Không chuyển contents lên parent/root; toàn bộ aggregate ngừng xuất hiện và share access bị chặn theo Trash policy. |
+| `DEC-KNW-018` | Chỉ Published Document được tạo share link; Published → Draft tạm khóa link và Published lại có thể kích hoạt lại link còn hiệu lực. | Approved | Link/token được giữ khi suspended nhưng không truy cập được; expired/revoked link không tự hoạt động lại. |
 | `DEC-KNW-019` | Restore Folder từ Trash khôi phục toàn bộ cây đúng như lúc xóa. | Approved | Folder, child Folder, page membership và các page trong aggregate được restore cùng nhau; không selective restore một phần cây. |
 | `DEC-KNW-020` | Xóa parent page đưa parent và toàn bộ child pages vào Trash. | Approved | Không promote/orphan child page; list/search/direct/share access không trả page trong aggregate đã trash. |
 | `DEC-KNW-021` | Chỉ root/parent page có Folder membership; child page không chọn Folder riêng mà đi theo parent. | Approved | Child page kế thừa effective Folder của parent; đổi Folder của parent áp dụng cho toàn bộ page tree. |
 | `DEC-KNW-022` | Restore parent page từ Trash khôi phục toàn bộ page tree đúng như lúc xóa. | Approved | Parent và các child thuộc aggregate tại thời điểm xóa được restore cùng nhau; không selective restore một phần aggregate. |
 | `DEC-KNW-023` | User được xóa riêng một child page khi parent vẫn active nhưng phải xác nhận cảnh báo. | Approved | Chỉ child được đưa vào Trash; parent và sibling pages không đổi. |
 | `DEC-KNW-024` | Root/child structure không được thay đổi sau khi page được tạo. | Approved | `ParentPageId` là immutable: root không attach thành child; child không detach hoặc đổi parent qua update/import/restore. |
+| `DEC-KNW-025` | Child page bị xóa riêng chỉ được restore sau khi parent đã active/được restore trước. | Approved | Nếu parent ở Trash thì chặn child restore cho tới khi parent được restore; parent đã permanent delete thì child không thể restore. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -147,9 +150,6 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-010` | Required/optional fields theo từng DocumentType | 3 | Product Owner |
-| `DEC-KNW-014` | Archived Document có giữ active share link hay tạm chặn share | 3 | Product Owner + Security |
-| `DEC-KNW-018` | Draft/Published có đều được tạo share không và active share xử lý thế nào khi đổi state | 3 | Product Owner + Security |
-| `DEC-KNW-025` | Child page bị xóa riêng được restore thế nào khi parent active, ở Trash hoặc đã permanent delete | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 
