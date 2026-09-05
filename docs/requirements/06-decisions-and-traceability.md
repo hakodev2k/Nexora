@@ -52,8 +52,11 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-026` | Một Document page được gắn tối đa một Tag và User được tạo Tag ngay trong create/edit form. | Approved | Tag relation có cardinality `0..1`; inline-create tạo Tag trong Documents catalog của current User để tái sử dụng. |
 | `DEC-KNW-027` | Một page chỉ được dùng Icon hoặc cover image, không được dùng đồng thời cả hai. | Approved | Visual metadata có exclusive cardinality `0..1`; source/file constraints còn cần chốt riêng. |
 | `DEC-KNW-028` | User bắt buộc chọn rõ DocumentType và EditorMode trong mỗi lần tạo page. | Approved | Không có default, remembered selection hoặc silent inference; hai field vẫn immutable sau create. |
-| `DEC-KNW-029` | Document Icon chỉ lấy từ Emoji và thư viện Icon có sẵn; cover image chỉ lấy từ file ảnh User tải lên. | Approved | Không có upload Icon riêng hoặc dùng URL ngoài cho Icon/cover; file cover qua File Service và access policy. Format, size và crop còn mở tại `DEC-KNW-032`. |
+| `DEC-KNW-029` | Document Icon chỉ lấy từ Emoji và thư viện Icon có sẵn; cover image chỉ lấy từ file ảnh User tải lên. | Approved | Không có upload Icon riêng hoặc dùng URL ngoài cho Icon/cover; file cover qua File Service và access policy. Format/size còn mở tại `DEC-KNW-032`; crop theo `DEC-KNW-033`. |
 | `DEC-KNW-030` | Trong nhóm metadata đã hỏi, Tag và Icon/Cover được thay đổi sau create; Folder của root/parent page cố định. | Approved | Root `FolderId` immutable, kể cả giá trị không thuộc Folder; child vẫn kế thừa parent. Draft/Published cho sửa Tag/visual, Archived vẫn read-only; không thay đổi các rule riêng của Title, content, DocumentType, EditorMode hoặc ParentPageId. |
+| `DEC-KNW-031` | Chặn xóa Tag cho tới khi không còn Document page nào sử dụng Tag đó. | Approved | Không cascade-delete page, tự gỡ hoặc tự thay Tag; delete bị chặn phải giữ nguyên Tag và các relation. Phạm vi tham chiếu Trash/version history cần làm rõ tại `DEC-KNW-036`. |
+| `DEC-KNW-033` | Sau khi upload cover, User có thể cắt ảnh và chọn vùng hiển thị. | Approved | Lưu kết quả crop/vùng hiển thị theo manual Save và versioning; Archived vẫn không cho chỉnh sửa. |
+| `DEC-KNW-034` | Trang Documents có hai view: Card/Grid và Table. | Approved | Đổi view không đổi dữ liệu hoặc quan hệ Folder/page; không thêm Tree View riêng. View mặc định và field hiển thị còn mở tại `DEC-KNW-035`. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -155,8 +158,9 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
-| `DEC-KNW-031` | Xóa Tag đang được page sử dụng xử lý relation thế nào | 3 | Product Owner |
-| `DEC-KNW-032` | Cover upload: allowed image formats, dung lượng/kích thước và crop/reposition behavior | 3 | Product Owner + Security |
+| `DEC-KNW-032` | Cover upload: allowed image formats và giới hạn dung lượng/kích thước | 3 | Product Owner + Security |
+| `DEC-KNW-035` | Documents Grid/Table: view mặc định, field hiển thị, filter/search/sort và điều hướng Folder/page | 3 | Product Owner |
+| `DEC-KNW-036` | Khi kiểm tra Tag còn được sử dụng, page trong Trash và tham chiếu chỉ còn trong version history có chặn xóa Tag không | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 

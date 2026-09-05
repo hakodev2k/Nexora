@@ -68,7 +68,7 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P03-DOC-007` | P0 | Module Documents có Create/New action và list các page current User đã tạo. | Empty/loading/error/pagination states rõ; User khác và module-disabled data không xuất hiện. |
+| `P03-DOC-007` | P0 | Module Documents có Create/New action và hai view Card/Grid, Table cho các page current User đã tạo. | Hai view dùng cùng access/data scope; đổi view không mutation. Không thêm Tree View riêng; default/fields/navigation theo `DEC-KNW-035`; empty/loading/error/pagination states rõ, không lộ dữ liệu User khác hoặc module-disabled. |
 | `P03-DOC-008` | P0 | Mỗi page có immutable DocumentType `Document`, `Note` hoặc `Knowledge`; không có Knowledge Base/Knowledge Article resource riêng. | Create/list/detail/search hiển thị type rõ; update/import/restore không đổi type hoặc nhận legacy KB/Article owner relation. |
 | `P03-DOC-009` | P0 | Page mới mặc định Draft; Draft ↔ Published; Draft/Published → Archived; Archived → previous Draft/Published state. | Unknown/other transition bị từ chối; archive lưu previous state; retry idempotent. |
 | `P03-DOC-010` | P0 | Published không làm Document public; chỉ active share grant mới cho viewer khác xem. | Publish không tạo share/token/index public hoặc thay owner/access. |
@@ -88,10 +88,11 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-024` | P0 | Create page bắt buộc `DocumentType`, `EditorMode` và non-blank `Title`; content body được phép trống. Optional metadata gồm Tags, Folder cho root, Parent cho child, Icon hoặc cover image. | Missing/blank required field bị từ chối; root không chọn Parent, child không chọn Folder riêng; không tự thêm Description/Summary. |
 | `P03-DOC-025` | P0 | Document Title được phép trùng trong cùng Folder, page tree và toàn bộ module. | Không có unique-title constraint hoặc auto-rename; list/search/breadcrumb dùng type/path/stable ID để phân biệt. |
 | `P03-DOC-026` | P0 | Mỗi page có tối đa một Tag; User có thể chọn Tag hiện có hoặc tạo Tag ngay trong create/edit form. | Không gắn nhiều Tag; inline-create owner-scoped, validate/normalize như Documents Tag catalog và cho phép tái sử dụng. |
-| `P03-DOC-027` | P0 | Visual metadata của page là optional exclusive choice: một Icon hoặc một cover image, không đồng thời cả hai. | Payload có cả Icon và cover bị từ chối; absent visual hợp lệ; source theo `DEC-KNW-029`, file limits/crop theo `DEC-KNW-032`. |
+| `P03-DOC-027` | P0 | Visual metadata của page là optional exclusive choice: một Icon hoặc một cover image, không đồng thời cả hai. | Payload có cả Icon và cover bị từ chối; absent visual hợp lệ; source theo `DEC-KNW-029`, file limits theo `DEC-KNW-032`, crop theo `DEC-KNW-033`. |
 | `P03-DOC-028` | P0 | Mỗi create flow bắt buộc User chọn rõ DocumentType và EditorMode, không có default hoặc remembered value. | Form không preselect/silent infer; thiếu một lựa chọn không submit; cả hai immutable sau create. |
-| `P03-DOC-029` | P0 | Icon được chọn từ Emoji/thư viện Icon có sẵn; cover chỉ từ file ảnh User upload qua File Service. | Không có custom Icon upload hoặc external-URL Icon/cover; invalid icon reference bị từ chối; cover áp dụng owner/file/share access và upload validation chung. Không tự chốt format/size/crop còn mở. |
+| `P03-DOC-029` | P0 | Icon được chọn từ Emoji/thư viện Icon có sẵn; cover chỉ từ file ảnh User upload qua File Service. | Không có custom Icon upload hoặc external-URL Icon/cover; invalid icon reference bị từ chối; cover áp dụng owner/file/share access và upload validation chung. Format/size còn mở, crop theo `P03-DOC-031`. |
 | `P03-DOC-030` | P0 | Draft/Published page cho thay đổi Tag và Icon/Cover; Folder membership cố định; Archived vẫn read-only. | Save Tag/visual tuân thủ manual Save/versioning, tối đa một Tag và không đồng thời Icon/cover; thay visual không đổi Folder/parent/type/editor; Archived chặn metadata mutation cho tới Unarchive. |
+| `P03-DOC-031` | P0 | User có thể cắt cover đã upload và chọn vùng hiển thị; thay đổi được lưu qua manual Save/versioning. | Vùng crop hợp lệ nằm trong ảnh; preview thể hiện vùng đã chọn, reload sau Save giữ kết quả. Cancel không thay cover đã lưu; Archived và read-only viewers không được crop; không ghi đè dữ liệu cover của version cũ. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -166,6 +167,7 @@ State transitions:
 | `P03-ORG-006` | P0 | Folder hierarchy có tối đa hai cấp và không có cycle. | Root Folder có thể chứa child Folder; child Folder không nhận child Folder khác; move concurrent không tạo cycle/cấp 3. |
 | `P03-ORG-007` | P0 | Xóa Folder là aggregate delete: đưa Folder, toàn bộ child Folder và mọi page thuộc cây Folder vào Trash. | Không orphan hoặc tự chuyển page lên root; list/search/direct/share access không trả aggregate đã trash; retry idempotent. |
 | `P03-ORG-008` | P0 | Restore Folder là aggregate restore, khôi phục toàn bộ Folder tree và page contents đúng cấu trúc tại thời điểm xóa. | Folder/child Folder/page membership được restore cùng nhau; không selective restore hoặc tạo duplicate relation; retry idempotent. |
+| `P03-ORG-009` | P0 | Xóa Tag trong Documents bị chặn khi còn page sử dụng; chỉ được xóa khi không còn page sử dụng Tag. | Request bị chặn giữ nguyên Tag/page/relation và báo lý do; kiểm tra tại lúc commit để không tạo dangling reference khi gắn Tag đồng thời. Không tự gỡ/thay Tag hoặc xóa page; Trash/history reference policy theo `DEC-KNW-036`. |
 
 ## 9. Global Search
 
@@ -247,10 +249,13 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 11. Root page tạo trong Folder A không thể chuyển sang Folder B hoặc bỏ Folder; root tạo ngoài Folder không thể gắn Folder về sau; child vẫn kế thừa parent. Kiểm thử cả update/import/version restore.
 12. Draft/Published page sửa Tag/visual qua Save và tạo version; không cho lưu hai Tag hoặc đồng thời Icon/cover; Archived từ chối thay đổi.
 13. Icon picker chỉ dùng Emoji/thư viện có sẵn; cover chỉ nhận upload theo File Service. Không nhận URL ngoài, custom Icon upload hoặc cover file của User khác.
+14. Xóa Tag đang được page sử dụng bị chặn mà không thay Tag/page/relation; kiểm thử race giữa gắn Tag và xóa Tag không tạo tham chiếu hỏng.
+15. Crop/chọn vùng cover rồi Save và mở lại giữ kết quả; cancel giữ cover đã lưu; version cũ không bị ghi đè; Archived/read-only share không cho chỉnh cover.
+16. Chuyển Grid/Table dùng cùng scope dữ liệu và không thay đổi page, Folder hoặc parent; không lộ dữ liệu User khác.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004` và `DEC-KNW-001..030` đã Approved; `DEC-PRD-005`, `DEC-KNW-031/032`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033/034` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/035/036`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.
