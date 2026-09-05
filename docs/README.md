@@ -45,7 +45,7 @@ Bộ tài liệu này là nguồn yêu cầu chính thức (single source of tru
 | 0 | Requirement baseline & product discovery | [Phase 0](requirements/phases/phase-00-requirement-baseline.md) |
 | 1 | Core Platform & application shell | [Phase 1](requirements/phases/phase-01-core-platform.md) |
 | 2 | Productivity | [Phase 2](requirements/phases/phase-02-productivity.md) |
-| 3 | Knowledge, Documents, Search & Dashboard | [Phase 3](requirements/phases/phase-03-knowledge-search-dashboard.md) |
+| 3 | Documents, Search & Dashboard | [Phase 3](requirements/phases/phase-03-knowledge-search-dashboard.md) |
 | 4 | Finance & Vault | [Phase 4](requirements/phases/phase-04-finance-and-vault.md) |
 | 5 | News/Feeds & Shopping/Price Tracking | [Phase 5](requirements/phases/phase-05-news-and-shopping.md) |
 | 6 | Developer Toolbox, GitHub Discovery & Automation | [Phase 6](requirements/phases/phase-06-developer-and-automation.md) |

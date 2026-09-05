@@ -1,4 +1,4 @@
-# Phase 3 — Knowledge, Documents, Global Search and Dashboard
+# Phase 3 — Documents, Global Search and Dashboard
 
 **Phase ID:** `NX-PH-03`  
 **Version:** `1.2-draft`  
@@ -9,7 +9,7 @@
 
 ### P0
 
-- Một `ContentItem` engine với các type Note, Knowledge Article và Document.
+- Một `Documents` module với page types Document, Note và Knowledge.
 - Files/attachments, Bookmarks, Snippets.
 - Tags, typed Collections, Archive và basic version history.
 - Unified Read Later cho URL/news/bookmark-compatible resources.
@@ -28,26 +28,27 @@
 
 Real-time co-editing/presence, formal approval workflow, public publishing site, AI summarization/semantic search, OCR, Office/Google Docs bidirectional editing, arbitrary executable snippets.
 
-## 2. Approved content model
+## 2. Approved Documents content model
 
-Theo `DEC-PRD-004`, Note, Knowledge Article và Document dùng chung một `ContentItem` foundation:
+Theo `DEC-PRD-004/DEC-KNW-006`, navigation chỉ có module `Documents`. Mọi page dùng chung một `ContentItem`/Document foundation:
 
 - `ContentItemId`, owner, type, title/body, timestamps, version relation và common lifecycle metadata dùng chung.
-- `ContentType` tối thiểu gồm `Note`, `KnowledgeArticle`, `Document`.
+- `DocumentType` tối thiểu gồm `Document`, `Note`, `Knowledge`.
 - Mỗi type có thể có validation, organization, lifecycle, sharing, export và presentation policy riêng; dùng chung model không có nghĩa mọi type có cùng behavior.
 - Client không được đổi type để bypass permission, retention, share hoặc required-field rule. Việc có cho đổi type sau khi tạo hay không còn phải được chốt.
 
-UX semantics tối thiểu:
+UX tối thiểu của module:
 
-- **Note:** capture nhanh, cấu trúc nhẹ và private mặc định trong Personal Space.
-- **Knowledge Article:** nội dung được tổ chức trong KB/category/collection; có lifecycle/versioning/search.
-- **Document:** nội dung dài/formal hơn, attachment/export/share/versioning.
+- Trang Documents có nút Create/New và list các page đã tạo trước đó.
+- Tạo page chọn DocumentType và EditorMode theo rule đã duyệt.
+- Page mở trình soạn thảo kiểu Google Docs về trải nghiệm viết, nhưng vẫn dùng manual Save/version behavior đã chốt; không suy ra Google Docs autosave hoặc collaboration.
+- Note và Knowledge chỉ là type/presentation preset trong Documents, không có navigation/module/data engine riêng.
 
 Migration giữa type, nếu được duyệt, phải explicit và không mất version/share/link.
 
 Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User phải chọn một `EditorMode` khi tạo ContentItem; mode này bất biến và Release 1 không có conversion/switch editor flow. Canonical storage của từng mode là technical design nhưng phải giữ đúng round-trip semantics.
 
-## 3. Notes, Knowledge Articles và Documents
+## 3. Documents
 
 ### 3.1 Common content requirements
 
@@ -63,16 +64,21 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-CNT-008` | P1 | Export format tối thiểu được quyết định theo type; export preserve encoding and attachments manifest. | Schema/round-trip test; access/audit pass. |
 | `P03-CNT-009` | P0 | Create ContentItem bắt buộc chọn EditorMode `Block` hoặc `Markdown`; field này không được thay đổi sau khi tạo. | Missing/unknown mode bị từ chối; update/restore/import không được đổi mode hoặc bypass editor validation. |
 
-### 3.2 Knowledge Base
+### 3.2 Document library, types và lifecycle
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P03-KB-001` | P0 | User có một hoặc nhiều Knowledge Base theo decision; Article thuộc đúng một KB cùng owner. | Cross-user assignment bị chặn; delete KB có child policy explicit. |
-| `P03-KB-002` | P0 | Article có organizational metadata: category/collection/tags theo model đã chọn. | Move/category delete không orphan; duplicate names xử lý rõ. |
-| `P03-KB-003` | P0/P1 | Article lifecycle `Draft/Published/Archived` chỉ tồn tại nếu publish semantics được duyệt. | `knowledge.publish` tách khỏi update; shared viewer thấy version/state đúng. |
-| `P03-KB-004` | P0 | KB navigation hỗ trợ browse/search/filter trên desktop/mobile. | Large tree/list paginated/lazy; keyboard accessible. |
+| `P03-DOC-007` | P0 | Module Documents có Create/New action và list các page current User đã tạo. | Empty/loading/error/pagination states rõ; User khác và module-disabled data không xuất hiện. |
+| `P03-DOC-008` | P0 | Mỗi page có DocumentType `Document`, `Note` hoặc `Knowledge`; không có Knowledge Base/Knowledge Article resource riêng. | Create/list/detail/search hiển thị type rõ; server không nhận legacy KB/Article owner relation. |
+| `P03-DOC-009` | P0 | Document states gồm `Draft`, `Published`, `Archived`. | Unknown state bị từ chối; default/transition matrix chờ `DEC-KNW-011`. |
+| `P03-DOC-010` | P0 | Published không làm Document public; chỉ active share grant mới cho viewer khác xem. | Publish không tạo share/token/index public hoặc thay owner/access. |
+| `P03-DOC-011` | P0 | Published Document vẫn editable và mỗi Save tạo version như Draft. | Update/Save được phép theo owner/module policy; share view đọc current saved version. |
+| `P03-DOC-012` | P0 | Archived Document read-only nhưng User có thể unarchive/restore khỏi Archive. | Save/content mutation khi Archived bị chặn; target state sau unarchive chờ `DEC-KNW-011`. |
+| `P03-DOC-013` | P0 | Documents hỗ trợ Folder, Tag và page cha-con. | Cross-user relation/cycle/depth/cardinality behavior phải theo `DEC-KNW-012/013`. |
 
-### 3.3 Documents
+Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
+
+### 3.3 Versioning and sharing
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
@@ -137,7 +143,7 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P03-SRC-001` | P0 | Search xuyên Task, Project, Event, Note/Article/Document, Bookmark, Snippet, File metadata và resource đã đăng ký. | Unsupported module không làm query fail; result type/label/link rõ. |
+| `P03-SRC-001` | P0 | Search xuyên Task, Project, Event, Document pages theo DocumentType, Bookmark, Snippet, File metadata và resource đã đăng ký. | Unsupported module không làm query fail; result type/label/link rõ. |
 | `P03-SRC-002` | P0 | Query, filters, pagination/cursor và deterministic tie-break được định nghĩa. | Repeated page không missing/duplicate dưới stable dataset. |
 | `P03-SRC-003` | P0 | Search chỉ trả resource current User được phép xem trong owner/module context. | Owner/share/support/revoke/trash/disabled-module matrix 100% pass; count/facet không leak. |
 | `P03-SRC-004` | P0 | Result chứa safe title/snippet/highlight; không chứa Secret hoặc hidden field. | XSS/redaction tests; Vault plaintext never indexed. |
@@ -157,9 +163,9 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 - Today: Tasks, Events, Reminders.
 - Overdue/Upcoming counts.
-- Recent Knowledge/Documents.
+- Recent Documents, có thể phân biệt DocumentType.
 - Unread Notifications.
-- Quick actions: new Task, Event, Note/Document.
+- Quick actions: new Task, Event hoặc Document page với type đã chọn.
 - Current User/module context; không có Space switcher hoặc Workspace activity.
 
 | ID | Pri | Requirement | Acceptance criteria |
@@ -174,7 +180,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 11. Permissions và audit
 
-- Namespaces: `knowledge`, `documents`, `files`, `search`, `sharing` và relevant actions trong matrix.
+- Namespaces: `documents`, `files`, `search`, `sharing` và relevant actions trong matrix; không có `knowledge` namespace riêng.
 - Personal owner policy hoặc explicit read-only share/support context áp dụng list/detail/version/file/search/share.
 - Admin action permission không tự cấp quyền xem dữ liệu User khác; support/emergency access được audit.
 - Audit bắt buộc: share lifecycle/access theo policy, permanent delete, export, restore version, admin access, unsafe upload/network rejection quan trọng.
@@ -198,7 +204,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 13. Phase verification scenarios
 
-1. User tạo Article có malicious markup; editor/share/search highlight đều không chạy script.
+1. User tạo Knowledge-type Document có malicious markup; editor/share/search highlight đều không chạy script.
 2. User share Document bằng cả ba mode, expiry/revoke/trash chặn đúng.
 3. Admin không có active support grant hoặc emergency context không tìm thấy/export/view version content User khác.
 4. Reindex sau crash tạo cùng logical index và không đưa Secret vào index.
@@ -211,7 +217,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004` và `DEC-KNW-001..005` đã Approved; `DEC-PRD-005`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004` và `DEC-KNW-001..009` đã Approved; `DEC-PRD-005`, `DEC-KNW-010..014`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

@@ -62,6 +62,7 @@ Release 1 không có Workspace roles. Một request business-data chỉ có th�
 | `reveal` | Giải mã và hiển thị Secret. |
 | `copy` | Giải mã và gửi Secret tới clipboard response. |
 | `publish` | Chuyển content sang trạng thái published nếu module có. |
+| `archive` / `unarchive` | Chuyển Document sang Archived hoặc khôi phục khỏi Archived theo state policy. |
 | `support_access` | Mở read-only support session trong phạm vi active User grant. |
 | `emergency_access` | SuperAdmin mở read-only break-glass session có reason/audit/notification. |
 
@@ -84,8 +85,7 @@ Không tạo action synonym tùy tiện (`read` và `view`, `remove` và `delete
 | `tasks` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share` | Task phải thuộc Project; import/export không có trong Release 1. |
 | `projects` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share` | Import/export không có trong Release 1; terminal state không reopen. |
 | `calendar` | `view`, `create`, `update`, `cancel`, `import`, `export` | Event không shareable; delete manual Event được biểu diễn bằng `cancel`. |
-| `knowledge` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share`, `publish`, `import`, `export` | Publish chỉ tồn tại nếu workflow được duyệt. |
-| `documents` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share`, `export` | Version/conflict cho nhiều tab/session; team comments/co-editing out. |
+| `documents` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share`, `publish`, `archive`, `unarchive`, `export` | Một module cho page types Document/Note/Knowledge; Published vẫn private; Archived read-only; version/conflict cho nhiều tab/session. |
 | `search` | `view`, `configure` | Không được mở rộng data scope của nguồn. |
 | `finance` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `import`, `export` | Export audit bắt buộc; User khác chỉ qua valid support/emergency context. |
 | `vault` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `reveal`, `copy`, `share`, `import`, `export` | `share/import/export` mặc định disabled cho đến decision; support/emergency không tự cấp `reveal`/`copy`. |

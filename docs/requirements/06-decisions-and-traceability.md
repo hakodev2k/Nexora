@@ -23,12 +23,16 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-PRD-024` | Release 1 là personal-only: mỗi User là một cá nhân độc lập, tự nhập/quản lý data; không có Workspace, memberships, group ownership hoặc team collaboration. | Approved | Ownership, queries, roles, search, files, jobs và tests chuyển sang cross-user isolation. |
 | `DEC-PRD-025` | Release 1 gồm toàn bộ module đã có requirement hiện tại; mỗi module phải hoàn thành theo approved scope, không phải demo/placeholder. | Approved | Có thể chia milestone nội bộ nhưng release chỉ complete khi catalog/acceptance đã duyệt hoàn thành. |
 | `DEC-PRD-026` | Dữ liệu chủ yếu được nhập thủ công; import file chỉ hỗ trợ ở module/format đã duyệt. | Approved | External synchronization không phải dependency mặc định. |
-| `DEC-PRD-004` | Note, Knowledge Article và Document dùng chung một `ContentItem` model với nhiều content type. | Approved | Dùng chung identity/ownership/version foundation; validation, lifecycle, sharing và UX vẫn có thể khác theo type. |
+| `DEC-PRD-004` | Documents dùng chung một `ContentItem`/Document model với nhiều page type. | Approved | Note và Knowledge là DocumentType, không phải module/resource engine riêng. |
 | `DEC-KNW-001` | Content editor phải hỗ trợ cả Block editor và Markdown. | Approved | Mỗi item dùng mode đã chọn lúc tạo; storage/round-trip của từng mode phải bảo toàn nội dung. |
 | `DEC-KNW-002` | Không autosave content; User bấm Save và mỗi lần Save thành công tạo một version mới. | Approved | Dirty-state/navigation warning và optimistic-concurrency check bắt buộc; không có background autosave version. |
 | `DEC-KNW-003` | User chọn `Block` hoặc `Markdown` khi tạo ContentItem; EditorMode không được đổi sau khi tạo. | Approved | Mode là immutable business field; không có convert/switch editor flow trong Release 1. |
 | `DEC-KNW-004` | Restore version cũ tạo một current version mới từ nội dung đã chọn và giữ nguyên toàn bộ lịch sử. | Approved | Restore không rewrite/delete version; operation phải trace được source version. |
 | `DEC-KNW-005` | Toàn bộ ContentItem version history được giữ tới khi ContentItem bị permanent delete. | Approved | Không giới hạn theo tuổi/số lượng và User không xóa riêng từng version. |
+| `DEC-KNW-006` | Menu chỉ có module `Documents`; `Note` và `Knowledge` là loại Document, không có module Knowledge Base/Knowledge Article riêng. | Approved | Documents page có Create button và list các page đã tạo; catalog/permissions/search dùng một module boundary. |
+| `DEC-KNW-007` | Document có states `Draft`, `Published`, `Archived`; Published không thay đổi visibility và vẫn private cho tới khi owner tạo share link. | Approved | Publish không tự tạo link hoặc cấp quyền; sharing vẫn qua Sharing Engine. |
+| `DEC-KNW-008` | Published Document vẫn chỉnh sửa/Save được; Archived Document read-only nhưng có thể khôi phục. | Approved | Archive chặn content mutation; target state sau unarchive còn cần chốt. |
+| `DEC-KNW-009` | Documents được tổ chức bằng Folder, Tag và quan hệ page cha-con. | Approved | Folder/page hierarchy constraints còn cần làm rõ; mọi relation owner-scoped. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -130,6 +134,12 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
+| `DEC-KNW-010` | Required/optional fields theo từng DocumentType | 3 | Product Owner |
+| `DEC-KNW-011` | Default state và allowed transitions giữa Draft/Published/Archived | 3 | Product Owner |
+| `DEC-KNW-012` | Folder nesting, một page thuộc bao nhiêu Folder và cycle/depth rules | 3 | Product Owner |
+| `DEC-KNW-013` | Page cha-con là single-parent tree hay multi-parent graph; behavior khi move/delete | 3 | Product Owner |
+| `DEC-KNW-014` | Archived Document có giữ active share link hay tạm chặn share | 3 | Product Owner + Security |
+| `DEC-KNW-015` | DocumentType có bất biến sau khi tạo hay User được đổi giữa Document/Note/Knowledge | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 

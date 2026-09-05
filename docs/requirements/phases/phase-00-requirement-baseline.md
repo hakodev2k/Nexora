@@ -88,7 +88,7 @@
 ### 5.5 Content/productivity/finance
 
 - Project/Task/Calendar đã được chốt tại Phase 2; còn task subtasks/attachments/recurrence và remaining Productivity modules.
-- Knowledge Base organization/lifecycle, ContentItem field rules và sharing behavior theo content type.
+- DocumentType fields, Draft/Published/Archived transitions, Folder/page hierarchy và Archived sharing behavior.
 - Finance transfer/split/currency/budget semantics.
 - Vault sharing/export prohibition hay supported flow.
 
