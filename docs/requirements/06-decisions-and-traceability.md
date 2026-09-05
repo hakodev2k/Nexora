@@ -58,6 +58,7 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-033` | Sau khi upload cover, User có thể cắt ảnh và chọn vùng hiển thị. | Approved | Lưu kết quả crop/vùng hiển thị theo manual Save và versioning; Archived vẫn không cho chỉnh sửa. |
 | `DEC-KNW-034` | Trang Documents có hai view: Card/Grid và Table. | Approved | Đổi view không đổi dữ liệu hoặc quan hệ Folder/page; không thêm Tree View riêng. View mặc định và field hiển thị theo `DEC-KNW-035`. |
 | `DEC-KNW-035` | Trang Documents mặc định Card/Grid. Mỗi Card và mỗi dòng Table chỉ hiển thị Title, DocumentType và Tag. | Approved | Không tự thêm Status, ngày tạo/cập nhật, Folder/page cha hoặc Icon/cover vào Card/Table. Cover/Icon vẫn là metadata của page; Tag vẫn optional; field hiển thị không thay đổi schema hoặc quyền truy cập. |
+| `DEC-KNW-037` | Trang Documents lọc theo DocumentType, Tag, khoảng ngày tạo; tìm kiếm theo Title và Tag; mặc định sắp xếp cập nhật mới nhất trước. | Approved | Áp dụng cho cả Grid/Table; không thêm Status/ngày cập nhật vào bộ lọc và không tìm trong content body tại trang Documents. Không thay đổi Global Search hoặc các field hiển thị đã chốt. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -161,7 +162,7 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-032` | Cover upload: allowed image formats và giới hạn dung lượng/kích thước | 3 | Product Owner + Security |
 | `DEC-KNW-036` | Khi kiểm tra Tag còn được sử dụng, page trong Trash và tham chiếu chỉ còn trong version history có chặn xóa Tag không | 3 | Product Owner |
-| `DEC-KNW-037` | Documents: filter/search/sort và điều hướng Folder/page trong Grid/Table | 3 | Product Owner |
+| `DEC-KNW-038` | Documents: phạm vi danh sách ban đầu, điều hướng Folder/page con và cách truy cập Archived pages | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 

@@ -68,7 +68,7 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P03-DOC-007` | P0 | Module Documents có Create/New và hai view Card/Grid, Table; mặc định Card/Grid. Mỗi Card và dòng Table chỉ hiển thị Title, DocumentType, Tag. | Hai view dùng cùng access/data scope; đổi view không mutation. Tag trống hợp lệ; không tự thêm Status, ngày, Folder/page cha, Icon/cover vào Card/Table; không thêm Tree View riêng. Filter/search/sort/navigation theo `DEC-KNW-037`; empty/loading/error/pagination states rõ, không lộ dữ liệu User khác hoặc module-disabled. |
+| `P03-DOC-007` | P0 | Module Documents có Create/New và hai view Card/Grid, Table; mặc định Card/Grid. Mỗi Card và dòng Table chỉ hiển thị Title, DocumentType, Tag. | Hai view dùng cùng access/data scope; đổi view không mutation. Tag trống hợp lệ; không tự thêm Status, ngày, Folder/page cha, Icon/cover vào Card/Table; không thêm Tree View riêng. Filter/search/sort theo `DEC-KNW-037`, navigation/Archived visibility theo `DEC-KNW-038`; empty/loading/error/pagination states rõ, không lộ dữ liệu User khác hoặc module-disabled. |
 | `P03-DOC-008` | P0 | Mỗi page có immutable DocumentType `Document`, `Note` hoặc `Knowledge`; không có Knowledge Base/Knowledge Article resource riêng. | Create/list/detail/search hiển thị type rõ; update/import/restore không đổi type hoặc nhận legacy KB/Article owner relation. |
 | `P03-DOC-009` | P0 | Page mới mặc định Draft; Draft ↔ Published; Draft/Published → Archived; Archived → previous Draft/Published state. | Unknown/other transition bị từ chối; archive lưu previous state; retry idempotent. |
 | `P03-DOC-010` | P0 | Published không làm Document public; chỉ active share grant mới cho viewer khác xem. | Publish không tạo share/token/index public hoặc thay owner/access. |
@@ -93,6 +93,9 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-029` | P0 | Icon được chọn từ Emoji/thư viện Icon có sẵn; cover chỉ từ file ảnh User upload qua File Service. | Không có custom Icon upload hoặc external-URL Icon/cover; invalid icon reference bị từ chối; cover áp dụng owner/file/share access và upload validation chung. Format/size còn mở, crop theo `P03-DOC-031`. |
 | `P03-DOC-030` | P0 | Draft/Published page cho thay đổi Tag và Icon/Cover; Folder membership cố định; Archived vẫn read-only. | Save Tag/visual tuân thủ manual Save/versioning, tối đa một Tag và không đồng thời Icon/cover; thay visual không đổi Folder/parent/type/editor; Archived chặn metadata mutation cho tới Unarchive. |
 | `P03-DOC-031` | P0 | User có thể cắt cover đã upload và chọn vùng hiển thị; thay đổi được lưu qua manual Save/versioning. | Vùng crop hợp lệ nằm trong ảnh; preview thể hiện vùng đã chọn, reload sau Save giữ kết quả. Cancel không thay cover đã lưu; Archived và read-only viewers không được crop; không ghi đè dữ liệu cover của version cũ. |
+| `P03-DOC-032` | P0 | Grid/Table Documents có bộ lọc DocumentType, Tag và khoảng ngày tạo. | Không thêm Status hoặc khoảng ngày cập nhật vào bộ lọc của trang Documents; lọc theo created timestamp, không nhầm updated timestamp; ngày hiển thị theo User timezone. Hai view trả cùng tập kết quả trong cùng scope; không lộ dữ liệu User khác. |
+| `P03-DOC-033` | P0 | Tìm kiếm tại trang Documents chỉ tìm trong Title và Tag. | Page chỉ khớp content body mà không khớp Title/Tag không xuất hiện vì từ khóa đó; page không có Tag vẫn tìm được qua Title. Áp dụng cùng search scope cho Grid/Table; không thay đổi Global Search. |
+| `P03-DOC-034` | P0 | Danh sách Documents mặc định sắp xếp theo thời điểm cập nhật giảm dần. | Page mới cập nhật đứng trước; cùng timestamp có thứ tự phụ ổn định để phân trang không trùng/thiếu trên tập dữ liệu ổn định. Sort áp dụng cho kết quả tìm kiếm/lọc ở cả hai view, không tự thêm cột ngày cập nhật. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -252,10 +255,12 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 14. Xóa Tag đang được page sử dụng bị chặn mà không thay Tag/page/relation; kiểm thử race giữa gắn Tag và xóa Tag không tạo tham chiếu hỏng.
 15. Crop/chọn vùng cover rồi Save và mở lại giữ kết quả; cancel giữ cover đã lưu; version cũ không bị ghi đè; Archived/read-only share không cho chỉnh cover.
 16. Mở Documents mặc định Grid; Card và Table chỉ hiển thị Title, DocumentType, Tag, kể cả khi page có cover/Icon hoặc không có Tag. Chuyển Grid/Table dùng cùng scope dữ liệu, không thay đổi page/Folder/parent và không lộ dữ liệu User khác.
+17. Kiểm thử bộ lọc DocumentType/Tag/ngày tạo trên cả Grid/Table; thay đổi ngày cập nhật không làm page khớp một khoảng ngày tạo khác. Query chỉ khớp body không được tính là kết quả tìm kiếm tại trang Documents.
+18. Kết quả Documents mặc định theo updated timestamp giảm dần, có tie-break ổn định; áp dụng sau search/filter và vẫn giữ đúng ba field hiển thị Title, DocumentType, Tag.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033..035` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/036/037`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033..035`, `DEC-KNW-037` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/036/038`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.
