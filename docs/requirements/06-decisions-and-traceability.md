@@ -39,6 +39,9 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-015` | DocumentType không được thay đổi sau khi tạo page. | Approved | Không có convert type hoặc update/import/restore bypass trong Release 1. |
 | `DEC-KNW-016` | Một Document page không bắt buộc thuộc Folder và được thuộc tối đa một Folder. | Approved | Folder membership có cardinality `0..1`; không có multi-folder membership. |
 | `DEC-KNW-017` | Xóa Folder chứa child Folder/pages đưa toàn bộ cây Folder và các page trong cây vào Trash. | Approved | Không chuyển contents lên parent/root; toàn bộ aggregate ngừng xuất hiện và share access bị chặn theo Trash policy. |
+| `DEC-KNW-019` | Restore Folder từ Trash khôi phục toàn bộ cây đúng như lúc xóa. | Approved | Folder, child Folder, page membership và các page trong aggregate được restore cùng nhau; không selective restore một phần cây. |
+| `DEC-KNW-020` | Xóa parent page đưa parent và toàn bộ child pages vào Trash. | Approved | Không promote/orphan child page; list/search/direct/share access không trả page trong aggregate đã trash. |
+| `DEC-KNW-021` | Chỉ root/parent page có Folder membership; child page không chọn Folder riêng mà đi theo parent. | Approved | Child page kế thừa effective Folder của parent; đổi Folder của parent áp dụng cho toàn bộ page tree. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -143,9 +146,9 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-KNW-010` | Required/optional fields theo từng DocumentType | 3 | Product Owner |
 | `DEC-KNW-014` | Archived Document có giữ active share link hay tạm chặn share | 3 | Product Owner + Security |
 | `DEC-KNW-018` | Draft/Published có đều được tạo share không và active share xử lý thế nào khi đổi state | 3 | Product Owner + Security |
-| `DEC-KNW-019` | Restore Folder từ Trash có khôi phục toàn bộ cây và có cho restore riêng page/child Folder hay không | 3 | Product Owner |
-| `DEC-KNW-020` | Xóa parent page xử lý child pages thế nào | 3 | Product Owner |
-| `DEC-KNW-021` | Parent page và child page có bắt buộc cùng Folder hay được nằm ở Folder khác/root | 3 | Product Owner |
+| `DEC-KNW-022` | Restore parent page có khôi phục toàn bộ child pages hay cho selective restore | 3 | Product Owner |
+| `DEC-KNW-023` | Child page có được xóa/khôi phục riêng khi parent vẫn active hay không | 3 | Product Owner |
+| `DEC-KNW-024` | User có được chuyển page giữa root và child; khi detach child thì Folder được xác định thế nào | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 
