@@ -3,7 +3,7 @@
 **Document ID:** `NX-GOV-001`  
 **Version:** `1.2-draft`  
 **Status:** Active requirement governance  
-**Last decision update:** `2026-09-04`
+**Last decision update:** `2026-09-05`
 
 ## 1. Requirement status lifecycle
 
@@ -23,6 +23,9 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-PRD-024` | Release 1 là personal-only: mỗi User là một cá nhân độc lập, tự nhập/quản lý data; không có Workspace, memberships, group ownership hoặc team collaboration. | Approved | Ownership, queries, roles, search, files, jobs và tests chuyển sang cross-user isolation. |
 | `DEC-PRD-025` | Release 1 gồm toàn bộ module đã có requirement hiện tại; mỗi module phải hoàn thành theo approved scope, không phải demo/placeholder. | Approved | Có thể chia milestone nội bộ nhưng release chỉ complete khi catalog/acceptance đã duyệt hoàn thành. |
 | `DEC-PRD-026` | Dữ liệu chủ yếu được nhập thủ công; import file chỉ hỗ trợ ở module/format đã duyệt. | Approved | External synchronization không phải dependency mặc định. |
+| `DEC-PRD-004` | Note, Knowledge Article và Document dùng chung một `ContentItem` model với nhiều content type. | Approved | Dùng chung identity/ownership/version foundation; validation, lifecycle, sharing và UX vẫn có thể khác theo type. |
+| `DEC-KNW-001` | Content editor phải hỗ trợ cả Block editor và Markdown. | Approved | Storage/round-trip/conversion phải bảo toàn nội dung; cách chọn và chuyển editor còn cần chốt. |
+| `DEC-KNW-002` | Không autosave content; User bấm Save và mỗi lần Save thành công tạo một version mới. | Approved | Dirty-state/navigation warning và optimistic-concurrency check bắt buộc; không có background autosave version. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -107,7 +110,6 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 
 | ID | Decision cần chốt | Chặn phase | Owner |
 |---|---|---:|---|
-| `DEC-PRD-004` | Notes, Knowledge Article và Document là resource riêng hay content types trên cùng engine | 3 | Product + Architecture |
 | `DEC-PRD-005` | Dashboard widget set và customization level | 3 | Product Owner |
 | `DEC-PRD-006` | UI language, locale, currency set và first day of week | 1 | Product Owner |
 | `DEC-PRD-007` | Finance transfer, split transaction, budget period và debt workflow | 4 | Product Owner |
@@ -125,6 +127,9 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
+| `DEC-KNW-003` | Block editor và Markdown được chọn cố định theo item hay có thể chuyển đổi qua lại | 3 | Product Owner + Architecture |
+| `DEC-KNW-004` | Khôi phục version cũ tạo version hiện tại mới hay ghi đè lịch sử | 3 | Product Owner |
+| `DEC-KNW-005` | Version history được giữ vô thời hạn hay có giới hạn thời gian/số lượng | 3 | Product Owner + Operations |
 
 ## 9. Technical/security decisions
 

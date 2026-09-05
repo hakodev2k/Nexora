@@ -25,7 +25,7 @@ Product Owner đã quyết định Release 1 bao gồm **toàn bộ module đang
 | Core Platform | Integrations, Import/Export, Backup/Restore, Activity/History | Committed theo format/use case được từng module duyệt | 1–8 |
 | Productivity | Tasks, Projects, Calendar, Events, Reminders | Committed | 2 |
 | Productivity | Planner, Goals, Habits, Time Tracking, Pomodoro | Committed | 2 |
-| Knowledge | Notes, Knowledge Base, Documents, Files, Bookmarks, Snippets, Collections, Tags | Committed | 3 |
+| Knowledge | Unified `ContentItem` types (Note, Knowledge Article, Document), Knowledge Base, Files, Bookmarks, Snippets, Collections, Tags | Committed | 3 |
 | Knowledge | Templates, Versioning, Archive, Read Later | Committed | 3 |
 | Search | Global Search | Committed | 3 |
 | Search | Advanced/Saved Search, Favorites, Recent, History, Command Palette | Committed | 3 |
