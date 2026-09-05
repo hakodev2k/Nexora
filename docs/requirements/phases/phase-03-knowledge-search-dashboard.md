@@ -35,7 +35,7 @@ Theo `DEC-PRD-004/DEC-KNW-006`, navigation chỉ có module `Documents`. Mọi p
 - `ContentItemId`, owner, type, title/body, timestamps, version relation và common lifecycle metadata dùng chung.
 - `DocumentType` tối thiểu gồm `Document`, `Note`, `Knowledge`.
 - Mỗi type có thể có validation, organization, lifecycle, sharing, export và presentation policy riêng; dùng chung model không có nghĩa mọi type có cùng behavior.
-- Client không được đổi type để bypass permission, retention, share hoặc required-field rule. Việc có cho đổi type sau khi tạo hay không còn phải được chốt.
+- DocumentType bất biến sau khi tạo; client không được đổi type qua update/import/restore để bypass validation, permission, retention hoặc share rule.
 
 UX tối thiểu của module:
 
@@ -44,7 +44,7 @@ UX tối thiểu của module:
 - Page mở trình soạn thảo kiểu Google Docs về trải nghiệm viết, nhưng vẫn dùng manual Save/version behavior đã chốt; không suy ra Google Docs autosave hoặc collaboration.
 - Note và Knowledge chỉ là type/presentation preset trong Documents, không có navigation/module/data engine riêng.
 
-Migration giữa type, nếu được duyệt, phải explicit và không mất version/share/link.
+Release 1 không có conversion/migration giữa DocumentType. Nếu bổ sung sau này phải có decision/migration explicit và không mất version/share/link.
 
 Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User phải chọn một `EditorMode` khi tạo ContentItem; mode này bất biến và Release 1 không có conversion/switch editor flow. Canonical storage của từng mode là technical design nhưng phải giữ đúng round-trip semantics.
 
@@ -69,14 +69,24 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
 | `P03-DOC-007` | P0 | Module Documents có Create/New action và list các page current User đã tạo. | Empty/loading/error/pagination states rõ; User khác và module-disabled data không xuất hiện. |
-| `P03-DOC-008` | P0 | Mỗi page có DocumentType `Document`, `Note` hoặc `Knowledge`; không có Knowledge Base/Knowledge Article resource riêng. | Create/list/detail/search hiển thị type rõ; server không nhận legacy KB/Article owner relation. |
-| `P03-DOC-009` | P0 | Document states gồm `Draft`, `Published`, `Archived`. | Unknown state bị từ chối; default/transition matrix chờ `DEC-KNW-011`. |
+| `P03-DOC-008` | P0 | Mỗi page có immutable DocumentType `Document`, `Note` hoặc `Knowledge`; không có Knowledge Base/Knowledge Article resource riêng. | Create/list/detail/search hiển thị type rõ; update/import/restore không đổi type hoặc nhận legacy KB/Article owner relation. |
+| `P03-DOC-009` | P0 | Page mới mặc định Draft; Draft ↔ Published; Draft/Published → Archived; Archived → previous Draft/Published state. | Unknown/other transition bị từ chối; archive lưu previous state; retry idempotent. |
 | `P03-DOC-010` | P0 | Published không làm Document public; chỉ active share grant mới cho viewer khác xem. | Publish không tạo share/token/index public hoặc thay owner/access. |
 | `P03-DOC-011` | P0 | Published Document vẫn editable và mỗi Save tạo version như Draft. | Update/Save được phép theo owner/module policy; share view đọc current saved version. |
-| `P03-DOC-012` | P0 | Archived Document read-only nhưng User có thể unarchive/restore khỏi Archive. | Save/content mutation khi Archived bị chặn; target state sau unarchive chờ `DEC-KNW-011`. |
-| `P03-DOC-013` | P0 | Documents hỗ trợ Folder, Tag và page cha-con. | Cross-user relation/cycle/depth/cardinality behavior phải theo `DEC-KNW-012/013`. |
+| `P03-DOC-012` | P0 | Archived Document read-only nhưng User có thể unarchive về đúng Draft/Published state trước khi Archive. | Save/content mutation khi Archived bị chặn; unarchive không tự publish/unpublish khác previous state. |
+| `P03-DOC-013` | P0 | Documents hỗ trợ Folder tối đa hai cấp, Tag và page cha-con. | Không tạo Folder cấp 3/cycle; cross-user relation/cardinality behavior theo `DEC-KNW-013/016/017`. |
+| `P03-DOC-014` | P0 | DocumentType là immutable business field sau create. | Direct update, version restore, import và forged payload không thay đổi type. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
+
+State transitions:
+
+| From | To | Rule |
+|---|---|---|
+| Draft | Published | Cho phép; Document vẫn private nếu chưa có share. |
+| Published | Draft | Cho phép; share behavior theo `DEC-KNW-018`. |
+| Draft hoặc Published | Archived | Cho phép; lưu previous state, chuyển page sang read-only; share behavior theo `DEC-KNW-014`. |
+| Archived | Previous Draft/Published | Cho phép qua Unarchive; không được chọn một state khác previous state. |
 
 ### 3.3 Versioning and sharing
 
@@ -136,6 +146,7 @@ Các requirement `P03-KB-001..004` của model Knowledge Base container trước
 | `P03-ORG-003` | P0 | Share Collection snapshot/live behavior phải quyết định; default `PROPOSED` là live membership subject to access. | Add/remove item reflected đúng; private/unsupported item không leak. |
 | `P03-ORG-004` | P1 | Template tạo copy mới cho current User; không giữ share/secret/history của source. | Instantiate idempotency/field reset/cross-user authorization tests pass. |
 | `P03-ORG-005` | P0 | Archive là non-destructive active-but-hidden state; khác Trash và không vô hiệu access trừ policy. | Archived item tìm được bằng filter; restore/unarchive đúng. |
+| `P03-ORG-006` | P0 | Folder hierarchy có tối đa hai cấp và không có cycle. | Root Folder có thể chứa child Folder; child Folder không nhận child Folder khác; move concurrent không tạo cycle/cấp 3. |
 
 ## 9. Global Search
 
@@ -217,7 +228,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004` và `DEC-KNW-001..009` đã Approved; `DEC-PRD-005`, `DEC-KNW-010..014`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011/012/015` đã Approved; `DEC-PRD-005`, `DEC-KNW-010/013/014/016..018`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

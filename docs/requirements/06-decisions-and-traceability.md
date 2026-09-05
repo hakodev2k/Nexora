@@ -31,8 +31,11 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-005` | Toàn bộ ContentItem version history được giữ tới khi ContentItem bị permanent delete. | Approved | Không giới hạn theo tuổi/số lượng và User không xóa riêng từng version. |
 | `DEC-KNW-006` | Menu chỉ có module `Documents`; `Note` và `Knowledge` là loại Document, không có module Knowledge Base/Knowledge Article riêng. | Approved | Documents page có Create button và list các page đã tạo; catalog/permissions/search dùng một module boundary. |
 | `DEC-KNW-007` | Document có states `Draft`, `Published`, `Archived`; Published không thay đổi visibility và vẫn private cho tới khi owner tạo share link. | Approved | Publish không tự tạo link hoặc cấp quyền; sharing vẫn qua Sharing Engine. |
-| `DEC-KNW-008` | Published Document vẫn chỉnh sửa/Save được; Archived Document read-only nhưng có thể khôi phục. | Approved | Archive chặn content mutation; target state sau unarchive còn cần chốt. |
+| `DEC-KNW-008` | Published Document vẫn chỉnh sửa/Save được; Archived Document read-only nhưng có thể khôi phục. | Approved | Archive chặn content mutation; unarchive trả về trạng thái Draft/Published trước khi archive. |
 | `DEC-KNW-009` | Documents được tổ chức bằng Folder, Tag và quan hệ page cha-con. | Approved | Folder/page hierarchy constraints còn cần làm rõ; mọi relation owner-scoped. |
+| `DEC-KNW-011` | Page mới mặc định Draft; Draft ↔ Published; cả Draft/Published có thể Archive; Unarchive khôi phục đúng trạng thái trước Archive. | Approved | Archived record phải lưu previous non-archived state; Published không tự thay đổi visibility. |
+| `DEC-KNW-012` | Folder trong Documents được lồng tối đa hai cấp. | Approved | Root Folder là cấp 1, child Folder là cấp 2; không có grandchild/cycle. |
+| `DEC-KNW-015` | DocumentType không được thay đổi sau khi tạo page. | Approved | Không có convert type hoặc update/import/restore bypass trong Release 1. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -135,11 +138,11 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-010` | Required/optional fields theo từng DocumentType | 3 | Product Owner |
-| `DEC-KNW-011` | Default state và allowed transitions giữa Draft/Published/Archived | 3 | Product Owner |
-| `DEC-KNW-012` | Folder nesting, một page thuộc bao nhiêu Folder và cycle/depth rules | 3 | Product Owner |
 | `DEC-KNW-013` | Page cha-con là single-parent tree hay multi-parent graph; behavior khi move/delete | 3 | Product Owner |
 | `DEC-KNW-014` | Archived Document có giữ active share link hay tạm chặn share | 3 | Product Owner + Security |
-| `DEC-KNW-015` | DocumentType có bất biến sau khi tạo hay User được đổi giữa Document/Note/Knowledge | 3 | Product Owner |
+| `DEC-KNW-016` | Một Document page được nằm trong không, một hay nhiều Folder | 3 | Product Owner |
+| `DEC-KNW-017` | Xóa Folder chứa child Folder/pages xử lý contents thế nào | 3 | Product Owner |
+| `DEC-KNW-018` | Draft/Published có đều được tạo share không và active share xử lý thế nào khi đổi state | 3 | Product Owner + Security |
 
 ## 9. Technical/security decisions
 
