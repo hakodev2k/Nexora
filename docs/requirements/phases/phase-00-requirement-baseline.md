@@ -88,7 +88,7 @@
 ### 5.5 Content/productivity/finance
 
 - Project/Task/Calendar đã được chốt tại Phase 2; còn task subtasks/attachments/recurrence và remaining Productivity modules.
-- Documents có Grid/Table, cover upload hỗ trợ crop/chọn vùng hiển thị và chặn xóa Tag còn được page sử dụng. Còn chốt cover format/size, chi tiết Grid/Table và Tag reference trong Trash/version history.
+- Documents mặc định Grid; Grid/Table chỉ hiển thị Title, DocumentType, Tag; cover hỗ trợ crop và chặn xóa Tag còn được page sử dụng. Còn chốt filter/search/sort/navigation, cover format/size và Tag reference trong Trash/version history.
 - Finance transfer/split/currency/budget semantics.
 - Vault sharing/export prohibition hay supported flow.
 

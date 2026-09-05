@@ -68,7 +68,7 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P03-DOC-007` | P0 | Module Documents có Create/New action và hai view Card/Grid, Table cho các page current User đã tạo. | Hai view dùng cùng access/data scope; đổi view không mutation. Không thêm Tree View riêng; default/fields/navigation theo `DEC-KNW-035`; empty/loading/error/pagination states rõ, không lộ dữ liệu User khác hoặc module-disabled. |
+| `P03-DOC-007` | P0 | Module Documents có Create/New và hai view Card/Grid, Table; mặc định Card/Grid. Mỗi Card và dòng Table chỉ hiển thị Title, DocumentType, Tag. | Hai view dùng cùng access/data scope; đổi view không mutation. Tag trống hợp lệ; không tự thêm Status, ngày, Folder/page cha, Icon/cover vào Card/Table; không thêm Tree View riêng. Filter/search/sort/navigation theo `DEC-KNW-037`; empty/loading/error/pagination states rõ, không lộ dữ liệu User khác hoặc module-disabled. |
 | `P03-DOC-008` | P0 | Mỗi page có immutable DocumentType `Document`, `Note` hoặc `Knowledge`; không có Knowledge Base/Knowledge Article resource riêng. | Create/list/detail/search hiển thị type rõ; update/import/restore không đổi type hoặc nhận legacy KB/Article owner relation. |
 | `P03-DOC-009` | P0 | Page mới mặc định Draft; Draft ↔ Published; Draft/Published → Archived; Archived → previous Draft/Published state. | Unknown/other transition bị từ chối; archive lưu previous state; retry idempotent. |
 | `P03-DOC-010` | P0 | Published không làm Document public; chỉ active share grant mới cho viewer khác xem. | Publish không tạo share/token/index public hoặc thay owner/access. |
@@ -251,11 +251,11 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 13. Icon picker chỉ dùng Emoji/thư viện có sẵn; cover chỉ nhận upload theo File Service. Không nhận URL ngoài, custom Icon upload hoặc cover file của User khác.
 14. Xóa Tag đang được page sử dụng bị chặn mà không thay Tag/page/relation; kiểm thử race giữa gắn Tag và xóa Tag không tạo tham chiếu hỏng.
 15. Crop/chọn vùng cover rồi Save và mở lại giữ kết quả; cancel giữ cover đã lưu; version cũ không bị ghi đè; Archived/read-only share không cho chỉnh cover.
-16. Chuyển Grid/Table dùng cùng scope dữ liệu và không thay đổi page, Folder hoặc parent; không lộ dữ liệu User khác.
+16. Mở Documents mặc định Grid; Card và Table chỉ hiển thị Title, DocumentType, Tag, kể cả khi page có cover/Icon hoặc không có Tag. Chuyển Grid/Table dùng cùng scope dữ liệu, không thay đổi page/Folder/parent và không lộ dữ liệu User khác.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033/034` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/035/036`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033..035` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/036/037`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.
