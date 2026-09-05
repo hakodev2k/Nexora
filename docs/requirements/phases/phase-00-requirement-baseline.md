@@ -88,7 +88,7 @@
 ### 5.5 Content/productivity/finance
 
 - Project/Task/Calendar đã được chốt tại Phase 2; còn task subtasks/attachments/recurrence và remaining Productivity modules.
-- DocumentType fields, page-tree restore/child lifecycle, root-child move và Archived sharing behavior.
+- DocumentType fields, child-page restore edge cases và Draft/Published/Archived sharing behavior.
 - Finance transfer/split/currency/budget semantics.
 - Vault sharing/export prohibition hay supported flow.
 

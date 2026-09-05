@@ -79,6 +79,9 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-015` | P0 | Root/parent page có optional Folder membership `0..1`; child page không có Folder membership riêng và kế thừa effective Folder từ parent. | Gắn nhiều Folder, gắn Folder trực tiếp cho child hoặc dùng cross-user Folder bị từ chối; đổi Folder parent cập nhật effective location toàn cây. |
 | `P03-DOC-016` | P0 | Một Document page có tối đa một parent page và page hierarchy có tối đa hai cấp. | Root page có thể chứa child page; child page không nhận child page khác; move concurrent không tạo cycle/cấp 3. |
 | `P03-DOC-017` | P0 | Xóa parent page là aggregate delete, đưa parent và toàn bộ child pages vào Trash. | Không promote/orphan child; list/search/direct/share access không trả aggregate đã trash; retry idempotent. |
+| `P03-DOC-018` | P0 | Restore parent page là aggregate restore, khôi phục parent và toàn bộ child pages thuộc aggregate tại thời điểm xóa. | Không selective restore hoặc tạo duplicate relation/version; page tree khôi phục đúng cấu trúc; retry idempotent. |
+| `P03-DOC-019` | P0 | User có thể xóa riêng child page của parent đang active sau explicit confirmation warning. | Confirmation nêu rõ child sẽ vào Trash; parent/siblings không đổi; cancel không mutation; confirmed retry idempotent. |
+| `P03-DOC-020` | P0 | Root/child relation được xác định khi tạo và không được thay đổi sau đó. | `ParentPageId` immutable; update, version restore, import hoặc forged payload không attach/detach/reparent page. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -233,7 +236,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011..013`, `DEC-KNW-015..017`, `DEC-KNW-019..021` đã Approved; `DEC-PRD-005`, `DEC-KNW-010/014/018/022..024`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011..013`, `DEC-KNW-015..017`, `DEC-KNW-019..024` đã Approved; `DEC-PRD-005`, `DEC-KNW-010/014/018/025`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.
