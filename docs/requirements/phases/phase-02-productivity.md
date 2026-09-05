@@ -175,7 +175,7 @@ Subtasks và Task attachments chưa được Product Owner chốt trong revision
 | `P02-RMD-003` | P0 | Complete/Skip Task, terminal Project hoặc delete Task/Project hủy pending Reminder. | Queued stale job rechecks resource state trước delivery. |
 | `P02-RMD-004` | P0 | Update Task time/reminder cập nhật scheduler atomically. | Old trigger không fire sau successful reschedule. |
 
-Independent Reminder, snooze/dismiss và quiet hours chưa được Product Owner chốt; không suy ra từ Task/Event Reminder.
+Independent Reminder và snooze/dismiss chưa được Product Owner chốt. Quiet hours không thuộc Release 1 theo `DEC-NTF-006`.
 
 ### 4.5 Project Task views
 
@@ -292,8 +292,10 @@ Independent Reminder, snooze/dismiss và quiet hours chưa được Product Owne
 | `P02-NTF-002` | P0 | Task/Event Reminder luôn tạo In-app, Email và Browser Push delivery đồng thời. | Independent channel attempts, idempotency và retry pass. |
 | `P02-NTF-003` | P0 | Notification giữ tới khi User tự xóa; không auto-expire. | Age-based purge không xóa active inbox row. |
 | `P02-NTF-004` | P0 | Delete inbox notification không xóa Audit Event liên quan. | Security/support audit retention độc lập. |
+| `P02-NTF-005` | P0 | Mọi category khác cũng phát đồng thời cả ba channel; không có channel preference, mute hoặc quiet hours. | Provider/browser failure độc lập; UI/API không có suppression setting. |
+| `P02-NTF-006` | P0 | Notification Center hỗ trợ open source, read/unread, mark-all-read, single delete và bulk delete. | Owner scope, safe deep link và idempotent bulk behavior pass. |
 
-Channel policy cho non-reminder notifications, read/unread/bulk actions, module/category mute và quiet hours đang Open tại `DEC-NTF-004..006`.
+Notification behavior đã được chốt tại `DEC-NTF-001..006`.
 
 ## 10. Permissions và support access
 
@@ -349,7 +351,7 @@ Channel policy cho non-reminder notifications, read/unread/bulk actions, module/
 ## 14. Exit criteria
 
 - Every approved requirement above maps to API/data/UX design and automated acceptance tests.
-- `DEC-PRD-032/033` and `DEC-NTF-004..006` are closed or explicitly separated from the implementable slice.
+- `DEC-PRD-032/033` được đóng hoặc tách rõ khỏi implementable slice; `DEC-NTF-001..006` đã Approved.
 - Project/Task state, terminal aggregate, history/Trash/share/reminder/Calendar projection tests pass.
 - Calendar Event, timezone và `.ics` import/export tests pass.
 - Cross-user/share/support/emergency negative matrix reaches 100%.

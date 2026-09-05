@@ -83,7 +83,7 @@
 - Expiration default/maximum của share link và authenticated viewer policy có cần khác theo module không?
 - Expiration default và maximum duration có cần policy không?
 - Existing share xử lý thế nào khi SuperAdmin tắt sharing của module?
-- Support access có thấy Trash/history không; emergency notification dùng kênh nào ngoài In-app?
+- Support access có thấy Trash/history không; Vault support có bị cấm hay chỉ metadata-safe?
 
 ### 5.5 Content/productivity/finance
 

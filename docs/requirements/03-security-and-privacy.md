@@ -85,7 +85,7 @@ Lựa chọn thuật toán, KDF, key store và rotation interval là architectur
 | `ADMSEC-006` | P0 | Registration, restricted-share User lookup và Admin support lookup không được enumerate account ngoài authorized context. | Unknown/inaccessible identity có safe response; lookup result giữ scope. |
 | `ADMSEC-007` | P0 | User cấp support grant read-only cho một module với một trong ba duration: `24Hours` (mặc định), `CustomExpiry`, `UntilRevoked`. | Grant không chứa nhiều module; expiry/revoke boundary được server enforce. |
 | `ADMSEC-008` | P0 | Bất kỳ Admin nào có đủ permission của module và permission sử dụng support access có thể dùng grant; grant không gắn độc quyền với một Admin. | Admin thiếu một trong hai permission bị từ chối; mỗi lần dùng ghi đúng actor. |
-| `ADMSEC-009` | P0 | Mỗi lần SuperAdmin bắt đầu emergency access phải thông báo ngay cho User qua Notification Center và các mandatory security channels đã duyệt. | Notification intent tạo cùng security event; retry idempotent; reason không lộ dữ liệu nhạy cảm không cần thiết. |
+| `ADMSEC-009` | P0 | Mỗi lần SuperAdmin bắt đầu emergency access phải thông báo ngay cho User đồng thời qua In-app, Email và Browser Push. | Ba delivery attempt tạo cùng security event, retry idempotent; reason không lộ dữ liệu nhạy cảm không cần thiết. |
 | `ADMSEC-010` | P0 | Support và emergency access mặc định read-only; action nhạy cảm như export, reveal/copy Secret, purge hoặc impersonation không được suy ra từ quyền xem. | Server từ chối mutation/sensitive action nếu thiếu dedicated approved control. |
 
 ## 7. Web/API security

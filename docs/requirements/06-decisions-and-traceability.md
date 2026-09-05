@@ -80,16 +80,16 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-CAL-011` | Export toàn bộ supported Event data trừ Reminder; no history/audit/internal metadata. | Approved |
 | `DEC-CAL-012` | User timezone tự nhận từ browser và có thể đổi; đổi timezone giữ instant, chỉ thay display time. | Approved |
 
-## 6. Notification decisions đang làm rõ
+## 6. Notification decisions
 
 | ID | Decision | Status |
 |---|---|---|
 | `DEC-NTF-001` | Task/Event Reminder luôn phát đồng thời In-app, Email và Browser Push. | Approved |
 | `DEC-NTF-002` | Notification Center chứa Reminder, Security/Account, Support/Emergency và Module/System notifications. | Approved |
 | `DEC-NTF-003` | Notification tồn tại tới khi User tự xóa; không auto-expire. | Approved |
-| `DEC-NTF-004` | Channel policy cho notification không phải Reminder. | **Open — câu hỏi kế tiếp** |
-| `DEC-NTF-005` | Notification Center actions: open source, read/unread, mark-all-read, bulk delete. | **Open — câu hỏi kế tiếp** |
-| `DEC-NTF-006` | User có được mute module/category; security notifications nào mandatory. | **Open — câu hỏi kế tiếp** |
+| `DEC-NTF-004` | Security/Account, Support/Emergency và Module/System notifications cũng luôn phát đồng thời In-app, Email và Browser Push. | Approved |
+| `DEC-NTF-005` | Notification Center hỗ trợ mở resource/trang nguồn, read/unread, mark-all-read, xóa từng notification và xóa hàng loạt. | Approved |
+| `DEC-NTF-006` | Release 1 không hỗ trợ mute module/category hoặc quiet hours; không có User channel preference. | Approved |
 
 ## 7. Baseline assumptions còn hiệu lực
 
@@ -120,7 +120,6 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-PRD-014` | Field/state/lifecycle chi tiết cho Personal Assets, Digital Assets và Career | 7 | Product Owner |
 | `DEC-PRD-032` | Project InProgress → NotStarted có được phép và có cần reason hay không | 2 | Product Owner |
 | `DEC-PRD-033` | Task subtasks/attachments và independent Reminder có thuộc approved Phase 2 scope hay không | 2 | Product Owner |
-| `DEC-PRD-034` | Notification non-reminder channels, actions, mute và quiet-hours | 1/2 | Product Owner |
 | `DEC-SHR-001` | Default/max expiration presets cho external share link | 1 | Product Owner + Security |
 | `DEC-SHR-002` | Existing share bị revoke ngay hay chỉ cấm tạo mới khi SuperAdmin tắt sharing của module | 1 | Product Owner + Security |
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
@@ -208,4 +207,4 @@ Feature chỉ sẵn sàng development khi có actor/problem, in/out scope, happy
 
 ## 15. Product Owner review queue
 
-Ngay sau commit này, requirement interview tiếp tục từ ba decision Notification đang Open (`DEC-NTF-004..006`), sau đó chuyển sang Knowledge/Documents. Mọi câu trả lời tiếp theo phải được cập nhật vào requirement và Decision Log trước implementation.
+Sau khi Notification đã được chốt, requirement interview chuyển sang Knowledge/Documents rồi tiếp tục theo Open Product Decision backlog. Mọi câu trả lời tiếp theo phải được cập nhật vào requirement và Decision Log trước implementation.

@@ -22,7 +22,8 @@
 - Trash/soft-delete contract.
 - File Storage contract + safe local implementation tối thiểu.
 - Settings separation và secret-safe configuration.
-- In-app, Email và Browser Push infrastructure cho Reminder; Notification Center cho mọi approved category.
+- In-app, Email và Browser Push infrastructure cho mọi notification; cả ba kênh luôn được phát đồng thời.
+- Notification Center: open source, read/unread, mark-all-read, single delete và bulk delete.
 - Sharing Engine domain/service contract; UI chỉ cần đủ để verify bằng một test resource hoặc resource Phase 1 được duyệt.
 - Background job abstraction/history tối thiểu nếu recovery/notifications/cleanup cần.
 - Health/logging/migrations/error handling và security baseline.
@@ -31,11 +32,11 @@
 
 - Activity History cơ bản và module/User preferences nâng cao.
 - Admin audit filtering/export không nhạy cảm.
-- Notification Center read/unread/bulk/mute behavior sau khi Product Owner chốt.
+- Notification filtering/search nâng cao nếu được duyệt sau.
 
 ### Out of scope
 
-Business modules; social login; billing/paid plans; self-hosted distribution; mobile native push; impersonation; AI/LLM; Team Workspace/collaboration; live presence/realtime co-editing; User/Admin-created modules hoặc executable plugin upload.
+Business modules; social login; billing/paid plans; self-hosted distribution; mobile native push; notification channel preference/mute/quiet hours; impersonation; AI/LLM; Team Workspace/collaboration; live presence/realtime co-editing; User/Admin-created modules hoặc executable plugin upload.
 
 ## 2. Actors và primary journeys
 
@@ -175,9 +176,11 @@ SuperAdmin dùng dedicated break-glass flow khi thực sự khẩn cấp, nhập
 | `P01-PLT-001` | P0 | Audit writer/query đáp ứng `AUD-001..004`; event schema versioned. | Auth/admin/reference-resource events kiểm chứng được và đã redact. |
 | `P01-PLT-002` | P0 | Trash contract có soft-delete, restore, purge authorization và aggregate policy hook. | Reference resource lifecycle + race tests pass. |
 | `P01-PLT-003` | P0 | File service đáp ứng upload/download metadata và personal owner controls. | Cross-user/path/type/size/checksum tests pass. |
-| `P01-PLT-004` | P0 | Notification store/categories/retention, idempotent intents và independent In-app/Email/Browser-Push deliveries tồn tại. | Reminder duplicate, cross-user access, provider failure và disabled User tests pass. |
+| `P01-PLT-004` | P0 | Notification store/categories/retention, idempotent intents và independent In-app/Email/Browser-Push deliveries tồn tại; mọi intent tạo cả ba channel attempts. | Duplicate, cross-user access, provider failure và disabled User tests pass; lỗi một kênh không chặn kênh khác. |
 | `P01-PLT-005` | P0 | System/module/user settings được tách; secret setting masked và secure. | User/Admin cannot edit unauthorized system setting; GET never returns secret. |
 | `P01-PLT-006` | P0 | Job run model có status/history/error redaction nếu Phase 1 dùng background work. | Restart/retry/failure visible; no duplicate effects. |
+| `P01-PLT-007` | P0 | Notification Center hỗ trợ open source, read/unread, mark-all-read, single delete và bulk delete. | Actions owner-scoped, bulk idempotent; deep link bị revoked/denied trả safe fallback. |
+| `P01-PLT-008` | P0 | Không expose notification channel preference, mute hoặc quiet-hours trong Release 1. | UI/API không có suppression setting; delivery failure được ghi riêng. |
 
 ## 8. Data concepts tối thiểu
 
@@ -191,7 +194,7 @@ Không phải physical schema; architecture phải map mà không đổi semanti
 - `SupportGrant`, `SupportSession`, `EmergencyAccessSession`.
 - `AuditEvent`, `ActivityEvent` (nếu P1).
 - `FileObject`, `FileReference`.
-- `Notification`, `NotificationPreference`, `DeliveryAttempt`.
+- `Notification`, `DeliveryAttempt`.
 - `SettingDefinition`, `SystemSetting`, `UserPreference`, `IntegrationSecretReference`.
 - `JobDefinition`/internal schedule (nếu cần), `JobRun`.
 

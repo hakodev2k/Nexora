@@ -76,16 +76,16 @@ Authentication/email verification; user/system role/permission/module administra
 
 ### 5.1 Baseline channel
 
-Notification Center là hộp thư tập trung cho Reminder, bảo mật/tài khoản, support/emergency access và mọi module/system event. Với Task/Event Reminder, `In-app`, `Email` và `Browser Push` đều là P0 và phải được phát đồng thời. Provider implementation vẫn là technical decision.
+Notification Center là hộp thư tập trung cho Reminder, bảo mật/tài khoản, support/emergency access và mọi module/system event. Mọi notification trong Release 1 đều phải phát đồng thời qua `In-app`, `Email` và `Browser Push`. Provider implementation vẫn là technical decision.
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
 | `NTF-001` | P0 | Module nguồn phát notification intent có idempotency key; Notification Center quản lý delivery/read state. | Retry cùng key không tạo duplicate notification. |
 | `NTF-002` | P0 | Notification chỉ được gửi tới đúng User và deep link phải kiểm tra lại current owner/access/resource/module state. | User A không đọc notification hoặc mở resource của User B; preview không chứa secret/restricted body. |
-| `NTF-003` | P0 | User xem và xóa notification của chính mình; read/unread, mark-all-read và bulk actions còn chờ Product Owner trả lời. | User A không thao tác notification User B bằng direct ID; unsupported action không xuất hiện. |
-| `NTF-004` | P0 | Task/Event Reminder không có channel preference: luôn phát cả In-app, Email và Browser Push. Preference/mute cho notification khác đang `TBD`. | Tắt browser permission hoặc một provider lỗi không chặn hai delivery channel còn lại. |
+| `NTF-003` | P0 | Notification Center hỗ trợ mở resource/trang nguồn, đánh dấu đã đọc/chưa đọc, đánh dấu tất cả đã đọc, xóa từng notification và xóa hàng loạt. | Mọi action chỉ tác động notification của current User; deep link recheck access; bulk operation có kết quả xác định và idempotent. |
+| `NTF-004` | P0 | Mọi notification thuộc bốn nhóm đều luôn phát đồng thời In-app, Email và Browser Push; không có channel preference trong Release 1. | Browser permission bị từ chối hoặc một provider lỗi không chặn hai delivery channel còn lại; không có category chỉ phát một phần kênh. |
 | `NTF-005` | P1 | Delivery attempt có trạng thái `Pending`, `Sent`, `Failed`, `Suppressed` và reason an toàn. | Failure retry theo policy; UI/admin log không lộ credential provider. |
-| `NTF-006` | P1/TBD | Quiet hours và channel policy cho notification không phải Reminder phải được Product Owner quyết định. | Không tự triển khai suppression/delay behavior khi chưa duyệt. |
+| `NTF-006` | P0 | Release 1 không hỗ trợ mute module/category hoặc quiet hours; User không thể tắt/suppress một trong ba channel bằng Notification settings. | Không có mute/quiet-hours control hoặc suppression rule; provider/browser failure vẫn được ghi là delivery outcome, không phải User preference. |
 | `NTF-007` | P0 | Notification Center chứa bốn nhóm: Task/Calendar Reminder; Security/Account; Support/Emergency Access; Module/System. | Mỗi notification có category/source; filter/render không làm lộ data. |
 | `NTF-008` | P0 | Notification được giữ đến khi User tự xóa; không có auto-expiration trong Release 1. | Retention job không xóa inbox item theo tuổi; User delete chỉ tác động notification của mình. |
 | `NTF-009` | P0 | Xóa notification khỏi inbox không xóa hoặc thay đổi Audit Event liên quan. | Security/support audit vẫn tồn tại theo audit retention. |

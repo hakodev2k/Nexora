@@ -80,7 +80,7 @@ Không tạo action synonym tùy tiện (`read` và `view`, `remove` và `delete
 | `sharing` | `view`, `create`, `revoke` | Còn phụ thuộc owner/resource/module policy. |
 | `support` | `view`, `grant`, `revoke`, `support_access`, `emergency_access` | User chỉ grant/revoke của mình; emergency chỉ SuperAdmin. |
 | `files` | `view`, `create`, `delete`, `restore`, `purge` | Download đi cùng `view` + valid data-access context. |
-| `notifications` | `view`, `update`, `configure` | User quản lý notification của mình bằng owner policy. |
+| `notifications` | `view`, `update`, `delete` | `update` quản lý read/unread; `delete` hỗ trợ single/bulk. Không có channel preference/mute/quiet-hours trong Release 1. |
 | `tasks` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share` | Task phải thuộc Project; import/export không có trong Release 1. |
 | `projects` | `view`, `create`, `update`, `delete`, `restore`, `purge`, `share` | Import/export không có trong Release 1; terminal state không reopen. |
 | `calendar` | `view`, `create`, `update`, `cancel`, `import`, `export` | Event không shareable; delete manual Event được biểu diễn bằng `cancel`. |

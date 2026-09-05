@@ -55,7 +55,7 @@ Các boundary dưới đây là `PROPOSED` và được theo dõi trong decision
 
 ### 3.2 Notification Center không sở hữu business schedule
 
-Module nguồn xác định **khi nào/sự kiện gì** cần thông báo; Notification Center xác định preference, delivery, read state, retry và lịch sử. Ví dụ Tasks sở hữu due date; Notification Center sở hữu notification đã phát.
+Module nguồn xác định **khi nào/sự kiện gì** cần thông báo; Notification Center xác định ba-channel delivery, read state, retry và lịch sử. Ví dụ Tasks sở hữu due date; Notification Center sở hữu notification đã phát.
 
 ### 3.3 Reminders dùng một shared contract
 

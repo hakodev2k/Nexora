@@ -167,7 +167,7 @@ Week boundary `PROPOSED`: ISO week Monday 00:00–next Monday 00:00 UTC; UI hi�
 | `P06-AUT-007` | P0 | Run states: `Queued`, `Running`, `Succeeded`, `PartiallySucceeded` (if multi-step), `Failed`, `Cancelled`, `TimedOut`, `Skipped`. | Valid transitions enforced; restart recovers stuck runs by policy. |
 | `P06-AUT-008` | P0 | Per-automation/User/system concurrency, timeout, retry/backoff and max attempts configurable within admin bounds. | Runaway/retry storm prevented; reason visible. |
 | `P06-AUT-009` | P0 | Inputs/outputs/logs are bounded, redacted and retention-controlled. | Marker secret absent; huge payload not persisted. |
-| `P06-AUT-010` | P0 | Failure emits idempotent Notification according to preference/severity. | One logical final failure alert; intermediate retry not spam unless configured. |
+| `P06-AUT-010` | P0 | Final failure phát một idempotent Notification đồng thời qua In-app, Email và Browser Push. | Chỉ một logical final-failure alert; intermediate retry không phát notification trừ khi requirement riêng được duyệt. |
 | `P06-AUT-011` | P1 | Dry-run/test mode must not claim no side effect unless every action supports verified simulation. | Unsupported action clearly blocks or labels test as real. |
 | `P06-AUT-012` | P1 | Definition export/import excludes secret values and validates action availability/version. | Imported definition requires rebind secret refs; cannot elevate permission. |
 | `P06-AUT-013` | P0 | Module disable/upgrade/uninstall validates active definitions, queued runs, schedules và contribution versions. | Disable stops new triggers, queued run follows explicit cancel/skip policy, data/history remains recoverable. |

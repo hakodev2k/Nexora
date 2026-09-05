@@ -107,7 +107,7 @@ Một tracked item phải chỉ rõ **listing + selected variant/price definitio
 
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
-| `P05-ALT-001` | P0 | Alert rule có owner/product, creator, type, threshold/currency, active state, cooldown/re-arm policy và channel preference. | Invalid threshold/currency blocked; cross-user product blocked. |
+| `P05-ALT-001` | P0 | Alert rule có owner/product, creator, type, threshold/currency, active state và cooldown/re-arm policy; delivery dùng đồng thời cả ba Notification channels. | Invalid threshold/currency và cross-user product bị chặn; không có per-alert channel preference. |
 | `P05-ALT-002` | P0 | Evaluate chỉ trên valid new snapshot sau commit; notification intent idempotent. | Job retry sends one logical alert; no alert on parse/fetch failure. |
 | `P05-ALT-003` | P0 | Repeated price dưới target không spam; cooldown/one-shot/re-arm semantics phải được Product Owner chọn. | Golden sequence test exact alert count. |
 | `P05-ALT-004` | P0 | Notification nêu product/variant, observed price, target, checked-at và link; không khẳng định checkout price guaranteed. | Message source data accurate and labeled. |
@@ -126,7 +126,7 @@ Một tracked item phải chỉ rõ **listing + selected variant/price definitio
 
 ## 11. Permissions, privacy và audit
 
-- Feed subscription/tracking resource thuộc User; read state, follow, notification preference và delivery là private data.
+- Feed subscription/tracking resource thuộc User; read state, follow và notification delivery state là private data.
 - Public provider data cache may be shared internally only if per-user state/access remains isolated.
 - Admin namespace `news.*`, `shopping.*`; action `view` không tự cho xem subscription/tracking của User khác nếu thiếu active support/emergency context.
 - Audit: source/tracker/rule configuration by admin scope, manual refresh/automation execution as appropriate, export/purge, provider/security rejection; logs must not store credential-bearing URLs.

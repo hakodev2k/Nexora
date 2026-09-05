@@ -128,7 +128,7 @@ Document/File sharing dùng cùng access modes nhưng field/preview/download pro
 | `PDS-EMG-001` | P0 | Emergency access chỉ dành cho active SuperAdmin qua dedicated break-glass path. | Admin/User hoặc SuperAdmin trên normal route không kích hoạt được. |
 | `PDS-EMG-002` | P0 | SuperAdmin bắt buộc nhập reason có ý nghĩa trước khi access. | Blank/whitespace/over-limit reason bị từ chối; reason được bảo vệ theo audit policy. |
 | `PDS-EMG-003` | P0 | Emergency context read-only; không tự cấp export, reveal/copy Secret, purge hoặc impersonation. | Sensitive/mutation endpoint deny dù actor là SuperAdmin nếu thiếu dedicated separately-approved flow. |
-| `PDS-EMG-004` | P0 | User được thông báo ngay khi emergency access bắt đầu. | In-app security notification intent được tạo cùng security event; kênh ngoài In-app theo Notification decision. |
+| `PDS-EMG-004` | P0 | User được thông báo ngay khi emergency access bắt đầu, đồng thời qua In-app, Email và Browser Push. | Ba delivery attempts được tạo cùng security event; provider failure độc lập và retry idempotent. |
 | `PDS-EMG-005` | P0 | Start/use/end/failure của emergency access được audit bất biến với actor, target User, module, reason reference, time và outcome. | Audit không chứa private record body/Secret; query/report scope được bảo vệ. |
 | `PDS-EMG-006` | P0 | Emergency session có thời hạn ngắn do security design quyết định và không được reuse sau expiry/revoke/demotion. | Token replay hoặc role change bị chặn. |
 
@@ -185,6 +185,5 @@ Mỗi shareable/supportable module phải test:
 - `DEC-SHR-003`: Share link cũ có hoạt động lại khi resource được restore từ Trash hay không.
 - `DEC-SUP-001`: Support access có được nhìn Trash/history hay chỉ active current data.
 - `DEC-SUP-002`: Vault có cho support metadata-only hay cấm hoàn toàn support context.
-- `DEC-NTF-004`: Notification channels ngoài In-app cho emergency/support/security events.
 
 Các mục Open không được tự suy diễn trong implementation.
