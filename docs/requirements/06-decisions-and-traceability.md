@@ -44,7 +44,7 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-018` | Chỉ Published Document được tạo share link; Published → Draft tạm khóa link và Published lại có thể kích hoạt lại link còn hiệu lực. | Approved | Link/token được giữ khi suspended nhưng không truy cập được; expired/revoked link không tự hoạt động lại. |
 | `DEC-KNW-019` | Restore Folder từ Trash khôi phục toàn bộ cây đúng như lúc xóa. | Approved | Folder, child Folder, page membership và các page trong aggregate được restore cùng nhau; không selective restore một phần cây. |
 | `DEC-KNW-020` | Xóa parent page đưa parent và toàn bộ child pages vào Trash. | Approved | Không promote/orphan child page; list/search/direct/share access không trả page trong aggregate đã trash. |
-| `DEC-KNW-021` | Chỉ root/parent page có Folder membership; child page không chọn Folder riêng mà đi theo parent. | Approved | Child page kế thừa effective Folder của parent; đổi Folder của parent áp dụng cho toàn bộ page tree. |
+| `DEC-KNW-021` | Chỉ root/parent page có Folder membership; child page không chọn Folder riêng mà đi theo parent. | Approved | Child page kế thừa effective Folder của parent; Folder membership của parent cố định sau create theo `DEC-KNW-030`, thay cho diễn giải trước đây cho phép đổi Folder. |
 | `DEC-KNW-022` | Restore parent page từ Trash khôi phục toàn bộ page tree đúng như lúc xóa. | Approved | Parent và các child thuộc aggregate tại thời điểm xóa được restore cùng nhau; không selective restore một phần aggregate. |
 | `DEC-KNW-023` | User được xóa riêng một child page khi parent vẫn active nhưng phải xác nhận cảnh báo. | Approved | Chỉ child được đưa vào Trash; parent và sibling pages không đổi. |
 | `DEC-KNW-024` | Root/child structure không được thay đổi sau khi page được tạo. | Approved | `ParentPageId` là immutable: root không attach thành child; child không detach hoặc đổi parent qua update/import/restore. |
@@ -52,6 +52,8 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-026` | Một Document page được gắn tối đa một Tag và User được tạo Tag ngay trong create/edit form. | Approved | Tag relation có cardinality `0..1`; inline-create tạo Tag trong Documents catalog của current User để tái sử dụng. |
 | `DEC-KNW-027` | Một page chỉ được dùng Icon hoặc cover image, không được dùng đồng thời cả hai. | Approved | Visual metadata có exclusive cardinality `0..1`; source/file constraints còn cần chốt riêng. |
 | `DEC-KNW-028` | User bắt buộc chọn rõ DocumentType và EditorMode trong mỗi lần tạo page. | Approved | Không có default, remembered selection hoặc silent inference; hai field vẫn immutable sau create. |
+| `DEC-KNW-029` | Document Icon chỉ lấy từ Emoji và thư viện Icon có sẵn; cover image chỉ lấy từ file ảnh User tải lên. | Approved | Không có upload Icon riêng hoặc dùng URL ngoài cho Icon/cover; file cover qua File Service và access policy. Format, size và crop còn mở tại `DEC-KNW-032`. |
+| `DEC-KNW-030` | Trong nhóm metadata đã hỏi, Tag và Icon/Cover được thay đổi sau create; Folder của root/parent page cố định. | Approved | Root `FolderId` immutable, kể cả giá trị không thuộc Folder; child vẫn kế thừa parent. Draft/Published cho sửa Tag/visual, Archived vẫn read-only; không thay đổi các rule riêng của Title, content, DocumentType, EditorMode hoặc ParentPageId. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -153,9 +155,8 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
-| `DEC-KNW-029` | Icon lấy từ nguồn nào; cover image upload/URL, format, size và crop behavior | 3 | Product Owner + Security |
-| `DEC-KNW-030` | Tag, Folder và Icon/cover có được thay đổi sau create hay không | 3 | Product Owner |
 | `DEC-KNW-031` | Xóa Tag đang được page sử dụng xử lý relation thế nào | 3 | Product Owner |
+| `DEC-KNW-032` | Cover upload: allowed image formats, dung lượng/kích thước và crop/reposition behavior | 3 | Product Owner + Security |
 
 ## 9. Technical/security decisions
 

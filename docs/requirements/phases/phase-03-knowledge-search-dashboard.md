@@ -76,8 +76,8 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-012` | P0 | Archived Document read-only nhưng User có thể unarchive về đúng Draft/Published state trước khi Archive. | Save/content mutation khi Archived bị chặn; unarchive không tự publish/unpublish khác previous state. |
 | `P03-DOC-013` | P0 | Documents hỗ trợ Folder tối đa hai cấp, Tag và page cha-con dạng single-parent tree tối đa hai cấp. | Không tạo Folder/page cấp 3 hoặc cycle; mọi relation owner-scoped. |
 | `P03-DOC-014` | P0 | DocumentType là immutable business field sau create. | Direct update, version restore, import và forged payload không thay đổi type. |
-| `P03-DOC-015` | P0 | Root/parent page có optional Folder membership `0..1`; child page không có Folder membership riêng và kế thừa effective Folder từ parent. | Gắn nhiều Folder, gắn Folder trực tiếp cho child hoặc dùng cross-user Folder bị từ chối; đổi Folder parent cập nhật effective location toàn cây. |
-| `P03-DOC-016` | P0 | Một Document page có tối đa một parent page và page hierarchy có tối đa hai cấp. | Root page có thể chứa child page; child page không nhận child page khác; move concurrent không tạo cycle/cấp 3. |
+| `P03-DOC-015` | P0 | Root/parent page chọn optional Folder membership `0..1` khi tạo và không được thay đổi sau đó; child page không có Folder riêng, kế thừa effective Folder từ parent. | Root không đổi/gỡ/gắn thêm Folder sau create, kể cả ban đầu không thuộc Folder; cross-user Folder/multi-folder/direct child Folder bị chặn. Update/import/version restore không bypass immutable membership. |
+| `P03-DOC-016` | P0 | Một Document page có tối đa một parent page và page hierarchy có tối đa hai cấp. | Root page có thể tạo child page mới; child page không nhận child page khác; create không tạo cycle/cấp 3; attach/detach/reparent sau create bị chặn theo `P03-DOC-020`. |
 | `P03-DOC-017` | P0 | Xóa parent page là aggregate delete, đưa parent và toàn bộ child pages vào Trash. | Không promote/orphan child; list/search/direct/share access không trả aggregate đã trash; retry idempotent. |
 | `P03-DOC-018` | P0 | Restore parent page là aggregate restore, khôi phục parent và toàn bộ child pages thuộc aggregate tại thời điểm xóa. | Không selective restore hoặc tạo duplicate relation/version; page tree khôi phục đúng cấu trúc; retry idempotent. |
 | `P03-DOC-019` | P0 | User có thể xóa riêng child page của parent đang active sau explicit confirmation warning. | Confirmation nêu rõ child sẽ vào Trash; parent/siblings không đổi; cancel không mutation; confirmed retry idempotent. |
@@ -88,8 +88,10 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-024` | P0 | Create page bắt buộc `DocumentType`, `EditorMode` và non-blank `Title`; content body được phép trống. Optional metadata gồm Tags, Folder cho root, Parent cho child, Icon hoặc cover image. | Missing/blank required field bị từ chối; root không chọn Parent, child không chọn Folder riêng; không tự thêm Description/Summary. |
 | `P03-DOC-025` | P0 | Document Title được phép trùng trong cùng Folder, page tree và toàn bộ module. | Không có unique-title constraint hoặc auto-rename; list/search/breadcrumb dùng type/path/stable ID để phân biệt. |
 | `P03-DOC-026` | P0 | Mỗi page có tối đa một Tag; User có thể chọn Tag hiện có hoặc tạo Tag ngay trong create/edit form. | Không gắn nhiều Tag; inline-create owner-scoped, validate/normalize như Documents Tag catalog và cho phép tái sử dụng. |
-| `P03-DOC-027` | P0 | Visual metadata của page là optional exclusive choice: một Icon hoặc một cover image, không đồng thời cả hai. | Payload có cả Icon và cover bị từ chối; absent visual hợp lệ; source/file policy theo `DEC-KNW-029`. |
+| `P03-DOC-027` | P0 | Visual metadata của page là optional exclusive choice: một Icon hoặc một cover image, không đồng thời cả hai. | Payload có cả Icon và cover bị từ chối; absent visual hợp lệ; source theo `DEC-KNW-029`, file limits/crop theo `DEC-KNW-032`. |
 | `P03-DOC-028` | P0 | Mỗi create flow bắt buộc User chọn rõ DocumentType và EditorMode, không có default hoặc remembered value. | Form không preselect/silent infer; thiếu một lựa chọn không submit; cả hai immutable sau create. |
+| `P03-DOC-029` | P0 | Icon được chọn từ Emoji/thư viện Icon có sẵn; cover chỉ từ file ảnh User upload qua File Service. | Không có custom Icon upload hoặc external-URL Icon/cover; invalid icon reference bị từ chối; cover áp dụng owner/file/share access và upload validation chung. Không tự chốt format/size/crop còn mở. |
+| `P03-DOC-030` | P0 | Draft/Published page cho thay đổi Tag và Icon/Cover; Folder membership cố định; Archived vẫn read-only. | Save Tag/visual tuân thủ manual Save/versioning, tối đa một Tag và không đồng thời Icon/cover; thay visual không đổi Folder/parent/type/editor; Archived chặn metadata mutation cho tới Unarchive. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -242,10 +244,13 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 8. Document không expose team collaboration API; personal history/activity đúng owner.
 9. Hai tab/session save cùng base version; một save conflict, không mất nội dung và attribution đúng.
 10. Search/reindex/dashboard không lộ count, snippet hoặc file giữa User A/B hay từ module đã disable.
+11. Root page tạo trong Folder A không thể chuyển sang Folder B hoặc bỏ Folder; root tạo ngoài Folder không thể gắn Folder về sau; child vẫn kế thừa parent. Kiểm thử cả update/import/version restore.
+12. Draft/Published page sửa Tag/visual qua Save và tạo version; không cho lưu hai Tag hoặc đồng thời Icon/cover; Archived từ chối thay đổi.
+13. Icon picker chỉ dùng Emoji/thư viện có sẵn; cover chỉ nhận upload theo File Service. Không nhận URL ngoài, custom Icon upload hoặc cover file của User khác.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004` và `DEC-KNW-001..028` đã Approved; `DEC-PRD-005`, `DEC-KNW-029..031`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004` và `DEC-KNW-001..030` đã Approved; `DEC-PRD-005`, `DEC-KNW-031/032`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

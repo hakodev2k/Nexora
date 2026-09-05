@@ -88,7 +88,7 @@
 ### 5.5 Content/productivity/finance
 
 - Project/Task/Calendar đã được chốt tại Phase 2; còn task subtasks/attachments/recurrence và remaining Productivity modules.
-- Icon/cover source constraints, khả năng sửa metadata và Tag deletion behavior.
+- Icon dùng Emoji/thư viện có sẵn; cover dùng file upload; Tag/visual sửa được nhưng Folder cố định. Còn chốt cover format/size/crop và Tag deletion behavior.
 - Finance transfer/split/currency/budget semantics.
 - Vault sharing/export prohibition hay supported flow.
 
