@@ -45,7 +45,7 @@ UX semantics tối thiểu:
 
 Migration giữa type, nếu được duyệt, phải explicit và không mất version/share/link.
 
-Theo `DEC-KNW-001`, editor hỗ trợ cả Block editor và Markdown. Cách chọn mode theo item, chuyển đổi qua lại và canonical storage đang Open tại `DEC-KNW-003`.
+Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User phải chọn một `EditorMode` khi tạo ContentItem; mode này bất biến và Release 1 không có conversion/switch editor flow. Canonical storage của từng mode là technical design nhưng phải giữ đúng round-trip semantics.
 
 ## 3. Notes, Knowledge Articles và Documents
 
@@ -54,13 +54,14 @@ Theo `DEC-KNW-001`, editor hỗ trợ cả Block editor và Markdown. Cách ch�
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
 | `P03-CNT-001` | P0 | User tạo content với title/body theo type; owner và creator được set server-side, mặc định private. | Invalid length/format rejected; User khác không access qua direct ID. |
-| `P03-CNT-002` | P0 | Content editor hỗ trợ cả Block editor và Markdown; storage/editor format phải versioned, documented và không khóa export/migration. | Mỗi approved mode save/load round-trip giữ semantic; unsupported construct được cảnh báo; mode-switch behavior chờ `DEC-KNW-003`. |
+| `P03-CNT-002` | P0 | Content editor hỗ trợ cả Block editor và Markdown; storage/editor format phải versioned, documented và không khóa export/migration. | Mỗi mode save/load round-trip giữ semantic; unsupported construct được cảnh báo. |
 | `P03-CNT-003` | P0 | Rich content từ user/external source được sanitize/encode; embedded URL/media theo allowlist. | XSS corpus không chạy ở editor, preview, share view hoặc search highlight. |
 | `P03-CNT-004` | P0 | Không autosave. User chủ động bấm Save; mỗi Save thành công tạo một version mới sau optimistic-concurrency check. | Dirty-state/navigation/session-expiry warning ngăn mất content; two-tab stale save bị detect, không silent overwrite hoặc tạo version sai base. |
 | `P03-CNT-005` | P0 | Content hỗ trợ tags, attachments, archive, trash/restore và search projection theo capability. | Lifecycle giữ owner/links hợp lệ; archived khác trashed. |
 | `P03-CNT-006` | P0 | View/update timestamps và author/editor metadata không thể spoof bởi client. | Server authoritative; timezone display đúng. |
 | `P03-CNT-007` | P0 | External read-only share chỉ hiển thị field được policy cho phép, không lộ internal metadata/history mặc định. | Public/authenticated/restricted-user matrix pass; share không cấp edit access. |
 | `P03-CNT-008` | P1 | Export format tối thiểu được quyết định theo type; export preserve encoding and attachments manifest. | Schema/round-trip test; access/audit pass. |
+| `P03-CNT-009` | P0 | Create ContentItem bắt buộc chọn EditorMode `Block` hoặc `Markdown`; field này không được thay đổi sau khi tạo. | Missing/unknown mode bị từ chối; update/restore/import không được đổi mode hoặc bypass editor validation. |
 
 ### 3.2 Knowledge Base
 
@@ -77,7 +78,7 @@ Theo `DEC-KNW-001`, editor hỗ trợ cả Block editor và Markdown. Cách ch�
 |---|---:|---|---|
 | `P03-DOC-001` | P0 | Document Sharing là capability confirmed và dùng Sharing Engine, không custom token system. | Item/Collection share lifecycle/expiration/revoke tests pass. |
 | `P03-DOC-002` | P0 | Mỗi explicit Save thành công tạo version với version number, actor và timestamp; change note hiện vẫn chưa chốt. | Concurrent saves không tạo duplicate/gap bất hợp lý; history owner-scoped; không có autosave version. |
-| `P03-DOC-003` | P1 | Restore version tạo current version mới, không xóa lịch sử. | Restore auditable; old share policy không bị reset/bypass. |
+| `P03-DOC-003` | P0 | Restore version tạo current version mới từ selected version và không xóa/rewrite lịch sử. | New version ghi source-version reference/actor/time; share policy không bị reset/bypass. |
 | `P03-DOC-004` | P1 | Compare version nếu có phải render untrusted content an toàn. | Diff view sanitized; large content bounded. |
 | `P03-DOC-005` | P0 | Team comments/replies/mentions/follows không thuộc Release 1; Document vẫn có personal Activity/History theo policy. | Không expose collaboration UI/API; history owner-scoped. |
 | `P03-DOC-006` | P0 | Save Document dựa trên current version/precondition; conflict trả metadata an toàn để reload/merge/retry. | Hai tab/session save stale base không silent overwrite; accepted save tạo attribution/version đúng. |
@@ -89,7 +90,8 @@ Theo `DEC-KNW-001`, editor hỗ trợ cả Block editor và Markdown. Cách ch�
 | `P03-VER-001` | P0 | Mỗi lần User bấm Save và request thành công phải tạo đúng một immutable version, kể cả khi editor mode là Block hoặc Markdown; không autosave. | Retry idempotent không tạo version trùng; mỗi successful distinct Save command tăng version đúng một. |
 | `P03-VER-002` | P0 | Historical version immutable với business user; purge theo retention riêng. | No update endpoint; restore tạo version mới và giữ actor/owner attribution. |
 | `P03-VER-003` | P0 | Version không copy secret/external embedded credential vào audit/log/search. | Redaction/classification test pass. |
-| `P03-VER-004` | P1 | Retention/max versions/compaction không được làm mất version đang cần cho active share/legal requirement đã duyệt. | Purge preview và referential checks pass. |
+| `P03-VER-004` | P0 | Giữ toàn bộ versions tới khi ContentItem bị permanent delete; không auto-expire, cap theo số lượng hoặc cho User xóa riêng version. | Retention/cleanup job không xóa version của item chưa purge; Trash/restore giữ nguyên full history. |
+| `P03-VER-005` | P0 | Restore một historical version tạo đúng một current version mới với cùng EditorMode của ContentItem. | Toàn bộ history cũ còn nguyên; content/source-version trace đúng; retry idempotent không tạo nhiều restored versions. |
 
 ## 5. Files và attachments
 
@@ -191,6 +193,8 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 - User/module/support permission bị revoke khi đang xem hoặc có queued notification/index job.
 - Resource relation/tag/collection/file từ User khác.
 - Hai tab/session edit trên cùng base version và offline client quay lại trước khi Save.
+- Client cố đổi EditorMode qua update/restore/import hoặc gửi payload của mode khác.
+- ContentItem ở Trash được restore cùng toàn bộ versions; permanent delete purge content/version theo retention/audit boundary.
 
 ## 13. Phase verification scenarios
 
@@ -207,7 +211,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004` đã Approved; `DEC-PRD-005`, `DEC-KNW-003..005`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004` và `DEC-KNW-001..005` đã Approved; `DEC-PRD-005`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

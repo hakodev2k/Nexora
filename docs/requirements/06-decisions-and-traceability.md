@@ -24,8 +24,11 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-PRD-025` | Release 1 gồm toàn bộ module đã có requirement hiện tại; mỗi module phải hoàn thành theo approved scope, không phải demo/placeholder. | Approved | Có thể chia milestone nội bộ nhưng release chỉ complete khi catalog/acceptance đã duyệt hoàn thành. |
 | `DEC-PRD-026` | Dữ liệu chủ yếu được nhập thủ công; import file chỉ hỗ trợ ở module/format đã duyệt. | Approved | External synchronization không phải dependency mặc định. |
 | `DEC-PRD-004` | Note, Knowledge Article và Document dùng chung một `ContentItem` model với nhiều content type. | Approved | Dùng chung identity/ownership/version foundation; validation, lifecycle, sharing và UX vẫn có thể khác theo type. |
-| `DEC-KNW-001` | Content editor phải hỗ trợ cả Block editor và Markdown. | Approved | Storage/round-trip/conversion phải bảo toàn nội dung; cách chọn và chuyển editor còn cần chốt. |
+| `DEC-KNW-001` | Content editor phải hỗ trợ cả Block editor và Markdown. | Approved | Mỗi item dùng mode đã chọn lúc tạo; storage/round-trip của từng mode phải bảo toàn nội dung. |
 | `DEC-KNW-002` | Không autosave content; User bấm Save và mỗi lần Save thành công tạo một version mới. | Approved | Dirty-state/navigation warning và optimistic-concurrency check bắt buộc; không có background autosave version. |
+| `DEC-KNW-003` | User chọn `Block` hoặc `Markdown` khi tạo ContentItem; EditorMode không được đổi sau khi tạo. | Approved | Mode là immutable business field; không có convert/switch editor flow trong Release 1. |
+| `DEC-KNW-004` | Restore version cũ tạo một current version mới từ nội dung đã chọn và giữ nguyên toàn bộ lịch sử. | Approved | Restore không rewrite/delete version; operation phải trace được source version. |
+| `DEC-KNW-005` | Toàn bộ ContentItem version history được giữ tới khi ContentItem bị permanent delete. | Approved | Không giới hạn theo tuổi/số lượng và User không xóa riêng từng version. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -127,9 +130,6 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
-| `DEC-KNW-003` | Block editor và Markdown được chọn cố định theo item hay có thể chuyển đổi qua lại | 3 | Product Owner + Architecture |
-| `DEC-KNW-004` | Khôi phục version cũ tạo version hiện tại mới hay ghi đè lịch sử | 3 | Product Owner |
-| `DEC-KNW-005` | Version history được giữ vô thời hạn hay có giới hạn thời gian/số lượng | 3 | Product Owner + Operations |
 
 ## 9. Technical/security decisions
 
