@@ -85,6 +85,8 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-021` | P0 | Child page bị xóa riêng chỉ được restore khi original parent đang active. | Parent ở Trash trả conflict yêu cầu restore parent trước; parent permanent delete chặn restore; không promote child thành root. |
 | `P03-DOC-022` | P0 | Chỉ Published Document được tạo share link; chuyển Published về Draft suspend mọi link còn tồn tại. | Draft không tạo share mới và suspended link không truy cập được; publish lại chỉ re-activate link chưa expired/revoked. |
 | `P03-DOC-023` | P0 | Active share link vẫn cho phép xem Archived Document read-only. | Archive từ Published không revoke/suspend active link; Archive không cho tạo link mới; suspended/expired/revoked link không được kích hoạt bởi Archive. |
+| `P03-DOC-024` | P0 | Create page bắt buộc `DocumentType`, `EditorMode` và non-blank `Title`; content body được phép trống. Optional metadata gồm Tags, Folder cho root, Parent cho child, Icon hoặc cover image. | Missing/blank required field bị từ chối; root không chọn Parent, child không chọn Folder riêng; không tự thêm Description/Summary. |
+| `P03-DOC-025` | P0 | Document Title được phép trùng trong cùng Folder, page tree và toàn bộ module. | Không có unique-title constraint hoặc auto-rename; list/search/breadcrumb dùng type/path/stable ID để phân biệt. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -240,7 +242,7 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..009`, `DEC-KNW-011..025` trừ `DEC-KNW-010` đã Approved; `DEC-PRD-005`, `DEC-KNW-010`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004` và `DEC-KNW-001..025` đã Approved; `DEC-PRD-005`, `DEC-KNW-026..028`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

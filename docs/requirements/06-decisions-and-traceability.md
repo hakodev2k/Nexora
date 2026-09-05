@@ -33,6 +33,7 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-007` | Document có states `Draft`, `Published`, `Archived`; Published không thay đổi visibility và vẫn private cho tới khi owner tạo share link. | Approved | Publish không tự tạo link hoặc cấp quyền; sharing vẫn qua Sharing Engine. |
 | `DEC-KNW-008` | Published Document vẫn chỉnh sửa/Save được; Archived Document read-only nhưng có thể khôi phục. | Approved | Archive chặn content mutation; unarchive trả về trạng thái Draft/Published trước khi archive. |
 | `DEC-KNW-009` | Documents được tổ chức bằng Folder, Tag và quan hệ page cha-con. | Approved | Folder/page hierarchy constraints còn cần làm rõ; mọi relation owner-scoped. |
+| `DEC-KNW-010` | Mọi DocumentType bắt buộc `DocumentType`, `EditorMode`, `Title`; content body không bắt buộc. Optional metadata gồm Tag, Folder cho root page, Parent page cho child page và Icon hoặc cover image. Title được phép trùng ở mọi nơi. | Approved | Không có Description/Summary hoặc unique-title constraint; child chọn Parent thay vì Folder và kế thừa Folder của parent. |
 | `DEC-KNW-011` | Page mới mặc định Draft; Draft ↔ Published; cả Draft/Published có thể Archive; Unarchive khôi phục đúng trạng thái trước Archive. | Approved | Archived record phải lưu previous non-archived state; Published không tự thay đổi visibility. |
 | `DEC-KNW-012` | Folder trong Documents được lồng tối đa hai cấp. | Approved | Root Folder là cấp 1, child Folder là cấp 2; không có grandchild/cycle. |
 | `DEC-KNW-013` | Quan hệ page cha-con là single-parent tree tối đa hai cấp. | Approved | Một page có tối đa một page cha; root page là cấp 1, child page là cấp 2; không có grandchild/cycle. |
@@ -149,7 +150,9 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
-| `DEC-KNW-010` | Required/optional fields theo từng DocumentType | 3 | Product Owner |
+| `DEC-KNW-026` | Một page được gắn bao nhiêu Tag và có cho tạo Tag ngay trong form hay không | 3 | Product Owner |
+| `DEC-KNW-027` | Page được dùng Icon, cover image hoặc cả hai; source/upload behavior của visual metadata | 3 | Product Owner + Security |
+| `DEC-KNW-028` | Create page phải chọn DocumentType/EditorMode mỗi lần hay có default | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 
