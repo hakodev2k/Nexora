@@ -29,6 +29,8 @@ Counts trên chỉ cho defined ID rows, không cộng catalog/narrative/prompt d
 
 ### 1.1. Refinement delta — 2026-09-06
 
+**Đợt 1:** phần còn mở tại thời điểm commit `29cd4e6` được cập nhật tiếp ở mục 1.2; đọc delta mới nhất cho trạng thái hiện hành.
+
 Product Owner xác nhận trực tiếp trong buổi phỏng vấn sau roadmap commit `6256d2b1ec0fd3cef19718a149349f55bb341b01`. Snapshot 1.004 ID/45 Open và các Rxx line/SHA bên dưới vẫn mô tả commit nguồn cũ, không phải số liệu hiện hành. Khi có khác biệt, [Decision Log hiện hành](../requirements/06-decisions-and-traceability.md) và [Phase 3 hiện hành](../requirements/phases/phase-03-knowledge-search-dashboard.md) cùng delta này thay cho disposition lịch sử tương ứng. Đây là cập nhật tài liệu, không phải approval triển khai.
 
 | Source ID hiện hành | Thay đổi / disposition | Feature / phase | Dependency và acceptance mapping |
@@ -45,6 +47,24 @@ Product Owner xác nhận trực tiếp trong buổi phỏng vấn sau roadmap c
 Narrative delta bao phủ Phase 3 §3.2 (listing/lifecycle và chú thích state table), §13 scenarios 21–22, §14 exit gate; Decision Log §2/§8 chuyển Approved/Open tương ứng. RD-10/F-DOCS hiện không còn chờ quyết định direct/recursive hoặc local/global scope, nhưng vẫn chờ DEC-KNW-036/041 và các chi tiết Folder/Trash đã liệt kê.
 
 Tác động thiết kế RM09: API list/search phải nhận vị trí và giới hạn query trước filter/pagination; frontend Grid/Table dùng cùng scope, không fallback sang tìm toàn bộ. Archive aggregate cần lưu previous state theo page và xử lý retry/concurrency nhất quán. SQL/API/UI contract cụ thể vẫn là công việc thiết kế sau refinement; không coi các bảng roadmap lịch sử còn ghi DEC-KNW-039/040 Open là yêu cầu hỏi lại khách hàng.
+
+
+### 1.2. Refinement delta — Archive và Unarchive theo đợt
+
+**Đợt 2, 2026-09-06; source trước sửa:** [29cd4e6d8b89bd128b2b020d32beb98d0695a925](https://github.com/hakodev2k/Nexora/commit/29cd4e6d8b89bd128b2b020d32beb98d0695a925). Ba câu trả lời mới của Product Owner đóng phạm vi Unarchive parent và thao tác riêng child. Delta này cập nhật trạng thái tương ứng ở mục 1.1; snapshot audit gốc không bị rewrite.
+
+| Source ID hiện hành | Thay đổi / disposition | Feature / phase | Acceptance mapping |
+|---|---|---|---|
+| `DEC-KNW-041` | Approved: Unarchive parent chỉ kéo theo child cùng đợt; Archive riêng child khi parent Draft/Published; chặn Unarchive riêng child khi parent Archived. | F-DOCS / RM09 | REVIEW-DEC-KNW-041 đóng ba quy tắc trên; phần điều hướng/Trash tách DEC-KNW-042. |
+| `DEC-KNW-042` | Mới, OPEN REQUIREMENT: sidebar/Archived tree presentation và tương tác với child Trash/purged. | F-DOCS / RM09 | REVIEW-DEC-KNW-042; không suy ra là scope đã Ready. |
+| `P03-DOC-041` | Mới, MAPPED: Unarchive theo đợt gốc và previous state từng page. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-041; scenario 23; phụ thuộc DOC-009/040 và owner/module/transaction gate. |
+| `P03-DOC-042` | Mới, MAPPED: Archive riêng child, parent/sibling không đổi. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-042; scenario 24; share và previous-state rules. |
+| `P03-DOC-043` | Mới, MAPPED: Unarchive riêng child phải có parent đã ra khỏi Archived. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-043; scenario 25; UI/API/concurrency checks. |
+| `DEC-KNW-040`, `P03-DOC-036/040` | MAPPED: cập nhật tham chiếu đã chốt và phần còn mở; không đổi Archive cascade hoặc sidebar baseline. | F-DOCS / RM09 | Các TC hiện có đọc DOC-041..043 và DEC-KNW-042. |
+
+Narrative delta: Decision Log §2/§8, Phase 3 §3.2 state note, §13 scenarios 22–25, §14 exit gate. RD-10/F-DOCS còn chờ DEC-KNW-036/042, chi tiết Folder/Trash và các gap độc lập; không hỏi lại Unarchive scope đã Approved.
+
+Tác động thiết kế RM09: lưu dấu đợt Archive và previous state riêng cho từng page; child đã Archived trước phải giữ nguồn Archive riêng. Contract Unarchive parent dùng đúng tập child cùng đợt, không suy từ current state hay timestamp gần nhau. Trước mutation phải kiểm tra parent state, owner, module và concurrency; schema/transaction cụ thể vẫn là thiết kế cần review, chưa implement.
 
 ## 2. Source inventory
 

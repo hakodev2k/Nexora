@@ -61,7 +61,8 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-037` | Trang Documents lọc theo DocumentType, Tag, khoảng ngày tạo; tìm kiếm theo Title và Tag; mặc định sắp xếp cập nhật mới nhất trước. | Approved | Áp dụng cho cả Grid/Table; không thêm Status/ngày cập nhật vào bộ lọc và không tìm trong content body tại trang Documents. Không thay đổi Global Search hoặc các field hiển thị đã chốt. |
 | `DEC-KNW-038` | Documents ban đầu hiển thị Folder cấp 1 và root page ngoài Folder; mở parent page truy cập child pages qua sidebar; Archived pages nằm trong mục Archived riêng của Documents. | Approved | Không flatten toàn bộ page vào danh sách ban đầu. Sidebar là điều hướng trong page, không phải Tree View riêng. Tách Archived khỏi danh sách thường không thu hồi share đang hợp lệ hoặc thay đổi ownership. |
 | `DEC-KNW-039` | Mở Folder chỉ hiển thị Folder con và root page trực tiếp trong Folder đó; tìm kiếm và bộ lọc Documents chỉ áp dụng cho nội dung trực tiếp tại vị trí đang mở. | Approved | Không recursive/flatten kết quả từ Folder sâu hơn hoặc child page; không có lựa chọn tìm toàn bộ Documents tại màn hình này. Global Search giữ phạm vi riêng. Cách Folder tham gia bộ lọc của page còn cần refinement. |
-| `DEC-KNW-040` | Archive một parent page phải Archive cả parent và toàn bộ child pages. | Approved | Các page chuyển Archived trở thành read-only và tuân thủ share rule riêng đã duyệt; không tự cấp quyền xem child từ link parent. Unarchive, thao tác riêng child và sidebar được tách sang `DEC-KNW-041`, chưa được suy ra là đã duyệt. |
+| `DEC-KNW-040` | Archive một parent page phải Archive cả parent và toàn bộ child pages. | Approved | Các page chuyển Archived trở thành read-only và tuân thủ share rule riêng đã duyệt; không tự cấp quyền xem child từ link parent. Unarchive và thao tác riêng child theo `DEC-KNW-041`; sidebar và tương tác Trash còn mở tại `DEC-KNW-042`. |
+| `DEC-KNW-041` | Unarchive parent chỉ Unarchive cùng các child bị Archive cùng đợt với parent. User được Archive riêng child khi parent Draft/Published, không thay parent hoặc sibling. Không Unarchive riêng child khi parent còn Archived; phải Unarchive parent trước. | Approved | Mỗi page trở về previous Draft/Published state riêng. Child đã Archived từ trước đợt Archive parent giữ Archived. Cần phân biệt nguồn/đợt Archive, không suy từ current state hoặc timestamp gần nhau. Điều hướng và tương tác Trash tách sang `DEC-KNW-042`. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -165,7 +166,7 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-032` | Cover upload: allowed image formats và giới hạn dung lượng/kích thước | 3 | Product Owner + Security |
 | `DEC-KNW-036` | Khi kiểm tra Tag còn được sử dụng, page trong Trash và tham chiếu chỉ còn trong version history có chặn xóa Tag không | 3 | Product Owner |
-| `DEC-KNW-041` | Unarchive parent có khôi phục children cùng đợt Archive hay cả child đã Archived trước; cho phép Archive riêng child khi parent active và Unarchive riêng child khi parent Archived hay không; sidebar/Archived navigation và tương tác với child trong Trash | 3 | Product Owner |
+| `DEC-KNW-042` | Sidebar/Archived navigation khi child Archived; cách hiển thị cây tại mục Archived; tương tác Archive/Unarchive với child ở Trash hoặc đã purge | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 
