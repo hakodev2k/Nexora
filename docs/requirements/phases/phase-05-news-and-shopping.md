@@ -21,11 +21,11 @@ RSS/Atom feed sources, fetch/parse/deduplicate, AI News và Tech News categories
 
 ### Shopping P0
 
-Shopee product URL tracking, selected variant/price definition, current/previous/lowest price, snapshots/history, absolute target alert, manual refresh, scheduled check, in-app notification, wishlist relation.
+Shopee product URL tracking, selected variant/price definition, current/previous/lowest price, snapshots/history, absolute target alert, manual refresh, scheduled check, Notifications đồng thời qua In-app/Email/Browser Push, wishlist relation.
 
 ### P1
 
-Topic Watch không dùng LLM, additional price-drop rules, product comparison, purchase/order/warranty records, seller/shop tracking, email/browser alerts, multiple marketplace adapters.
+Topic Watch không dùng LLM, additional price-drop rules, product comparison, purchase/order/warranty records, seller/shop tracking, multiple marketplace adapters (conditional provider/scope decision). Email/Browser Push không là P1 tùy chọn: mọi Notification dùng cả ba kênh theo decision mới nhất.
 
 ### Out of scope
 
@@ -162,3 +162,4 @@ Một tracked item phải chỉ rõ **listing + selected variant/price definitio
 - Notifications are accurate, deduplicated and not overclaimed.
 - Manifest personal ownership, cross-user isolation và User/module-disable behavior được test.
 - Responsive/accessibility core journeys pass; no Critical/High finding remains.
+

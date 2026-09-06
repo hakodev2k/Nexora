@@ -47,7 +47,7 @@
 | `P00-006` | P0 | Data classification matrix. | Mọi domain biết Private/Sensitive/Secret fields và prohibited sinks. |
 | `P00-007` | P0 | NFR measurement profile ban đầu. | Chốt representative local-dev và production-like Public SaaS dataset/browser/network profile. |
 | `P00-008` | P0 | Requirement ID/traceability workflow. | PR/work item/test template có chỗ tham chiếu requirement và evidence. |
-| `P00-009` | P0 | Phase 1 decisions đóng. | `DEC-TEC-001..005`, `008..010`, `013..015`, `DEC-PRD-006/034`, `DEC-SEC-001/003/008/009` được quyết định hoặc có approved safe default. |
+| `P00-009` | P0 | Phase 1 decisions đóng. | `DEC-TEC-001..005`, `008..010`, `013..015`, `DEC-PRD-006` và identity/onboarding gates tại [FX-01](../../features/01-identity-and-profile.md), [Q-01/Q-02](../../features/90-open-decisions.md), `DEC-SEC-001/003/008/009` được quyết định hoặc có approved safe default. |
 | `P00-010` | P1 | Wireframe/navigation prototype. | Desktop/mobile grouping được user review; không yêu cầu visual polish. |
 | `P00-011` | P1 | Initial threat model. | Assets/trust boundaries/mitigations cho public registration, cross-user data, roles, modules, share/support/emergency, Vault, files, email/push và jobs. |
 | `P00-012` | P1 | Data lifecycle matrix. | Create/active/archive/trash/purge/export/backup/restore rules cho resource types đã committed. |
@@ -117,3 +117,4 @@ Phase 0 hoàn thành khi:
 ## 9. Handoff sang Phase 1
 
 Đầu vào bắt buộc: approved charter/catalog, authentication/email decision, personal ownership, System roles, Module Contract, share/support/emergency boundary, local-dev + Public SaaS target, SQL/Redis/file/email/push strategy, security controls và Phase 1 acceptance map.
+

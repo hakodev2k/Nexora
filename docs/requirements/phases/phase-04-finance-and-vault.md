@@ -103,7 +103,7 @@ Bank/Open Banking sync, investment/portfolio/tax/accounting, payment initiation,
 | `P04-DEB-001` | P1 | Debt/Loan model có principal, direction, interest/repayment semantics only after dedicated refinement. | Không ship calculator nếu chưa có rounding/schedule tests. |
 | `P04-RPT-001` | P0 | Reports tối thiểu: account balance, monthly income/expense, category breakdown, cash flow. | Totals match golden ledger; filters/timezone/currency labeled. |
 | `P04-RPT-002` | P0 | Charts có table/text equivalent và không tải unbounded transaction set client-side. | Accessibility/performance tests pass. |
-| `P04-RPT-003` | P0 | Report generation/export rechecks owner, module và privileged scope; privileged export audited. | User khác/Admin-no-support cannot infer totals. |
+| `P04-RPT-003` | P0 | Report generation/export rechecks owner, module và action permission; owner export audited. Support/Emergency read-only không được export dữ liệu User. | User khác/Admin-no-support cannot infer totals. |
 
 ## 6. Vault item model
 
@@ -207,3 +207,4 @@ Audit bắt buộc: privileged Finance view/export, transaction purge/restore/ad
 - Admin/SuperAdmin privileged access and audit evidence pass.
 - Personal ownership của Finance/Vault được khóa; cross-user, revoked-support và module-disabled tests pass.
 - Known limits (no bank sync, no public Vault share, currency behavior) visible/documented.
+

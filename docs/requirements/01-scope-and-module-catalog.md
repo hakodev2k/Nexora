@@ -146,3 +146,10 @@ Catalog được coi là locked cho một release train khi:
 - Personal ownership, sharing và support-access behavior đã được khai báo;
 - Module manifest/lifecycle/migration/enablement requirements đã được đáp ứng;
 - Product Owner phê duyệt các mục `PROPOSED` được đưa vào committed scope.
+
+
+
+## Feature specification layer — 2026-09-06
+
+Catalog được map vào [40 feature/capability specs](../features/README.md), không tương đương40 menu/module deploy độc lập. [Coverage](../features/92-coverage-and-decisions.md) giữ25 committed rows và1 deferred row. Mỗi spec nêu sản phẩm tham chiếu, điều chỉnh theo User, flows/fields/lifecycle/commands/AC. Những conditional extensions và privacy/cost decisions còn [Q-gates](../features/90-open-decisions.md); không âm thầm thêm mọi behavior của sản phẩm tham chiếu hoặc giảm committed module thành demo.
+

@@ -485,3 +485,9 @@ PARALLEL là khả năng lập lịch tương lai, không phải đã chạy nhi
 ## 7. Hiện trạng bàn giao
 
 Bộ này là kế hoạch đầy đủ về coverage và thứ tự làm việc, không phải tuyên bố toàn bộ requirement đã clear hoặc app đã Ready. Các domain còn proposal có refinement work, dependencies và criteria cụ thể. Công việc đầu tiên sau approval là RM00 xử lý blocker của platform; không chạy setup hoặc code trước approval.
+
+
+## Feature specification delta — 2026-09-06
+
+Bổ sung [40 feature specifications](../features/README.md) làm đầu vào phân rã Feature → Story → Technical Task. [Requirement routing](../features/93-requirement-routing.md) bổ sung đường dẫn source ID tới đặc tả, không đánh dấu task triển khai đã hoàn thành. Story phải áp dụng shared behavior và close Q/ADR liên quan trước Definition of Ready. Các approved source decisions và delegated details mới hơn thắng roadmap snapshot cũ; không bắt đầu code/database/runtime trước PO approval riêng.
+

@@ -170,9 +170,10 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 
 ## 11. Exit criteria
 
-- Product Owner explicitly chooses committed Phase 7 modules; omitted candidates are marked Deferred.
+- Toàn bộ Phase 7 modules trong committed catalog phải đạt acceptance criteria; không tự loại module khỏi Release 1. Conditional extensions chỉ thay phạm vi khi có decision PO; áp dụng [FX-37…40 và Q gates](../../features/README.md).
 - Boundaries with Vault/Finance/Files/Notifications/Search approved and tested.
 - Sensitive field/search/share/export projections pass negative tests.
 - Expiry/reminder idempotency/timezone/update tests pass.
 - Personal ownership từng module được khóa; cross-user/revoked-support/module-disabled tests pass.
 - Responsive/accessibility P0 journeys pass; no Critical/High finding remains.
+

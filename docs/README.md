@@ -67,3 +67,11 @@ Thứ tự phase là đề xuất lập kế hoạch, không phải cam kết ng
 | `COULD` / P2 | Tùy chọn, không chặn release. |
 
 Mã yêu cầu không được tái sử dụng. Khi bỏ một yêu cầu, giữ nguyên mã và chuyển trạng thái thành `Deprecated` để bảo toàn traceability.
+
+
+## Feature specifications — 2026-09-06
+
+Đọc [docs/features](features/README.md) để xem40 đặc tả hành vi theo module/capability, sản phẩm tham chiếu, luồng màn hình, fields/validation, lifecycle, quyền, commands và acceptance scenarios. Có [coverage](features/92-coverage-and-decisions.md), [requirement routing](features/93-requirement-routing.md) và [12 nhóm quyết định lớn](features/90-open-decisions.md).
+
+Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi lại từng thao tác. Proposal còn Q chưa Approved; application implementation vẫn chờ approval riêng của Product Owner.
+

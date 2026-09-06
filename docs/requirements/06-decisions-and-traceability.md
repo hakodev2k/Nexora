@@ -52,9 +52,9 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-026` | Một Document page được gắn tối đa một Tag và User được tạo Tag ngay trong create/edit form. | Approved | Tag relation có cardinality `0..1`; inline-create tạo Tag trong Documents catalog của current User để tái sử dụng. |
 | `DEC-KNW-027` | Một page chỉ được dùng Icon hoặc cover image, không được dùng đồng thời cả hai. | Approved | Visual metadata có exclusive cardinality `0..1`; source/file constraints còn cần chốt riêng. |
 | `DEC-KNW-028` | User bắt buộc chọn rõ DocumentType và EditorMode trong mỗi lần tạo page. | Approved | Không có default, remembered selection hoặc silent inference; hai field vẫn immutable sau create. |
-| `DEC-KNW-029` | Document Icon chỉ lấy từ Emoji và thư viện Icon có sẵn; cover image chỉ lấy từ file ảnh User tải lên. | Approved | Không có upload Icon riêng hoặc dùng URL ngoài cho Icon/cover; file cover qua File Service và access policy. Format/size còn mở tại `DEC-KNW-032`; crop theo `DEC-KNW-033`. |
+| `DEC-KNW-029` | Document Icon chỉ lấy từ Emoji và thư viện Icon có sẵn; cover image chỉ lấy từ file ảnh User tải lên. | Approved | Không có upload Icon riêng hoặc dùng URL ngoài cho Icon/cover; file cover qua File Service và access policy. Format/size đã resolved delegated tại `DEC-KNW-032`; crop theo `DEC-KNW-033`. |
 | `DEC-KNW-030` | Trong nhóm metadata đã hỏi, Tag và Icon/Cover được thay đổi sau create; Folder của root/parent page cố định. | Approved | Root `FolderId` immutable, kể cả giá trị không thuộc Folder; child vẫn kế thừa parent. Draft/Published cho sửa Tag/visual, Archived vẫn read-only; không thay đổi các rule riêng của Title, content, DocumentType, EditorMode hoặc ParentPageId. |
-| `DEC-KNW-031` | Chặn xóa Tag cho tới khi không còn Document page nào sử dụng Tag đó. | Approved | Không cascade-delete page, tự gỡ hoặc tự thay Tag; delete bị chặn phải giữ nguyên Tag và các relation. Phạm vi tham chiếu Trash/version history cần làm rõ tại `DEC-KNW-036`. |
+| `DEC-KNW-031` | Chặn xóa Tag cho tới khi không còn Document page nào sử dụng Tag đó. | Approved | Không cascade-delete page, tự gỡ hoặc tự thay Tag; delete bị chặn phải giữ nguyên Tag và các relation. Phạm vi tham chiếu Trash/version history đã resolved delegated tại `DEC-KNW-036`. |
 | `DEC-KNW-033` | Sau khi upload cover, User có thể cắt ảnh và chọn vùng hiển thị. | Approved | Lưu kết quả crop/vùng hiển thị theo manual Save và versioning; Archived vẫn không cho chỉnh sửa. |
 | `DEC-KNW-034` | Trang Documents có hai view: Card/Grid và Table. | Approved | Đổi view không đổi dữ liệu hoặc quan hệ Folder/page; không thêm Tree View riêng. View mặc định và field hiển thị theo `DEC-KNW-035`. |
 | `DEC-KNW-035` | Trang Documents mặc định Card/Grid. Mỗi Card và mỗi dòng Table chỉ hiển thị Title, DocumentType và Tag. | Approved | Không tự thêm Status, ngày tạo/cập nhật, Folder/page cha hoặc Icon/cover vào Card/Table. Cover/Icon vẫn là metadata của page; Tag vẫn optional; field hiển thị không thay đổi schema hoặc quyền truy cập. |
@@ -160,15 +160,12 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-PRD-012` | Developer Toolbox P0 tool list và server-side network tools | 6 | Product + Security |
 | `DEC-PRD-013` | Automation v1 workflow graph và n8n boundary | 6 | Product + Architecture |
 | `DEC-PRD-014` | Field/state/lifecycle chi tiết cho Personal Assets, Digital Assets và Career | 7 | Product Owner |
-| `DEC-PRD-032` | Project InProgress → NotStarted có được phép và có cần reason hay không | 2 | Product Owner |
 | `DEC-PRD-033` | Task subtasks/attachments và independent Reminder có thuộc approved Phase 2 scope hay không | 2 | Product Owner |
 | `DEC-SHR-001` | Default/max expiration presets cho external share link | 1 | Product Owner + Security |
 | `DEC-SHR-002` | Existing share bị revoke ngay hay chỉ cấm tạo mới khi SuperAdmin tắt sharing của module | 1 | Product Owner + Security |
 | `DEC-SHR-003` | Share link cũ có hoạt động lại sau khi owner restore resource từ Trash hay không | 1/2/3 | Product Owner |
 | `DEC-SUP-001` | Support grant chỉ được xem active data hay gồm cả Trash/history | 1 | Product Owner + Security |
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
-| `DEC-KNW-032` | Cover upload: allowed image formats và giới hạn dung lượng/kích thước | 3 | Product Owner + Security |
-| `DEC-KNW-036` | Khi kiểm tra Tag còn được sử dụng, page trong Trash và tham chiếu chỉ còn trong version history có chặn xóa Tag không | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 
@@ -267,3 +264,19 @@ Feature chỉ sẵn sàng development khi có actor/problem, in/out scope, happy
 ## 15. Product Owner review queue
 
 PM/Technical hoàn thiện chi tiết Documents và các module theo nhóm chức năng, tham khảo nguồn chính thức và ghi delegated decisions theo §10.1. Chỉ đưa quyết định nghiệp vụ lớn còn thiếu ra Product Owner; không lặp chuỗi hỏi về từng edge case. Mọi câu trả lời và lựa chọn delegated đều cập nhật requirement/Decision Log/trace trước implementation; hoàn tất blueprint để Product Owner duyệt trước khi code.
+
+
+
+## 16. Feature specifications — 2026-09-06
+
+Theo yêu cầu trực tiếp của Product Owner, phân tích mọi module/capability, tham chiếu sản phẩm phổ biến và lưu đặc tả tại [docs/features](../features/README.md). Có40 feature specifications, shared behavior contract, source references, catalog coverage và requirement routing. Không đổi thành approval implement.
+
+| ID | Decision | Status | Trace |
+|---|---|---|---|
+| `DEC-FTR-001` | Mỗi module có tham chiếu phổ biến và đặc tả riêng trong docs/features; chi tiết nhỏ do PM/Technical giải quyết, major decision trình PO | Approved | Chỉ dẫn trực tiếp User ngày2026-09-06; áp dụng DEC-GOV-001 |
+| `DEC-PRD-032` | Project InProgress → NotStarted được phép và bắt buộc lý do | Resolved (delegated) | [Projects](../features/11-projects.md); giữ Project terminal không reopen |
+| `DEC-KNW-032` | Cover JPEG/PNG/WebP≤5MiB,≤25MP; scan và crop không phá binary lịch sử | Resolved (delegated) | [Files](../features/07-files-and-attachments.md), [Documents](../features/20-documents.md); quota production/security validation riêng |
+| `DEC-KNW-036` | Current/Archived/Trash page refs chặn Tag delete; history-only giữ label snapshot; restore rebind hoặc tạo Tag có preview | Resolved (delegated) | [Documents](../features/20-documents.md); không gỡ Tag âm thầm |
+
+Các rule FX còn lại không có Q là delegated trong guardrail, không được ghi thành câu trả lời trực tiếp PO. Các vấn đề lớn được gom tại [Q-01…Q-12](../features/90-open-decisions.md); các Open DEC cũ vẫn giữ trừ ba dòng đã đóng ở trên. Technical/security ADR vẫn cần hoàn thiện theo roadmap. [Consistency review](../features/92-coverage-and-decisions.md) ghi nhận việc bỏ placeholder DEC-PRD-034 chưa định nghĩa khỏi P00 gate và dẫn tới FX-01/Q-01/Q-02; không tạo ý nghĩa giả cho ID cũ.
+
