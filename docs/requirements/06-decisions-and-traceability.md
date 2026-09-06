@@ -3,7 +3,7 @@
 **Document ID:** `NX-GOV-001`  
 **Version:** `1.2-draft`  
 **Status:** Active requirement governance  
-**Last decision update:** `2026-09-05`
+**Last decision update:** `2026-09-06`
 
 ## 1. Requirement status lifecycle
 
@@ -60,6 +60,8 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-035` | Trang Documents mặc định Card/Grid. Mỗi Card và mỗi dòng Table chỉ hiển thị Title, DocumentType và Tag. | Approved | Không tự thêm Status, ngày tạo/cập nhật, Folder/page cha hoặc Icon/cover vào Card/Table. Cover/Icon vẫn là metadata của page; Tag vẫn optional; field hiển thị không thay đổi schema hoặc quyền truy cập. |
 | `DEC-KNW-037` | Trang Documents lọc theo DocumentType, Tag, khoảng ngày tạo; tìm kiếm theo Title và Tag; mặc định sắp xếp cập nhật mới nhất trước. | Approved | Áp dụng cho cả Grid/Table; không thêm Status/ngày cập nhật vào bộ lọc và không tìm trong content body tại trang Documents. Không thay đổi Global Search hoặc các field hiển thị đã chốt. |
 | `DEC-KNW-038` | Documents ban đầu hiển thị Folder cấp 1 và root page ngoài Folder; mở parent page truy cập child pages qua sidebar; Archived pages nằm trong mục Archived riêng của Documents. | Approved | Không flatten toàn bộ page vào danh sách ban đầu. Sidebar là điều hướng trong page, không phải Tree View riêng. Tách Archived khỏi danh sách thường không thu hồi share đang hợp lệ hoặc thay đổi ownership. |
+| `DEC-KNW-039` | Mở Folder chỉ hiển thị Folder con và root page trực tiếp trong Folder đó; tìm kiếm và bộ lọc Documents chỉ áp dụng cho nội dung trực tiếp tại vị trí đang mở. | Approved | Không recursive/flatten kết quả từ Folder sâu hơn hoặc child page; không có lựa chọn tìm toàn bộ Documents tại màn hình này. Global Search giữ phạm vi riêng. Cách Folder tham gia bộ lọc của page còn cần refinement. |
+| `DEC-KNW-040` | Archive một parent page phải Archive cả parent và toàn bộ child pages. | Approved | Các page chuyển Archived trở thành read-only và tuân thủ share rule riêng đã duyệt; không tự cấp quyền xem child từ link parent. Unarchive, thao tác riêng child và sidebar được tách sang `DEC-KNW-041`, chưa được suy ra là đã duyệt. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -163,8 +165,7 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-032` | Cover upload: allowed image formats và giới hạn dung lượng/kích thước | 3 | Product Owner + Security |
 | `DEC-KNW-036` | Khi kiểm tra Tag còn được sử dụng, page trong Trash và tham chiếu chỉ còn trong version history có chặn xóa Tag không | 3 | Product Owner |
-| `DEC-KNW-039` | Khi mở Folder hiển thị nội dung trực tiếp hay recursive; phạm vi search/filter là Folder hiện tại hay toàn bộ Documents | 3 | Product Owner |
-| `DEC-KNW-040` | Archive/Unarchive parent page ảnh hưởng child pages thế nào; điều hướng/sidebar khi parent hoặc child Archived | 3 | Product Owner |
+| `DEC-KNW-041` | Unarchive parent có khôi phục children cùng đợt Archive hay cả child đã Archived trước; cho phép Archive riêng child khi parent active và Unarchive riêng child khi parent Archived hay không; sidebar/Archived navigation và tương tác với child trong Trash | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 

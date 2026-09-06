@@ -2,11 +2,11 @@
 
 **Version:** 1.0-draft · **Ngày:** 2026-09-05 · **Status:** Chờ review/approval roadmap.
 
-**PLANNING AND DOCUMENTATION ONLY.** Mọi phase dưới đây là công việc tương lai, chưa thực thi. Không có application source, database, migration, package installation, runtime configuration hoặc test execution được tạo/chạy trong task này. Phạm vi ghi tài liệu chỉ là `docs/roadmap/`. Hoàn tất bộ tài liệu rồi dừng, chờ approval trước implementation.
+**PLANNING AND DOCUMENTATION ONLY.** Mọi phase dưới đây là công việc tương lai, chưa thực thi. Không có application source, database, migration, package installation, runtime configuration hoặc test execution được tạo/chạy trong task này. Bộ roadmap ban đầu được tạo trong `docs/roadmap/`. Theo yêu cầu tiếp tục refinement ngày 2026-09-06, requirement và roadmap được cập nhật từ câu trả lời của Product Owner; implementation vẫn chờ approval riêng.
 
 ## 1. Baseline và cách dùng
 
-Source of truth là toàn bộ 18 file trong [docs/requirements](../requirements/00-product-charter.md), chốt đọc tại commit [fc79a9c53bf6c896a8771e4e0a239a2d14cab214](https://github.com/hakodev2k/Nexora/commit/fc79a9c53bf6c896a8771e4e0a239a2d14cab214). Requirement docs được giữ nguyên. Prompt `Pasted markdown(10).md` bổ sung chỉ dẫn lập kế hoạch: .NET 10/ASP.NET Core, ReactJS, SQL Server, Redis; local trước production; 11 tài liệu roadmap. Chỉ dẫn stack mới được ghi tại roadmap, không sửa lịch sử các DEC-TEC còn Open trong requirement.
+Source of truth là toàn bộ 18 file trong [docs/requirements](../requirements/00-product-charter.md), chốt đọc tại commit [fc79a9c53bf6c896a8771e4e0a239a2d14cab214](https://github.com/hakodev2k/Nexora/commit/fc79a9c53bf6c896a8771e4e0a239a2d14cab214). Requirement docs được giữ nguyên khi tạo roadmap ban đầu; các cập nhật phỏng vấn sau đó được truy vết trong [refinement delta](01-requirement-traceability.md#11-refinement-delta--2026-09-06). Requirement hiện hành có hiệu lực hơn snapshot lịch sử. Prompt `Pasted markdown(10).md` bổ sung chỉ dẫn lập kế hoạch: .NET 10/ASP.NET Core, ReactJS, SQL Server, Redis; local trước production; 11 tài liệu roadmap. Chỉ dẫn stack mới được ghi tại roadmap, không sửa lịch sử các DEC-TEC còn Open trong requirement.
 
 Roadmap mô tả HOW/WHEN theo dependency. `MAPPED` chỉ có nghĩa đã có vị trí xây/kiểm chứng; không có nghĩa Approved, Implemented hoặc Passed. Business proposals vẫn cần Product Owner chốt. Phases requirement cũ dùng `P00…P08`; delivery phases mới dùng `RM00…RM22`, không rename hoặc thay ID cũ.
 
@@ -23,6 +23,8 @@ Roadmap mô tả HOW/WHEN theo dependency. `MAPPED` chỉ có nghĩa đã có v�
 | [08-testing-roadmap.md](08-testing-roadmap.md) | Test suites, trace-to-scenario và evidence gates |
 | [09-local-stable-release.md](09-local-stable-release.md) | Definition of Done cho toàn bộ Local Stable Release |
 | [10-production-roadmap.md](10-production-roadmap.md) | Production phases chỉ bắt đầu sau Local Stable |
+
+**Refinement 2026-09-06 — RM09 Documents:** đã chốt listing/search/filter theo nội dung trực tiếp tại vị trí mở và Archive parent kéo theo toàn bộ child pages (`DEC-KNW-039/040`, `P03-DOC-038..040`). Unarchive và hành vi riêng child/sidebar còn mở tại `DEC-KNW-041`; chưa đạt sign-off toàn bộ Documents. Thứ tự milestone và scope Release 1 không đổi.
 
 ## 2. Scope không được rút gọn ngầm
 

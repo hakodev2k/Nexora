@@ -93,12 +93,15 @@ Theo `DEC-KNW-001/003`, editor hỗ trợ cả Block editor và Markdown. User p
 | `P03-DOC-029` | P0 | Icon được chọn từ Emoji/thư viện Icon có sẵn; cover chỉ từ file ảnh User upload qua File Service. | Không có custom Icon upload hoặc external-URL Icon/cover; invalid icon reference bị từ chối; cover áp dụng owner/file/share access và upload validation chung. Format/size còn mở, crop theo `P03-DOC-031`. |
 | `P03-DOC-030` | P0 | Draft/Published page cho thay đổi Tag và Icon/Cover; Folder membership cố định; Archived vẫn read-only. | Save Tag/visual tuân thủ manual Save/versioning, tối đa một Tag và không đồng thời Icon/cover; thay visual không đổi Folder/parent/type/editor; Archived chặn metadata mutation cho tới Unarchive. |
 | `P03-DOC-031` | P0 | User có thể cắt cover đã upload và chọn vùng hiển thị; thay đổi được lưu qua manual Save/versioning. | Vùng crop hợp lệ nằm trong ảnh; preview thể hiện vùng đã chọn, reload sau Save giữ kết quả. Cancel không thay cover đã lưu; Archived và read-only viewers không được crop; không ghi đè dữ liệu cover của version cũ. |
-| `P03-DOC-032` | P0 | Grid/Table Documents có bộ lọc DocumentType, Tag và khoảng ngày tạo. | Không thêm Status hoặc khoảng ngày cập nhật vào bộ lọc của trang Documents; lọc theo created timestamp, không nhầm updated timestamp; ngày hiển thị theo User timezone. Hai view trả cùng tập kết quả trong cùng scope; không lộ dữ liệu User khác. |
-| `P03-DOC-033` | P0 | Tìm kiếm tại trang Documents chỉ tìm trong Title và Tag. | Page chỉ khớp content body mà không khớp Title/Tag không xuất hiện vì từ khóa đó; page không có Tag vẫn tìm được qua Title. Áp dụng cùng search scope cho Grid/Table; không thay đổi Global Search. |
+| `P03-DOC-032` | P0 | Grid/Table Documents có bộ lọc DocumentType, Tag và khoảng ngày tạo. | Không thêm Status hoặc khoảng ngày cập nhật vào bộ lọc của trang Documents; lọc theo created timestamp, không nhầm updated timestamp; ngày hiển thị theo User timezone. Hai view trả cùng tập kết quả trong scope trực tiếp tại vị trí đang mở theo `DEC-KNW-039`; không lộ dữ liệu User khác. |
+| `P03-DOC-033` | P0 | Tìm kiếm tại trang Documents chỉ tìm trong Title và Tag. | Page chỉ khớp content body mà không khớp Title/Tag không xuất hiện vì từ khóa đó; page không có Tag vẫn tìm được qua Title. Áp dụng cùng search scope cho Grid/Table: chỉ nội dung trực tiếp tại vị trí đang mở theo `DEC-KNW-039`; không thay đổi Global Search. |
 | `P03-DOC-034` | P0 | Danh sách Documents mặc định sắp xếp theo thời điểm cập nhật giảm dần. | Page mới cập nhật đứng trước; cùng timestamp có thứ tự phụ ổn định để phân trang không trùng/thiếu trên tập dữ liệu ổn định. Sort áp dụng cho kết quả tìm kiếm/lọc ở cả hai view, không tự thêm cột ngày cập nhật. |
 | `P03-DOC-035` | P0 | Danh sách Documents ban đầu hiển thị Folder cấp 1 và root pages không thuộc Folder. | Page xuất hiện tại đây phải không có ParentPageId/FolderId và không ở Archived/Trash; không flatten child page, page trong Folder hoặc Folder cấp 2. Nội dung khi mở Folder và phạm vi search/filter theo `DEC-KNW-039`. |
-| `P03-DOC-036` | P0 | Khi owner mở parent page, child pages được truy cập từ sidebar của page. | Mở child không đổi ParentPageId/FolderId hoặc content; sidebar không phải một Tree View mới của trang Documents và không tự cấp quyền cho share viewer. Hành vi khi parent/child Archived theo `DEC-KNW-040`. |
+| `P03-DOC-036` | P0 | Khi owner mở parent page, child pages được truy cập từ sidebar của page. | Mở child không đổi ParentPageId/FolderId hoặc content; sidebar không phải một Tree View mới của trang Documents và không tự cấp quyền cho share viewer. Archive cả cây theo `DEC-KNW-040`; cách hiển thị sidebar khi parent/child Archived còn mở tại `DEC-KNW-041`. |
 | `P03-DOC-037` | P0 | Archived pages được hiển thị trong mục Archived riêng bên trong Documents, tách khỏi danh sách page thường. | Mục Archived chỉ trả page Archived của current User, không trộn Trash. Mở page vẫn read-only; Unarchive theo previous-state rule. Việc ẩn khỏi danh sách thường không revoke share link hợp lệ. |
+| `P03-DOC-038` | P0 | Mở một Folder chỉ liệt kê Folder con trực tiếp và root pages có FolderId đúng Folder đang mở. | Không flatten page của Folder con hoặc child page vào danh sách; Folder cấp 2 không có Folder con cấp 3. Page Archived/Trash không xuất hiện trong danh sách thường. Grid/Table dùng cùng phạm vi và owner/module access checks. |
+| `P03-DOC-039` | P0 | Search và filter tại trang Documents chỉ áp dụng cho nội dung trực tiếp của vị trí hiện tại. | Tại gốc, chỉ xét nội dung danh sách gốc đã duyệt; trong Folder A, page ở Folder B bên trong A hoặc child page không thành kết quả dù khớp Title/Tag/type/ngày tạo. Không tự mở rộng scope khi không có kết quả; Global Search không bị thay đổi. Quy tắc filter/render cho Folder không có metadata DocumentType/Tag cần refinement riêng, không giả lập metadata page cho Folder. |
+| `P03-DOC-040` | P0 | Khi owner Archive parent page, parent và toàn bộ child pages thuộc cây được Archive cùng thao tác. | Parent/child Draft hoặc Published chuyển Archived/read-only; giữ previous state riêng của từng page theo lifecycle đã duyệt, không dùng state của parent cho tất cả child. Child đã Archived không bị ghi đè previous state bằng Archived. Không thay parent/Folder/type/editor, nội dung hoặc lịch sử đã lưu. Link từng page tiếp tục áp dụng expiry/revoke/suspended rules; không tạo hoặc mở rộng share. Retry không lặp transition; kết quả thành công không để cây bị Archive dở dang. Unarchive và tương tác với Trash/sidebar còn mở tại `DEC-KNW-041`. |
 
 Các requirement `P03-KB-001..004` của model Knowledge Base container trước đây bị `DEC-KNW-006` supersede và không được implement.
 
@@ -111,6 +114,8 @@ State transitions:
 | Draft | Archived | Cho phép; lưu Draft làm previous state, chuyển page sang read-only; không kích hoạt suspended link. |
 | Published | Archived | Cho phép; lưu Published làm previous state, chuyển page sang read-only; active link tiếp tục cho xem. |
 | Archived | Previous Draft/Published | Cho phép qua Unarchive; không được chọn một state khác previous state. |
+
+Với thao tác Archive trên parent, áp dụng transition cho cả cây theo `P03-DOC-040`. Bảng trên mô tả previous state của từng page; không phải quyết định về phạm vi Unarchive cả cây. Phạm vi đó còn mở tại `DEC-KNW-041`.
 
 ### 3.3 Versioning and sharing
 
@@ -263,9 +268,12 @@ P1 Command Palette có thể search navigation/allowed actions và data results.
 19. Với Folder hai cấp và page cha-con, mở Documents chỉ thấy Folder cấp 1/root page ngoài Folder trong danh sách ban đầu; child page được mở từ sidebar parent, không thay đổi cấu trúc đã cố định.
 20. Archive page làm page chuyển khỏi danh sách thường sang mục Archived; mở tại đó vẫn read-only và share đang hợp lệ không bị thu hồi chỉ vì thay nơi hiển thị. Trash và dữ liệu User khác không xuất hiện trong mục Archived.
 
+21. Folder A chứa Folder B, root page P và child C của P; B chứa root page Q. Mở A chỉ hiển thị B và P, không hiển thị C hoặc Q; mở B mới hiển thị Q. Tại A, search/filter chỉ khớp Q/C không được trả Q/C hoặc tự mở rộng scope. Kiểm tra cả Grid/Table và kết quả rỗng.
+22. Parent Draft có child Published và child đã Archived: Archive parent làm parent và child Published thành Archived/read-only; giữ previous state tương ứng, không ghi đè previous state của child vốn Archived. Kiểm tra share hợp lệ/suspended/expired độc lập trên từng page, retry và lỗi giữa thao tác không tạo thành công một phần. Chưa coi scenario Unarchive cả cây đã được chốt.
+
 ## 14. Exit criteria
 
-- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033..035`, `DEC-KNW-037/038` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/036/039/040`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
+- `DEC-PRD-004`, `DEC-KNW-001..031`, `DEC-KNW-033..035`, `DEC-KNW-037..040` đã Approved; `DEC-PRD-005`, `DEC-KNW-032/036/041`, `DEC-TEC-006/007` và `DEC-SEC-006` phải đóng cho scope P0.
 - Content round-trip, sanitization, conflict, version/lifecycle tests pass.
 - Search access/count/facet/highlight negative tests 100% pass.
 - Sharing Item/Collection modes và file access pass trên desktop/mobile.

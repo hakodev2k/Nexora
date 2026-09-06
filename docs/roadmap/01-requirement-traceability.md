@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-09-05 · **Source commit:** [fc79a9c53bf6c896a8771e4e0a239a2d14cab214](https://github.com/hakodev2k/Nexora/commit/fc79a9c53bf6c896a8771e4e0a239a2d14cab214) · **Roadmap version:** 1.0-draft.
 
-**Coverage audit only; implementation/test execution chưa diễn ra.** Requirement documents là source of truth và giữ nguyên. Chỉ dẫn mới trong prompt `Pasted markdown(10).md` điều khiển stack/roadmap/local-first và documentation-only boundary.
+**Coverage audit only; implementation/test execution chưa diễn ra.** Requirement documents là source of truth. Các bảng snapshot bên dưới giữ nguyên nguồn lịch sử; thay đổi sau snapshot được ghi ở mục 1.1 và có hiệu lực theo requirement hiện hành. Chỉ dẫn mới trong prompt `Pasted markdown(10).md` điều khiển stack/roadmap/local-first và documentation-only boundary.
 
 ## 1. Audit method và phạm vi
 
@@ -25,6 +25,26 @@ Decision Log nguồn có **88 Approved, 45 Open, 2 Superseded**. Stack .NET 10/S
 | REQUIREMENT CONFLICT | 1 | Có source/reference không nhất quán; không tự lấp bằng assumption. |
 
 Counts trên chỉ cho defined ID rows, không cộng catalog/narrative/prompt directive vào cùng denominator. Các conflicts nằm trong narrative còn được liệt kê ở mục 3; không chỉ có một vấn đề nghiệp vụ vì defined-ID conflict count là 1.
+
+
+### 1.1. Refinement delta — 2026-09-06
+
+Product Owner xác nhận trực tiếp trong buổi phỏng vấn sau roadmap commit `6256d2b1ec0fd3cef19718a149349f55bb341b01`. Snapshot 1.004 ID/45 Open và các Rxx line/SHA bên dưới vẫn mô tả commit nguồn cũ, không phải số liệu hiện hành. Khi có khác biệt, [Decision Log hiện hành](../requirements/06-decisions-and-traceability.md) và [Phase 3 hiện hành](../requirements/phases/phase-03-knowledge-search-dashboard.md) cùng delta này thay cho disposition lịch sử tương ứng. Đây là cập nhật tài liệu, không phải approval triển khai.
+
+| Source ID hiện hành | Thay đổi / disposition | Feature / phase | Dependency và acceptance mapping |
+|---|---|---|---|
+| `DEC-KNW-039` | Open → Approved: Folder chỉ nội dung trực tiếp; search/filter tại vị trí hiện tại. | F-DOCS / RM09 | REVIEW-DEC-KNW-039 được chốt về scope; P03-DOC-038/039 và scenarios 21. Folder metadata/filter presentation vẫn cần refinement. |
+| `DEC-KNW-040` | Phần Archive parent → cả cây được Approved; phần chưa trả lời chuyển DEC-KNW-041. | F-DOCS / RM09 | REVIEW-DEC-KNW-040 → P03-DOC-040/scenario 22; không đóng toàn bộ Unarchive/sidebar. |
+| `DEC-KNW-041` | ID mới, OPEN REQUIREMENT: Unarchive cả cây, thao tác riêng child, sidebar và child trong Trash. | F-DOCS / RM09 | REVIEW-DEC-KNW-041; chặn sign-off lifecycle liên quan. |
+| `P03-DOC-032`, `P03-DOC-033`, `P03-DOC-035` | MAPPED: scope trực tiếp được cụ thể hóa; field/filter đã duyệt giữ nguyên. | F-DOCS / RM09 | V-DOC; TC-P03-DOC-032/033/035 và scenario 21. |
+| `P03-DOC-036` | MAPPED: sidebar giữ nguyên; phần Archived navigation chuyển tham chiếu DEC-KNW-041. | F-DOCS / RM09 | V-DOC; TC-P03-DOC-036, phần unresolved chưa Ready. |
+| `P03-DOC-038` | Requirement mới, MAPPED: Folder listing trực tiếp. | F-DOCS / RM09 | RM06–RM08; V-DOC / TC-P03-DOC-038; scenario 21, owner/module isolation. |
+| `P03-DOC-039` | Requirement mới, MAPPED: search/filter theo vị trí hiện tại. | F-DOCS / RM09 | P03-DOC-032/033/038; V-DOC / TC-P03-DOC-039; scenario 21, negative descendant match. |
+| `P03-DOC-040` | Requirement mới, MAPPED: Archive parent và children. | F-DOCS / RM09 | P03-DOC-009/012/023; V-DOC / TC-P03-DOC-040; scenario 22, retry/concurrency/share checks. |
+
+Narrative delta bao phủ Phase 3 §3.2 (listing/lifecycle và chú thích state table), §13 scenarios 21–22, §14 exit gate; Decision Log §2/§8 chuyển Approved/Open tương ứng. RD-10/F-DOCS hiện không còn chờ quyết định direct/recursive hoặc local/global scope, nhưng vẫn chờ DEC-KNW-036/041 và các chi tiết Folder/Trash đã liệt kê.
+
+Tác động thiết kế RM09: API list/search phải nhận vị trí và giới hạn query trước filter/pagination; frontend Grid/Table dùng cùng scope, không fallback sang tìm toàn bộ. Archive aggregate cần lưu previous state theo page và xử lý retry/concurrency nhất quán. SQL/API/UI contract cụ thể vẫn là công việc thiết kế sau refinement; không coi các bảng roadmap lịch sử còn ghi DEC-KNW-039/040 Open là yêu cầu hỏi lại khách hàng.
 
 ## 2. Source inventory
 
