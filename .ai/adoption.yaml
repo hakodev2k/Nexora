@@ -1,0 +1,62 @@
+source: https://github.com/hakodev2k/AI-Engineering
+revision: a9f31a7a6a2f65ddc77c3791fde303f990f72d52
+adopted_on: 2026-09-07
+target_repository: https://github.com/hakodev2k/Nexora
+
+primary_role:
+  source: "Daily AI Role/technical-lead"
+  target: ".ai/roles/technical-lead"
+  copy_unit: "complete package"
+
+rule_disciplines:
+  - software-architect
+  - dotnet-backend-developer
+  - react-developer
+  - security-engineer
+  - privacy-engineer
+
+skill_disciplines:
+  - software-architect
+  - dotnet-backend-developer
+  - react-developer
+  - database-engineer
+  - security-engineer
+  - qa-automation-engineer
+
+baseline_controls:
+  - source: "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate"
+    target: ".ai/controls/agent-multi-tenant-data-boundary-gate"
+    copy_unit: "complete package"
+  - source: "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate"
+    target: ".ai/guards/agent-ground-truth-completion-gate"
+    copy_unit: "complete package"
+
+phase_on_demand_controls:
+  - agent-database-migration-preflight-rollback-gate
+  - agent-cache-invalidation-safety-gate
+  - agent-background-job-idempotency-gate
+  - agent-clock-timezone-boundary-gate
+  - agent-secret-exposure-prevention-gate
+  - agent-webhook-signature-replay-protection-gate
+  - agent-ssrf-egress-policy-gate
+  - agent-file-upload-archive-extraction-safety-gate
+  - agent-api-contract-regression-gate
+  - agent-test-evidence-freshness-gate
+  - agent-rollback-readiness-gate
+
+mcp:
+  vendored: []
+  runtime_required:
+    - github
+  rationale: "Use host/runtime GitHub access with least privilege. Do not vendor provider connectors until credential, allowlist, approval, logging, revocation and execution boundaries are approved."
+
+local_adaptations:
+  - "AGENTS.md defines Nexora source precedence, invariants, approvals and PR workflow."
+  - ".ai/profiles/nexora-implementation-agent.md defines lazy specialist loading and phase-on-demand gates."
+  - "docs/ai-engineering-adoption.md records rationale, exclusions and future activation."
+
+verification:
+  status: "selection and package structure reviewed; executable gates are copied but application integration tests cannot run until Nexora implementation/runtime exists"
+
+owner: "Nexora Technical Lead"
+license: "MIT; upstream license retained at .ai/upstream/AI-Engineering-LICENSE"
