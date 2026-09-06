@@ -86,6 +86,22 @@ Narrative delta: Decision Log §2/§8; Phase 3 §3.2, §13 scenarios 26–28, §
 
 Tác động RM09: sidebar render nhãn Archived và read-only; query Archived trả page theo trạng thái riêng, không group theo parent; Delete action được phép trong Archived dù editor read-only. API vẫn dùng aggregate Delete và access/concurrency checks, không Unarchive ngầm. Chưa quyết định Trash retention hoặc khôi phục child trong tình huống parent Archived; không implement các giả định đó.
 
+### 1.4. Refinement delta — PM/Technical tự xử lý chi tiết
+
+**Đợt 4, 2026-09-06; source trước sửa:** [b2c8f31736189d6bcd040196179d81bcfbc78511](https://github.com/hakodev2k/Nexora/commit/b2c8f31736189d6bcd040196179d81bcfbc78511). Product Owner ủy quyền xử lý chi tiết, yêu cầu chỉ phỏng vấn quyết định lớn. Delta này thay trạng thái Open của KNW-043 ở các đợt trước; không ghi câu hỏi đã bỏ qua thành câu trả lời trực tiếp.
+
+| ID hiện hành | Disposition và căn cứ | Feature / phase | Acceptance / review mapping |
+|---|---|---|---|
+| `DEC-GOV-001` | Approved qua chỉ dẫn trực tiếp: hỏi quyết định lớn, tự resolve chi tiết trong guardrail, giữ approval trước code. | F-GOV / RM00–RM01, toàn bộ refinement | REVIEW-DEC-GOV-001; Decision Log §10.1/§15, RM00 question triage. |
+| `DEC-KNW-043` | Resolved (delegated), không còn blocker hỏi User: giữ Trash tới purge; parent Archive/Unarchive bỏ qua child đã xóa; child Restore phải có parent ngoài Trash/Archived. | F-DOCS / RM09 | REVIEW-DEC-KNW-043; rationale/source/impact tại Decision Log §10.1. |
+| `P03-DOC-045` | Mới, MAPPED, delegated retention. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-045; scenario 29, no automatic data loss. |
+| `P03-DOC-046` | Mới, MAPPED, delegated Trash/Archive interaction. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-046; scenario 30, cohort + no resurrection. |
+| `P03-DOC-047` | Mới, MAPPED, delegated child restore gate. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-047; scenario 31, original state + concurrency. |
+
+Narrative delta: Decision Log lifecycle/§10.1/§15; Phase 3 DOC-040/041/044 references, scenarios 29–31 và exit gates. Các bảng snapshot gốc vẫn là lịch sử; F-DOCS/RD-10 hiện không cần Product Owner trả lời KNW-043. Gap nhỏ còn lại do PM/Technical refine, gap lớn giữ cho PO; chưa coi toàn bộ roadmap implementation-ready.
+
+Tham khảo chính thức và phần điều chỉnh riêng cho Nexora đã ghi tại Decision Log §10.1. Không tự lấy Google Drive 30-day purge, Google Docs autosave/collaboration hoặc xóa version history làm requirement mới. Không có code/tests/runtime được thực thi.
+
 ## 2. Source inventory
 
 | Source key | File / fixed source | Defined IDs | Source blob SHA |

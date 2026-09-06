@@ -9,7 +9,7 @@
 
 `Proposed → Reviewed → Approved → Implementing → Verified → Released`
 
-Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded`, `Deprecated`. Chỉ Product Owner duyệt product behavior/scope. Technical/security owner chỉ được chốt implementation trong guardrail không làm đổi behavior đã duyệt.
+Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded`, `Deprecated`. Product Owner chốt phạm vi và quyết định nghiệp vụ lớn. Từ 2026-09-06, Product Owner ủy quyền PM/Technical tự chốt chi tiết UX/validation/lifecycle thông thường theo `DEC-GOV-001`, không thay behavior đã duyệt. Dùng trạng thái `Resolved (delegated)` cho chi tiết được tự chốt; không ghi là câu trả lời trực tiếp của Product Owner. Technical/security owner chốt thiết kế trong guardrail; implementation vẫn cần approval riêng.
 
 ## 2. Product direction decisions
 
@@ -64,6 +64,8 @@ Ngoài luồng chính có `Open`, `Blocked`, `Deferred`, `Rejected`, `Superseded
 | `DEC-KNW-040` | Archive một parent page phải Archive cả parent và toàn bộ child pages. | Approved | Các page chuyển Archived trở thành read-only và tuân thủ share rule riêng đã duyệt; không tự cấp quyền xem child từ link parent. Unarchive và thao tác riêng child theo `DEC-KNW-041`; sidebar theo `DEC-KNW-042`; tương tác Trash còn mở tại `DEC-KNW-043`. |
 | `DEC-KNW-041` | Unarchive parent chỉ Unarchive cùng các child bị Archive cùng đợt với parent. User được Archive riêng child khi parent Draft/Published, không thay parent hoặc sibling. Không Unarchive riêng child khi parent còn Archived; phải Unarchive parent trước. | Approved | Mỗi page trở về previous Draft/Published state riêng. Child đã Archived từ trước đợt Archive parent giữ Archived. Cần phân biệt nguồn/đợt Archive, không suy từ current state hoặc timestamp gần nhau. Điều hướng theo `DEC-KNW-042`; tương tác Trash còn mở tại `DEC-KNW-043`. |
 | `DEC-KNW-042` | Child Archived vẫn hiển thị trong sidebar parent với nhãn Archived và mở read-only. Mục Archived liệt kê riêng từng page, gồm parent và child. User được xóa page trực tiếp từ Archived vào Trash, không cần Unarchive trước. | Approved | Danh sách phẳng không thay ParentPageId hoặc quyền; không nhóm cây hoặc giấu child dưới parent trong mục Archived. Delete vẫn áp dụng aggregate parent + children; child delete riêng tuân thủ warning đã duyệt. Read-only chặn sửa nội dung, không chặn lifecycle Delete đã được duyệt. Tương tác restore/Trash tiếp tục tại `DEC-KNW-043`. |
+| `DEC-GOV-001` | Product Owner yêu cầu chỉ hỏi các vấn đề lớn; PM/Technical tự phân tích và chốt chi tiết nhỏ, tham khảo hành vi của sản phẩm phổ biến như Google Docs. | Approved | Ngày 2026-09-06, nguồn: chỉ dẫn trực tiếp của Product Owner. Các lựa chọn delegated phải có căn cứ và trace; không tự thay scope, quyền riêng tư, quy trình chính, chi phí đáng kể hoặc quyết định đã duyệt. Implementation chỉ sau approval riêng. |
+| `DEC-KNW-043` | Documents Trash giữ tới khi User chủ động purge. Archive/Unarchive parent bỏ qua child ở Trash hoặc đã purge; không khôi phục ngầm hoặc chặn parent chỉ vì child đó. Restore riêng child yêu cầu parent tồn tại, ngoài Trash và không Archived; restore đúng trạng thái lúc xóa, không tự Publish/Unarchive. | Resolved (delegated) | PM/Technical, 2026-09-06, theo `DEC-GOV-001`; căn cứ và tác động tại §10.1. Giữ lifecycle/ownership/đợt Archive đã chốt; child đã purge không được hồi sinh. Không coi ba câu hỏi bị bỏ qua là câu trả lời của User. |
 
 ## 3. Module, administration, sharing và support decisions
 
@@ -167,7 +169,6 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 | `DEC-SUP-002` | Vault support bị cấm hoàn toàn hay chỉ cho xem safe metadata | 1/4 | Product Owner + Security |
 | `DEC-KNW-032` | Cover upload: allowed image formats và giới hạn dung lượng/kích thước | 3 | Product Owner + Security |
 | `DEC-KNW-036` | Khi kiểm tra Tag còn được sử dụng, page trong Trash và tham chiếu chỉ còn trong version history có chặn xóa Tag không | 3 | Product Owner |
-| `DEC-KNW-043` | Documents Trash retention; Archive/Unarchive parent khi có child ở Trash hoặc đã purge; khôi phục child từ Trash khi parent còn Archived và quan hệ với đợt Archive cũ | 3 | Product Owner |
 
 ## 9. Technical/security decisions
 
@@ -201,6 +202,21 @@ Chi tiết field, view, filter, search, state transition, Calendar projection, h
 ## 10. Decision record rule
 
 Mỗi decision khi đóng phải ghi: context, considered options, decision, rationale, consequences, security/data/migration impact, owner, date và link tới requirement bị ảnh hưởng. Không sửa lịch sử để làm như decision mới luôn tồn tại; decision cũ được giữ và đánh dấu `Superseded`.
+
+### 10.1. Delegated refinement và căn cứ tham khảo
+
+Áp dụng từ chỉ dẫn Product Owner ngày 2026-09-06. PM/Technical xử lý trọn nhóm chi tiết UI/navigation, validation thông thường, trạng thái rỗng/lỗi, retry/conflict và lifecycle edge cases trong phạm vi đã duyệt; ghi quyết định, rationale, tác động và acceptance criteria. Không biến mỗi edge case thành câu hỏi mới. Chỉ đưa ra câu hỏi khi câu trả lời làm thay đổi đáng kể phạm vi module/tích hợp, quy trình chính, quyền truy cập/chia sẻ, xử lý dữ liệu nhạy cảm, chi phí hoặc nguy cơ mất dữ liệu. Mỗi nhóm câu hỏi lớn có đề xuất và tradeoff cụ thể; không cần Product Owner xác nhận lại từng default nhỏ.
+
+`Resolved (delegated)` là baseline thiết kế đã được giải quyết theo quyền ủy nhiệm, có thể review/sửa trong docs; không đồng nghĩa implementation được phép hoặc tests đã pass. Quyết định Approved trước đó luôn có ưu tiên hơn mẫu hành vi bên ngoài. Product Owner vẫn duyệt blueprint và implementation trước khi code. Backlog Open hiện có phải được phân loại lại: chi tiết nhỏ chuyển PM/Technical xử lý, quyết định lớn giữ để phỏng vấn.
+
+**DEC-KNW-043 — record:**
+
+- Context: ba câu hỏi Trash còn mở nhưng Product Owner yêu cầu PM/Technical tự xử lý mức chi tiết này.
+- Options: auto-purge 30/90 ngày hoặc User tự purge; chặn parent khi child Trash hoặc bỏ qua; restore child dưới parent Archived hoặc yêu cầu parent Unarchive trước.
+- Decision/rationale: giữ vô thời hạn theo pattern Project/Task đã duyệt, tránh tự xóa dữ liệu; Archive/Unarchive không phải Trash Restore nên bỏ qua child đã xóa; yêu cầu Unarchive parent trước child Trash Restore để không tự sửa state của child hoặc tạo nhánh editable dưới parent read-only.
+- Tác động: tăng nhu cầu lưu trữ so với auto-purge nhưng không thêm provider/chi phí cam kết; retention/quota capacity cần tính trong NFR. Không mở quyền, share hoặc hồi sinh dữ liệu purge. Schema cần phân biệt Trash state, previous lifecycle state và đợt Archive; chưa thực thi migration/code.
+- Validation: `P03-DOC-045..047`, Phase 3 scenarios 29–31. Đây là thiết kế Nexora do PM/Technical chọn, không phải behavior Google được sao chép nguyên trạng.
+- Tham khảo ngày 2026-09-06: [Google Drive — Recover a deleted file](https://support.google.com/drive/answer/1716222?hl=en) mô tả Trash/Restore và giữ 30 ngày; chỉ lấy mẫu thao tác khôi phục chủ động, không lấy thời hạn auto-purge. [Google Docs — Find what's changed in a file](https://support.google.com/docs/answer/190843?hl=en) mô tả xem/chọn/khôi phục phiên bản; Nexora vẫn giữ manual Save và toàn bộ history theo requirement riêng. Hai nguồn không được dùng làm bằng chứng cho custom Archive/page tree của Nexora.
 
 ## 11. Traceability chain
 
@@ -250,4 +266,4 @@ Feature chỉ sẵn sàng development khi có actor/problem, in/out scope, happy
 
 ## 15. Product Owner review queue
 
-Sau khi Notification đã được chốt, requirement interview chuyển sang Knowledge/Documents rồi tiếp tục theo Open Product Decision backlog. Mọi câu trả lời tiếp theo phải được cập nhật vào requirement và Decision Log trước implementation.
+PM/Technical hoàn thiện chi tiết Documents và các module theo nhóm chức năng, tham khảo nguồn chính thức và ghi delegated decisions theo §10.1. Chỉ đưa quyết định nghiệp vụ lớn còn thiếu ra Product Owner; không lặp chuỗi hỏi về từng edge case. Mọi câu trả lời và lựa chọn delegated đều cập nhật requirement/Decision Log/trace trước implementation; hoàn tất blueprint để Product Owner duyệt trước khi code.
