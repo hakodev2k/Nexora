@@ -24,7 +24,7 @@ Roadmap mô tả HOW/WHEN theo dependency. `MAPPED` chỉ có nghĩa đã có v�
 | [09-local-stable-release.md](09-local-stable-release.md) | Definition of Done cho toàn bộ Local Stable Release |
 | [10-production-roadmap.md](10-production-roadmap.md) | Production phases chỉ bắt đầu sau Local Stable |
 
-**Refinement 2026-09-06 — RM09 Documents:** đã chốt listing/search/filter theo nội dung trực tiếp tại vị trí mở và Archive parent kéo theo toàn bộ child pages (`DEC-KNW-039/040`, `P03-DOC-038..040`). Đợt phỏng vấn tiếp theo đã chốt Unarchive theo cùng đợt Archive, cho Archive riêng child khi parent Draft/Published và chặn Unarchive riêng child khi parent Archived (`DEC-KNW-041`, `P03-DOC-041..043`). Sidebar/Archived presentation và tương tác Trash còn mở tại `DEC-KNW-042`; chưa đạt sign-off toàn bộ Documents. Thứ tự milestone và scope Release 1 không đổi.
+**Refinement 2026-09-06 — RM09 Documents:** đã chốt listing/search/filter theo nội dung trực tiếp tại vị trí mở và Archive parent kéo theo toàn bộ child pages (`DEC-KNW-039/040`, `P03-DOC-038..040`). Đợt phỏng vấn tiếp theo đã chốt Unarchive theo cùng đợt Archive, cho Archive riêng child khi parent Draft/Published và chặn Unarchive riêng child khi parent Archived (`DEC-KNW-041`, `P03-DOC-041..043`). Đã chốt sidebar giữ child Archived có nhãn/read-only, Archived liệt kê riêng từng page và Delete trực tiếp từ Archived (`DEC-KNW-042`, `P03-DOC-036/037/044`). Trash retention và tương tác child Trash/restore còn mở tại `DEC-KNW-043`; chưa đạt sign-off toàn bộ Documents. Thứ tự milestone và scope Release 1 không đổi.
 
 ## 2. Scope không được rút gọn ngầm
 

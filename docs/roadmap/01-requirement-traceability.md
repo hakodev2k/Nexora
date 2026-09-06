@@ -51,6 +51,8 @@ Tác động thiết kế RM09: API list/search phải nhận vị trí và gi�
 
 ### 1.2. Refinement delta — Archive và Unarchive theo đợt
 
+**Lịch sử đợt 2:** phần navigation/Trash còn mở dưới đây được cập nhật tiếp ở mục 1.3.
+
 **Đợt 2, 2026-09-06; source trước sửa:** [29cd4e6d8b89bd128b2b020d32beb98d0695a925](https://github.com/hakodev2k/Nexora/commit/29cd4e6d8b89bd128b2b020d32beb98d0695a925). Ba câu trả lời mới của Product Owner đóng phạm vi Unarchive parent và thao tác riêng child. Delta này cập nhật trạng thái tương ứng ở mục 1.1; snapshot audit gốc không bị rewrite.
 
 | Source ID hiện hành | Thay đổi / disposition | Feature / phase | Acceptance mapping |
@@ -65,6 +67,24 @@ Tác động thiết kế RM09: API list/search phải nhận vị trí và gi�
 Narrative delta: Decision Log §2/§8, Phase 3 §3.2 state note, §13 scenarios 22–25, §14 exit gate. RD-10/F-DOCS còn chờ DEC-KNW-036/042, chi tiết Folder/Trash và các gap độc lập; không hỏi lại Unarchive scope đã Approved.
 
 Tác động thiết kế RM09: lưu dấu đợt Archive và previous state riêng cho từng page; child đã Archived trước phải giữ nguồn Archive riêng. Contract Unarchive parent dùng đúng tập child cùng đợt, không suy từ current state hay timestamp gần nhau. Trước mutation phải kiểm tra parent state, owner, module và concurrency; schema/transaction cụ thể vẫn là thiết kế cần review, chưa implement.
+
+
+### 1.3. Refinement delta — Archived navigation và Delete
+
+**Đợt 3, 2026-09-06; source trước sửa:** [eeae86e4977ceab8260621a0a46fa308d5224979](https://github.com/hakodev2k/Nexora/commit/eeae86e4977ceab8260621a0a46fa308d5224979). Product Owner chốt sidebar giữ child Archived có nhãn/read-only, danh sách Archived phẳng từng page, và Delete trực tiếp từ Archived. Mục này cập nhật disposition hiện hành của delta trước; số liệu/bảng snapshot gốc vẫn là lịch sử, không phải current readiness.
+
+| Source ID hiện hành | Thay đổi / disposition | Feature / phase | Acceptance mapping |
+|---|---|---|---|
+| `DEC-KNW-042` | Approved: ba hành vi navigation/list/Delete từ Archived đã chốt. | F-DOCS / RM09 | REVIEW-DEC-KNW-042 → DOC-036/037/044; phần Trash chưa chốt tách DEC-KNW-043. |
+| `DEC-KNW-043` | Mới, OPEN REQUIREMENT: Trash retention, child Trash/purged khi Archive/Unarchive parent, child restore khi parent Archived và đợt Archive. | F-DOCS / RM09 | REVIEW-DEC-KNW-043; còn chặn lifecycle sign-off liên quan. |
+| `P03-DOC-036` | MAPPED: sidebar giữ child Archived, nhãn và read-only. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-036; scenario 26; không lộ Trash, không bypass DOC-043. |
+| `P03-DOC-037` | MAPPED: Archived flat listing từng page parent/child. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-037; scenario 27; cùng owner, đúng state, không đổi quan hệ. |
+| `P03-DOC-044` | Mới, MAPPED: Delete trực tiếp Archived page, giữ aggregate/confirmation rules. | F-DOCS / RM09 | V-DOC / TC-P03-DOC-044; scenario 28; phụ thuộc DOC-017/019, share/Trash/version retention gates. |
+| `DEC-KNW-040/041`, `P03-DOC-040/041` | Cập nhật tham chiếu phần đã chốt/còn mở, giữ Archive/Unarchive cohort behavior. | F-DOCS / RM09 | Các TC hiện hành dùng DEC-KNW-042/043; không hỏi lại navigation đã Approved. |
+
+Narrative delta: Decision Log §2/§8; Phase 3 §3.2, §13 scenarios 26–28, §14 exit gate. RD-10/F-DOCS hiện chờ DEC-KNW-036/043 và các gap Folder/Trash độc lập.
+
+Tác động RM09: sidebar render nhãn Archived và read-only; query Archived trả page theo trạng thái riêng, không group theo parent; Delete action được phép trong Archived dù editor read-only. API vẫn dùng aggregate Delete và access/concurrency checks, không Unarchive ngầm. Chưa quyết định Trash retention hoặc khôi phục child trong tình huống parent Archived; không implement các giả định đó.
 
 ## 2. Source inventory
 
