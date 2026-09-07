@@ -1,12 +1,11 @@
-# UX-00 — Product UX Principles
+# UX-00 — Product UX principles
 
-1. **Personal-first, not workspace-first.** No team/workspace concepts in R1.
-2. **Attention before analytics.** Home answers “What needs my attention now?”.
-3. **Progressive disclosure.** Global shell exposes modules; sub-resources live inside modules.
-4. **Same action, same interaction.** Archive / Move to Trash / Restore / Delete permanently have consistent meaning.
-5. **Server truth over optimistic fiction.** Conflicts and rejected transitions reconcile to server state.
-6. **Read-only is visible.** Terminal, Archived, Support and Emergency contexts explain why editing is unavailable.
-7. **Security UX is product UX.** Sensitive values masked by default; provider failure is not empty data.
-8. **Keyboard and touch parity.** No drag-only primary flow.
-9. **Responsive adaptation, not shrink-to-fit.**
-10. **Reference products are evidence, not scope.** Apply / Adapt / Reject / Future.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+
+Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
+
+Personal-only ownership; one consistent product, not40 unrelated applications. User should know where to go, what changed, what remains unsaved, why an action is unavailable and how to leave/recover. Source rules beat reference behavior: manual Document Save, permanent Project terminal lock, one Task/Event Reminder, three fixed notification channels and bounded Documents hierarchy are non-negotiable.
+
+Design priorities: clarity of source/authority; visible save state; low navigation burden; readable dense data; progressive disclosure; accessible equivalent to every drag/hover gesture; destructive impact preview; honest error/stale/provider feedback; no default sensitive exposure. No workspace switch/teamspace, live collaborators, comments, no-code modules, AI assistant or executable marketplace.
+
+All module specs use24 sections, a globally unique screen ID and shared [screen contracts](15-screen-contracts.md). A screen inherits that contract plus explicit module overrides; no developer is asked to invent an undefined lifecycle or security rule. Q-gated workflows remain design proposals until approval. Visual brand refinement/wireframes and implementation approval are separate, not falsely completed by Markdown.

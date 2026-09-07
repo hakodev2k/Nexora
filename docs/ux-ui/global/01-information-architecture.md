@@ -1,54 +1,21 @@
-# UX-01 — Information Architecture
+# UX-01 — Information architecture
 
-## Global hierarchy
-```text
-Home
-Search
-Quick Create
-Notifications
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
-PRODUCTIVITY
-  Projects
-  Calendar
-  Planner
-  Goals
-  Habits
-  Time Tracking
-  Focus
-KNOWLEDGE
-  Documents
-  Bookmarks
-  Snippets
-  Read Later
-FINANCE
-  Finance
-  Vault
-INFORMATION
-  News
-SHOPPING
-  Price Tracking
-  Shopping Records
-DEVELOPER
-  Toolbox
-  GitHub Discovery
-  Automation
-  Integrations
-  Monitoring
-ASSETS
-  Personal Assets
-  Digital Assets
-CAREER & LEARNING
-  Career
-  Learning
-Files
-Trash
-Settings
-```
+| Group | Entry points | Rationale |
+| --- | --- | --- |
+| Global | Home, Search, Quick Create, Notifications | Frequent cross-module attention/navigation |
+| Productivity | Projects, Calendar, Planner, Goals, Habits, Time, Focus | Work capture/planning/execution; Tasks reached through Projects or source detail, no orphan Task area |
+| Knowledge | Documents, Bookmarks, Snippets, Read Later | Documents includes Note/Knowledge types, not3menu modules |
+| Finance & Security | Finance, Vault | Distinct data sensitivity; Vault never previewed inside Finance automatically |
+| Information & Shopping | News; Price Tracking, Wishlist, Orders | Read/watch versus manually recorded purchases; subgroup Shopping collapsible |
+| Developer & Automation | Toolbox, GitHub Discovery, Automation, Integrations, Monitoring | Tools separate from workflows/provider operations |
+| Assets | Personal Assets, Digital Assets | Physical versus online metadata, shared pattern library |
+| Career & Learning | Jobs, Resumes, Learning | Job process and evidence; Skills/Courses/Certifications inside Learning |
+| Utilities | Files, Trash, Settings | Cross-module lifecycle and configuration |
+| Privileged separate area | Users/Permissions, Modules, Audit, Jobs, Recovery, Emergency | Only qualified actors; no personal-user impersonation |
 
-Rules:
-- Disabled modules disappear from normal navigation/search contributions.
-- Global navigation shows modules, not every sub-resource.
-- Admin uses a distinct operational shell.
-- Favorites are shortcuts only.
-- Search is global; module search remains visibly scoped.
-- Quick Create only exposes currently permitted resource types.
+
+Collapsed groups default reduce cognitive load; currently active module group auto-expanded for discovery but User can collapse other groups. Pinned modules are display preferences, not grants. Search/More reveals all entitled modules; disabled deep links return safe unavailable with Back/Home. No40-item bottom navigation. FX identifiers are catalog entries, not mandatory top-level nav items.
+
+Within Documents, Folder/page tree is module-local and bounded2levels each; within Project, Tasks Kanban/Table default Kanban. No duplicate global sidebar nesting all user resources. Admin uses separate navigation context and returns to own personal Home. Reference [Notion sidebar](https://www.notion.com/help/navigate-with-the-sidebar), adapted; Workspace/teamspace portions rejected. Reviewed2026-09-07.

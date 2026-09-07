@@ -1,5 +1,8 @@
 # Solution Architecture Roadmap
 
+> Design review 2026-09-07: phần roadmap bên dưới được giữ làm lịch sử planning. Chi tiết kỹ thuật trùng lặp đã được thay bằng [database design](../design-database/README.md), [architecture design](../architecture/README.md) và [UX screen contracts](../ux-ui/global/15-screen-contracts.md). Dùng [reconciliation register](../design-review/02-reconciliation.md) để giải quyết các OPEN/PROPOSED đã được delegated resolve; không dùng dòng cũ để đảo ngược feature hiện hành. Code/migrations vẫn cần approval riêng.
+
+
 **Status:** PROPOSED architecture để review tại RM01; chưa implement. Stack do User chỉ định: .NET 10 / ASP.NET Core, ReactJS, SQL Server, Redis. Requirement source giữ nguyên.
 
 [Master phases](00-master-implementation-roadmap.md) · [Coverage và blockers](01-requirement-traceability.md) · [Domain/SQL](05-database-roadmap.md)

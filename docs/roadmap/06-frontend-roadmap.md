@@ -1,5 +1,8 @@
 # Frontend and Design System Roadmap
 
+> Design review 2026-09-07: phần roadmap bên dưới được giữ làm lịch sử planning. Chi tiết kỹ thuật trùng lặp đã được thay bằng [database design](../design-database/README.md), [architecture design](../architecture/README.md) và [UX screen contracts](../ux-ui/global/15-screen-contracts.md). Dùng [reconciliation register](../design-review/02-reconciliation.md) để giải quyết các OPEN/PROPOSED đã được delegated resolve; không dùng dòng cũ để đảo ngược feature hiện hành. Code/migrations vẫn cần approval riêng.
+
+
 **Status:** PLANNED; chưa scaffold React, cài package, viết component hoặc chạy frontend tests.
 [Master RM07–RM16](00-master-implementation-roadmap.md) · [API contracts](04-backend-roadmap.md) · [Verification](08-testing-roadmap.md)
 

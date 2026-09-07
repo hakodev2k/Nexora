@@ -1,27 +1,15 @@
-# UX-02 — Application Shell
+# UX-02 — Application shell
 
-## Desktop ≥1200
-```text
-Global sidebar | Main workspace | Optional context panel
-232–264px      | flexible       | 320–400px
-```
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
-Top bar: breadcrumb/context title, primary action, secondary actions, optional scoped search/filter.
+Desktop >=1200 CSS px: persistent global sidebar (~240expanded/~64collapsed design tokens), content header and flexible main region; module sidebar only when hierarchy helps (Documents/Vault). Optional detail context panel occupies bounded region, never obscures Save or required access banner. Dense Finance/Assets tables can use full content width; reading body bounded about68–80characters. Breakpoints are delegated layout decisions, not device detection.
 
-Sidebar:
-- collapsible;
-- grouped modules;
-- active state is not color-only;
-- keyboard equivalent for hover actions;
-- direct route to disabled module shows Module unavailable.
+Header anatomy: breadcrumb Back/root path; single h1; source/status/unsaved/access labels; one primary action; secondary buttons and named More menu. Do not render unrelated actions merely because a shared toolbar supports them. Sticky action header must not cover focused field/error or modal heading.
 
-Tablet 768–1199: collapsed sidebar, context panel becomes drawer.
+Global sidebar: Home/Search/Create/Notifications; grouped registered modules; utility footer Settings/Trash; current route label+indicator+aria-current, not color alone. Collapse preserves icon accessible names and tooltip/focus equivalents. Sidebar group expansion does not trigger navigation.
 
-Mobile 360–767:
-```text
-Top app bar
-Main content
-Bottom nav: Home | Search | Create | Inbox | More
-```
+Tablet768–1199: compact nav rail/drawer; module tree collapsible drawer; detail overlay with explicit close/back. Mobile<768: stack navigation with Home/Search/Create/Inbox/More; More searchable groups. Module-local filters/tree appear in labeled sheet, not off-screen second permanent sidebar. Small320px viewport supported without whole-page horizontal scroll except explicitly labeled data grid region.
 
-Documents/editor, Calendar and Toolbox may collapse navigation for focus without losing state.
+Support/Emergency banner belongs above content and persists in all layouts, dialogs show compact mode context. Personal page header never adopts target-user avatar as if logged in as that User. Inoperative module cannot blank shell. Content skeleton only main region while navigation remains usable, unless identity/context itself unknown; then no prior private content is shown.
+
+Save/Discard guard applies leaving dirty forms even via sidebar, breadcrumb, browser Back and command palette. Modal focus follows UX-11; restored navigation returns scroll/filter/selection where still valid. No logo/branding redesign or CSS code delivered.

@@ -1,15 +1,13 @@
-# UX-03 — Navigation & Wayfinding
+# UX-03 — Navigation and return behavior
 
-Navigation levels: Global → Module → Resource → Contextual.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
-Breadcrumbs express hierarchy, e.g. `Projects / Nexora / Task` or `Documents / Architecture / API`.
+Every inventory route is proposed. Top-level module click opens its approved default (Projects Grid, Documents Grid, Calendar Day; Project detail Tasks Kanban). In-session navigation Back preserves view/filter/date/scroll/selection; a remembered preference must not silently override those approved entry defaults.
 
-Back behavior:
-- browser Back remains meaningful;
-- mobile detail returns to previous list with scroll/filter state;
-- drawer close preserves selection;
-- deep links work without prior navigation history.
+Breadcrumb parent nodes are links; current node text only. Browser Back and explicit Back share safe return context; if opening deep link directly, fallback to module root/Home. Return target same-origin allowlist, no open redirect through login/share. Create Save navigates new detail; Edit Save stays detail with success/revision; Cancel returns origin without mutation, dirty guard where needed.
 
-Quick Create may expose Task, Personal Event, Document, Bookmark and Time entry only when enabled/permitted. It never bypasses required fields or immutable choices.
+Global Quick Create shows only registered create contributions with current module/action availability. Task create asks/selects an active Project then full Task form with required Start/End; no orphan Task or fake quick-save. Document create always asks Type and Editor. Calendar create ManualEvent only. Template opens normal form, not mutation itself.
 
-External links: validated HTTP(S), safe new tab, never auto-navigate untrusted preview/QR URLs.
+Source links keep typed context: Calendar Task → Task detail; Planner pin → original Task; Resume application → exact Resume version; Share Project Task → shared readonly child detail under same link, never owner route. File picker closes back to originating form with reference draft; source Save commits association.
+
+Unavailable state has Back/Home and explanation appropriate to owner. Anonymous share failure does not expose whether a private resource exists. No disabled hover tooltip as sole explanation. Mobile Back exits detail before module; closing module tree returns focus to its trigger. Keyboard shortcut reference visible via Help; shortcuts don't fire while typing or IME composition except editor-approved Save.

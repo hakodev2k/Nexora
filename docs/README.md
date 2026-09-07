@@ -75,3 +75,14 @@ Mã yêu cầu không được tái sử dụng. Khi bỏ một yêu cầu, gi�
 
 Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi lại từng thao tác. Proposal còn Q chưa Approved; application implementation vẫn chờ approval riêng của Product Owner.
 
+
+
+
+## Design review 2026-09-07 — documentation only
+
+- [Database: tables, fields, types, relations, module evolution](design-database/README.md)
+- [Architecture review and upgraded design](architecture/README.md)
+- [UX/UI detailed screens and common interaction contracts](ux-ui/README.md)
+- [Cross-layer consistency, decisions and readiness report](design-review/README.md)
+
+Các tài liệu này không tuyên bố đã implement hoặc đã duyệt các Q quyết định lớn. Current Product Owner decisions > approved requirements > resolved delegated decisions > features > these technical/UX designs > historical roadmap/reference products.

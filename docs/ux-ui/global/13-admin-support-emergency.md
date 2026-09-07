@@ -1,30 +1,13 @@
-# UX-13 — Admin, Support & Emergency
+# UX-13 — Admin, Support and Emergency modes
 
-Admin uses a distinct shell:
-```text
-NEXORA ADMIN
-Users
-Modules
-Permissions
-Jobs
-Audit
-System Settings
-```
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
-Support banner:
-```text
-SUPPORT MODE
-User · Module · Expiry · Read-only
-[End session]
-```
+Admin area has its own navigation and operational purpose. User list grants/roles/profile metadata do not link directly into their private data. Admin's personal modules still target their own PersonalSpace. No avatar/account switch that impersonates another User.
 
-Emergency banner:
-```text
-EMERGENCY ACCESS
-User · Module · Reason · Expiry · Audit status
-[End session]
-```
+Support entry requires User consent for exactly one module, duration24h default/custom/until revoke, plus Admin current support permission. Any qualified Admin can start explicit session. Persistent banner contains SUPPORT MODE, target User, Module, expiry/countdown, Read-only, End Session. End closes current session; owner Revoke ends grant and all derived access, distinguish these labels.
 
-No impersonation ambiguity. No mutation/export. No Vault reveal/copy. Out-of-scope navigation is clearly blocked.
+Emergency entry separate privileged form: target/module/reason required, expiry disclosed, audit + immediate three-channel notification explained. Persistent EMERGENCY ACCESS banner has stronger semantic warning and explicit reason panel/audit committed state. No content shown until reason/audit/notification intent durably recorded. Audit failure blocks entry; external Email/Push failure recorded and retried without pretending sent.
 
-High-impact role/module grant changes show before→after consequences before Save.
+Within modes, only approved safe readonly provider screens; links to other modules inaccessible, global search scoped to granted module safe contract or unavailable if no safe provider. No export/mutation/reveal/copy secrets. Vault metadata blocked pending Q-04, no SuperAdmin exception for decryption. Mode context carried through detail, dialogs, mobile and query keys.
+
+At expiry/revoke: end view, clear private data, return to Admin safe landing; owner SecurityCenter shows actor/module/when/outcome. Role change/last-SuperAdmin dialogs show before/after and invariant block. Operation errors redacted, never diagnostic raw SQL/content. Reference [Customer Lockbox](https://learn.microsoft.com/en-us/purview/customer-lockbox-requests) supports consent/time/audit pattern only; Nexora User approval and24h differ deliberately.
