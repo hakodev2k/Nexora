@@ -222,3 +222,7 @@ No additional major product question identified for this module beyond shared se
 - [ ] Source BR/AC IDs and Q dependencies traced; Q-gated actions not treated as Approved.
 
 **Five-question review:** User goal and simplest IA are sections1/6/9; mature reference evidence and adaptations/rejections sections3/4; important remaining choices are explicitly Q-gated in section23, not left for frontend to invent. This checklist is specification for later execution, not tests marked passed in a docs-only task.
+
+## Canonical action binding — catalog v1
+
+[FX-22 action catalog](../../action-catalog/modules/22-snippets.md) and [screen bindings](../../action-catalog/06-screen-bindings.md) define exact keys, grantable contexts and Q gates. Descriptive verbs above are not permission names. Admin Self also needs explicit allowed action; User Self uses enabled-module owner baseline. SuperAdmin alone changes role/module/action grants. Local UI visibility does not replace server authorization.

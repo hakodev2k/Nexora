@@ -26,3 +26,7 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 Tổng số bảng thiết kế: **181**. Không cố định core theo số module này: core chỉ biết stable Module/ResourceType/contracts, không chứa cột riêng cho mỗi module. Số bảng không phải thước đo implementation readiness.
 
 [Architecture](../architecture/README.md) · [UX/UI](../ux-ui/README.md) · [Consistency review](../design-review/README.md)
+
+## Action catalog v1
+
+[714 operation contracts /40 feature scopes](../action-catalog/README.md), [screen bindings](../action-catalog/06-screen-bindings.md), and [database binding](../design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.

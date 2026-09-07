@@ -37,7 +37,7 @@ Make the source and current state clear before actions. Keep primary work and it
 
 - FX23-S01 — Reading queue: BROWSE profile.
 - FX23-S02 — Reader: DETAIL profile.
-- FX23-S03 — Archived reading: BROWSE profile.
+- FX23-S03 — Unavailable reading sources: BROWSE profile.
 
 These are screen surfaces, not necessarily separate backend resources; create/edit or views may share a route with distinct state. Module root belongs to [global IA](../global/01-information-architecture.md); no Workspace menu.
 
@@ -47,7 +47,7 @@ These are screen surfaces, not necessarily separate backend resources; create/ed
 | --- | --- | --- | --- | --- |
 | FX23-S01 | Reading queue | /read-later | Safe Title; source; saved date; progress/state | Open reader |
 | FX23-S02 | Reader | /read-later/:itemId | Sanitized content; Title; source URL; progress; source freshness | Mark Read |
-| FX23-S03 | Archived reading | /read-later/archived | Title; source; previous reading marker; archived date if available | Unarchive selected |
+| FX23-S03 | Unavailable reading sources | /read-later?availability=unavailable | Safe title/source marker; unavailable reason; no cached private body | Remove queue reference |
 
 ## 8. Navigation
 
@@ -55,7 +55,7 @@ Entry from global registered module, source link or authorized deep link. Each S
 
 ## 9. Primary user journeys
 
-**Primary:** Source Save for later → queue Unread → reader → mark Read → Archive or reopen queue entry.
+**Primary:** Source Save for later → queue Unread → reader → mark Read → remove queue reference or mark Unread.
 
 **Alternative:** open existing resource from authorized Search/Favorite/notification/source link; resolve current lifecycle before rendering primary action. If this is an operational/auth screen, use its authorized parent navigation rather than inventing a favorite/shareable resource.
 
@@ -79,7 +79,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Entry / proposed route | /read-later; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Reading queue. Shared browse profile; header → controls → declared content → feedback. |
 | Primary action | Open reader; available only when section15/context permits; otherwise explain lifecycle/policy. |
-| Secondary actions | Mark read/unread; Archive. Back/Cancel always has authorized fallback. |
+| Secondary actions | Mark read/unread; Remove queue reference. Back/Cancel always has authorized fallback. |
 | Content regions / fields | Safe Title; source; saved date; progress/state |
 | Search / filters / sorting / pagination | State/source filters; Title search; Saved DESC;25/page. Controls not listed here are N/A, not implicit new fields. |
 | Interaction / validation overrides | Second Save for later focuses existing item and preserves progress. |
@@ -98,7 +98,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Entry / proposed route | /read-later/:itemId; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Reader. Shared detail profile; header → controls → declared content → feedback. |
 | Primary action | Mark Read; available only when section15/context permits; otherwise explain lifecycle/policy. |
-| Secondary actions | Open original; Back; Archive. Back/Cancel always has authorized fallback. |
+| Secondary actions | Open original when safe; Back; Remove queue reference. Back/Cancel always has authorized fallback. |
 | Content regions / fields | Sanitized content; Title; source URL; progress; source freshness |
 | Search / filters / sorting / pagination | Reader text width; no new source filters. Controls not listed here are N/A, not implicit new fields. |
 | Interaction / validation overrides | Parser failure offers original link with diagnostic, not false empty article. Progress save is metadata, not Document autosave. |
@@ -109,22 +109,22 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Keyboard / accessibility | UX-11 and profile: visible focus, labeled controls, no drag/hover-only action, status text; dialog focus trap/return; charts/table values reachable. |
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
-### FX23-S03 — Archived reading
+### FX23-S03 — Unavailable reading sources
 
 | Dimension | Specification |
 | --- | --- |
-| Purpose / profile | BROWSE — Title; source; previous reading marker; archived date if available |
-| Entry / proposed route | /read-later/archived; module/source navigation or authorized deep link. |
-| Header / layout | Screen title: Archived reading. Shared browse profile; header → controls → declared content → feedback. |
-| Primary action | Unarchive selected; available only when section15/context permits; otherwise explain lifecycle/policy. |
+| Purpose / profile | BROWSE — Safe title/source marker; unavailable reason; no cached private body |
+| Entry / proposed route | /read-later?availability=unavailable; module/source navigation or authorized deep link. |
+| Header / layout | Screen title: Unavailable reading sources. Shared browse profile; header → controls → declared content → feedback. |
+| Primary action | Remove queue reference; available only when section15/context permits; otherwise explain lifecycle/policy. |
 | Secondary actions | Open; Remove queue item. Back/Cancel always has authorized fallback. |
-| Content regions / fields | Title; source; previous reading marker; archived date if available |
+| Content regions / fields | Safe title/source marker; unavailable reason; no cached private body |
 | Search / filters / sorting / pagination | Title/source; saved DESC;25/page. Controls not listed here are N/A, not implicit new fields. |
 | Interaction / validation overrides | Removing queue association does not delete Bookmark/Article or other private read state. |
 | Loading / empty / error | UX-15A state contract. Empty: declared data absent; no matches: clear listed query controls; fetch error: safe retry. These are distinct, no error-as-empty. |
 | Disabled / readonly / Archived / Trash | UX-15A plus exact section15 matrix. No lifecycle in source = N/A. Do not render unauthorized payload behind disabled controls. |
 | Conflict / destructive | Current revision and parent guards, section16 dialogs. Readonly surfaces only refresh, never forced write. |
-| Desktop / tablet / mobile | UX-10 browse profile. Keep 'Archived reading' context and required fields; mobile prioritizes first declared identity and status/time/value, remaining fields detail/expand.  |
+| Desktop / tablet / mobile | UX-10 browse profile. Keep 'Unavailable reading sources' context and required fields; mobile prioritizes first declared identity and status/time/value, remaining fields detail/expand.  |
 | Keyboard / accessibility | UX-11 and profile: visible focus, labeled controls, no drag/hover-only action, status text; dialog focus trap/return; charts/table values reachable. |
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
@@ -136,13 +136,13 @@ Source reference required and unique owner/source; progress0..1; safe Title/URL 
 
 ## 12. Lists / Grid / Table / Kanban behavior
 
-Tabs Unread/Reading/Read/Archived; Title/source search; source type filter; Saved DESC25/page; reader explicit original link.
+Tabs Unread/Reading/Read; unavailable-source filter; Title/source search; source type filter; Saved DESC25/page; reader explicit original link.
 
 Use [UX-06](../global/06-lists-grids-tables-kanban.md). Only views declared above exist; no Kanban simply because resource has a status. Unlisted view types N/A; no independent custom component fork.
 
 ## 13. Search / Filter / Sort
 
-Tabs Unread/Reading/Read/Archived; Title/source search; source type filter; Saved DESC25/page; reader explicit original link.
+Tabs Unread/Reading/Read; unavailable-source filter; Title/source search; source type filter; Saved DESC25/page; reader explicit original link.
 
 Search/filter are owner and location scoped; reset cursor after query change, preserve draft separately. Date filters overlap unless explicit Calendar ICS fully-contained export. Status vocabulary is module-specific under shared semantic tokens, not all Completed states identical.
 
@@ -154,9 +154,9 @@ Each row below is source-defined state/context, not a client-only flag. Parent g
 
 | State / context | Available actions | Denied / UX explanation |
 | --- | --- | --- |
-| Unread/Reading | Read; update progress; mark Read; Archive | No duplicate item for same source |
-| Read | Mark unread; Archive; open source | No reimport/copy source |
-| Archived | Unarchive or remove queue reference | No source delete |
+| Unread/Reading | Read; update progress; mark Read; Remove reference | No duplicate item for same source |
+| Read | Mark unread; Remove reference; open source | No reimport/copy source |
+| Source unavailable | Safe marker; remove queue reference | No cached body, Archive/Unarchive or source delete |
 | Parse/source failure | Safe snapshot + original public link if valid | No blank success or unsafe HTML |
 
 **Context intersection:** Owner Self requires active verified account, installed/system/user module gates and action+resource permission. Admin/SuperAdmin own data uses Self, not global data access. Support/Emergency only explicitly registered approved safe readonly projection for the granted module; otherwise unavailable. Secret reveal/export/mutation denied in those modes. Share viewer only if this source declares an approved readonly share projection and current link qualifies; operational screens/auth/Calendar Events/pure tools do not acquire sharing from common UI.
@@ -220,3 +220,7 @@ No additional major product question identified for this module beyond shared se
 - [ ] Source BR/AC IDs and Q dependencies traced; Q-gated actions not treated as Approved.
 
 **Five-question review:** User goal and simplest IA are sections1/6/9; mature reference evidence and adaptations/rejections sections3/4; important remaining choices are explicitly Q-gated in section23, not left for frontend to invent. This checklist is specification for later execution, not tests marked passed in a docs-only task.
+
+## Canonical action binding — catalog v1
+
+[FX-23 action catalog](../../action-catalog/modules/23-reading.md) and [screen bindings](../../action-catalog/06-screen-bindings.md) define exact keys, grantable contexts and Q gates. Descriptive verbs above are not permission names. Admin Self also needs explicit allowed action; User Self uses enabled-module owner baseline. SuperAdmin alone changes role/module/action grants. Local UI visibility does not replace server authorization.

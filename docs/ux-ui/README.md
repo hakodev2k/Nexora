@@ -63,3 +63,7 @@ Approved source behavior remains Approved; routine interaction choices below are
 ## Status / next gate
 
 Documentation-level review completed subject to explicit findings/decisions, not final visual mockups/usability tests or implementation approval. [Open questions](decisions/ux-open-questions.md) and [cross-layer gates](../design-review/03-decision-impact.md) remain. [Database](../design-database/README.md) and [Architecture](../architecture/README.md) trace data/command boundaries. No application code, CSS/JSX, DB/migrations or package installation in this phase.
+
+## Action catalog v1
+
+[714 operation contracts /40 feature scopes](../action-catalog/README.md), [screen bindings](../action-catalog/06-screen-bindings.md), and [database binding](../design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.

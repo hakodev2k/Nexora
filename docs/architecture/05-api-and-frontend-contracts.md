@@ -38,3 +38,7 @@ Shared dialog focus trap/return and combobox behavior follow [W3C modal dialog](
 ## Frontend Definition of Ready
 
 Screen ID, entry/back, fields/validation, source command/query, state/action matrix, error/read-only/disabled/conflict cases, mobile/keyboard behavior, source reference classification and relevant Q gates all traceable. A feature is not Ready merely because its Markdown has24 sections. Wireframe/mockup usability review and code approval remain separate steps.
+
+## Normative action contract update — 2026-09-07
+
+[Action Catalog](../action-catalog/README.md) supplies exact stable keys. [Context evaluation](../action-catalog/00-authorization-contract.md), [semantic diff/composition](../action-catalog/01-composition-and-field-guards.md), [revoke](../action-catalog/02-revocation-and-runtime.md) and [module contract](../action-catalog/04-module-action-contract.md) are required. Admin Self does not bypass an Admin Deny by retaining User role. SuperAdmin-only policy commands cannot be delegated via an Allow row. Every entry point, worker and field-diff wrapper revalidates the same source action. No reflection-based arbitrary handler dispatch, wildcard grant, automatic prerequisite grant or implementation is authorized by these documents.

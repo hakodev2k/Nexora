@@ -17,3 +17,7 @@ Repository baseline is documentation-only. This review upgrades the **proposed a
 [Database](../design-database/README.md) · [UX/UI](../ux-ui/README.md) · [Cross-layer findings](../design-review/README.md)
 
 Status: technical design reviewed at document level. Product gates Q-01…Q-12 remain open where applicable. Runtime/library versions beyond User's chosen stack must be pinned at implementation approval, not installed in this phase.
+
+## Action catalog v1
+
+[714 operation contracts /40 feature scopes](../action-catalog/README.md), [screen bindings](../action-catalog/06-screen-bindings.md), and [database binding](../design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.

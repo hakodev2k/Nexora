@@ -110,7 +110,7 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 | FX22-S03 | [FX-22](modules/22-snippets.md) | Snippet detail / history | /snippets/:snippetId; /snippets/:snippetId/history | HISTORY | Copy code / Restore selected version |
 | FX23-S01 | [FX-23](modules/23-read-later.md) | Reading queue | /read-later | BROWSE | Open reader |
 | FX23-S02 | [FX-23](modules/23-read-later.md) | Reader | /read-later/:itemId | DETAIL | Mark Read |
-| FX23-S03 | [FX-23](modules/23-read-later.md) | Archived reading | /read-later/archived | BROWSE | Unarchive selected |
+| FX23-S03 | [FX-23](modules/23-read-later.md) | Unavailable reading sources | /read-later?availability=unavailable | BROWSE | Remove queue reference |
 | FX24-S01 | [FX-24](modules/24-organization-tags-templates.md) | Tag management | /organize/tags?namespace=:namespace | BROWSE | New Tag |
 | FX24-S02 | [FX-24](modules/24-organization-tags-templates.md) | Collections | /organize/collections | BROWSE | New Collection |
 | FX24-S03 | [FX-24](modules/24-organization-tags-templates.md) | Collection detail | /organize/collections/:collectionId | DETAIL | Add existing resources |

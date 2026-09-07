@@ -86,3 +86,7 @@ Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi l�
 - [Cross-layer consistency, decisions and readiness report](design-review/README.md)
 
 Các tài liệu này không tuyên bố đã implement hoặc đã duyệt các Q quyết định lớn. Current Product Owner decisions > approved requirements > resolved delegated decisions > features > these technical/UX designs > historical roadmap/reference products.
+
+## Action catalog v1
+
+[714 operation contracts /40 feature scopes](action-catalog/README.md), [screen bindings](action-catalog/06-screen-bindings.md), and [database binding](design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.

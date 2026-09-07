@@ -44,3 +44,7 @@ Contracts use stable semantic identifiers, not assembly-qualified runtime names 
 ## Enforcement tests specified
 
 Compile-time references plus dependency tests prohibit forbidden assemblies, EF entity navigation across module internals, raw table name references and direct SQL from host/frontend. Each module's test kit must test owner isolation, permission/module disable, lifecycle, version/conflict, notification dedupe, migration/backfill and unavailable optional dependencies. These tests are not created/run yet.
+
+## Normative action contract update — 2026-09-07
+
+[Action Catalog](../action-catalog/README.md) supplies exact stable keys. [Context evaluation](../action-catalog/00-authorization-contract.md), [semantic diff/composition](../action-catalog/01-composition-and-field-guards.md), [revoke](../action-catalog/02-revocation-and-runtime.md) and [module contract](../action-catalog/04-module-action-contract.md) are required. Admin Self does not bypass an Admin Deny by retaining User role. SuperAdmin-only policy commands cannot be delegated via an Allow row. Every entry point, worker and field-diff wrapper revalidates the same source action. No reflection-based arbitrary handler dispatch, wildcard grant, automatic prerequisite grant or implementation is authorized by these documents.

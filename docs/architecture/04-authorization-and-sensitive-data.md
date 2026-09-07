@@ -34,3 +34,7 @@ All server URL fetchers (Feeds, Bookmark metadata, approved Toolbox network util
 ## Threat-model checks
 
 Cross-owner IDs in every read/write/list/export/file/version path; stale caches after revoke; guessed share tokens; restricted user removed mid-session; parent Trash with active child cache; support attempting secret reveal; emergency audit failure; forged webhook replay; import XML external entity and decompression bomb; crafted Markdown/Block content XSS; module-disabled queued automation; account delete/key backup residuals. Security review and runtime tests remain prerequisites, not work claimed complete in a docs-only phase.
+
+## Normative action contract update — 2026-09-07
+
+[Action Catalog](../action-catalog/README.md) supplies exact stable keys. [Context evaluation](../action-catalog/00-authorization-contract.md), [semantic diff/composition](../action-catalog/01-composition-and-field-guards.md), [revoke](../action-catalog/02-revocation-and-runtime.md) and [module contract](../action-catalog/04-module-action-contract.md) are required. Admin Self does not bypass an Admin Deny by retaining User role. SuperAdmin-only policy commands cannot be delegated via an Allow row. Every entry point, worker and field-diff wrapper revalidates the same source action. No reflection-based arbitrary handler dispatch, wildcard grant, automatic prerequisite grant or implementation is authorized by these documents.
