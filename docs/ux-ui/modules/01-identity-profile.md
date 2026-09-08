@@ -1,6 +1,6 @@
 # FX-01 — Identity / Registration / Profile — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** Account soft delete; optional Google Authenticator TOTP confirmed by PO on 2026-09-08; email recovery when MFA off; vi default/en setting. Account restore and lost-MFA recovery remain open. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/ux-ui/modules/01-identity-profile.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -222,7 +222,7 @@ Each row below is source-defined state/context, not a client-only flag. Parent g
 | PendingVerification | Resend verification, change erroneous address through verified flow, logout | No module access; keep pending screen |
 | Active | Own Profile/Sessions, logout, revoke session | Sensitive changes step-up Q-02 |
 | Disabled | Recovery/help entry, logout | No module or support bypass |
-| DeletionPending | Policy-dependent Q-01 | No assumed grace/recovery duration |
+| Deleted | Sign-in and normal actions denied; data retained | Restore/email reuse policy separate; no purge or automatic reactivation |
 
 **Context intersection:** Owner Self requires active verified account, installed/system/user module gates and action+resource permission. Admin/SuperAdmin own data uses Self, not global data access. Support/Emergency only explicitly registered approved safe readonly projection for the granted module; otherwise unavailable. Secret reveal/export/mutation denied in those modes. Share viewer only if this source declares an approved readonly share projection and current link qualifies; operational screens/auth/Calendar Events/pure tools do not acquire sharing from common UI.
 
@@ -278,7 +278,6 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 
 - [Q-01](../../features/90-open-decisions.md#q-01) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
 - [Q-02](../../features/90-open-decisions.md#q-02) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
-- [Q-09](../../features/90-open-decisions.md#q-09) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
 
 ## 24. Acceptance checklist
 

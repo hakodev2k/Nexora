@@ -1,5 +1,7 @@
 # Architecture fit review and decision records
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/architecture/01-review-and-adrs.md) is historical evidence, not implementation input.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 ## Outcome
@@ -17,7 +19,7 @@ The earlier Modular Monolith direction is suitable; a single set of broad Applic
 | ADR-D07 | Generic Admin data access suggested by UX matrix | AccessContext explicit Self/SharedLink/Support/Emergency. Support one module readonly; emergency reason/audit/intent before read. No ambient impersonation or Vault decrypt. | Confirmed product rules + technical enforcement |
 | ADR-D08 | Redis and SQL authority potentially overlap | SQL authoritative for session/grant/job/idempotency; Redis rebuildable cache only; no stale positive authorization. | Resolved delegated — technical |
 | ADR-D09 | Pre/post verification provisioning inconsistent | Pending User row/token first; activation transaction creates PersonalSpace and default module snapshot exactly once. Before verification UI only account recovery/verification. | Resolved delegated — technical; user-visible email gate confirmed |
-| ADR-D10 | UI routes treated as implementation contract | UX route proposals plus application command/query names are design only; endpoint OpenAPI comes with approved implementation stories. No pretend existing endpoints. | Resolved delegated — technical |
+| ADR-D10 | UI routes treated as implementation contract | UX route proposals plus application command/query names are design only; M01 endpoint OpenAPI is specified in docs/delivery/milestone-01; later stories require equivalent contracts before coding. No pretend existing endpoints. | Resolved delegated — technical |
 | ADR-D11 | All feature catalog entries assumed Ready | Conditional Finance/Vault/provider/egress/recovery workflows stay blocked on Q decisions; stable core UX/data detail may be refined independently. | Governance, not permission to code |
 
 

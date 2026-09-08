@@ -1,6 +1,6 @@
 # Action catalog consistency review
 
-> **Current decision amendment — 2026-09-07:** User.IsDeleted is a current authority gate; Account/Vault never purge; permanent sharing invalidation; explicit SuperAdmin RECOVERY mode added; Paused product scope outranks grant. Read ../requirements/10-owner-decisions-20260907.md and current catalog before old Q references. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/action-catalog/07-review-and-open-gates.md) is historical evidence, not implementation input.
 
 2026-09-07 · Reviewed against current source commit78d8107 and direct PO constraints. Catalog has 714 operations; counts are structural coverage, not security certification.
 
@@ -21,7 +21,7 @@
 
 ## Remaining major gates
 
-[Source Q log](../features/90-open-decisions.md) remains unchanged; **not closed by this catalog**. Q-01 account deletion/portability; Q-02 MFA/recovery/recent-auth; Q-03 sharing/sensitive projections; Q-04 Vault keys/recovery; Q-05 Finance semantics; Q-06 provider/price contract; Q-07 automation/egress; Q-08 capacity/backup; Q-09 locale; Q-10 productivity extensions; Q-11 formats; Q-12 Interview Calendar.
+[Current Q log](../features/90-open-decisions.md) is per-capability. Account soft-delete, Google Authenticator method, vi/en and DOCX/MD/internal Calendar scope are confirmed; only listed residual proposals remain gated. See [M01 readiness](../delivery/milestone-01/06-readiness-and-evidence.md).
 
 Blocked entries reserve vocabulary and guard boundaries, not activated handlers. Q gates may affect only a specific extension of otherwise usable module; do not label whole unrelated workflow Blocked. Finance/Vault/Price/Automation execution remains gated where fundamental semantics are unresolved. No new question about button placement or small interaction is needed.
 

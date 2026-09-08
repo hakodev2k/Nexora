@@ -1,6 +1,6 @@
 # Documents, Note và Knowledge Pages
 
-> **Current decision amendment — 2026-09-07:** DOCX/MD import/export basic subset; no PDF/HTML product export. Sharing off/delete permanently invalidates links; archive/draft rules otherwise retained. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/20-documents.md) is historical evidence, not implementation input.
 
 FX-20 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
@@ -42,7 +42,7 @@ Một Documents module, types Document/Note/Knowledge; page editor, folders/hier
 - **FX-20-BR-005:** Published vẫn private tới khi tạo share. Draft suspend link; Archive giữ link Published đang active, không tạo mới hoặc hồi sinh expired/revoked link. Share page không tự bao gồm children.
 - **FX-20-BR-006:** Archive parent atomic với children ngoài Trash, giữ previous state riêng. Child đã Archived giữ cohort cũ. Unarchive chỉ cùng cohort; bỏ qua Trash/purged child. Không Unarchive child khi parent Archived.
 - **FX-20-BR-007:** Archived chỉ-đọc nhưng xóa vào Trash được. Sidebar hiển thị child Archived có nhãn. Xóa parent kéo cả cây; xóa child riêng cần cảnh báo. Restore riêng child yêu cầu original parent tồn tại, ngoài Trash và không Archived.
-- **FX-20-BR-008:** Trash giữ tới owner purge. Restore đúng deletion batch, không hồi sinh child đã xóa riêng trước đó. Version history giữ tới page purge; import/export Office/PDF/Markdown theo Q-11.
+- **FX-20-BR-008:** Trash giữ tới owner purge. Restore đúng deletion batch, không hồi sinh child đã xóa riêng trước đó. Version history giữ tới page purge; import/export cơ bản DOCX và Markdown (.md), preview unsupported/lossy constructs theo [format contract](95-docx-md-and-internal-calendar.md); PDF/HTML export không thuộc scope.
 
 ## Quyền, API và tích hợp
 
@@ -66,4 +66,4 @@ AC nguồn và common acceptance gates vẫn bắt buộc.
 - [06-decisions-and-traceability.md](../requirements/06-decisions-and-traceability.md): `DEC-KNW-001`, `DEC-KNW-002`, `DEC-KNW-003`, `DEC-KNW-004`, `DEC-KNW-005`, `DEC-KNW-006`, `DEC-KNW-007`, `DEC-KNW-008`, `DEC-KNW-009`, `DEC-KNW-010`, `DEC-KNW-011`, `DEC-KNW-012`, `DEC-KNW-013`, `DEC-KNW-014`, `DEC-KNW-015`, `DEC-KNW-016`, `DEC-KNW-017`, `DEC-KNW-018`, `DEC-KNW-019`, `DEC-KNW-020`, `DEC-KNW-021`, `DEC-KNW-022`, `DEC-KNW-023`, `DEC-KNW-024`, `DEC-KNW-025`, `DEC-KNW-026`, `DEC-KNW-027`, `DEC-KNW-028`, `DEC-KNW-029`, `DEC-KNW-030`, `DEC-KNW-031`, `DEC-KNW-032`, `DEC-KNW-033`, `DEC-KNW-034`, `DEC-KNW-035`, `DEC-KNW-036`, `DEC-KNW-037`, `DEC-KNW-038`, `DEC-KNW-039`, `DEC-KNW-040`, `DEC-KNW-041`, `DEC-KNW-042`, `DEC-KNW-043`
 - [phase-03-knowledge-search-dashboard.md](../requirements/phases/phase-03-knowledge-search-dashboard.md): `P03-CNT-001`, `P03-CNT-002`, `P03-CNT-003`, `P03-CNT-004`, `P03-CNT-005`, `P03-CNT-006`, `P03-CNT-007`, `P03-CNT-008`, `P03-CNT-009`, `P03-DOC-001`, `P03-DOC-002`, `P03-DOC-003`, `P03-DOC-004`, `P03-DOC-005`, `P03-DOC-006`, `P03-DOC-007`, `P03-DOC-008`, `P03-DOC-009`, `P03-DOC-010`, `P03-DOC-011`, `P03-DOC-012`, `P03-DOC-013`, `P03-DOC-014`, `P03-DOC-015`, `P03-DOC-016`, `P03-DOC-017`, `P03-DOC-018`, `P03-DOC-019`, `P03-DOC-020`, `P03-DOC-021`, `P03-DOC-022`, `P03-DOC-023`, `P03-DOC-024`, `P03-DOC-025`, `P03-DOC-026`, `P03-DOC-027`, `P03-DOC-028`, `P03-DOC-029`, `P03-DOC-030`, `P03-DOC-031`, `P03-DOC-032`, `P03-DOC-033`, `P03-DOC-034`, `P03-DOC-035`, `P03-DOC-036`, `P03-DOC-037`, `P03-DOC-038`, `P03-DOC-039`, `P03-DOC-040`, `P03-DOC-041`, `P03-DOC-042`, `P03-DOC-043`, `P03-DOC-044`, `P03-DOC-045`, `P03-DOC-046`, `P03-DOC-047`, `P03-VER-001`, `P03-VER-002`, `P03-VER-003`, `P03-VER-004`, `P03-VER-005`
 
-Quyết định lớn cần PO: [Q-11](90-open-decisions.md#q-11). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
+Q-11 format scope đã đóng: DOCX/MD. Không còn format blocker cho Documents core. API từng story Documents được cụ thể hóa ở milestone Knowledge sau M01; không vì có format decision mà coi toàn module đã implemented.

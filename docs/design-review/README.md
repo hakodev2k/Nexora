@@ -1,6 +1,6 @@
 # Nexora cross-layer design review
 
-> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/design-review/README.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -13,3 +13,7 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 - [Validation report](05-validation-report.md)
 
 Deliverables: [database](../design-database/README.md), [architecture](../architecture/README.md), [UX/UI](../ux-ui/README.md). Q-01…Q-12 chưa được PO trả lời vẫn Open; approval để code chưa được cấp. Đây không phải xác nhận toàn bộ website đã sprint-ready hoặc production-ready.
+
+## Clarified proposals and milestone impact
+
+[Concrete options, recommendation, trade-offs and affected capabilities](../delivery/02-decision-proposals.md) replace broad whole-project blocking. Technical contracts are resolved separately; only the named capability remains blocked pending its business decision. No new Product Owner approval is implied.

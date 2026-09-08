@@ -1,6 +1,6 @@
 # Settings và Application Shell
 
-> **Current decision amendment — 2026-09-07:** UI default Vietnamese (vi); explicit English (en) setting, no timezone/currency change; internal navigation only. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/09-settings-and-app-shell.md) is historical evidence, not implementation input.
 
 FX-09 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
@@ -26,7 +26,7 @@ Navigation personal-only, preferences, timezone, module settings và responsive 
 
 ## Dữ liệu và validation
 
-- Theme System/Light/Dark, timezone IANA, locale/language Q-09; preference revision.
+- Theme System/Light/Dark, timezone IANA, locale vi/en (vi mặc định), currency độc lập; preference revision.
 - Module settings schema/server validation, secret fields chỉ VaultRef; route contributions permission-tagged.
 
 ## Hành vi và lifecycle
@@ -59,7 +59,7 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 - [phase-01-core-platform.md](../requirements/phases/phase-01-core-platform.md): `P01-PLT-005`, `P01-SHL-001`, `P01-SHL-002`, `P01-SHL-003`, `P01-SHL-004`, `P01-SHL-005`, `P01-SHL-006`, `P01-SHL-007`
 - [phase-02-productivity.md](../requirements/phases/phase-02-productivity.md): `P02-TZ-001`, `P02-TZ-002`, `P02-TZ-003`
 
-Quyết định lớn cần PO: [Q-09](90-open-decisions.md#q-09). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
+Ngôn ngữ UI vi/en đã chốt; không còn Q09 language blocker. Default currency chưa chốt không ngăn thay ngôn ngữ.
 
 ## Current language and account lifecycle
 

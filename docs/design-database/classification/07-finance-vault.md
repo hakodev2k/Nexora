@@ -1,5 +1,7 @@
 # Field classification — finance / vault
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/design-database/classification/07-finance-vault.md) is historical evidence, not implementation input.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 [Classification policy and index](../15-field-classification.md). SQL types, nullable CLR mappings and default sensitivity are design specifications, not DTO exposure permissions.
@@ -308,6 +310,9 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 | CurrentVersion | bigint | long | Sensitive personal |
 | Status | varchar(64) | string | Sensitive personal |
 | TrashBatchId | uniqueidentifier | Guid? | Sensitive personal |
+| IsDeleted | bit | bool | Restricted Vault metadata |
+| DeletedAt | datetime2(7) | DateTime (UTC only)? | Restricted Vault metadata |
+| DeletedByUserId | uniqueidentifier | Guid? | Restricted Vault metadata |
 
 <a id="vault-itemversion"></a>
 ## vault.ItemVersion
@@ -348,6 +353,9 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 | State | varchar(64) | string | Sensitive personal |
 | ActivatedAt | datetime2(7) | DateTime (UTC only) | Sensitive personal |
 | RetiredAt | datetime2(7) | DateTime (UTC only)? | Sensitive personal |
+| RecoveryWrappedKey | varbinary(max) | byte[] | Secret cryptographic material |
+| RecoveryKeyReference | nvarchar(200) | string | Restricted key handle |
+| RecoveryKeyVersion | nvarchar(100) | string | Restricted key metadata |
 
 <a id="vault-rotationrun"></a>
 ## vault.RotationRun

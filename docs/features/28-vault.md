@@ -1,6 +1,6 @@
 # Vault
 
-> **Current decision amendment — 2026-09-07:** Deleted Vault values/history/keys retained encrypted. No purge/owner restore; SuperAdmin request-bound Recovery only, no operator plaintext. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/28-vault.md) is historical evidence, not implementation input.
 
 FX-28 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
@@ -20,7 +20,7 @@ Password, SecureNote, APIKey, Token, SSHKey, DatabaseCredential, RecoveryCodes, 
 
 1. Owner unlock/xác thực tăng cường theo Q-02/Q-04 → list masked.
 2. Create type/name/protected fields → encrypted version.
-3. Detail explicit reveal/copy; edit/restore version; Trash/purge; lock.
+3. Detail explicit reveal/copy; edit creates encrypted version; xóa mềm IsDeleted; gửi recovery request cho SuperAdmin nếu cần phục hồi; lock. Không có owner restore/purge.
 
 ## Dữ liệu và validation
 
@@ -34,12 +34,12 @@ Password, SecureNote, APIKey, Token, SSHKey, DatabaseCredential, RecoveryCodes, 
 - **FX-28-BR-002:** Search/dashboard/share/webhook không payload; no public/restricted secret links theo proposed deny Q-04.
 - **FX-28-BR-003:** Reveal tự che30s delegated; clipboard explicit best-effort clear30s nếu chưa đổi, không hứa xóa clipboard hệ điều hành.
 - **FX-28-BR-004:** No secrets URLs/logs/analytics/persistent browser cache; protected response no-store.
-- **FX-28-BR-005:** History encrypted tới purge; crypto envelope/key rotation/backup/recovery phải ADR+Q-04 trước implement.
+- **FX-28-BR-005:** History/values/needed key wraps giữ encrypted khi xóa mềm, không purge/crypto-erasure. Server-recoverable envelope theo ADR-PO-04; restoration chỉ qua request-bound SuperAdmin Recovery, không operator plaintext.
 - **FX-28-BR-006:** Password generator local CSPRNG length 16 default,12–128 allowed, categories explicit; chỉ persist khi Save.
 
 ## Quyền, API và tích hợp
 
-- CreateSecret/UpdateSecret/RevealSecret/CopySecret/RestoreSecretVersion permissions tách riêng.
+- CreateSecret/UpdateSecret/RevealSecret/CopySecret tách riêng; restore version/item qua vault.recovery.* và SuperAdmin authorization. Owner restore/purge keys đã retired.
 - ResolveVaultRef theo owner-authorized service purpose; audit action/ID không secret; no bulk plaintext endpoint.
 
 Áp dụng [hợp đồng chung](00-shared-behavior.md): owner isolation, module/action gate, concurrency, idempotency, lỗi/loading/empty, phân trang và lifecycle. Support/Emergency chỉ read-only có grant; không thừa hưởng owner mutation, secret reveal hoặc export. API cụ thể phải theo command/query này và được chốt trong solution design.
@@ -55,7 +55,7 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 
 ## Item field dictionary
 
-Protected payload schema phải versioned; bảng này xác định UX fields, không quyết định key architecture Q-04.
+Protected payload schema phải versioned; bảng này xác định UX fields, dùng server-recoverable key architecture ADR-PO-04; owner portability/safe support metadata còn proposal.
 
 | Type | Payload bắt buộc | Optional protected fields |
 |---|---|---|

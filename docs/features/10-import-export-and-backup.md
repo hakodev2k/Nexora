@@ -1,6 +1,6 @@
 # Import, Export và Backup/Restore
 
-> **Current decision amendment — 2026-09-07:** Document/Resume formats DOCX/MD basic subset; Calendar ICS unchanged. No Account/Vault purge or inherited encrypted-portability approval. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/10-import-export-and-backup.md) is historical evidence, not implementation input.
 
 FX-10 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
@@ -31,7 +31,7 @@ Framework chuyển dữ liệu theo format từng module và phục hồi hệ t
 
 ## Hành vi và lifecycle
 
-- **FX-10-BR-001:** Projects/Tasks import/export deferred; Calendar ICS included; Documents formats Q-11; Vault portability Q-04.
+- **FX-10-BR-001:** Projects/Tasks import/export deferred; Calendar ICS included; Documents DOCX/MD basic formats đã chốt; Vault portability Q-04.
 - **FX-10-BR-002:** Preview không mutation; import row errors sanitized, stableIDs/idempotency và per-module duplicate policy.
 - **FX-10-BR-003:** Export permission không có trong support/emergency; recheck quyền lúcdownload; Userexport không audit hoặc otherUserdata.
 - **FX-10-BR-004:** Vault ciphertext backup thiếu key recovery không được nhận là restorable; retention/RPO/RTO Q-08.
@@ -59,4 +59,4 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 - [04-non-functional-requirements.md](../requirements/04-non-functional-requirements.md): `BKP-001`, `BKP-002`, `BKP-003`, `BKP-004`
 - [phase-08-hardening-and-deployment.md](../requirements/phases/phase-08-hardening-and-deployment.md): `P08-BKP-001`, `P08-BKP-002`, `P08-BKP-003`, `P08-BKP-004`, `P08-BKP-005`, `P08-BKP-006`, `P08-BKP-007`
 
-Quyết định lớn cần PO: [Q-01](90-open-decisions.md#q-01), [Q-04](90-open-decisions.md#q-04), [Q-08](90-open-decisions.md#q-08), [Q-11](90-open-decisions.md#q-11). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
+Chỉ Vault portability và production backup/RPO/RTO còn proposal; Documents DOCX/MD và Calendar ICS đã có scope rõ. Xem [format contract](95-docx-md-and-internal-calendar.md).

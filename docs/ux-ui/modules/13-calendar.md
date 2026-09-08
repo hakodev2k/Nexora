@@ -1,6 +1,6 @@
 # FX-13 — Calendar / Personal Events / ICS — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** Career links existing/created Personal Event only; Calendar owns time/state/reminder, no third event type/external interview. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/ux-ui/modules/13-calendar.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -292,7 +292,6 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 
 ## 23. Major open questions
 
-- [Q-12](../../features/90-open-decisions.md#q-12) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
 
 ## 24. Acceptance checklist
 

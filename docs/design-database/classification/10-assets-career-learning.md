@@ -1,5 +1,7 @@
 # Field classification — assets / career / learning
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/design-database/classification/10-assets-career-learning.md) is historical evidence, not implementation input.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 [Classification policy and index](../15-field-classification.md). SQL types, nullable CLR mappings and default sensitivity are design specifications, not DTO exposure permissions.
@@ -346,6 +348,8 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 
 <a id="career-interview"></a>
 ## career.Interview
+
+Retired proposal; no current Interview columns. Use career.CalendarLink current domain dictionary.
 
 | Field | SQL | C# representation | Classification |
 | --- | --- | --- | --- |

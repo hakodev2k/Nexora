@@ -1,6 +1,6 @@
 # FX-28 — Vault — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** Deleted Vault values/history/keys retained encrypted. No purge/owner restore; SuperAdmin request-bound Recovery only, no operator plaintext. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/ux-ui/modules/28-vault.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -8,7 +8,7 @@ Approved source behavior remains Approved; routine interaction choices below are
 
 ## 1. Scope
 
-Personal encrypted Vault, masked default and owner-only sensitive actions; keys/recovery/portability Q-04.
+Personal encrypted Vault, masked default and owner-only sensitive actions; server-recoverable keys/recovery ADR-PO-04; portability and safe support projections remain P-H03/04.
 
 ## 2. Requirement sources
 
@@ -53,9 +53,9 @@ These are screen surfaces, not necessarily separate backend resources; create/ed
 | FX28-S01 | Vault list | /vault | Type categories; permitted item labels; favorite if supported; no secret excerpts | New Vault item |
 | FX28-S02 | Vault item detail | /vault/items/:itemId | Masked sensitive fields; field labels; type; version; owner-only action controls | Copy selected secret after authorization |
 | FX28-S03 | Vault create / edit | /vault/items/new; /vault/items/:itemId/edit | Explicit type/name; typed secret fields; optional service/URL/tags/notes | Save encrypted item |
-| FX28-S04 | Vault history | /vault/items/:itemId/history | Version/time/type; encrypted snapshot preview only after owner auth | Restore as new encrypted version |
+| FX28-S04 | Vault history | /vault/items/:itemId/history | Version/time/type; encrypted snapshot preview only after owner auth | Request recovery of this version |
 | FX28-S05 | Password generator | /vault/generator | Length/character options; strength explanation; masked generated result | Generate |
-| FX28-S06 | Vault Trash / security policy | /vault/trash; /settings/vault | Owner-only deleted items metadata; key/recovery policy state | Preview Restore |
+| FX28-S06 | Vault Trash / security policy | /vault/trash; /settings/vault | Owner-only deleted items metadata; key/recovery policy state | Request SuperAdmin recovery |
 
 ## 8. Navigation
 
@@ -143,11 +143,11 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Purpose / profile | HISTORY — Version/time/type; encrypted snapshot preview only after owner auth |
 | Entry / proposed route | /vault/items/:itemId/history; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Vault history. Shared history profile; header → controls → declared content → feedback. |
-| Primary action | Restore as new encrypted version; available only when section15/context permits; otherwise explain lifecycle/policy. |
+| Primary action | Request recovery of this version; available only when section15/context permits; otherwise explain lifecycle/policy. |
 | Secondary actions | Back; Copy approved field. Back/Cancel always has authorized fallback. |
 | Content regions / fields | Version/time/type; encrypted snapshot preview only after owner auth |
 | Search / filters / sorting / pagination | Latest25/page. Controls not listed here are N/A, not implicit new fields. |
-| Interaction / validation overrides | Never fetch all historical plaintext at once. Restore current key version; no decryption in generic History service. |
+| Interaction / validation overrides | Never fetch all historical plaintext at once. Recovery service rewraps under current key policy after SuperAdmin authorization; no decryption in generic History service. |
 | Loading / empty / error | UX-15A state contract. Empty: declared data absent; no matches: clear listed query controls; fetch error: safe retry. These are distinct, no error-as-empty. |
 | Disabled / readonly / Archived / Trash | UX-15A plus exact section15 matrix. No lifecycle in source = N/A. Do not render unauthorized payload behind disabled controls. |
 | Conflict / destructive | Current revision and parent guards, section16 dialogs. Readonly surfaces only refresh, never forced write. |
@@ -181,11 +181,11 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Purpose / profile | BROWSE — Owner-only deleted items metadata; key/recovery policy state |
 | Entry / proposed route | /vault/trash; /settings/vault; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Vault Trash / security policy. Shared browse profile; header → controls → declared content → feedback. |
-| Primary action | Preview Restore; available only when section15/context permits; otherwise explain lifecycle/policy. |
-| Secondary actions | Purge after approved checks; Back. Back/Cancel always has authorized fallback. |
+| Primary action | Request SuperAdmin recovery; available only when section15/context permits; otherwise explain lifecycle/policy. |
+| Secondary actions | View recovery request status; Back. Back/Cancel always has authorized fallback. |
 | Content regions / fields | Owner-only deleted items metadata; key/recovery policy state |
 | Search / filters / sorting / pagination | Type/date search within allowed metadata. Controls not listed here are N/A, not implicit new fields. |
-| Interaction / validation overrides | No zero-knowledge/recoverable claim until Q-04. Shared-link creation and encrypted export blocked where unresolved. |
+| Interaction / validation overrides | Server-recoverable envelope is the current design; no zero-knowledge claim. Shared-link creation and encrypted export blocked where unresolved. |
 | Loading / empty / error | UX-15A state contract. Empty: declared data absent; no matches: clear listed query controls; fetch error: safe retry. These are distinct, no error-as-empty. |
 | Disabled / readonly / Archived / Trash | UX-15A plus exact section15 matrix. No lifecycle in source = N/A. Do not render unauthorized payload behind disabled controls. |
 | Conflict / destructive | Current revision and parent guards, section16 dialogs. Readonly surfaces only refresh, never forced write. |
@@ -213,7 +213,7 @@ Search/filter are owner and location scoped; reset cursor after query change, pr
 
 ## 14. Lifecycle UX
 
-Each row below is source-defined state/context, not a client-only flag. Parent gates and current server capability override otherwise available actions. Archive, terminal, Trash and purge remain distinct. 
+Each row below is source-defined state/context, not a client-only flag. Parent gates and current server capability override otherwise available actions. Vault deleted state retains encrypted history/values/keys; generic purge state does not apply. 
 
 ## 15. Action matrix
 
@@ -223,7 +223,7 @@ Each row below is source-defined state/context, not a client-only flag. Parent g
 | Owner authorized Active | Masked view; explicit Reveal/Copy; edit/version; Trash | No persistent browser secret storage |
 | Archived | Readonly owner masked view; eligible Unarchive/Trash | No edit |
 | Support/Emergency | Denied pending approved metadata projection Q-04 | Never ambient Reveal/Copy/export/decrypt |
-| Trash | Owner restore/purge under key/reference policy | Purge irreversible and not recovery guarantee |
+| Trash | Request SuperAdmin-authorized recovery only | Values/history/keys retained; no owner restore or permanent delete |
 
 **Context intersection:** Owner Self requires active verified account, installed/system/user module gates and action+resource permission. Admin/SuperAdmin own data uses Self, not global data access. Support/Emergency only explicitly registered approved safe readonly projection for the granted module; otherwise unavailable. Secret reveal/export/mutation denied in those modes. Share viewer only if this source declares an approved readonly share projection and current link qualifies; operational screens/auth/Calendar Events/pure tools do not acquire sharing from common UI.
 
@@ -231,7 +231,7 @@ Each row below is source-defined state/context, not a client-only flag. Parent g
 
 | Dialog title / ID | Explanation and affected resources | Primary / cancel | Retry/error and boundary |
 | --- | --- | --- | --- |
-| D-TRASH / D-RESTORE / D-PURGE | Selected source + exact cohort/reference/pin preview | Move to Trash / Restore / Delete permanently; Cancel | Only permitted source actions; irreversible purge warning, revalidate parent/revision; no generic restore bypass. |
+| Vault deletion / recovery | Selected encrypted item or version; owner identity and recovery request | Mark deleted / Request recovery; Cancel | No purge; recovery authorization and execution use dedicated SuperAdmin/service context, never generic Restore |
 | D-ARCHIVE / D-UNARCHIVE | Source + previous state and affected references | Archive / Unarchive; Cancel | Only features with archive lifecycle; preserve source-specific prior state/cohort. |
 | D-UNSAVED / D-CONFLICT | Authorized dirty source/current revision, no secrets in diagnostics | Save/Discard/Keep editing or Reload/Reapply/Cancel | No silent discard/overwrite; revoked access clears protected data. N/A on pure readonly screens. |
 
@@ -263,7 +263,7 @@ Data design trace:
 
 | Table / provider data | Purpose / dependency status |
 | --- | --- |
-| [vault.Item](../../design-database/07-finance-vault.md#vault-item) | Encrypted personal Vault item with minimal outer envelope; Proposed: Q-04 cryptographic architecture |
+| [vault.Item](../../design-database/07-finance-vault.md#vault-item) | Encrypted personal Vault item with minimal outer envelope; Current server-recoverable design ADR-PO-04 |
 | [vault.ItemVersion](../../design-database/07-finance-vault.md#vault-itemversion) | Immutable authenticated encrypted secret payload; Proposed: Q-04 |
 | [vault.KeyEnvelope](../../design-database/07-finance-vault.md#vault-keyenvelope) | Key metadata/wrapped data key, not master key; Proposed: Q-04 |
 | [vault.RotationRun](../../design-database/07-finance-vault.md#vault-rotationrun) | Resumable key rotation inventory; Proposed: Q-04/Q-08 |

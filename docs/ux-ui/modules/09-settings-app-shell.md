@@ -1,6 +1,6 @@
 # FX-09 — Settings / App Shell — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** UI default Vietnamese (vi); explicit English (en) setting, no timezone/currency change; internal navigation only. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/ux-ui/modules/09-settings-app-shell.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -153,7 +153,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 
 ## 11. Forms and validation
 
-Preference fields limited to theme, density, navigation/pinned modules, view choices and confirmed timezone; UI-language/default-currency scope Q-09. Notification channels fixed, not toggleable. User module settings cannot override SuperAdmin grant.
+Preference fields limited to theme, density, navigation/pinned modules, view choices and confirmed timezone; UI language vi/en confirmed, default currency separate. Notification channels fixed, not toggleable. User module settings cannot override SuperAdmin grant.
 
 [Common forms](../global/05-forms-and-validation.md) define field error timing, Save, cancellation, stale session and conflict; DB required technical columns are server-owned, never rendered as form fields.
 
@@ -227,7 +227,6 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 
 ## 23. Major open questions
 
-- [Q-09](../../features/90-open-decisions.md#q-09) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
 
 ## 24. Acceptance checklist
 

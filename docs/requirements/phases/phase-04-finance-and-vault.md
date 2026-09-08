@@ -1,6 +1,6 @@
 # Phase 4 — Finance and Vault
 
-> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/requirements/phases/phase-04-finance-and-vault.md) is historical evidence, not implementation input.
 
 **Phase ID:** `NX-PH-04`  
 **Version:** `1.2-draft`  
@@ -35,13 +35,17 @@ Split transactions, savings goals, debt/loans, attachments/receipts, recurring t
 
 ### Vault P0
 
-Password, Secure Note, API Key, Token, SSH Credential, Database Credential, Recovery Codes, Software License Secret, Generic Secret; create/view masked/update/delete/restore/reveal/copy; folders/tags metadata; audit; encryption/key rotation readiness.
+Password, Secure Note, API Key, Token, SSH Credential, Database Credential, Recovery Codes, Software License Secret, Generic Secret; create/view masked/update/soft-delete/request SuperAdmin recovery/reveal/copy; folders/tags metadata; audit; encryption/key rotation readiness.
 
 ### Deferred/out
 
 Bank/Open Banking sync, investment/portfolio/tax/accounting, payment initiation, AI categorization, credential autofill/browser extension, secret auto-rotation, public Vault sharing, plaintext bulk export, team vault.
 
-## 3. Finance domain model và rules
+## 3. Finance nâng cao — Proposed/Blocked Q05, không là dependency basic
+
+Current basic entry uses finance.ManualCategory/ManualRecord and manual category/amount/currency/date. Sections3–5 describe conditional advanced requirements retained for R1 clarification, not current implementation commitment per story.
+
+### Finance domain model và rules
 
 ### 3.1 Accounts
 
@@ -120,7 +124,7 @@ Metadata có thể gồm: title, type, username/account label, URL/host, tags/fo
 | `P04-VLT-003` | P0 | List/search chỉ dùng approved metadata và trả masked preview. | API payload never contains encrypted key material/plaintext secret. |
 | `P04-VLT-004` | P0 | Detail mặc định vẫn masked; `Reveal` và `Copy` là dedicated endpoints/actions. | `vault.view` alone cannot decrypt; network response contains value only for authorized action. |
 | `P04-VLT-005` | P0 | Update protected payload creates new encrypted version/audit metadata; old plaintext not retained accidentally. | Ciphertext version changes; history/backup policy documented. |
-| `P04-VLT-006` | P0 | Trash/restore keeps ciphertext decryptable; purge handles versions/attachments/keys per crypto-erasure/data policy. | Restore/reveal works; purge does not leave retrievable active references. |
+| `P04-VLT-006` | P0 | Vault deletion sets IsDeleted and retains encrypted values/history/keys; restore only through SuperAdmin-authorized Recovery. | No item/version purge or crypto-erasure; restore preserves decryptability and never returns plaintext to operator. |
 | `P04-VLT-007` | P0 | Folder/tag/favorite are owned metadata and do not lower secret classification. | Sharing/search/favorites do not expose payload. |
 | `P04-VLT-008` | P1 | Password generator nếu có chạy bằng cryptographically secure randomness và không persist generated value trước explicit save. | Statistical/API implementation review; generated marker absent logs/history. |
 
@@ -169,7 +173,7 @@ Metadata có thể gồm: title, type, username/account label, URL/host, tags/fo
 
 ## 10. Permissions và audit
 
-Namespaces/actions theo permission matrix. Finance `export`, `purge`; Vault `reveal`, `copy`, `export`, `purge`; support/emergency access, permission/key/security configuration là sensitive.
+Namespaces/actions theo permission matrix. Finance `export`, `purge`; Vault `reveal`, `copy`, conditional portability, SuperAdmin Recovery; no purge; support/emergency access, permission/key/security configuration là sensitive.
 
 Audit bắt buộc: privileged Finance view/export, transaction purge/restore/adjustment, import/export, Vault create metadata (không secret), reveal/copy/update/delete/restore/purge/export attempt, key rotation, decrypt/tamper failure, security-setting change, backup/restore.
 

@@ -1,6 +1,6 @@
 # Phase 1 — Core Platform and Application Shell
 
-> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/requirements/phases/phase-01-core-platform.md) is historical evidence, not implementation input.
 
 **Phase ID:** `NX-PH-01`  
 **Version:** `1.2-draft`  
@@ -55,7 +55,7 @@ Business modules; social login; billing/paid plans; self-hosted distribution; mo
 1. Visitor nhập registration data và email.
 2. Hệ thống tạo account ở trạng thái chờ xác minh và gửi verification email an toàn.
 3. User mở token single-use còn hạn.
-4. Account active, Personal Space được tạo idempotently và toàn bộ default modules được enable.
+4. Account active, Personal Space được tạo idempotently và default modules được enable chỉ khi installed/compatible/Ready và active scope; Paused/Blocked không bật.
 5. User đăng nhập/dùng ngay, không chờ Admin approval.
 
 ### 2.3 SuperAdmin quản lý User/Admin
@@ -112,13 +112,13 @@ SuperAdmin dùng dedicated break-glass flow khi thực sự khẩn cấp, nhập
 |---|---:|---|---|
 | `P01-USR-001` | P0 | SuperAdmin tạo, xem, cập nhật trạng thái User; unique identifier được enforce case/normalization rõ. | Duplicate/race condition không tạo hai identity mâu thuẫn. |
 | `P01-USR-002` | P0 | User chỉ sửa profile/preference cho phép của chính mình. | Không sửa role/status/owner/security field qua tampered payload. |
-| `P01-USR-003` | P0 | Disable, reactivate, soft-delete User có state transition và confirmation rõ. | State bất hợp lệ bị từ chối; Personal data, shares, support grants, reminders, sessions và jobs được reconciliation. |
-| `P01-USR-004` | P0 | Không permanent-delete User khi còn unresolved Personal data hoặc dependency ngoài approved cascade/retention policy. | UI/API trả dependency summary; không silent partial purge. |
+| `P01-USR-003` | P0 | Disable/enable Active accounts and soft-delete User have explicit transitions; Deleted restoration remains P-H02. | Cannot enable Deleted through generic enable or reset; retained data/shares/support/sessions/jobs reconciled. |
+| `P01-USR-004` | P0 | Account deletion only sets IsDeleted/Deleted state; no physical purge. | Data retained, sessions/authority revoked; no account purge handler or automatic email reuse. |
 | `P01-USR-005` | P1 | User export/delete-account request chỉ bật sau khi data portability/retention policy được duyệt. | Không có partial silent deletion. |
 
 ### User state đề xuất
 
-`PendingVerification` → `Active` ↔ `Disabled` → `Deleted/Retention` → `Purged`. Verification mới chuyển Pending sang Active; không có invite/approval state trong Release 1. `SuperAdmin` là role, không phải user state.
+`PendingVerification` → `Active` ↔ `Disabled`; soft-delete → `Deleted` with retained data. No `Purged` account state or automatic reactivation. Verification mới chuyển Pending sang Active; không có invite/approval state trong Release 1. `SuperAdmin` là role, không phải user state.
 
 ## 6. Functional requirements — roles và permissions
 

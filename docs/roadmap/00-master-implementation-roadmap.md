@@ -1,6 +1,6 @@
 # Nexora — Master Implementation Roadmap
 
-> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/roadmap/00-master-implementation-roadmap.md) is historical evidence, not implementation input.
 
 **Version:** 1.0-draft · **Ngày:** 2026-09-05 · **Status:** Chờ review/approval roadmap.
 
@@ -492,3 +492,7 @@ Bộ này là kế hoạch đầy đủ về coverage và thứ tự làm việc
 ## Feature specification delta — 2026-09-06
 
 Bổ sung [40 feature specifications](../features/README.md) làm đầu vào phân rã Feature → Story → Technical Task. [Requirement routing](../features/93-requirement-routing.md) bổ sung đường dẫn source ID tới đặc tả, không đánh dấu task triển khai đã hoàn thành. Story phải áp dụng shared behavior và close Q/ADR liên quan trước Definition of Ready. Các approved source decisions và delegated details mới hơn thắng roadmap snapshot cũ; không bắt đầu code/database/runtime trước PO approval riêng.
+
+## Current milestone handoff
+
+Start from [current delivery specification](../delivery/README.md). M01 scope, API/DB/UX/acceptance and evidence gates are linked there. A local/internal milestone is not Release1 completion. Scripts/migrations/runtime evidence remain future implementation artifacts, not executed by this documentation update.

@@ -1,6 +1,6 @@
 # security — physical data dictionary
 
-> **Current decision amendment — 2026-09-07:** Physical delta17 is current for User/ShareLink/Vault flags, recovery wraps, four new tables and Career CalendarLink replacement. Baseline field counts/encryption/purge/Interview proposals are superseded only where specified; no migration executed. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/design-database/03-security-sharing.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -34,8 +34,11 @@ Read-only resource link authorization. Profile **O**. Status: **Proposed: Q-03 f
 | Mode | varchar(64) | No | PublicLink, AuthenticatedLink, RestrictedUsers | CHECK allowed codes documented in meaning |
 | ExpiresAt | datetime2(7) | Yes | Null means no expiry | No implicit default unless stated |
 | RevokedAt | datetime2(7) | Yes | Irrevocable revoke marker | No implicit default unless stated |
-| SuspendedByTrash | bit | No | Proposed Q-03 restore gate | No implicit default unless stated |
 | ProjectionVersion | nvarchar(50) | No | Explicit approved share field contract | No implicit default unless stated |
+| IsDeleted | bit | No | Permanently invalidated link | DEFAULT 0 |
+| InvalidatedAt | datetime2(7) | Yes | Required iff IsDeleted=true | UTC |
+| InvalidationReason | varchar(64) | Yes | OwnerRevoke/SharingDisabled/SourceDeleted/AccountDeleted | Codes only |
+| IssuedSharingEpoch | bigint | No | Must match trusted current Module.SharingEpoch; immutable | No default |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). UQ TokenHash; IX OwnerId,ResourceId,RevokedAt
 

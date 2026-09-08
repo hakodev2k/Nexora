@@ -1,0 +1,35 @@
+# M01 stories — linked implementation inputs
+
+Tất cả story: Docs specified / implementation unapproved. Dependencies là story order, không sprint dates. Mọi request/response xem [API](02-api-contracts.md), SQL field types xem [data mapping](03-data-and-transactions.md); từng screen/failure xem [UX/acceptance](04-ux-and-acceptance.md).
+
+| Story | User outcome | Actions / operationIds | Requirement + UX | Data / transaction | Depends |
+| --- | --- | --- | --- | --- | --- |
+| M01-S00 | Developer có toolchain/version/profile xác định | No user action; setup contract | P01-SHL-001; local runbook | No domain data | PO approval trước chạy |
+| M01-S01 | Operator bootstrap một SuperAdmin duy nhất | Trusted deployment command, không public API/grant | P01-SHL-002; operator CLI | User, Role, UserRole, PersonalSpace, SecurityInvariant, audit | S00 |
+| M01-S02 | Visitor đăng ký và xác minh email | identity.account.register/verify/resend; register/verify/resendVerification | P01-AUT-009..012; FX01-S01/S02 | User, OneTimeToken, AccountMessageIntent; TX02 activation | S01 |
+| M01-S03 | User login/logout, kiểm tra auth và recent-auth | identity.account.login, identity.session.logout; login/logout/reauth/getCsrf | P01-AUT-001..004; FX01-S03/S06 | Session, User, security audit | S02 |
+| M01-S04 | User quên password khi MFA off được reset qua email | identity.account.reset_request/reset_confirm; requestReset/confirmReset | FX01-BR-002, P01-AUT-006; FX01-S04 | OneTimeToken, Session, User, delivery intent | S02,S03 |
+| M01-S05 | User xem/sửa tên, timezone và vi/en | identity.profile.read/update + settings.preference.read/update cho locale; getMe/updateMe | P01-USR-002, Q09; FX01-S05, FX09-S01 | User, own PersonalSpace/grants projection | S03 |
+| M01-S06 | User xem/thu hồi phiên của mình | identity.session.read/revoke_session/revoke_all; listSessions/revokeSession/revokeAll | P01-AUT-003/008; FX01-S06 | Session, audit/intents | S03 |
+| M01-S07 | SuperAdmin đọc User metadata và catalog | access.user.read/permission.read, modules.catalog.read; listUsers/getAccess/listModules | P01-RBAC-006; FX02-S01..S05, FX03-S01 | Identity/access/module projections only | S03 |
+| M01-S08 | SuperAdmin preview rồi đổi role/action/module grant | access.change.read/role.set/permission.set/entitlement.set; previewAccess/setRole/setPermissions/setEntitlements | P01-RBAC-002..008; FX02-S03..S05 | User aggregate revision, UserRole, grants, SecurityInvariant; TX08 | S07 |
+| M01-S09 | SuperAdmin đổi system enablement và registration defaults | modules.catalog.read, modules.policy.enable/disable/defaults; previewModule/setModulePolicy | P01-MOD-001..005; FX03-S02..S04 | Module/Dependency/Release/Migration, PolicyRevision; TX09 | S07,S08 |
+| M01-S10 | Worker ghi audit và xử lý delivery đáng tin cậy | System handlers; không quyền tùy ý cho Admin | P01-PLT-001/004/006; common feedback | audit entries, outbox, jobs, notification/delivery; TX10 | S01..S09; contract foundation xây sớm |
+| M01-S11 | Reviewer xác nhận local candidate từ clean checkout | No user action; evidence protocol | P01-SHL-001, ownership/security gates | Isolated synthetic DB/files/keys | S00..S10 |
+
+## Acceptance theo story (Given / When / Then)
+
+- **M01-AC00:** Given pinned local profile, when dependency check chạy sau approval, then ghi actual SDK/runtime/SQL/Node/package-lock hashes; incompatible/secret missing fail rõ, không tự đổi máy hay download latest.
+- **M01-AC01:** Given chưa có SuperAdmin, when hai bootstrap commands đồng thời, then đúng một thành công; second reports AlreadyBootstrapped. Password nhập qua protected prompt, không command argument; bootstrap transaction tạo verified principal/space/base role + SuperAdmin, nhật ký không chứa credential. External HTTP bootstrap route không tồn tại.
+- **M01-AC02:** Given email mới/đã đăng ký, when register, then cùng202 generic response; chỉ email mới tạo PendingVerification. Given two valid verify submissions, then một consume và đúng một PersonalSpace + grant snapshot; retry khác key báo TokenUnavailable. Không seed đủ40 module giả Ready.
+- **M01-AC03:** Given unverified/disabled/deleted user, when login, then không active session. Given active MFA-enabled fixture trong M01, then fail closed MfaUnavailable, không password-only session. Given valid password-only user, then issue Secure HttpOnly cookie, không token JSON/localStorage. Logout invalidates current session.
+- **M01-AC04:** Given unknown/deleted/email-muted test fixture, requestReset cùng202 không enumerate. Reset valid unused token và MFA off: đổi password/revoke tất cả sessions trong một transaction, không auto-login. Expired/replayed token không thay dữ liệu; MFA enabled không bị gỡ.
+- **M01-AC05:** Given two tabs chung ETag, tab A đổi displayName thành công; tab B đổi timezone bằng ETag cũ nhận412 và giữ draft. vi→en đổi UI, không đổi datetime instant, currency hay content. Role/OwnerId/avatar/email trong body bị422 UnknownField.
+- **M01-AC06:** Given sessions UserA/UserB, A revoke B sessionId nhận404; no effect. Revoke self hiện tại logs out; revokeAll gồm current và không phát token mới. First authorized request sau commit revocation phải deny.
+- **M01-AC07:** Given Admin thiếu action metadata grant, direct admin URL/API403. SuperAdmin chỉ nhận identity/access fields allowlist; response không include Task/Document/Finance/Vault hoặc full device/network secrets.
+- **M01-AC08:** Given preview hợp lệ rồi another actor đổi target/access/module policy, commit412 hoặc409 PreviewStale; no partial update. Two last-SuperAdmin removals cạnh tranh không thể đưa count về0. Allow cho Blocked/Paused/unknown action bị409 DecisionBlocked. Không auto-grant prerequisites.
+- **M01-AC09:** Given Ready module với hard dependency, disable preview liệt kê dependents; nếu dependent còn enabled thì409 DependencyEnabled, không cascade ngầm. Registration-default change chỉ áp lần verification tương lai, không rewrite User grants hiện có. Paused/uninstalled/migration-failed không enable được.
+- **M01-AC10:** Given committed security event, create one intent + three independent channel records; retry worker không duplicate logical notification. SQL unavailable → no mutation; Redis unavailable → SQL authoritative fallback; Email/Push unavailable → RetryScheduled/PermissionUnavailable, không fake Delivered. Preverification message là AccountMessageIntent; channel không khả dụng ghi NotApplicable, không giả User có subscription.
+- **M01-AC11:** Given clean candidate and synthetic data, reviewer restore DB/file manifest/key references vào isolated target rồi kiểm tra login/ownership/grant/audit/outbox; không cho restoring stale revoked authority hoặc gửi lại mail thật. Artifacts absent/test not run thì status Not verified, không “Pass”.
+
+M01-S10 xây transactional interfaces trước S02 rồi hoàn tất worker verification sau S09; đây là dependency integration, không circular scheduling. S00/S11 không có endpoint/action grant vì là developer/operator work. [Evidence matrix](06-readiness-and-evidence.md) phân biệt docs checks và runtime gates.

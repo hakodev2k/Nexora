@@ -1,12 +1,12 @@
 # API and frontend implementation contracts — design only
 
-> **Current decision amendment — 2026-09-07:** User.IsDeleted is a current authority gate; Account/Vault never purge; permanent sharing invalidation; explicit SuperAdmin RECOVERY mode added; Paused product scope outranks grant. Read ../requirements/10-owner-decisions-20260907.md and current catalog before old Q references. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/architecture/05-api-and-frontend-contracts.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 ## Route proposals versus contracts
 
-UX routes in module specifications describe navigation, not existing backend endpoints. Backend uses versioned resource-specific REST/application commands with JSON error DTOs; approve OpenAPI when stories become Ready. API does not mirror every screen one-to-one. Query DTO includes data, safe capabilities, revision, pagination/freshness, not EF navigation graphs.
+UX routes in module specifications describe navigation, not existing backend endpoints. Backend uses versioned resource-specific REST/application commands with JSON error DTOs; M01 has concrete [OpenAPI and story contracts](../delivery/milestone-01/02-api-contracts.md); later milestones add their own contracts before implementation. API does not mirror every screen one-to-one. Query DTO includes data, safe capabilities, revision, pagination/freshness, not EF navigation graphs.
 
 ## Transport conventions
 

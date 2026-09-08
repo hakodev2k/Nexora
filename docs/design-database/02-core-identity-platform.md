@@ -1,6 +1,6 @@
 # identity / platform — physical data dictionary
 
-> **Current decision amendment — 2026-09-07:** Physical delta17 is current for User/ShareLink/Vault flags, recovery wraps, four new tables and Career CalendarLink replacement. Baseline field counts/encryption/purge/Interview proposals are superseded only where specified; no migration executed. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/design-database/02-core-identity-platform.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -48,19 +48,22 @@ Authentication principal; not a business-data owner. Profile **G**. Status: **Te
 | NormalizedEmail | nvarchar(320) | No | Invariant normalized lookup value | No implicit default unless stated |
 | PasswordHash | nvarchar(1024) | No | Framework-versioned one-way hash, never reversible password | No implicit default unless stated |
 | SecurityStamp | nvarchar(64) | No | Invalidate authentication proofs after credential/security changes | No implicit default unless stated |
-| State | varchar(64) | No | PendingVerification, Active, Disabled, DeletionPending | CHECK allowed codes documented in meaning |
+| State | varchar(64) | No | PendingVerification, Active, Disabled, Deleted; State=Deleted iff IsDeleted=true | CHECK allowed codes documented in meaning |
 | VerifiedAt | datetime2(7) | Yes | Null until successful verification | No implicit default unless stated |
 | FailedAccessCount | int | No | Nonnegative failed login counter | No implicit default unless stated |
 | LockoutUntil | datetime2(7) | Yes | Temporary lock expiry | No implicit default unless stated |
 | DisplayName | nvarchar(100) | No | Profile name1..100, never role | No implicit default unless stated |
 | TimeZoneId | nvarchar(100) | No | Validated IANA identifier detected from browser | No implicit default unless stated |
-| Locale | nvarchar(35) | Yes | Explicit locale preference, default Q-09 | No implicit default unless stated |
+| Locale | nvarchar(35) | No | UI locale vi/en, independent of timezone/currency | DEFAULT 'vi'; CHECK vi/en |
 | EmailConfirmed | bit | No | Must agree with VerifiedAt | No implicit default unless stated |
 | AvatarFileId | uniqueidentifier | Yes | Optional Clean own avatar, target FileObject.OwnerId must equal this User PersonalSpace via profile command guard | FK AvatarFileId → Id; [files.FileObject](04-files-jobs-notifications.md#files-fileobject); NO ACTION |
+| IsDeleted | bit | No | Authoritative soft-delete flag; State agreement | DEFAULT 0 |
+| DeletedAt | datetime2(7) | Yes | Required iff IsDeleted=true; UTC | Server timestamp |
+| DeletedByUserId | uniqueidentifier | Yes | Actual deletion actor | FK identity.User.Id; NO ACTION |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ NormalizedEmail; IX State,Id
 
-**Integrity / transaction:** Create only PendingVerification. Verify token consumption, activation, PersonalSpace and registration-grant snapshot in one transaction. No role/profile mass assignment. Account purge and identifier reuse blocked on Q-01.
+**Integrity / transaction:** Create only PendingVerification. Verify token consumption, activation, PersonalSpace and registration-grant snapshot in one transaction. No role/profile mass assignment. Account purge prohibited by PO; identifier reuse/account restore remain separate proposal.
 
 **Lifecycle / classification:** All writes check RowVersion; lifecycle guard also applies to import, automation, bulk and restore. Payload classification defaults Restricted system; credential/encrypted/hash columns are never list/search/log data. [Per-field classification](15-field-classification.md#identity-user). No ON DELETE CASCADE; approved purge service orders dependencies, rejects live references, preserves minimal audit. User-owned Trash retention is not inferred from job-log retention.
 
@@ -178,7 +181,7 @@ Exactly one personal ownership boundary per verified User. Profile **G**. Status
 | UpdatedByUserId | uniqueidentifier | Yes | Actual most recent actor; null only system/anonymized identity | FK UpdatedByUserId → Id; [identity.User](02-core-identity-platform.md#identity-user); NO ACTION |
 | RowVersion | rowversion | No | SQL-generated 8-byte optimistic concurrency token; not content history or clock | DB generated; exclude from inserts/updates |
 | UserId | uniqueidentifier | No | Unique owning account | FK UserId → Id; [identity.User](02-core-identity-platform.md#identity-user); NO ACTION |
-| State | varchar(64) | No | Active, Suspended, DeletionPending | CHECK allowed codes documented in meaning |
+| State | varchar(64) | No | Active, Suspended; Deleted User suspends retained space | CHECK allowed codes documented in meaning |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ UserId
 
@@ -229,10 +232,11 @@ Trusted developer-installed module identity. Profile **G**. Status: **Technical 
 | SharingEnabled | bit | No | SuperAdmin sharing capability policy | No implicit default unless stated |
 | RegistrationEnabled | bit | No | Default for newly verified accounts | No implicit default unless stated |
 | PolicyRevision | bigint | No | Monotonic enablement policy epoch | No implicit default unless stated |
+| SharingEpoch | bigint | No | Positive; increment when sharing disabled; never reset on re-enable | DEFAULT 1 |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ Code
 
-**Integrity / transaction:** All current installed R1 modules default enabled at verification. New future modules are not silently R1 scope. Disabled retains data; executable upload forbidden.
+**Integrity / transaction:** At verification grant defaults only for installed, compatible, health-ready and current active-scope modules; Paused/Blocked never enabled. New future modules are not silently R1 scope. Disabled retains data; executable upload forbidden.
 
 **Lifecycle / classification:** All writes check RowVersion; lifecycle guard also applies to import, automation, bulk and restore. Payload classification defaults Restricted system; credential/encrypted/hash columns are never list/search/log data. [Per-field classification](15-field-classification.md#platform-module). No ON DELETE CASCADE; approved purge service orders dependencies, rejects live references, preserves minimal audit. User-owned Trash retention is not inferred from job-log retention.
 
@@ -512,7 +516,7 @@ Pre-activation verification/recovery transactional communication. Profile **G**.
 <a id="identity-mfacredential"></a>
 ## identity.MfaCredential
 
-Google Authenticator TOTP confirmed; enrollment design subject to Q-02-R release gate. Profile **G**. Status: **Proposed: Q-02**.
+Google Authenticator TOTP confirmed. Profile **G**. Status: **Technical schema and M01 read guard; enrollment/recovery release blocked Q-02-R**.
 
 | Field | SQL Server type | Nullable | Meaning / validation | Key / default / reference |
 | --- | --- | --- | --- | --- |

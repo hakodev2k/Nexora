@@ -1,6 +1,6 @@
 # finance / vault — physical data dictionary
 
-> **Current decision amendment — 2026-09-07:** Physical delta17 is current for User/ShareLink/Vault flags, recovery wraps, four new tables and Career CalendarLink replacement. Baseline field counts/encryption/purge/Interview proposals are superseded only where specified; no migration executed. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/design-database/07-finance-vault.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -463,6 +463,9 @@ Encrypted personal Vault item with minimal outer envelope. Profile **R**. Status
 | CurrentVersion | bigint | No | Encrypted version sequence | No implicit default unless stated |
 | Status | varchar(64) | No | Active, Archived | CHECK allowed codes documented in meaning |
 | TrashBatchId | uniqueidentifier | Yes | Owner Trash | FK (OwnerId, TrashBatchId) → (OwnerId, Id); [operations.TrashBatch](04-files-jobs-notifications.md#operations-trashbatch); NO ACTION |
+| IsDeleted | bit | No | Aggregate value visibility marker agrees Resource Trash | DEFAULT 0 |
+| DeletedAt | datetime2(7) | Yes | Required iff IsDeleted=true; only authorized recovery clears | UTC |
+| DeletedByUserId | uniqueidentifier | Yes | Actual actor | FK identity.User.Id; NO ACTION |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). IX OwnerId,ItemType,Status
 
@@ -519,10 +522,13 @@ Key metadata/wrapped data key, not master key. Profile **O**. Status: **Proposed
 | State | varchar(64) | No | Active, Retired, Destroyed | CHECK allowed codes documented in meaning |
 | ActivatedAt | datetime2(7) | No | Activation | No implicit default unless stated |
 | RetiredAt | datetime2(7) | Yes | Rotation | No implicit default unless stated |
+| RecoveryWrappedKey | varbinary(max) | No | Owner DEK wrapped by recovery KEK; ciphertext | Protected, no plaintext |
+| RecoveryKeyReference | nvarchar(200) | No | External protected-key handle | Not key bytes |
+| RecoveryKeyVersion | nvarchar(100) | No | Retain every needed recovery key version | No destructive rotation |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). UQ OwnerId,KeyVersion
 
-**Integrity / transaction:** Wrapping architecture depends owner recovery/operator decrypt choice. Cannot claim zero knowledge or recoverability yet.
+**Integrity / transaction:** Server-recoverable envelope ADR-PO-04; normal and recovery wraps outside plaintext payload. No zero-knowledge claim. Recovery service acts only on SuperAdmin-authorized request, never plaintext operator response.
 
 **Lifecycle / classification:** All writes check RowVersion; lifecycle guard also applies to import, automation, bulk and restore. Payload classification defaults Sensitive personal; credential/encrypted/hash columns are never list/search/log data. [Per-field classification](15-field-classification.md#vault-keyenvelope). No ON DELETE CASCADE; approved purge service orders dependencies, rejects live references, preserves minimal audit. User-owned Trash retention is not inferred from job-log retention.
 
@@ -602,3 +608,69 @@ erDiagram
     direction TB
     vault_Item ||--o{ vault_ItemVersion : "ItemId"
 ~~~
+
+<a id="finance-manualcategory"></a>
+## finance.ManualCategory — new O-profile, current basic scope
+
+| Field | SQL type | Null/default | Contract |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier | No; generated | PK |
+| OwnerId | uniqueidentifier | No | FK PersonalSpace.Id; immutable |
+| Title | nvarchar(100) | No | Trim1–100; user-defined, unique normalized owner/name |
+| NormalizedTitle | nvarchar(100) | No | Server normalization, not user-patchable |
+| CreatedAt | datetime2(7) | No; SYSUTCDATETIME() | UTC |
+| CreatedByUserId | uniqueidentifier | Yes | FK User.Id actor |
+| UpdatedAt | datetime2(7) | No | UTC latest metadata edit |
+| UpdatedByUserId | uniqueidentifier | Yes | FK User.Id actor |
+| RowVersion | rowversion | No; generated | Concurrency |
+
+PK Id; UQ(OwnerId,Id); UQ(OwnerId,NormalizedTitle). No Income/Expense/Account classification required by this basic form. Remove unused category only; block if any ManualRecord references it. Historical record label stays source history, do not rewrite amounts. Sensitivity: private owner metadata; no public projection by default.
+
+<a id="finance-manualrecord"></a>
+## finance.ManualRecord — new R-profile, current basic scope
+
+| Field | SQL type | Null/default | Contract |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier | No; generated | PK, same identity as Resource.Id |
+| OwnerId | uniqueidentifier | No | FK PersonalSpace.Id; immutable |
+| CategoryId | uniqueidentifier | No | FK(OwnerId,CategoryId)→ManualCategory(OwnerId,Id) |
+| Amount | decimal(28,8) | No | User input nonnegative finite price; no float/implicit FX |
+| CurrencyCode | char(3) | No | Explicit unit selected by User; default currency remains open; never infer from language |
+| OccurredOn | date | No | Default user-local current date at form opening, editable; not timezone-shifted on UI locale change |
+| Note | nvarchar(2000) | Yes | Private manual note, no secret auto-import |
+| CreatedAt | datetime2(7) | No; SYSUTCDATETIME() | UTC |
+| CreatedByUserId | uniqueidentifier | Yes | FK User.Id |
+| UpdatedAt | datetime2(7) | No | UTC |
+| UpdatedByUserId | uniqueidentifier | Yes | FK User.Id |
+| Revision | bigint | No;1 | Positive semantic history sequence |
+| RowVersion | rowversion | No; generated | Concurrency |
+
+UQ(OwnerId,Id); same-owner FK to Resource; IX(OwnerId,OccurredOn,Id), IX(OwnerId,CategoryId,CurrencyCode,OccurredOn). Category/amount required by PO; date/unit/validation are technical details making price meaningful. CRUD basic scope currently read/create/update; deletion/ledger correction semantics remain Q-05-R. Edits record safe old/new amount/category in restricted owner Activity, not public audit/search. Summaries only group same currency/category, no income/expense/net worth/interest or account balance claims. Old finance.Account/Transaction/Leg/Budget/Debt proposals remain conditional and are not dependencies of basic ManualRecord Save.
+
+<a id="vault-recoveryrequest"></a>
+## vault.RecoveryRequest — new O-profile, explicit recovery context
+
+| Field | SQL type | Null/default | Contract |
+| --- | --- | --- | --- |
+| Id | uniqueidentifier | No; generated | PK |
+| OwnerId | uniqueidentifier | No | FK PersonalSpace.Id; target owner immutable |
+| RequestedByUserId | uniqueidentifier | No | FK User.Id; must own OwnerId |
+| Kind | varchar(32) | No | DeletedItem/HistoricalVersion/KeyAccess |
+| ItemId | uniqueidentifier | Yes | Same-owner FK Item; required for first2kinds |
+| ItemVersionId | uniqueidentifier | Yes | Same-owner FK ItemVersion; HistoricalVersion only; belongs ItemId |
+| State | varchar(32) | No;Requested | Requested/Authorized/Running/Succeeded/Rejected/Canceled/Failed |
+| OwnerProofReference | nvarchar(200) | No | Opaque current verified proof reference; no token/secret |
+| Reason | nvarchar(1000) | No |20–1000characters; human reason, no secret values |
+| AuthorizedByUserId | uniqueidentifier | Yes | FK User.Id; must be current SuperAdmin at authorization/execution |
+| AuthorizedAt | datetime2(7) | Yes | UTC, required once Authorized |
+| AuthorizationExpiresAt | datetime2(7) | Yes | Technical default30min scoped execution lease, no permanent recovery authority |
+| CompletedAt | datetime2(7) | Yes | UTC terminal outcome |
+| FailureCode | varchar(64) | Yes | Allowlisted redacted diagnostic code |
+| CommandKeyHash | binary(32) | No | Owner+request idempotency; no raw bearer token |
+| CreatedAt | datetime2(7) | No;SYSUTCDATETIME() | UTC |
+| CreatedByUserId | uniqueidentifier | Yes | FK User.Id actual actor |
+| UpdatedAt | datetime2(7) | No | UTC |
+| UpdatedByUserId | uniqueidentifier | Yes | FK User.Id actual actor |
+| RowVersion | rowversion | No;generated | Optimistic concurrency |
+
+UQ(OwnerId,Id), UQ(OwnerId,CommandKeyHash), IX(State,CreatedAt,Id). State graph terminal cannot silently authorize retry; revalidate actor/proof/keys and new execution attempt under same intent. Use existing audit/outbox/operation-attempt storage, no plaintext result field. Request cannot authorize restore for deleted account until account recovery policy resolved. Row is restricted security metadata, not share/search payload.

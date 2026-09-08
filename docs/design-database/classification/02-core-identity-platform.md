@@ -1,5 +1,7 @@
 # Field classification — identity / platform
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/design-database/classification/02-core-identity-platform.md) is historical evidence, not implementation input.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 [Classification policy and index](../15-field-classification.md). SQL types, nullable CLR mappings and default sensitivity are design specifications, not DTO exposure permissions.
@@ -25,9 +27,12 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 | LockoutUntil | datetime2(7) | DateTime (UTC only)? | Restricted system |
 | DisplayName | nvarchar(100) | string | Restricted system |
 | TimeZoneId | nvarchar(100) | string | Restricted system |
-| Locale | nvarchar(35) | string? | Restricted system |
+| Locale | nvarchar(35) | string | Private preference; vi/en, NOT NULL |
 | EmailConfirmed | bit | bool | Restricted system |
 | AvatarFileId | uniqueidentifier | Guid? | Restricted system |
+| IsDeleted | bit | bool | Restricted identity metadata |
+| DeletedAt | datetime2(7) | DateTime (UTC only)? | Restricted identity metadata |
+| DeletedByUserId | uniqueidentifier | Guid? | Restricted actor metadata |
 
 <a id="identity-session"></a>
 ## identity.Session
@@ -144,6 +149,7 @@ Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Docu
 | SharingEnabled | bit | bool | Restricted system |
 | RegistrationEnabled | bit | bool | Restricted system |
 | PolicyRevision | bigint | long | Restricted system |
+| SharingEpoch | bigint | long | Administrative metadata |
 
 <a id="platform-modulerelease"></a>
 ## platform.ModuleRelease

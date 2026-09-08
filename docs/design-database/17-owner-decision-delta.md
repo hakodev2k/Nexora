@@ -1,6 +1,8 @@
 # Physical design delta — Product Owner decisions 2026-09-07
 
-Source [DEC-20260907](../requirements/10-owner-decisions-20260907.md). **Design only; không DDL/migration/DB runtime.** Baseline181 table specifications retained as historical design inventory; add4 tables below =185 documented table specifications including conditional/paused/superseded proposals. This is not185 active tables or readiness confirmation. Current fields below override overlapping earlier proposal fields; indexes are candidates to verify against real SQL.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/design-database/17-owner-decision-delta.md) is historical evidence, not implementation input.
+
+Source [DEC-20260907](../requirements/10-owner-decisions-20260907.md). **Design only; không DDL/migration/DB runtime.** Baseline181 table specifications retained as historical design inventory; add4 tables below =185 documented table specifications including conditional/paused/superseded proposals. This is not185 active tables or readiness confirmation. These changes are now integrated into current domain dictionaries. This document records change provenance; developers no longer need to overlay conflicting old fields. Indexes remain candidates to verify against real SQL.
 
 ## Existing-table changes
 

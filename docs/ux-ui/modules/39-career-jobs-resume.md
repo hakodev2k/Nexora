@@ -1,6 +1,6 @@
 # FX-39 — Career / Jobs / Resume — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** Linked Personal Calendar Events replace standalone Interview workflow; no external meetings. DOCX/MD basic Resume conversion only. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/ux-ui/modules/39-career-jobs-resume.md) is historical evidence, not implementation input.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -40,7 +40,7 @@ Make the source and current state clear before actions. Keep primary work and it
 - FX39-S01 — Job pipeline: BROWSE profile.
 - FX39-S02 — Job create / detail: FORM profile.
 - FX39-S03 — Company directory / merge: BROWSE profile.
-- FX39-S04 — Interview form / detail: FORM profile.
+- FX39-S04 — Linked Calendar Events: FORM profile.
 - FX39-S05 — Resume library / upload: BROWSE profile.
 - FX39-S06 — Resume version / share: DETAIL profile.
 - FX39-S07 — Application timeline: HISTORY profile.
@@ -54,7 +54,7 @@ These are screen surfaces, not necessarily separate backend resources; create/ed
 | FX39-S01 | Job pipeline | /career/jobs | Stage columns Saved through Closed; cards Title/company/date; Table alternative | Add Job |
 | FX39-S02 | Job create / detail | /career/jobs/new; /career/jobs/:jobId | Title/company/source/location/workmode/type; salary text/range private; description; current stage; exact Resume selection | Save Job |
 | FX39-S03 | Company directory / merge | /career/companies; /career/companies/:companyId/merge | Name; industry; location; private contact; linked jobs count | New Company / Review merge |
-| FX39-S04 | Interview form / detail | /career/interviews/:interviewId | Round/type; Start/End/zone; location/meeting link; participants text; private notes; status | Save / Complete / Cancel Interview |
+| FX39-S04 | Linked Calendar Events | /career/jobs/:jobId/events | Linked Event Title/Start/End/Status; Calendar source link; no duplicate fields | Create Event / Link existing Event |
 | FX39-S05 | Resume library / upload | /career/resumes | Name; language; latest version label; updated; active/archive | New Resume / Upload version |
 | FX39-S06 | Resume version / share | /career/resumes/:resumeId/versions/:version | Exact file/document version preview; version/time; application pins; share disclosure | Share this version if approved |
 | FX39-S07 | Application timeline | /career/jobs/:jobId/history | Stage changes; reason; company snapshot; exact submitted Resume version; Interview events | Inspect evidence |
@@ -65,7 +65,7 @@ Entry from global registered module, source link or authorized deep link. Each S
 
 ## 9. Primary user journeys
 
-**Primary:** Save job → move pipeline stage with history → choose exact Resume version when applied → record Interview → inspect timeline; Resume share separately pins selected version.
+**Primary:** Save job → move pipeline stage with history → choose exact Resume version when applied → create/link Personal Event → inspect timeline; Resume share separately pins selected version.
 
 **Alternative:** open existing resource from authorized Search/Favorite/notification/source link; resolve current lifecycle before rendering primary action. If this is an operational/auth screen, use its authorized parent navigation rather than inventing a favorite/shareable resource.
 
@@ -108,7 +108,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Entry / proposed route | /career/jobs/new; /career/jobs/:jobId; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Job create / detail. Shared form profile; header → controls → declared content → feedback. |
 | Primary action | Save Job; available only when section15/context permits; otherwise explain lifecycle/policy. |
-| Secondary actions | Change stage; Add Interview; Timeline; Back. Back/Cancel always has authorized fallback. |
+| Secondary actions | Change stage; Add Calendar Event; Timeline; Back. Back/Cancel always has authorized fallback. |
 | Content regions / fields | Title/company/source/location/workmode/type; salary text/range private; description; current stage; exact Resume selection |
 | Search / filters / sorting / pagination | Company picker and Resume version picker explicit. Controls not listed here are N/A, not implicit new fields. |
 | Interaction / validation overrides | Resume picker shows family+version+file/date; pin persists even newer Resume uploaded. |
@@ -138,22 +138,22 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Keyboard / accessibility | UX-11 and profile: visible focus, labeled controls, no drag/hover-only action, status text; dialog focus trap/return; charts/table values reachable. |
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
-### FX39-S04 — Interview form / detail
+### FX39-S04 — Linked Calendar Events
 
 | Dimension | Specification |
 | --- | --- |
-| Purpose / profile | FORM — Round/type; Start/End/zone; location/meeting link; participants text; private notes; status |
-| Entry / proposed route | /career/interviews/:interviewId; module/source navigation or authorized deep link. |
-| Header / layout | Screen title: Interview form / detail. Shared form profile; header → controls → declared content → feedback. |
-| Primary action | Save / Complete / Cancel Interview; available only when section15/context permits; otherwise explain lifecycle/policy. |
-| Secondary actions | Back to Job; Calendar handoff pending Q-12. Back/Cancel always has authorized fallback. |
-| Content regions / fields | Round/type; Start/End/zone; location/meeting link; participants text; private notes; status |
+| Purpose / profile | FORM — Linked Event Title/Start/End/Status; Calendar source link; no duplicate fields |
+| Entry / proposed route | /career/jobs/:jobId/events; module/source navigation or authorized deep link. |
+| Header / layout | Screen title: Linked Calendar Events. Shared form profile; header → controls → declared content → feedback. |
+| Primary action | Create Event / Link existing Event; available only when section15/context permits; otherwise explain lifecycle/policy. |
+| Secondary actions | Back to Job; Open internal Personal Event; Event owns time/status/reminder. Back/Cancel always has authorized fallback. |
+| Content regions / fields | Linked Event Title/Start/End/Status; Calendar source link; no duplicate fields |
 | Search / filters / sorting / pagination | End>Start; no participant account permission controls. Controls not listed here are N/A, not implicit new fields. |
 | Interaction / validation overrides | Do not auto-create third Calendar source or duplicate reminder. Feedback/meeting links excluded from shares. |
 | Loading / empty / error | UX-15A state contract. Empty: declared data absent; no matches: clear listed query controls; fetch error: safe retry. These are distinct, no error-as-empty. |
 | Disabled / readonly / Archived / Trash | UX-15A plus exact section15 matrix. No lifecycle in source = N/A. Do not render unauthorized payload behind disabled controls. |
 | Conflict / destructive | Current revision and parent guards, section16 dialogs. Readonly surfaces only refresh, never forced write. |
-| Desktop / tablet / mobile | UX-10 form profile. Keep 'Interview form / detail' context and required fields; mobile prioritizes first declared identity and status/time/value, remaining fields detail/expand.  |
+| Desktop / tablet / mobile | UX-10 form profile. Keep 'Linked Calendar Events' context and required fields; mobile prioritizes first declared identity and status/time/value, remaining fields detail/expand.  |
 | Keyboard / accessibility | UX-11 and profile: visible focus, labeled controls, no drag/hover-only action, status text; dialog focus trap/return; charts/table values reachable. |
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
@@ -216,7 +216,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 
 ## 11. Forms and validation
 
-Job Title/company/sourceURL/location/workmode/type/salary text/description/dates. Company name/URL/industry/location/notes/private contact. Interview job/round/type/Start/End/timezone/location/link/participants text/private notes. Resume name/language and clean file or exact Document version, no AI.
+Job Title/company/sourceURL/location/workmode/type/salary text/description/dates. Company name/URL/industry/location/notes/private contact. Calendar link stores same-owner Job/Event IDs; Personal Event form owns Title/Description/Start/End/reminder. Resume name/language and clean file or exact Document version, no AI.
 
 [Common forms](../global/05-forms-and-validation.md) define field error timing, Save, cancellation, stale session and conflict; DB required technical columns are server-owned, never rendered as form fields.
 
@@ -241,7 +241,7 @@ Each row below is source-defined state/context, not a client-only flag. Parent g
 | State / context | Available actions | Denied / UX explanation |
 | --- | --- | --- |
 | Any job stage | Explicit stage change/history; edit notes | Backward from terminal requires warning+reason, unlike Project permanent lock |
-| Interview Scheduled | Edit/manual Complete/Cancel | Automatic Calendar source/sync blocked Q-12 |
+| Linked Event | Open Calendar / unlink reference | Event edits obey Calendar Scheduled/terminal lifecycle; no separate interview execution |
 | Resume Active | New immutable version; pin exact application/share version | Latest version never rewrites submitted version |
 | Archived/Trash | Readonly/unarchive/restore under source rules | No share of salary/contact/interview private notes |
 
@@ -286,7 +286,7 @@ Data design trace:
 | [files.FileReference](../../design-database/04-files-jobs-notifications.md#files-filereference) | Reference-aware binary retention; Technical decision |
 | [career.Company](../../design-database/10-assets-career-learning.md#career-company) | Personal employer/contact directory; Technical decision |
 | [career.JobApplication](../../design-database/10-assets-career-learning.md#career-jobapplication) | Personal application pipeline record; Technical decision |
-| [career.Interview](../../design-database/10-assets-career-learning.md#career-interview) | Personal interview appointment metadata; Proposed: Q-12 Calendar link; standalone interview core |
+| [career.CalendarLink](../../design-database/10-assets-career-learning.md#career-calendarlink) | Current own Job↔Personal Event reference; Calendar authoritative |
 | [career.ApplicationEvent](../../design-database/10-assets-career-learning.md#career-applicationevent) | Immutable job pipeline timeline; Technical decision |
 | [career.Resume](../../design-database/10-assets-career-learning.md#career-resume) | Personal resume family and current version pointer; Technical decision |
 | [career.ResumeVersion](../../design-database/10-assets-career-learning.md#career-resumeversion) | Exact immutable uploaded resume file/version; Technical decision |
@@ -301,8 +301,6 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 ## 23. Major open questions
 
 - [Q-03](../../features/90-open-decisions.md#q-03) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
-- [Q-11](../../features/90-open-decisions.md#q-11) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
-- [Q-12](../../features/90-open-decisions.md#q-12) — see [cross-layer impact/options](../../design-review/03-decision-impact.md); affected behavior remains Proposed/Blocked.
 
 ## 24. Acceptance checklist
 

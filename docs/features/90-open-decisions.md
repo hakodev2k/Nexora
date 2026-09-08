@@ -1,5 +1,7 @@
 # Decision status — cập nhật theo Product Owner 2026-09-07
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/90-open-decisions.md) is historical evidence, not implementation input.
+
 [Biên bản lời PO và quy tắc ưu tiên](../requirements/10-owner-decisions-20260907.md). Các proposal trước đây không tự trở thành Approved. Không còn ghi cả12 nhóm là Open như baseline cũ; mỗi nhóm có trạng thái riêng bên dưới. Chưa có approval implement.
 
 <a id="q-01"></a>
@@ -120,3 +122,7 @@ Nguồn: DEC-20260907-Q12.
 - Backend ingestion của News/GitHub/monitoring có nằm trong lệnh pause integrations hay chỉ cấm đưa User ra ngoài. Mặc định chưa kích hoạt outbound chưa rõ.
 
 Các chi tiết kỹ thuật còn lại do technical owner tự chốt thành ADR/acceptance có thể kiểm chứng. Price/Automation/Integrations chỉ quay lại khi PO yêu cầu resume; không tiếp tục hỏi thông số provider trong lúc paused.
+
+## Clarified proposals and milestone impact
+
+[Concrete options, recommendation, trade-offs and affected capabilities](../delivery/02-decision-proposals.md) replace broad whole-project blocking. Technical contracts are resolved separately; only the named capability remains blocked pending its business decision. No new Product Owner approval is implied.
