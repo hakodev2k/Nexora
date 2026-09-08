@@ -7,7 +7,7 @@ Baseline GitHub: 65d32801ba75f9649a239c1888ed957bf2feb6dd. **Approved chỉ áp 
 | ID | Chủ đề / trạng thái | Đã xác nhận | Giới hạn và follow-up |
 | --- | --- | --- | --- |
 | DEC-20260907-Q01 | Q-01: Partially resolved | Account delete = soft delete; không purge tài khoản/dữ liệu do thao tác này. | Khôi phục account đã đánh dấu xóa và tái sử dụng email chưa được PO quyết định; không auto-reactivate hoặc tạo owner mới bằng reset email. |
-| DEC-20260907-Q02 | Q-02: Partially resolved | Có Google authentication bật/tắt; khi không dùng thì recovery mặc định qua email. | Thuật ngữ Google authentication cần xác nhận. Working interpretation: Google Authenticator TOTP, chưa coi là OAuth được duyệt. Mất MFA khi đã bật chưa có recovery policy được duyệt; email reset không tự gỡ MFA. |
+| DEC-20260907-Q02 | Q-02: Partially resolved | Google Authenticator TOTP đã được PO xác nhận ngày 2026-09-08; tính năng bật/tắt được, khi không bật thì recovery mặc định qua email. | Mất MFA khi đã bật chưa có recovery policy được duyệt; email reset không tự gỡ MFA. Google OAuth không thuộc quyết định này. |
 | DEC-20260907-Q03 | Q-03: Partially resolved | Tắt sharing hoặc xóa nguồn: link cũ bị loại bỏ vĩnh viễn, không tồn tại với người truy cập. | Các field nhạy cảm của Finance/Assets/Career/Learning được chia sẻ vẫn cần policy riêng. Không tự mở toàn payload. |
 | DEC-20260907-Q04 | Q-04: Partially resolved | Vault có thể phục hồi bằng quyền SuperAdmin; các value xóa mềm, không purge. | Đã chọn hướng server-recoverable bằng technical ADR; quyền đọc safe metadata trong Support và portable encrypted backup cho owner chưa được duyệt. Không cấp SuperAdmin quyền xem plaintext thường trực. |
 | DEC-20260907-Q05 | Q-05: Partially resolved | Người dùng tự nhập danh mục và số tiền; baseline được thiết kế thành manual money records. | Chưa chốt ledger/budget/debt/interest/FX/financial deletion semantics. Không tự coi các tính năng nâng cao đã duyệt hoặc bị hủy. Currency của số tiền cần explicit; UI language không quyết định tiền tệ. |
@@ -23,6 +23,7 @@ Baseline GitHub: 65d32801ba75f9649a239c1888ed957bf2feb6dd. **Approved chỉ áp 
 
 - Q-01: “Xóa này chỉ đánh dấu là đã xóa thôi chứ khồng xóa hẳn”.
 - Q-02: “Có tính năng xác thực qua google authentication (cái này có thể bật tắt được), còn không sẽ default recover qua email”.
+- DEC-20260908-Q02-TOTP — Approved clarification: “Google Authenticator tạo mã OTP nhé”. Xác nhận phương thức TOTP, đóng câu hỏi thuật ngữ; chưa quyết định recovery khi mất thiết bị MFA.
 - Q-03: “Sau khi tắt sharing hoặc xóa docs đi thì các link được share sẽ bị xóa không tồn tại”.
 - Q-04: “Mất có thể khôi phục nhưng phải dùng quyền super admin, toàn bộ value chỉ đánh dấu là isdeleted = true thôi”.
 - Q-05: “để người dùng nhập danh mục và giá tiền”.

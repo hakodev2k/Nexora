@@ -4,6 +4,7 @@
 
 | Area | Current action effect | Superseded assumption |
 | --- | --- | --- |
+| MFA — clarification 2026-09-08 | Google Authenticator TOTP confirmed; enroll/remove/recover remain Blocked only on lost-MFA recovery release policy | Method ambiguity closed; no Google OAuth or email-only MFA bypass inferred |
 | Account | identity.account.soft_delete; retain data/revoke authority | delete_request grace/purge proposal retired |
 | Sharing | Permanent token invalidation on sharing off/source delete; epoch + tombstone | No SuspendedByTrash revival or re-enable existing link |
 | Vault | Soft delete retained encrypted values; request→SuperAdmin review/authorize→trusted recovery | Owner item.restore/restore_version/purge retired; no automatic grant migration |

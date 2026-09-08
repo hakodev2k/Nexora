@@ -20,9 +20,9 @@ New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot 
 | <a id="identity-profile-update"></a>`identity.profile.update` — Sửa tên/avatar/timezone | COMMAND / CONTROL | No | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX01-S05 |
 | <a id="identity-profile-change-email"></a>`identity.profile.change_email` — Yêu cầu xác minh email mới | COMMAND / CONTROL | No | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX01-S05, FX01-S06 |
 | <a id="identity-profile-change-password"></a>`identity.profile.change_password` — Đổi password | COMMAND / CONTROL | No | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX01-S05, FX01-S06 |
-| <a id="identity-mfa-enroll"></a>`identity.mfa.enroll` — Đăng ký MFA | COMMAND / CONTROL | No | Blocked | Q-02-R: confirm Google authentication meaning / enabled-MFA recovery | FX01-S06 |
-| <a id="identity-mfa-remove"></a>`identity.mfa.remove` — Gỡ MFA | COMMAND / CONTROL | No | Blocked | Q-02-R: confirm Google authentication meaning / enabled-MFA recovery | FX01-S06 |
-| <a id="identity-mfa-recover"></a>`identity.mfa.recover` — Dùng recovery proof | COMMAND / CONTROL | No | Blocked | Q-02-R: confirm Google authentication meaning / enabled-MFA recovery | FX01-S06 |
+| <a id="identity-mfa-enroll"></a>`identity.mfa.enroll` — Đăng ký MFA | COMMAND / CONTROL | No | Blocked | Q-02-R: enabled-MFA recovery policy before release; TOTP method confirmed | FX01-S06 |
+| <a id="identity-mfa-remove"></a>`identity.mfa.remove` — Gỡ MFA | COMMAND / CONTROL | No | Blocked | Q-02-R: enabled-MFA recovery policy before release; TOTP method confirmed | FX01-S06 |
+| <a id="identity-mfa-recover"></a>`identity.mfa.recover` — Dùng recovery proof | COMMAND / CONTROL | No | Blocked | Q-02-R: enabled-MFA recovery policy before release; TOTP method confirmed | FX01-S06 |
 | <a id="identity-account-delete-request"></a>`identity.account.delete_request` — Yêu cầu xóa tài khoản | COMMAND / CONTROL | No | Superseded | Replaced by identity.account.soft_delete; no delayed-purge policy | FX01-S06 |
 | <a id="identity-account-soft-delete"></a>`identity.account.soft_delete` — Đánh dấu xóa tài khoản | COMMAND / CONTROL | No | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX01-S06 |
 
@@ -42,9 +42,9 @@ New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot 
 | `identity.profile.update` | Giữ email cũ đến khi verify; đổi timezone giữ instants/all-day; thay credential revoke theo security policy; Đúng principal hoặc token một lần; không chấp nhận Role/OwnerId từ request | Common + dynamic source/provider guards |
 | `identity.profile.change_email` | Giữ email cũ đến khi verify; đổi timezone giữ instants/all-day; thay credential revoke theo security policy; Đúng principal hoặc token một lần; không chấp nhận Role/OwnerId từ request | Common + dynamic source/provider guards |
 | `identity.profile.change_password` | Giữ email cũ đến khi verify; đổi timezone giữ instants/all-day; thay credential revoke theo security policy; Đúng principal hoặc token một lần; không chấp nhận Role/OwnerId từ request | Common + dynamic source/provider guards |
-| `identity.mfa.enroll` | Optional MFA scope approved; TOTP working interpretation; email fallback when MFA off; do not disable enabled MFA via password reset | Common + dynamic source/provider guards |
-| `identity.mfa.remove` | Optional MFA scope approved; TOTP working interpretation; email fallback when MFA off; do not disable enabled MFA via password reset | Common + dynamic source/provider guards |
-| `identity.mfa.recover` | Optional MFA scope approved; TOTP working interpretation; email fallback when MFA off; do not disable enabled MFA via password reset | Common + dynamic source/provider guards |
+| `identity.mfa.enroll` | Google Authenticator TOTP confirmed by PO; optional enrollment; email recovery when MFA off; enabled MFA cannot be disabled via password reset | Common + dynamic source/provider guards |
+| `identity.mfa.remove` | Google Authenticator TOTP confirmed by PO; optional enrollment; email recovery when MFA off; enabled MFA cannot be disabled via password reset | Common + dynamic source/provider guards |
+| `identity.mfa.recover` | Google Authenticator TOTP confirmed by PO; optional enrollment; email recovery when MFA off; enabled MFA cannot be disabled via password reset | Common + dynamic source/provider guards |
 | `identity.account.delete_request` | Never activate historical account purge/grace proposal | Common + dynamic source/provider guards |
 | `identity.account.soft_delete` | Own current session + recent-auth5min; explicit data-retention confirmation; IsDeleted=true/State=Deleted, revoke authority, retain data; protect last active SuperAdmin; no self-reactivation | Common + dynamic source/provider guards |
 

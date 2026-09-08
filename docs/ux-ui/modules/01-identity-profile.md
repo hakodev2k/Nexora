@@ -1,6 +1,6 @@
 # FX-01 — Identity / Registration / Profile — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** Account soft delete; optional Google authentication/email recovery scope; vi default/en setting. Account restore and MFA-method interpretation remain open. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> **Current decision amendment — 2026-09-07:** Account soft delete; optional Google Authenticator TOTP confirmed by PO on 2026-09-08; email recovery when MFA off; vi default/en setting. Account restore and lost-MFA recovery remain open. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
@@ -265,7 +265,7 @@ Data design trace:
 | [identity.OneTimeToken](../../design-database/02-core-identity-platform.md#identity-onetimetoken) | Verification/password-reset proof; Technical decision |
 | [platform.PersonalSpace](../../design-database/02-core-identity-platform.md#platform-personalspace) | Exactly one personal ownership boundary per verified User; Technical decision |
 | [identity.AccountMessageIntent](../../design-database/02-core-identity-platform.md#identity-accountmessageintent) | Pre-activation verification/recovery transactional communication; Technical decision |
-| [identity.MfaCredential](../../design-database/02-core-identity-platform.md#identity-mfacredential) | Conditional TOTP enrollment design; no passkey scope inferred; Proposed: Q-02 |
+| [identity.MfaCredential](../../design-database/02-core-identity-platform.md#identity-mfacredential) | Google Authenticator TOTP confirmed; enrollment design subject to Q-02-R release gate; Proposed: Q-02 |
 | [identity.RecoveryCode](../../design-database/02-core-identity-platform.md#identity-recoverycode) | One-use account MFA recovery proof; Proposed: Q-02 |
 
 No direct table access from frontend/another module. [Architecture command/query contract](../../architecture/02-module-boundaries.md) and [transaction boundaries](../../design-database/11-relations-and-transactions.md) govern source mutations.
@@ -296,3 +296,7 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 ## Canonical action binding — catalog v1
 
 [FX-01 action catalog](../../action-catalog/modules/01-identity.md) and [screen bindings](../../action-catalog/06-screen-bindings.md) define exact keys, grantable contexts and Q gates. Descriptive verbs above are not permission names. Admin Self also needs explicit allowed action; User Self uses enabled-module owner baseline. SuperAdmin alone changes role/module/action grants. Local UI visibility does not replace server authorization.
+
+## Confirmed MFA method — 2026-09-08
+
+Source: DEC-20260908-Q02-TOTP in the linked PO decision record. Security settings labels the optional factor **Google Authenticator (OTP)**. No Google sign-in/OAuth redirect is introduced. Design flow: Security → Set up → authenticated QR/setup key → enter OTP → verify → Enabled. Cancel or failed/expired proof keeps MFA disabled; wrong codes produce an inline retry message, rate limits show a retry time. QR/setup key is visible only during setup, excluded from URLs, logs, notifications and persistent browser storage. Keyboard users can enter the setup key without scanning QR; OTP input has a visible label and accepts paste. Removal requires current password and a valid TOTP; failed proof keeps MFA enabled. If the authenticator is lost, do not substitute password-reset email for MFA proof. The recovery entry point must explain that a recovery policy is pending in this specification; it must not imply an approved recovery flow. Enrollment/removal/recovery remain behind the Q-02-R release gate until that policy is resolved. These are documentation decisions, not implemented screens.

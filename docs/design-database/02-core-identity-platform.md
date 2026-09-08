@@ -27,7 +27,7 @@ Technical design for SQL Server. Business rules retain their source status; rows
 | [platform.ResourceLink](#platform-resourcelink) | Typed cross-module relationship guarded by providers | FX-03, FX-24 | Technical decision |
 | [platform.Preference](#platform-preference) | Schema-validated non-secret preferences | FX-09 | Technical decision |
 | [identity.AccountMessageIntent](#identity-accountmessageintent) | Pre-activation verification/recovery transactional communication | FX-01 | Technical decision |
-| [identity.MfaCredential](#identity-mfacredential) | Conditional TOTP enrollment design; no passkey scope inferred | FX-01 | Proposed: Q-02 |
+| [identity.MfaCredential](#identity-mfacredential) | Google Authenticator TOTP confirmed; enrollment design subject to Q-02-R release gate | FX-01 | Proposed: Q-02 |
 | [identity.RecoveryCode](#identity-recoverycode) | One-use account MFA recovery proof | FX-01 | Proposed: Q-02 |
 | [platform.SystemConnection](#platform-systemconnection) | Operator provider configuration separate from personal integrations | FX-35 | Proposed: Q-07/Q-08 provider selection |
 
@@ -512,7 +512,7 @@ Pre-activation verification/recovery transactional communication. Profile **G**.
 <a id="identity-mfacredential"></a>
 ## identity.MfaCredential
 
-Conditional TOTP enrollment design; no passkey scope inferred. Profile **G**. Status: **Proposed: Q-02**.
+Google Authenticator TOTP confirmed; enrollment design subject to Q-02-R release gate. Profile **G**. Status: **Proposed: Q-02**.
 
 | Field | SQL Server type | Nullable | Meaning / validation | Key / default / reference |
 | --- | --- | --- | --- | --- |
@@ -523,7 +523,7 @@ Conditional TOTP enrollment design; no passkey scope inferred. Profile **G**. St
 | UpdatedByUserId | uniqueidentifier | Yes | Actual most recent actor; null only system/anonymized identity | FK UpdatedByUserId → Id; [identity.User](02-core-identity-platform.md#identity-user); NO ACTION |
 | RowVersion | rowversion | No | SQL-generated 8-byte optimistic concurrency token; not content history or clock | DB generated; exclude from inserts/updates |
 | UserId | uniqueidentifier | No | Principal | FK UserId → Id; [identity.User](02-core-identity-platform.md#identity-user); NO ACTION |
-| Method | varchar(64) | No | Totp proposal | CHECK allowed codes documented in meaning |
+| Method | varchar(64) | No | Totp; confirmed method, CHECK Method = 'Totp' | CHECK allowed codes documented in meaning |
 | SecretEnvelope | varbinary(max) | No | Encrypted authenticator seed under reviewed key service | No implicit default unless stated |
 | ConfirmedAt | datetime2(7) | Yes | Null pending enrollment proof | No implicit default unless stated |
 | DisabledAt | datetime2(7) | Yes | Explicit removal after step-up | No implicit default unless stated |
@@ -652,3 +652,7 @@ erDiagram
     direction TB
     identity_User ||--o{ identity_RecoveryCode : "UserId"
 ~~~
+
+## MFA clarification — 2026-09-08
+
+DEC-20260908-Q02-TOTP confirms Google Authenticator OTP as the optional MFA method. identity.MfaCredential stores an encrypted TOTP seed, never Google OAuth access/refresh tokens. Method = Totp; enrollment becomes enabled only after proof. Existing key/field design remains a technical specification; Q-02-R still blocks release pending the lost-device recovery policy. identity.RecoveryCode remains Proposed; confirming TOTP does not approve recovery codes, email-only MFA removal, or Admin reset of MFA. No schema or migration executed.

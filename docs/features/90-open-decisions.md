@@ -14,9 +14,9 @@ Nguồn: DEC-20260907-Q01.
 <a id="q-02"></a>
 ## Q-02 — Partially resolved
 
-**Đã xác nhận:** Có Google authentication bật/tắt; khi không dùng thì recovery mặc định qua email.
+**Đã xác nhận:** Google Authenticator TOTP đã được PO xác nhận ngày 2026-09-08; tính năng bật/tắt được, khi không bật thì recovery mặc định qua email.
 
-**Còn lại / giới hạn:** Thuật ngữ Google authentication cần xác nhận. Working interpretation: Google Authenticator TOTP, chưa coi là OAuth được duyệt. Mất MFA khi đã bật chưa có recovery policy được duyệt; email reset không tự gỡ MFA.
+**Còn lại / giới hạn:** Mất MFA khi đã bật chưa có recovery policy được duyệt; email reset không tự gỡ MFA. Google OAuth không thuộc quyết định này.
 
 Nguồn: DEC-20260907-Q02.
 
@@ -112,7 +112,7 @@ Nguồn: DEC-20260907-Q12.
 
 ## Các việc cần PO thực sự quyết định tiếp
 
-- Xác nhận nghĩa “Google authentication”; quy trình khi MFA đã bật nhưng mất thiết bị/proof.
+- Chốt quy trình khi MFA đã bật nhưng mất thiết bị/proof. Phương thức Google Authenticator TOTP đã xác nhận (DEC-20260908-Q02-TOTP).
 - Khôi phục account deleted/email reuse; không tự áp7ngày grace hoặc tự phục hồi qua reset.
 - Sensitive share/support field scope, owner encrypted portability; recovery SuperAdmin đã xác nhận nhưng không đồng nghĩa xem plaintext.
 - Currency và các Finance nghiệp vụ nâng cao; không ép chọn Income/Expense trong form nhập category/amount đơn giản.

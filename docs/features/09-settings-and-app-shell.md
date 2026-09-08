@@ -63,4 +63,4 @@ Quyết định lớn cần PO: [Q-09](90-open-decisions.md#q-09). Các hành vi
 
 ## Current language and account lifecycle
 
-UI language default vi regardless of browser locale; Settings explicitly switches en/vi, persists per account and updates all app-owned UI/notifications at render/composition time without translating user content. Timezone and currency independent. Deleted account cannot login/reset into active status; retention disclosed before account soft delete. Q02 Google authentication interpretation remains pending; no OAuth flow added.
+UI language default vi regardless of browser locale; Settings explicitly switches en/vi, persists per account and updates all app-owned UI/notifications at render/composition time without translating user content. Timezone and currency independent. Deleted account cannot login/reset into active status; retention disclosed before account soft delete. Q02 method confirmed: optional Google Authenticator TOTP (DEC-20260908-Q02-TOTP); enabled-MFA recovery remains pending. No Google OAuth flow added.

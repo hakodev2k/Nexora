@@ -1,6 +1,6 @@
 # Identity, Registration và Profile
 
-> **Current decision amendment — 2026-09-07:** Account soft delete; optional Google authentication/email recovery scope; vi default/en setting. Account restore and MFA-method interpretation remain open. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> **Current decision amendment — 2026-09-07:** Account soft delete; optional Google Authenticator TOTP confirmed by PO on 2026-09-08; email recovery when MFA off; vi default/en setting. Account restore and lost-MFA recovery remain open. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
 
 FX-01 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
@@ -63,4 +63,4 @@ Quyết định lớn cần PO: [Q-01](90-open-decisions.md#q-01), [Q-02](90-ope
 
 ## Current language and account lifecycle
 
-UI language default vi regardless of browser locale; Settings explicitly switches en/vi, persists per account and updates all app-owned UI/notifications at render/composition time without translating user content. Timezone and currency independent. Deleted account cannot login/reset into active status; retention disclosed before account soft delete. Q02 Google authentication interpretation remains pending; no OAuth flow added.
+UI language default vi regardless of browser locale; Settings explicitly switches en/vi, persists per account and updates all app-owned UI/notifications at render/composition time without translating user content. Timezone and currency independent. Deleted account cannot login/reset into active status; retention disclosed before account soft delete. Q02 method confirmed: optional Google Authenticator TOTP (DEC-20260908-Q02-TOTP); enabled-MFA recovery remains pending. No Google OAuth flow added.

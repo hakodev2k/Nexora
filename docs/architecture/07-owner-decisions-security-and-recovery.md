@@ -8,11 +8,11 @@ Technical resolution: identity.User IsDeleted bit not-null default0, DeletedAt U
 
 Deletion command idempotent, recent-auth5min, explicit retention disclosure và protect last active SuperAdmin. Auth recovery email không tự undelete. NormalizedEmail vẫn unique kể cả deleted để không lấy lại ownership nhầm; email reuse/account restore là policy pending. Security cleanup của expired tokens không là purge retained business/Vault values.
 
-## ADR-PO-02 — Optional Google authentication
+## ADR-PO-02 — Optional Google Authenticator TOTP
 
-Approved: bật/tắt được, email recovery mặc định khi không bật. **Working interpretation / Proposed**: TOTP tương thích Google Authenticator. [Google help](https://support.google.com/accounts/answer/1066447?co=GENIE.Platform%3DAndroid&hl=en) mô tả mã xác minh dùng ứng dụng Authenticator, có thể tạo offline; tham khảo2026-09-07, không kiểm thử tài khoản. Không dùng nghiên cứu này thay xác nhận thuật ngữ của PO.
+**Approved — DEC-20260908-Q02-TOTP:** Google Authenticator tạo mã OTP (TOTP); bật/tắt được, email recovery mặc định khi không bật. [Google help](https://support.google.com/accounts/answer/1066447?co=GENIE.Platform%3DAndroid&hl=en) mô tả mã xác minh dùng ứng dụng Authenticator, có thể tạo offline; tham khảo2026-09-07, không kiểm thử tài khoản. Phương thức được xác nhận trực tiếp bởi PO ngày 2026-09-08; nguồn tham khảo chỉ hỗ trợ thiết kế.
 
-Nếu xác nhận TOTP: pending enrollment secret encrypted, show QR/setup key chỉ trong authenticated setup memory, bật sau code proof, one-use time-step replay defense và rate limit. Disable yêu cầu current password + TOTP nếu đã enabled; email reset password không gỡ MFA. Mất MFA là policy riêng chưa tự hạ về email-only. Không mandatory MFA cho Admin/SuperAdmin từ proposal cũ; optional scope giữ đúng PO, nhưng recent-auth vẫn bắt buộc hành động đặc quyền. TOTP storage/implementation remain gated until interpretation confirmed.
+**Resolved delegated — thiết kế TOTP:** pending enrollment secret encrypted, show QR/setup key chỉ trong authenticated setup memory, bật sau code proof, one-use time-step replay defense và rate limit. Disable yêu cầu current password + TOTP nếu đã enabled; email reset password không gỡ MFA. Mất MFA là policy riêng chưa tự hạ về email-only. Không mandatory MFA cho Admin/SuperAdmin từ proposal cũ; optional scope giữ đúng PO, nhưng recent-auth vẫn bắt buộc hành động đặc quyền. Phương thức TOTP đã chốt. Enrollment/removal/recovery action vẫn giữ gate phát hành Q-02-R cho tới khi quyết định recovery khi mất thiết bị được chốt; không còn gate xác nhận thuật ngữ. Không phát hành luồng bật MFA khi chưa có chính sách mất thiết bị. Đây là thiết kế tài liệu, chưa có approval implement.
 
 ## ADR-PO-03 — Permanent share invalidation
 
