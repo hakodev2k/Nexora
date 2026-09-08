@@ -1,5 +1,7 @@
 # GitHub Discovery
 
+> **Current decision amendment — 2026-09-07:** Internal saved/public-metadata views only; outbound ingestion boundary pending, no external-open or OAuth/write. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-33 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -60,4 +62,3 @@ Trend delta chỉ so hai snapshots có cùng query/filter/rule version và windo
 - [phase-06-developer-and-automation.md](../requirements/phases/phase-06-developer-and-automation.md): `P06-GHA-001`, `P06-GHA-002`, `P06-GHA-003`, `P06-GHA-004`, `P06-GHD-001`, `P06-GHD-002`, `P06-GHD-003`, `P06-GHD-004`, `P06-GHD-005`, `P06-GHD-006`, `P06-GHR-001`, `P06-GHR-002`, `P06-GHR-003`, `P06-GHR-004`, `P06-GHR-005`
 
 Không phát sinh câu hỏi nghiệp vụ lớn riêng cho feature này. Các gate chung về security, capacity và solution design vẫn áp dụng.
-

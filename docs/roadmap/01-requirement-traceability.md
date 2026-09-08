@@ -1,5 +1,7 @@
 # Requirement Coverage and Traceability Audit
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Snapshot:** 2026-09-05 · **Source commit:** [fc79a9c53bf6c896a8771e4e0a239a2d14cab214](https://github.com/hakodev2k/Nexora/commit/fc79a9c53bf6c896a8771e4e0a239a2d14cab214) · **Roadmap version:** 1.0-draft.
 
 **Coverage audit only; implementation/test execution chưa diễn ra.** Requirement documents là source of truth. Các bảng snapshot bên dưới giữ nguyên nguồn lịch sử; thay đổi sau snapshot được ghi ở mục 1.1 và có hiệu lực theo requirement hiện hành. Chỉ dẫn mới trong prompt `Pasted markdown(10).md` điều khiển stack/roadmap/local-first và documentation-only boundary.

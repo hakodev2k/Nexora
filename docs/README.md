@@ -1,5 +1,7 @@
 # Nexora Documentation
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Bộ tài liệu này là nguồn yêu cầu chính thức (single source of truth) cho Nexora. Nội dung được tái cấu trúc từ bản `Super Website — Product Requirements Draft v0.2` thành các yêu cầu có mã định danh, tiêu chí nghiệm thu và cổng quyết định theo từng phase.
 
 ## Trạng thái tài liệu
@@ -90,3 +92,7 @@ Các tài liệu này không tuyên bố đã implement hoặc đã duyệt các
 ## Action catalog v1
 
 [714 operation contracts /40 feature scopes](action-catalog/README.md), [screen bindings](action-catalog/06-screen-bindings.md), and [database binding](design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.
+
+## Current PO decision revision
+
+[Decision source](requirements/10-owner-decisions-20260907.md) · [Current Q status](features/90-open-decisions.md) · [Physical delta:4new tables](design-database/17-owner-decision-delta.md) · [Security/recovery ADR](architecture/07-owner-decisions-security-and-recovery.md) · [Capacity policy](architecture/08-capacity-and-verification-policy.md) · [Action catalog v1.1](action-catalog/README.md). Historical181tables/197screens/714actions counts remain prior snapshots; current documented inventory includes185 table specs,202screens,733contracts with inactive scopes counted explicitly.

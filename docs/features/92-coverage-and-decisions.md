@@ -1,5 +1,7 @@
 # Coverage, dispositions và consistency review
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 ## Catalog coverage
 
 Đối chiếu26 dòng catalog tại baseline d0d8418: **25 dòng Committed có feature spec;1 dòng Future vẫn Deferred**. Đây là coverage tài liệu, không là chứng nhận mọi capability/AC đã được implement hoặc mọi proposal đã Approved.
@@ -71,4 +73,3 @@ Không suy các dòng này là User trực tiếp trả lời. Security/capacity
 - **Implemented/verified:** chưa có trong lượt này.
 
 [Requirement routing](93-requirement-routing.md) là bảng chỉ đường từ ID nguồn, không thay test-case-to-implementation trace. Các requirement không có ID riêng ở Planner/Goals/Habits được trace từ catalog vào FX IDs, không bịa P02 requirement cũ.
-

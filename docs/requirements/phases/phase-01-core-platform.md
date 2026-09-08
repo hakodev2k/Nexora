@@ -1,5 +1,7 @@
 # Phase 1 — Core Platform and Application Shell
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-01`  
 **Version:** `1.2-draft`  
 **Outcome:** Nexora có Public SaaS account lifecycle, personal-data isolation, developer-built Module Platform và các security/platform services đủ an toàn để nhận toàn bộ business modules Release 1.  

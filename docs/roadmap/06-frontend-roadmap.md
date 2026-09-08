@@ -1,5 +1,7 @@
 # Frontend and Design System Roadmap
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 > Design review 2026-09-07: phần roadmap bên dưới được giữ làm lịch sử planning. Chi tiết kỹ thuật trùng lặp đã được thay bằng [database design](../design-database/README.md), [architecture design](../architecture/README.md) và [UX screen contracts](../ux-ui/global/15-screen-contracts.md). Dùng [reconciliation register](../design-review/02-reconciliation.md) để giải quyết các OPEN/PROPOSED đã được delegated resolve; không dùng dòng cũ để đảo ngược feature hiện hành. Code/migrations vẫn cần approval riêng.
 
 

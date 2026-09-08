@@ -1,5 +1,7 @@
 # SuperAdmin permission editor — reviewable behavior
 
+> **Current decision amendment — 2026-09-07:** User.IsDeleted is a current authority gate; Account/Vault never purge; permanent sharing invalidation; explicit SuperAdmin RECOVERY mode added; Paused product scope outranks grant. Read ../requirements/10-owner-decisions-20260907.md and current catalog before old Q references. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 ## Scope and screens
 
 FX02-S01/S02 metadata may be visible to Admin with access.user.read. Only SuperAdmin edits roles, User module grants and Admin module/action grants. FX02-S03/S04/S05 are not ordinary Admin mutations. FX03 module policy/settings is likewise SuperAdmin; diagnostics metadata uses explicit Admin read.

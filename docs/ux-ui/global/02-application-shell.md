@@ -1,5 +1,7 @@
 # UX-02 — Application shell
 
+> **Current decision amendment — 2026-09-07:** Internal-only user journeys; paused module navigation removed; Account/Vault deletion exceptions and SuperAdmin RECOVERY context override generic purge/restore patterns. Language default vi, selectable en. External research URLs in docs are evidence, not product navigation. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Desktop >=1200 CSS px: persistent global sidebar (~240expanded/~64collapsed design tokens), content header and flexible main region; module sidebar only when hierarchy helps (Documents/Vault). Optional detail context panel occupies bounded region, never obscures Save or required access banner. Dense Finance/Assets tables can use full content width; reading body bounded about68–80characters. Breakpoints are delegated layout decisions, not device detection.

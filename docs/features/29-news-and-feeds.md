@@ -1,5 +1,7 @@
 # News, RSS và Topic Watch
 
+> **Current decision amendment — 2026-09-07:** Internal reader only; no external-open navigation. Outbound source fetch awaits internal-first boundary clarification; existing snapshots labelled accurately. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-29 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -64,4 +66,3 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 - [phase-05-news-and-shopping.md](../requirements/phases/phase-05-news-and-shopping.md): `P05-ART-001`, `P05-ART-002`, `P05-ART-003`, `P05-ART-004`, `P05-ART-005`, `P05-ART-006`, `P05-ART-007`, `P05-ART-008`, `P05-ART-009`, `P05-FED-001`, `P05-FED-002`, `P05-FED-003`, `P05-FED-004`, `P05-FED-005`, `P05-FED-006`, `P05-NEW-001`, `P05-NEW-002`, `P05-NEW-003`, `P05-NEW-004`, `P05-RFS-001`, `P05-RFS-002`, `P05-RFS-003`, `P05-RFS-004`, `P05-RFS-005`
 
 Không phát sinh câu hỏi nghiệp vụ lớn riêng cho feature này. Các gate chung về security, capacity và solution design vẫn áp dụng.
-

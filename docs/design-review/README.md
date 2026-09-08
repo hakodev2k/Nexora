@@ -1,5 +1,7 @@
 # Nexora cross-layer design review
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Đã thực hiện review tài liệu theo thứ tự baseline → database → kiến trúc → global UX →40feature UX → consistency. Repository tại baseline chưa có application code, vì vậy kết luận kiến trúc là **design fit review**, không phải code review/test runtime.

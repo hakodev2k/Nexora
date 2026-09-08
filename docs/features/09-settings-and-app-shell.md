@@ -1,5 +1,7 @@
 # Settings và Application Shell
 
+> **Current decision amendment — 2026-09-07:** UI default Vietnamese (vi); explicit English (en) setting, no timezone/currency change; internal navigation only. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-09 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -58,3 +60,7 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 - [phase-02-productivity.md](../requirements/phases/phase-02-productivity.md): `P02-TZ-001`, `P02-TZ-002`, `P02-TZ-003`
 
 Quyết định lớn cần PO: [Q-09](90-open-decisions.md#q-09). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
+
+## Current language and account lifecycle
+
+UI language default vi regardless of browser locale; Settings explicitly switches en/vi, persists per account and updates all app-owned UI/notifications at render/composition time without translating user content. Timezone and currency independent. Deleted account cannot login/reset into active status; retention disclosed before account soft delete. Q02 Google authentication interpretation remains pending; no OAuth flow added.

@@ -1,5 +1,7 @@
 # Phase 7 — Personal Assets, Digital Assets and Career/Learning
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-07`  
 **Version:** `1.2-draft`  
 **Outcome:** User quản lý vòng đời tài sản vật lý/số và hồ sơ nghề nghiệp/học tập cá nhân bằng files, reminders, search, sharing, Finance links và Vault references.  
@@ -176,4 +178,3 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 - Expiry/reminder idempotency/timezone/update tests pass.
 - Personal ownership từng module được khóa; cross-user/revoked-support/module-disabled tests pass.
 - Responsive/accessibility P0 journeys pass; no Critical/High finding remains.
-

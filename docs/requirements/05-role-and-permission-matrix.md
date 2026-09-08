@@ -1,5 +1,7 @@
 # Role and Permission Matrix
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Document ID:** `NX-AUTHZ-001`  
 **Version:** `1.2-draft`  
 **Status:** Approved personal-only baseline + documented open items  

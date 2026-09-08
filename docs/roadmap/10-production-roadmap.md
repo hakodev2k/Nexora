@@ -1,5 +1,7 @@
 # Production Roadmap — Sau Local Stable
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Status:** PLANNED LATER; chưa chọn cloud/VPS/OS/container/hosting, chưa provision/deploy/public website.
 **Hard dependency:** [RM18 LOCAL STABLE RELEASE](09-local-stable-release.md) phải đạt và được approve trước RM19.
 

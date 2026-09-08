@@ -1,58 +1,35 @@
-# FX-03 — Module Platform: actions
+# FX-03 — Module Platform: action catalog v1.1
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/03-module-platform.md), [UX](../../ux-ui/modules/03-module-platform.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
 
-## Sources và phạm vi
+New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
 
-- [Feature / validation / state graph](../../features/03-module-platform.md) — FX-03-BR-001, FX-03-BR-002, FX-03-BR-003, FX-03-BR-004, FX-03-BR-005. Các BR này áp cho feature; không gán sai một BR duy nhất cho mọi row.
-- [UX specification](../../ux-ui/modules/03-module-platform.md); [exact screen bindings](../06-screen-bindings.md).
-- [Authorization contract](../00-authorization-contract.md), [semantic field guards](../01-composition-and-field-guards.md), [SDK contract](../04-module-action-contract.md).
-- Namespace `modules` là stable logical key, bind installed ModuleId trong manifest. **Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge**.
-
-## Catalog
-
-“All prerequisites” ở row bao gồm explicit Requires **và** source/dynamic dependencies trong guard; danh sách Requires trống không có nghĩa bỏ owner/module/lifecycle checks. Every action denies unknown fields and unapproved semantic changes. Source state matrix luôn kiểm tra ở handler, không suy quyền từ verb hoặc tên button.
-
-| Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
+| Action | Kind / context | Admin-grantable | Current scope | Gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="modules-catalog-read"></a>`modules.catalog.read` — Xem installed modules và diagnostics | QUERY / ADMIN | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX03-S01, FX03-S02 |
-| <a id="modules-policy-enable"></a>`modules.policy.enable` — Bật module hệ thống | COMMAND / SUPER | No | Security (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX03-S02, FX03-S03 |
-| <a id="modules-policy-disable"></a>`modules.policy.disable` — Tắt module hệ thống | COMMAND / SUPER | No | Security (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX03-S02, FX03-S03 |
-| <a id="modules-policy-defaults"></a>`modules.policy.defaults` — Đổi module mặc định lúc verify | COMMAND / SUPER | No | Security (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX03-S04 |
-| <a id="modules-policy-sharing"></a>`modules.policy.sharing` — Đổi sharing policy của module | COMMAND / SUPER | No | Security (Administrative) | Resolved action; existing-link disable effects remain Blocked Q-03 | FX03-S05 |
-| <a id="modules-policy-settings"></a>`modules.policy.settings` — Sửa cấu hình hệ thống của module | COMMAND / SUPER | No | Security (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX03-S05 |
-| <a id="modules-upgrade-read"></a>`modules.upgrade.read` — Xem upgrade preflight | QUERY / ADMIN | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX03-S02 |
-| <a id="modules-runtime-register"></a>`modules.runtime.register` — Đăng ký trusted manifest/action keys | WORKER / SYSTEM | No | Operational (Administrative) | Resolved delegated: action contract; source business rules unchanged | Trusted worker/deployment; no user control |
-| <a id="modules-runtime-migrate"></a>`modules.runtime.migrate` — Áp dụng migration đã được duyệt | WORKER / SYSTEM | No | Operational (Administrative) | Resolved delegated: action contract; source business rules unchanged | Trusted worker/deployment; no user control |
-| <a id="modules-runtime-health"></a>`modules.runtime.health` — Đánh giá readiness/dependency | WORKER / SYSTEM | No | Operational (Administrative) | Resolved delegated: action contract; source business rules unchanged | Trusted worker/deployment; no user control |
+| <a id="modules-catalog-read"></a>`modules.catalog.read` — Xem installed modules và diagnostics | QUERY / ADMIN | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX03-S01, FX03-S02 |
+| <a id="modules-policy-enable"></a>`modules.policy.enable` — Bật module hệ thống | COMMAND / SUPER | No | Resolved delegated | DEC-20260907-Q03/Q06/Q07; technical scope gate | FX03-S02, FX03-S03 |
+| <a id="modules-policy-disable"></a>`modules.policy.disable` — Tắt module hệ thống | COMMAND / SUPER | No | Resolved delegated | DEC-20260907-Q03/Q06/Q07; technical scope gate | FX03-S02, FX03-S03 |
+| <a id="modules-policy-defaults"></a>`modules.policy.defaults` — Đổi module mặc định lúc verify | COMMAND / SUPER | No | Resolved delegated | DEC-20260907-Q03/Q06/Q07; technical scope gate | FX03-S04 |
+| <a id="modules-policy-sharing"></a>`modules.policy.sharing` — Đổi sharing policy của module | COMMAND / SUPER | No | Resolved delegated | DEC-20260907-Q03/Q06/Q07; technical scope gate | FX03-S05 |
+| <a id="modules-policy-settings"></a>`modules.policy.settings` — Sửa cấu hình hệ thống của module | COMMAND / SUPER | No | Resolved delegated | DEC-20260907-Q03/Q06/Q07; technical scope gate | FX03-S05 |
+| <a id="modules-upgrade-read"></a>`modules.upgrade.read` — Xem upgrade preflight | QUERY / ADMIN | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX03-S02 |
+| <a id="modules-runtime-register"></a>`modules.runtime.register` — Đăng ký trusted manifest/action keys | WORKER / SYSTEM | No | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | Trusted worker/deployment only |
+| <a id="modules-runtime-migrate"></a>`modules.runtime.migrate` — Áp dụng migration đã được duyệt | WORKER / SYSTEM | No | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | Trusted worker/deployment only |
+| <a id="modules-runtime-health"></a>`modules.runtime.health` — Đánh giá readiness/dependency | WORKER / SYSTEM | No | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | Trusted worker/deployment only |
 
-## Điều kiện riêng theo operation
-
-| Action | Guard / validation / effects | Explicit dependencies bổ sung |
+| Action | Exact guard / effect | Additional prerequisites |
 | --- | --- | --- |
 | `modules.catalog.read` | Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
-| `modules.policy.enable` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
-| `modules.policy.disable` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
-| `modules.policy.defaults` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
-| `modules.policy.sharing` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
-| `modules.policy.settings` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
+| `modules.policy.enable` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge; paused FX30/34/35 cannot be enabled by grant/defaults; sharing disable increments epoch and permanently invalidates old links | Common + dynamic source/provider guards |
+| `modules.policy.disable` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge; paused FX30/34/35 cannot be enabled by grant/defaults; sharing disable increments epoch and permanently invalidates old links | Common + dynamic source/provider guards |
+| `modules.policy.defaults` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge; paused FX30/34/35 cannot be enabled by grant/defaults; sharing disable increments epoch and permanently invalidates old links | Common + dynamic source/provider guards |
+| `modules.policy.sharing` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge; paused FX30/34/35 cannot be enabled by grant/defaults; sharing disable increments epoch and permanently invalidates old links | Common + dynamic source/provider guards |
+| `modules.policy.settings` | SuperAdmin-only; preview dependency/affected users; không tự đổi existing grants khi sửa defaults; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge; paused FX30/34/35 cannot be enabled by grant/defaults; sharing disable increments epoch and permanently invalidates old links | Common + dynamic source/provider guards |
 | `modules.upgrade.read` | Deployment metadata/compatibility/checksum; không chạy migration từ UI; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
 | `modules.runtime.register` | Trusted deployment/health handler only; không cấp cho Admin/User qua permission matrix; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
 | `modules.runtime.migrate` | Trusted deployment/health handler only; không cấp cho Admin/User qua permission matrix; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
 | `modules.runtime.health` | Trusted deployment/health handler only; không cấp cho Admin/User qua permission matrix; Installed manifest hợp lệ, dependency/version được kiểm tra; disable không purge | Common + dynamic source/provider guards |
 
-## Deny và UX contract
+## Acceptance
 
-- Module off, grant missing/deny, resource wrong owner, disallowed lifecycle, current Q gate hoặc source dependency fail: không side effect; không dùng hidden button thay authorization.
-- Before/after field diff được kiểm tra cho Save, import, version restore, bulk, scheduler và automation. Form không được gửi status/reveal/export/owner trong generic Update.
-- Safe capability reason: ModuleUnavailable, ActionDenied, LifecycleLocked, DependencyUnavailable, DecisionBlocked hoặc StepUpRequired; unknown/wrong-owner resource trả unavailable chung để không enumerate.
-- Grant không thay đổi state graph. Chỉ quyền đã cấp và hợp lệ mới xuất hiện enabled; permission editor có thể hiển thị blocked row để giải thích, không cho bật.
-- Revocation và support/share/system contexts áp toàn bộ [common contract](../00-authorization-contract.md). Readonly projections không reuse full owner DTO.
-
-## Acceptance tối thiểu
-
-1. Với mỗi row: positive case đúng context/current state; wrong-owner và wrong-context negative; absent/deny Admin grant; module off; stale revision; lifecycle/Q gate.
-2. COMMAND/COMPOSITE: request replay/idempotency, before-commit recheck; affected fields cần đủ action. QUERY: owner-scoped filtering trước count/pagination/projection, cache không rò source revoked.
-3. LOCAL: keyboard/menu và tool entry cùng capability gate; không network/persist ngầm. SYSTEM: trusted caller, original authority và no UI grant.
-4. Row nhạy cảm: no secret in response preview, toast, logs, URL, search, browser persistent storage; current recent-auth gate nếu required.
-5. Nếu handler/source projection chưa có approved contract, action phải báo Blocked/Unavailable, không tự thực thi fallback rộng hơn.
+Check each active row: correct context/owner, Admin Allow/Deny/absent, deleted account, module off, stale version, protected-field diff, source dependencies and response projection. Paused/Blocked/Superseded denies even with Allow; no active UI/worker. Recovery needs SuperAdmin request-bound authorization and no operator plaintext; revoked link cannot revive after restore; internal flows must not auto-follow provider URLs. UI and keyboard call same source actions. Source BR/AC remain authoritative where not superseded by PO decisions.

@@ -1,5 +1,7 @@
 # Phase 6 — Developer Toolbox, GitHub Discovery and Automation
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-06`  
 **Version:** `1.2-draft`  
 **Outcome:** User dùng utility an toàn, khám phá public GitHub repositories và cấu hình automation cá nhân có giới hạn trong đúng owner/module authority, quan sát được và không tạo side effect trùng.  

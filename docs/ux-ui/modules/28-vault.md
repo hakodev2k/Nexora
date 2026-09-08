@@ -1,5 +1,7 @@
 # FX-28 — Vault — UX/UI Specification
 
+> **Current decision amendment — 2026-09-07:** Deleted Vault values/history/keys retained encrypted. No purge/owner restore; SuperAdmin request-bound Recovery only, no operator plaintext. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
@@ -293,3 +295,7 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 ## Canonical action binding — catalog v1
 
 [FX-28 action catalog](../../action-catalog/modules/28-vault.md) and [screen bindings](../../action-catalog/06-screen-bindings.md) define exact keys, grantable contexts and Q gates. Descriptive verbs above are not permission names. Admin Self also needs explicit allowed action; User Self uses enabled-module owner baseline. SuperAdmin alone changes role/module/action grants. Local UI visibility does not replace server authorization.
+
+## Current recovery screens
+
+FX28-S07 /vault/recovery: owner lists own requests/status and submits recovery kind + opaque item/version + reason; no secret input. Locked Vault can reach account-authenticated request entry; deleted account cannot. FX28-S08 /admin/vault-recovery/:requestId: SuperAdmin sees owner/request/kind/proof/status, persistent RECOVERY banner, Authorize/Reject, recent-auth, audit/notification state; never secret values. Loading/error/revision-conflict/expired authorization follow shared patterns; Cancel returns list, dialog restores focus; keyboard complete; mobile stacked. Outcome success notifies owner, failure shows safe reason/retry eligibility, never fake restored value. Account/item restore and version restore use exact Recovery actions; old owner Restore/Purge controls unavailable.

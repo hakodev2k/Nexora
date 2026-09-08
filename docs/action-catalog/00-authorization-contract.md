@@ -1,5 +1,7 @@
 # Authorization contract — contexts, grants, scope
 
+> **Current decision amendment — 2026-09-07:** User.IsDeleted is a current authority gate; Account/Vault never purge; permanent sharing invalidation; explicit SuperAdmin RECOVERY mode added; Paused product scope outranks grant. Read ../requirements/10-owner-decisions-20260907.md and current catalog before old Q references. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Status: Resolved delegated / technical design. PO-approved personal-only/module/Admin policy remains source of truth. Action registration does not approve implementation or close [Q-01…12](../features/90-open-decisions.md).
 
 ## Distinct contexts

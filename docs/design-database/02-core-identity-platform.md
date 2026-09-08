@@ -1,5 +1,7 @@
 # identity / platform — physical data dictionary
 
+> **Current decision amendment — 2026-09-07:** Physical delta17 is current for User/ShareLink/Vault flags, recovery wraps, four new tables and Career CalendarLink replacement. Baseline field counts/encryption/purge/Interview proposals are superseded only where specified; no migration executed. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Technical design for SQL Server. Business rules retain their source status; rows marked Q are conditional proposals, not approval. Every physical column, including inherited technical columns, is expanded below. [Conventions](01-conventions-and-integrity.md) · [Relations](11-relations-and-transactions.md) · [Payload contracts](14-payload-contracts.md).

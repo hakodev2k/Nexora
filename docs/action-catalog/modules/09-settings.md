@@ -1,46 +1,23 @@
-# FX-09 — Settings / Shell: actions
+# FX-09 — Settings / Shell: action catalog v1.1
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/09-settings-and-app-shell.md), [UX](../../ux-ui/modules/09-settings-app-shell.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
 
-## Sources và phạm vi
+New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
 
-- [Feature / validation / state graph](../../features/09-settings-and-app-shell.md) — FX-09-BR-001, FX-09-BR-002, FX-09-BR-003, FX-09-BR-004, FX-09-BR-005. Các BR này áp cho feature; không gán sai một BR duy nhất cho mọi row.
-- [UX specification](../../ux-ui/modules/09-settings-app-shell.md); [exact screen bindings](../06-screen-bindings.md).
-- [Authorization contract](../00-authorization-contract.md), [semantic field guards](../01-composition-and-field-guards.md), [SDK contract](../04-module-action-contract.md).
-- Namespace `settings` là stable logical key, bind installed ModuleId trong manifest. **Own nonsensitive preferences; no arbitrary JSON business data**.
-
-## Catalog
-
-“All prerequisites” ở row bao gồm explicit Requires **và** source/dynamic dependencies trong guard; danh sách Requires trống không có nghĩa bỏ owner/module/lifecycle checks. Every action denies unknown fields and unapproved semantic changes. Source state matrix luôn kiểm tra ở handler, không suy quyền từ verb hoặc tên button.
-
-| Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
+| Action | Kind / context | Admin-grantable | Current scope | Gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="settings-preference-read"></a>`settings.preference.read` — Xem preferences/navigation | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX09-S01, FX09-S04 |
-| <a id="settings-preference-update"></a>`settings.preference.update` — Lưu theme/nav/display preferences | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX09-S02 |
-| <a id="settings-module-read"></a>`settings.module.read` — Xem module settings | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX09-S03 |
-| <a id="settings-module-update"></a>`settings.module.update` — Lưu owner module settings | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX09-S03 |
+| <a id="settings-preference-read"></a>`settings.preference.read` — Xem preferences/navigation | QUERY / SELF | Yes when active | Resolved delegated | DEC-20260907-Q09 / INTERNAL | FX09-S01, FX09-S04 |
+| <a id="settings-preference-update"></a>`settings.preference.update` — Lưu theme/nav/display preferences | COMMAND / SELF | Yes when active | Resolved delegated | DEC-20260907-Q09 / INTERNAL | FX09-S02 |
+| <a id="settings-module-read"></a>`settings.module.read` — Xem module settings | COMPOSITE / SELF | Yes when active | Resolved delegated | DEC-20260907-Q09 / INTERNAL | FX09-S03 |
+| <a id="settings-module-update"></a>`settings.module.update` — Lưu owner module settings | COMPOSITE / SELF | Yes when active | Resolved delegated | DEC-20260907-Q09 / INTERNAL | FX09-S03 |
 
-## Điều kiện riêng theo operation
-
-| Action | Guard / validation / effects | Explicit dependencies bổ sung |
+| Action | Exact guard / effect | Additional prerequisites |
 | --- | --- | --- |
-| `settings.preference.read` | Own nonsensitive preferences; no arbitrary JSON business data; Own nonsensitive preferences; no arbitrary JSON business data | Common + dynamic source/provider guards |
-| `settings.preference.update` | Không đổi quyền/module grants; approved default views giữ nguyên; Own nonsensitive preferences; no arbitrary JSON business data | Common + dynamic source/provider guards |
-| `settings.module.read` | Kèm target module/action; không plaintext credentials; Own nonsensitive preferences; no arbitrary JSON business data | Common + dynamic source/provider guards |
-| `settings.module.update` | Target declared setting action required; không system policy/self-grant; Own nonsensitive preferences; no arbitrary JSON business data | Common + dynamic source/provider guards |
+| `settings.preference.read` | Own nonsensitive preferences; no arbitrary JSON business data; Own nonsensitive preferences; no arbitrary JSON business data; UI vi default, explicit en preference; no currency/timezone/content translation; no external navigation | Common + dynamic source/provider guards |
+| `settings.preference.update` | Không đổi quyền/module grants; approved default views giữ nguyên; Own nonsensitive preferences; no arbitrary JSON business data; UI vi default, explicit en preference; no currency/timezone/content translation; no external navigation | Common + dynamic source/provider guards |
+| `settings.module.read` | Kèm target module/action; không plaintext credentials; Own nonsensitive preferences; no arbitrary JSON business data; UI vi default, explicit en preference; no currency/timezone/content translation; no external navigation | Common + dynamic source/provider guards |
+| `settings.module.update` | Target declared setting action required; không system policy/self-grant; Own nonsensitive preferences; no arbitrary JSON business data; UI vi default, explicit en preference; no currency/timezone/content translation; no external navigation | Common + dynamic source/provider guards |
 
-## Deny và UX contract
+## Acceptance
 
-- Module off, grant missing/deny, resource wrong owner, disallowed lifecycle, current Q gate hoặc source dependency fail: không side effect; không dùng hidden button thay authorization.
-- Before/after field diff được kiểm tra cho Save, import, version restore, bulk, scheduler và automation. Form không được gửi status/reveal/export/owner trong generic Update.
-- Safe capability reason: ModuleUnavailable, ActionDenied, LifecycleLocked, DependencyUnavailable, DecisionBlocked hoặc StepUpRequired; unknown/wrong-owner resource trả unavailable chung để không enumerate.
-- Grant không thay đổi state graph. Chỉ quyền đã cấp và hợp lệ mới xuất hiện enabled; permission editor có thể hiển thị blocked row để giải thích, không cho bật.
-- Revocation và support/share/system contexts áp toàn bộ [common contract](../00-authorization-contract.md). Readonly projections không reuse full owner DTO.
-
-## Acceptance tối thiểu
-
-1. Với mỗi row: positive case đúng context/current state; wrong-owner và wrong-context negative; absent/deny Admin grant; module off; stale revision; lifecycle/Q gate.
-2. COMMAND/COMPOSITE: request replay/idempotency, before-commit recheck; affected fields cần đủ action. QUERY: owner-scoped filtering trước count/pagination/projection, cache không rò source revoked.
-3. LOCAL: keyboard/menu và tool entry cùng capability gate; không network/persist ngầm. SYSTEM: trusted caller, original authority và no UI grant.
-4. Row nhạy cảm: no secret in response preview, toast, logs, URL, search, browser persistent storage; current recent-auth gate nếu required.
-5. Nếu handler/source projection chưa có approved contract, action phải báo Blocked/Unavailable, không tự thực thi fallback rộng hơn.
+Check each active row: correct context/owner, Admin Allow/Deny/absent, deleted account, module off, stale version, protected-field diff, source dependencies and response projection. Paused/Blocked/Superseded denies even with Allow; no active UI/worker. Recovery needs SuperAdmin request-bound authorization and no operator plaintext; revoked link cannot revive after restore; internal flows must not auto-follow provider URLs. UI and keyboard call same source actions. Source BR/AC remain authoritative where not superseded by PO decisions.

@@ -1,5 +1,7 @@
 # Nexora — Feature Specifications
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Ngày: **2026-09-06** · Baseline đọc: [d0d8418](https://github.com/hakodev2k/Nexora/commit/d0d84181e0043f9ffa38b475cbe461d34449805e) · **Documentation only; chưa được approve implement.**
 
 Bộ này phân tích **40 ranh giới feature/capability** cho toàn bộ module catalog hiện tại; không có nghĩa website cần40 menu hay40 plugin độc lập. Mỗi đặc tả có sản phẩm tham chiếu, phần áp dụng/điều chỉnh cho Nexora, luồng màn hình, dữ liệu/validation, lifecycle, commands/integrations, acceptance scenarios và source requirement mapping.
@@ -72,4 +74,3 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 Personal-only, verified email rồi dùng ngay; không Workspace/team collaboration. Project terminal không mở lại; Event terminal không mở lại; Documents manual Save và immutable type/editor/parent/folder; notifications luôn cả ba kênh. Projects/Tasks import-export deferred, Calendar ICS included. Developer viết module; User/Admin không upload executable plugin. No-code builder/marketplace vẫn Deferred.
 
 Chi tiết delegated có thể được điều chỉnh khi review mà không yêu cầu phỏng vấn từng click. Nếu thay một quyết định Approved hoặc mở rộng phạm vi/chi phí/privacy, phải ghi lại quyết định PO trước.
-

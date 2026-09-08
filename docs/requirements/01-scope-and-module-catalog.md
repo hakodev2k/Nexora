@@ -1,5 +1,7 @@
 # Scope and Master Module Catalog
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Document ID:** `NX-PRD-001`  
 **Version:** `1.2-draft`  
 **Status:** Release 1 module set confirmed; detailed feature refinement continues  
@@ -152,4 +154,3 @@ Catalog được coi là locked cho một release train khi:
 ## Feature specification layer — 2026-09-06
 
 Catalog được map vào [40 feature/capability specs](../features/README.md), không tương đương40 menu/module deploy độc lập. [Coverage](../features/92-coverage-and-decisions.md) giữ25 committed rows và1 deferred row. Mỗi spec nêu sản phẩm tham chiếu, điều chỉnh theo User, flows/fields/lifecycle/commands/AC. Những conditional extensions và privacy/cost decisions còn [Q-gates](../features/90-open-decisions.md); không âm thầm thêm mọi behavior của sản phẩm tham chiếu hoặc giảm committed module thành demo.
-

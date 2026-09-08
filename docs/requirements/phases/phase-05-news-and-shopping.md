@@ -1,5 +1,7 @@
 # Phase 5 — News/Feeds and Shopping/Price Tracking
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-05`  
 **Version:** `1.2-draft`  
 **Outcome:** User theo dõi nguồn tin và sản phẩm/giá cá nhân, lưu nội dung cần đọc/mua và nhận cảnh báo đáng tin cậy khi điều kiện đã cấu hình xảy ra.  
@@ -162,4 +164,3 @@ Một tracked item phải chỉ rõ **listing + selected variant/price definitio
 - Notifications are accurate, deduplicated and not overclaimed.
 - Manifest personal ownership, cross-user isolation và User/module-disable behavior được test.
 - Responsive/accessibility core journeys pass; no Critical/High finding remains.
-

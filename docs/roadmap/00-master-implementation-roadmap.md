@@ -1,5 +1,7 @@
 # Nexora — Master Implementation Roadmap
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Version:** 1.0-draft · **Ngày:** 2026-09-05 · **Status:** Chờ review/approval roadmap.
 
 **PLANNING AND DOCUMENTATION ONLY.** Mọi phase dưới đây là công việc tương lai, chưa thực thi. Không có application source, database, migration, package installation, runtime configuration hoặc test execution được tạo/chạy trong task này. Bộ roadmap ban đầu được tạo trong `docs/roadmap/`. Theo yêu cầu tiếp tục refinement ngày 2026-09-06, requirement và roadmap được cập nhật từ câu trả lời của Product Owner; implementation vẫn chờ approval riêng.
@@ -490,4 +492,3 @@ Bộ này là kế hoạch đầy đủ về coverage và thứ tự làm việc
 ## Feature specification delta — 2026-09-06
 
 Bổ sung [40 feature specifications](../features/README.md) làm đầu vào phân rã Feature → Story → Technical Task. [Requirement routing](../features/93-requirement-routing.md) bổ sung đường dẫn source ID tới đặc tả, không đánh dấu task triển khai đã hoàn thành. Story phải áp dụng shared behavior và close Q/ADR liên quan trước Definition of Ready. Các approved source decisions và delegated details mới hơn thắng roadmap snapshot cũ; không bắt đầu code/database/runtime trước PO approval riêng.
-

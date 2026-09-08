@@ -1,5 +1,7 @@
 # Disable, revoke, cached capabilities và workers
 
+> **Current decision amendment — 2026-09-07:** User.IsDeleted is a current authority gate; Account/Vault never purge; permanent sharing invalidation; explicit SuperAdmin RECOVERY mode added; Paused product scope outranks grant. Read ../requirements/10-owner-decisions-20260907.md and current catalog before old Q references. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 | Change | Reads / UI | Queued/running work | Preserved data |
 | --- | --- | --- | --- |
 | System module disabled | Hide live contributions/navigation; deep link shows unavailable without payload | Prevent new work; recheck at dequeue and before effects; pause/cancel per declared safe contract | Disable never purge |

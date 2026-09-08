@@ -1,68 +1,122 @@
-# Các quyết định lớn còn cần chốt
+# Decision status — cập nhật theo Product Owner 2026-09-07
 
-Đây là **12 nhóm quyết định**, không phải 12 câu hỏi phải trả lời ngay hay danh sách đầy đủ mọi ADR kỹ thuật. Các phương án dưới đây đã được chuẩn bị để PO duyệt theo nhóm. Không hỏi lại thao tác nhỏ đã delegated. Trạng thái tất cả Q: **Open / proposal**, không là câu trả lời của User.
+[Biên bản lời PO và quy tắc ưu tiên](../requirements/10-owner-decisions-20260907.md). Các proposal trước đây không tự trở thành Approved. Không còn ghi cả12 nhóm là Open như baseline cũ; mỗi nhóm có trạng thái riêng bên dưới. Chưa có approval implement.
 
 <a id="q-01"></a>
-## Q-01 — Account deletion và portability
+## Q-01 — Partially resolved
 
-**Cần chốt:** xóa tài khoản có thời gian chờ/khôi phục không, phạm vi export toàn tài khoản, disclosure dữ liệu còn trong backup/audit. **Đề xuất:** request deletion có recent-auth, chờ 7ngày owner hủy được; sau đó purge active data theo dependency, audit tối thiểu tách payload; export per-module approved formats. Không áp 7ngày cho Trash riêng của Project/Task/Documents. **Tác động:** irreversible loss, privacy và storage; FX-01/08/10. Backup retention phụ thuộc Q-08.
+**Đã xác nhận:** Account delete = soft delete; không purge tài khoản/dữ liệu do thao tác này.
+
+**Còn lại / giới hạn:** Khôi phục account đã đánh dấu xóa và tái sử dụng email chưa được PO quyết định; không auto-reactivate hoặc tạo owner mới bằng reset email.
+
+Nguồn: DEC-20260907-Q01.
 
 <a id="q-02"></a>
-## Q-02 — Account security, MFA và recovery
+## Q-02 — Partially resolved
 
-**Cần chốt:** bắt buộc MFA cho ai, lost-device/account recovery, recent-auth cho hành động nhạy cảm. **Đề xuất:** MFA bắt buộc SuperAdmin/Admin, optional User; recent-auth trước security changes/Vault; recovery codes owner quản lý. Passkeys/social login không tự thêm scope. **Tác động:** onboarding/support/security; FX-01/05/28. Password hash/session/cookie/CSRF implementation do security ADR thiết kế, không hỏi PO chọn thuật toán.
+**Đã xác nhận:** Có Google authentication bật/tắt; khi không dùng thì recovery mặc định qua email.
+
+**Còn lại / giới hạn:** Thuật ngữ Google authentication cần xác nhận. Working interpretation: Google Authenticator TOTP, chưa coi là OAuth được duyệt. Mất MFA khi đã bật chưa có recovery policy được duyệt; email reset không tự gỡ MFA.
+
+Nguồn: DEC-20260907-Q02.
 
 <a id="q-03"></a>
-## Q-03 — Share link và dữ liệu nhạy cảm
+## Q-03 — Partially resolved
 
-**Cần chốt:** tắt sharing policy có chặn link đã tạo không; restore Trash có tự phục hồi link không; Finance/Assets/Career field projections. **Đề xuất:** tắt sharing chặn resolve link ngay và không tự hồi sinh sau Trash restore; owner chủ động enable lại link còn hợp lệ. Sensitive defaults chỉ safe metadata, preview trước share. Giữ Project toàn bộ Task details, không per-task hide; Documents lifecycle đã Approved không thay. **Tác động:** disclosure/revocation; FX-04/27/31/37/38/39/40.
+**Đã xác nhận:** Tắt sharing hoặc xóa nguồn: link cũ bị loại bỏ vĩnh viễn, không tồn tại với người truy cập.
+
+**Còn lại / giới hạn:** Các field nhạy cảm của Finance/Assets/Career/Learning được chia sẻ vẫn cần policy riêng. Không tự mở toàn payload.
+
+Nguồn: DEC-20260907-Q03.
 
 <a id="q-04"></a>
-## Q-04 — Vault recovery, portability và access
+## Q-04 — Partially resolved
 
-**Cần chốt:** mất khóa có thể khôi phục bằng cách nào; operator có khả năng decrypt hay owner-held recovery; encrypted export/import; Support/Emergency có được đọc safe metadata. **Đề xuất:** không mở reveal/copy/export cho Admin hoặc Emergency; không public share; thiết kế owner recovery và encrypted portability riêng trước khi chọn key architecture. Chưa khẳng định zero-knowledge hoặc recoverable khi chưa thiết kế. **Tác động:** dữ liệu secret, khả năng phục hồi và kiến trúc không thể retrofit nhẹ; FX-05/10/28.
+**Đã xác nhận:** Vault có thể phục hồi bằng quyền SuperAdmin; các value xóa mềm, không purge.
+
+**Còn lại / giới hạn:** Đã chọn hướng server-recoverable bằng technical ADR; quyền đọc safe metadata trong Support và portable encrypted backup cho owner chưa được duyệt. Không cấp SuperAdmin quyền xem plaintext thường trực.
+
+Nguồn: DEC-20260907-Q04.
 
 <a id="q-05"></a>
-## Q-05 — Finance semantics
+## Q-05 — Partially resolved
 
-**Cần chốt:** envelope budgeting hay spending-limit tracking; đa tiền tệ/FX; debt direction/interest; corrections/delete/restore financial history. **Đề xuất:** spending limits theo tháng/category/currency, no rollover mặc định; reports tách currency; transfer FX nhập amount hai vế thủ công; interest adjustment nhập tay; posted corrections có journal/history, không sửa balance trực tiếp. Savings progress từ selected accounts hoặc manual phải chọn mode rõ. **Tác động:** các con số người dùng dựa vào; FX-27. Toàn bộ công thức và deletion policy tài chính trong spec là proposal gắn Q này, không mặc nhiên delegated approved.
+**Đã xác nhận:** Người dùng tự nhập danh mục và số tiền; baseline được thiết kế thành manual money records.
+
+**Còn lại / giới hạn:** Chưa chốt ledger/budget/debt/interest/FX/financial deletion semantics. Không tự coi các tính năng nâng cao đã duyệt hoặc bị hủy. Currency của số tiền cần explicit; UI language không quyết định tiền tệ.
+
+Nguồn: DEC-20260907-Q05.
 
 <a id="q-06"></a>
-## Q-06 — Shopee provider và price contract
+## Q-06 — Paused by Product Owner
 
-**Cần chốt:** nguồn được phép/khả dụng, budget refresh, thị trường/variant/currency và định nghĩa giá. **Đề xuất:** một approved provider cho Shopee, item price công khai đúng variant không voucher/shipping/member pricing; poll6h, manual refresh có rate limit; feature báo stale/unknown. Adapter marketplace khác trong phase cũ là conditional extension, đề xuất chưa cam kết ngoài Shopee trước khi PO chọn. Không bypass CAPTCHA/login hoặc gọi manual-only fallback là tracking hoàn chỉnh. **Tác động:** module có thể chưa khả thi nếu thiếu nguồn; FX-30/31.
+**Đã xác nhận:** Price Tracking tạm dừng, chưa triển khai.
+
+**Còn lại / giới hạn:** Giữ catalog/schema đề xuất để tiếp tục sau; không fetch, refresh, alert hoặc bật mặc định cho User. Resume cần PO cho phép.
+
+Nguồn: DEC-20260907-Q06.
 
 <a id="q-07"></a>
-## Q-07 — Automation/n8n và quyền ra mạng
+## Q-07 — Paused by Product Owner
 
-**Cần chốt:** workflow depth, trusted trigger/action catalog tối thiểu, data mapping/branching; n8n inbound/outbound và dữ liệu được ra ngoài; network tools/monitor target scope. **Đề xuất:** bounded DAG≤20steps, linear+conditions, no arbitrary code/loops; manual/schedule/domain event/webhook; initial actions notification + approved owner module commands + explicit outbound projection. n8n không DB/master key, core độc lập n8n. Network chỉ public approved targets qua guard. **Tác động:** phạm vi R1, data egress/SSRF/side effects; FX-32/34/35/36/38.
+**Đã xác nhận:** Automation/Integrations tạm dừng, chưa triển khai.
+
+**Còn lại / giới hạn:** Không chạy workflow, webhook/n8n, provider test hoặc tự triển khai connector. Core jobs/reminders/email/push của chức năng đã chốt vẫn là nền tảng riêng.
+
+Nguồn: DEC-20260907-Q07.
 
 <a id="q-08"></a>
-## Q-08 — Capacity, retention và vận hành
+## Q-08 — Open — capacity target undefined
 
-**Cần chốt:** mức User đồng thời/dữ liệu/files/jobs dự kiến, storage/email/provider budget, audit/log/backup retention, RPO/RTO/availability. **Đề xuất để thảo luận:** test profile100 concurrent users, files quota1GiB/User, RPO24h/RTO8h, encrypted backups30ngày, redacted job logs30ngày; chưa cam kết production hoặc ghi thành quota đã duyệt. User-owned Trash/Notification retention đã chốt không bị đổi. **Tác động:** chi phí và production design; FX-07/08/10/34/36. Deployment provider chỉ chọn sau Local-Stable theo roadmap.
+**Đã xác nhận:** Mục tiêu phục vụ càng nhiều người càng tốt; kỹ thuật được ủy quyền chọn thiết kế ổn định/mở rộng.
+
+**Còn lại / giới hạn:** Chưa có workload, concurrency, storage/email budget, RPO/RTO/SLA cam kết. Benchmark profiles là giả thuyết kỹ thuật, không giới hạn người dùng hoặc capacity guarantee.
+
+Nguồn: DEC-20260907-Q08.
 
 <a id="q-09"></a>
-## Q-09 — Ngôn ngữ và locale
+## Q-09 — Partially resolved
 
-**Cần chốt:** UI languages và currency mặc định. **Đề xuất:** Vietnamese + English, browser locale fallback Vietnamese, currency mặc định VND nhưng Finance accounts explicit; IANA timezone browser detect đã Approved. **Tác động:** translation/testing và audience; FX-01/09/27. Không dùng vị trí User hiện tại làm quyết định PO đã xác nhận.
+**Đã xác nhận:** UI mặc định tiếng Việt; User chuyển sang tiếng Anh trong Settings.
+
+**Còn lại / giới hạn:** Currency mặc định chưa được chỉ định. Múi giờ vẫn browser-detected và User đổi được; không suy Asia/Ho_Chi_Minh hoặc VND từ ngôn ngữ.
+
+Nguồn: DEC-20260907-Q09.
 
 <a id="q-10"></a>
-## Q-10 — Productivity extensions
+## Q-10 — Open — unanswered
 
-**Cần chốt:** independent reminders, snooze, subtasks/recurrence/Task attachments nếu các proposal lịch sử còn cần R1. **Đề xuất:** giữ Task/Project flow đã chốt làm baseline; chỉ thêm extension được PO chọn với state/history/calendar contract riêng. Không nhận “mọi module hoàn chỉnh” là quyền thêm mọi tính năng TickTick. **Tác động:** workflow/data model; FX-12/14. Không thay max one Task/Event reminder, no recurring ICS import.
+**Đã xác nhận:** Giữ các Task/Project/Reminder rules đã chốt.
+
+**Còn lại / giới hạn:** PO chưa trả lời subtask/recurrence/snooze/reminder độc lập/Task attachments. Không tự đưa các proposal này vào scope.
+
+Nguồn: DEC-20260907-Q10.
 
 <a id="q-11"></a>
-## Q-11 — Documents và Resume file formats
+## Q-11 — Resolved scope; delegated fidelity contract
 
-**Cần chốt:** import/export Markdown/HTML/PDF/DOCX, hỗ trợ attachments/structure và mức fidelity. **Đề xuất:** Markdown+asset manifest cho Markdown mode; safe HTML+assets cho Block mode; PDF export cho cả hai; DOCX round-trip chỉ khi PO thực sự cần và có loss-report acceptance. Resume upload file là core riêng, không phụ thuộc có DOCX editor/export. **Tác động:** đáng kể tới editor/schema/conversion scope; FX-10/20/39. Không thay manual Save/type/editor immutable hoặc Project/Task no import/export.
+**Đã xác nhận:** Document/Resume formats cơ bản DOCX và Markdown (.md).
+
+**Còn lại / giới hạn:** Supported subset + preview/loss report được đặc tả kỹ thuật; không hứa Word round-trip hoàn hảo. PDF/HTML product export không thuộc baseline mới; ICS Calendar và định dạng import riêng module khác giữ scope riêng.
+
+Nguồn: DEC-20260907-Q11.
 
 <a id="q-12"></a>
-## Q-12 — Interview và Calendar ownership
+## Q-12 — Resolved workflow; delegated ownership
 
-**Xung đột cần chốt:** Phase7 yêu cầu Calendar link/reschedule/cancel cho Interview, còn Calendar đã chốt Manual Event + Task Event. **Đề xuất:** owner chủ động tạo linked Personal Event từ Interview, Calendar tiếp tục sở hữu event; interview reschedule phải preview/confirm cập nhật cả hai qua contract và giữ terminal-event rule. Phương án source Interview riêng sẽ mở rộng Calendar/ICS/search và cần PO duyệt. **Tác động:** một nguồn sự thật, tránh hai reminders/schedules; FX-13/39. Chưa implement tự động source thứ ba.
+**Đã xác nhận:** Chỉ tạo/liên kết Event trong Nexora và thông báo.
 
-## Cách đóng quyết định
+**Còn lại / giới hạn:** Calendar sở hữu Personal Event; Career chỉ reference. Không phỏng vấn trực tuyến, conference URL, provider invite hoặc external interview workflow.
 
-PM gửi một nhóm lớn với phương án và tradeoff; PO trả lời; cập nhật Q status + source DEC-ID + affected feature rules/AC + roadmap. Technical ADR không được biến một proposal scope/privacy/cost thành Approved thay PO. Những phần không phụ thuộc Q vẫn có thể được review/tách backlog; code chỉ sau approval riêng.
+Nguồn: DEC-20260907-Q12.
 
+## Các việc cần PO thực sự quyết định tiếp
+
+- Xác nhận nghĩa “Google authentication”; quy trình khi MFA đã bật nhưng mất thiết bị/proof.
+- Khôi phục account deleted/email reuse; không tự áp7ngày grace hoặc tự phục hồi qua reset.
+- Sensitive share/support field scope, owner encrypted portability; recovery SuperAdmin đã xác nhận nhưng không đồng nghĩa xem plaintext.
+- Currency và các Finance nghiệp vụ nâng cao; không ép chọn Income/Expense trong form nhập category/amount đơn giản.
+- Quy mô/ngân sách/RPO/RTO đo được; Q-10 chưa trả lời.
+- Backend ingestion của News/GitHub/monitoring có nằm trong lệnh pause integrations hay chỉ cấm đưa User ra ngoài. Mặc định chưa kích hoạt outbound chưa rõ.
+
+Các chi tiết kỹ thuật còn lại do technical owner tự chốt thành ADR/acceptance có thể kiểm chứng. Price/Automation/Integrations chỉ quay lại khi PO yêu cầu resume; không tiếp tục hỏi thông số provider trong lúc paused.

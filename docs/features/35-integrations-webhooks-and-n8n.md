@@ -1,5 +1,7 @@
 # Integrations, Webhooks và n8n
 
+> **Current decision amendment — 2026-09-07:** Paused by Product Owner; no connector/webhook/n8n execution. Foundational email/push delivery is not this paused user module. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-35 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.

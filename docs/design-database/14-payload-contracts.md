@@ -1,5 +1,7 @@
 # Versioned payload and encrypted field contracts
 
+> **Current decision amendment — 2026-09-07:** Physical delta17 is current for User/ShareLink/Vault flags, recovery wraps, four new tables and Career CalendarLink replacement. Baseline field counts/encryption/purge/Interview proposals are superseded only where specified; no migration executed. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 JSON fields are not permission to defer every field decision. This document binds each payload family to typed keys, validation and version migration. SQL ISJSON validates syntax only; provider DTO validator enforces keys/types/limits. Decimal in transport JSON is a decimal string; UTC instant ISO8601 Z; date YYYY-MM-DD; resource reference carries opaque Id/type and optional exact version, with Owner derived not caller asserted.

@@ -1,5 +1,7 @@
 # Decisions, Assumptions and Traceability
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Document ID:** `NX-GOV-001`  
 **Version:** `1.2-draft`  
 **Status:** Active requirement governance  
@@ -279,4 +281,3 @@ Theo yêu cầu trực tiếp của Product Owner, phân tích mọi module/capa
 | `DEC-KNW-036` | Current/Archived/Trash page refs chặn Tag delete; history-only giữ label snapshot; restore rebind hoặc tạo Tag có preview | Resolved (delegated) | [Documents](../features/20-documents.md); không gỡ Tag âm thầm |
 
 Các rule FX còn lại không có Q là delegated trong guardrail, không được ghi thành câu trả lời trực tiếp PO. Các vấn đề lớn được gom tại [Q-01…Q-12](../features/90-open-decisions.md); các Open DEC cũ vẫn giữ trừ ba dòng đã đóng ở trên. Technical/security ADR vẫn cần hoàn thiện theo roadmap. [Consistency review](../features/92-coverage-and-decisions.md) ghi nhận việc bỏ placeholder DEC-PRD-034 chưa định nghĩa khỏi P00 gate và dẫn tới FX-01/Q-01/Q-02; không tạo ý nghĩa giả cho ID cũ.
-

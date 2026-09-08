@@ -1,5 +1,7 @@
 # Trash, Activity và Audit
 
+> **Current decision amendment — 2026-09-07:** No Account/Vault purge; Vault restore uses SuperAdmin Recovery. Other modules keep existing Trash/manual purge. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-08 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.

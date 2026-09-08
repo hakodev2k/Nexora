@@ -1,5 +1,7 @@
 # Developer Toolbox
 
+> **Current decision amendment — 2026-09-07:** Local pure tools remain current; network tools paused/unavailable under integration boundary, no external navigation. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-32 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -72,4 +74,3 @@ Formatting/validation test fixtures phải pin library/dialect behavior trong so
 - [phase-06-developer-and-automation.md](../requirements/phases/phase-06-developer-and-automation.md): `P06-DAT-001`, `P06-DAT-002`, `P06-DAT-003`, `P06-DAT-004`, `P06-DEV-001`, `P06-DEV-002`, `P06-DEV-003`, `P06-DEV-004`, `P06-ENC-001`, `P06-ENC-002`, `P06-NET-001`, `P06-NET-002`, `P06-NET-003`, `P06-NET-004`, `P06-NET-005`, `P06-SEC-001`, `P06-SEC-002`, `P06-SEC-003`, `P06-SEC-004`, `P06-SEC-005`, `P06-TBX-001`, `P06-TBX-002`, `P06-TBX-003`, `P06-TBX-004`, `P06-TBX-005`, `P06-TBX-006`, `P06-TBX-007`, `P06-TBX-008`, `P06-TME-001`, `P06-TME-002`, `P06-TME-003`
 
 Quyết định lớn cần PO: [Q-07](90-open-decisions.md#q-07). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
-

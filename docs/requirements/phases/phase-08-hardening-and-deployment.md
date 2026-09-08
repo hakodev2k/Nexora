@@ -1,5 +1,7 @@
 # Phase 8 — Hardening, Recovery and Deployment Readiness
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-08`  
 **Version:** `1.2-draft`  
 **Outcome:** Nexora có bằng chứng về security, reliability, recoverability, operability và upgrade path để phát hành Public SaaS do chủ sở hữu vận hành.  

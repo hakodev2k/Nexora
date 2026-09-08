@@ -1,5 +1,7 @@
 # Composition, protected fields và chống bypass
 
+> **Current decision amendment — 2026-09-07:** User.IsDeleted is a current authority gate; Account/Vault never purge; permanent sharing invalidation; explicit SuperAdmin RECOVERY mode added; Paused product scope outranks grant. Read ../requirements/10-owner-decisions-20260907.md and current catalog before old Q references. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 ## Command ≠ button ≠ permission
 
 Một form Save có thể yêu cầu nhiều action. Nhận generic payload không được grant toàn bộ writable columns. Handler computes semantic before/after diff after validation/normalization, kiểm tra đúng các actions bên dưới, rồi commit atomic. If missing one → deny whole aggregate command, no partial hidden mutation. Separate bulk aggregate semantics are declared below.

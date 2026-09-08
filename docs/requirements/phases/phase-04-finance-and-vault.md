@@ -1,5 +1,7 @@
 # Phase 4 — Finance and Vault
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-04`  
 **Version:** `1.2-draft`  
 **Outcome:** User quản lý dữ liệu tài chính thủ công và secret cá nhân có thể khôi phục, bằng controls phù hợp với dữ liệu `Sensitive`/`Secret`.  
@@ -207,4 +209,3 @@ Audit bắt buộc: privileged Finance view/export, transaction purge/restore/ad
 - Admin/SuperAdmin privileged access and audit evidence pass.
 - Personal ownership của Finance/Vault được khóa; cross-user, revoked-support và module-disabled tests pass.
 - Known limits (no bank sync, no public Vault share, currency behavior) visible/documented.
-

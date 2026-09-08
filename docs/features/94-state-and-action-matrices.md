@@ -1,5 +1,7 @@
 # State và Action Matrices
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Tài liệu bổ sung cho FX-11/12/13/20. “Cho phép” luôn cần owner/action/module/current-revision gates. Bảng là behavior contract, không bằng chứng đã implement.
 
 ## Project transitions
@@ -79,4 +81,3 @@ Personal Event qua End vẫn Scheduled nếu User chưa đổi; không overdue. 
 ## Acceptance mapping
 
 Mỗi ô chặn phải có negative test qua direct API, không chỉ UI. Mỗi transition cho phép cần happy path + stale revision + replay + parent state đổi giữa preview/commit. Matrix kết hợp source AC và FX-COM-AC-001…006; không tạo một ticket cho mỗi ô khi có thể nhóm thành story cùng nghiệp vụ.
-

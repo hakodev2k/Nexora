@@ -1,51 +1,40 @@
-# FX-20 — Documents: actions
+# FX-20 — Documents: action catalog v1.1
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/20-documents.md), [UX](../../ux-ui/modules/20-documents.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
 
-## Sources và phạm vi
+New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
 
-- [Feature / validation / state graph](../../features/20-documents.md) — FX-20-BR-001, FX-20-BR-002, FX-20-BR-003, FX-20-BR-004, FX-20-BR-005, FX-20-BR-006, FX-20-BR-007, FX-20-BR-008. Các BR này áp cho feature; không gán sai một BR duy nhất cho mọi row.
-- [UX specification](../../ux-ui/modules/20-documents.md); [exact screen bindings](../06-screen-bindings.md).
-- [Authorization contract](../00-authorization-contract.md), [semantic field guards](../01-composition-and-field-guards.md), [SDK contract](../04-module-action-contract.md).
-- Namespace `documents` là stable logical key, bind installed ModuleId trong manifest. **Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save**.
-
-## Catalog
-
-“All prerequisites” ở row bao gồm explicit Requires **và** source/dynamic dependencies trong guard; danh sách Requires trống không có nghĩa bỏ owner/module/lifecycle checks. Every action denies unknown fields and unapproved semantic changes. Source state matrix luôn kiểm tra ở handler, không suy quyền từ verb hoặc tên button.
-
-| Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
+| Action | Kind / context | Admin-grantable | Current scope | Gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="documents-library-read"></a>`documents.library.read` — Xem folder/current-location/Archived | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S01 |
-| <a id="documents-page-read"></a>`documents.page.read` — Xem page | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S01, FX20-S04, FX20-S05, FX20-S08 |
-| <a id="documents-folder-read"></a>`documents.folder.read` — Xem Folder | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
-| <a id="documents-folder-create"></a>`documents.folder.create` — Tạo Folder | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S01, FX20-S02 |
-| <a id="documents-folder-rename"></a>`documents.folder.rename` — Đổi tên Folder | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S01, FX20-S02 |
-| <a id="documents-folder-trash"></a>`documents.folder.trash` — Đưa folder vào Thùng rác | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
-| <a id="documents-folder-restore"></a>`documents.folder.restore` — Khôi phục folder từ Thùng rác | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
-| <a id="documents-folder-purge"></a>`documents.folder.purge` — Xóa vĩnh viễn folder | COMMAND / SELF | Yes, gated | Destructive (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
-| <a id="documents-page-create"></a>`documents.page.create` — Tạo root/child page | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S03 |
-| <a id="documents-page-save"></a>`documents.page.save` — Save content/metadata và tạo version | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S04, FX20-S05, FX20-S06 |
-| <a id="documents-page-publish"></a>`documents.page.publish` — Draft → Published | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S04, FX20-S05 |
-| <a id="documents-page-unpublish"></a>`documents.page.unpublish` — Published → Draft | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S04, FX20-S05 |
-| <a id="documents-page-archive"></a>`documents.page.archive` — Archive page | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S09 |
-| <a id="documents-page-unarchive"></a>`documents.page.unarchive` — Unarchive page | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S08, FX20-S09 |
-| <a id="documents-page-trash"></a>`documents.page.trash` — Đưa page vào Thùng rác | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S08, FX20-S10 |
-| <a id="documents-page-restore"></a>`documents.page.restore` — Khôi phục page từ Thùng rác | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S10 |
-| <a id="documents-page-purge"></a>`documents.page.purge` — Xóa vĩnh viễn page | COMMAND / SELF | Yes, gated | Destructive (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX20-S10 |
-| <a id="documents-page-history"></a>`documents.page.history` — Xem lịch sử page | QUERY / SELF | Yes, gated | Sensitive (Sensitive) | Resolved delegated: action contract; source business rules unchanged | FX20-S07 |
-| <a id="documents-page-restore-version"></a>`documents.page.restore_version` — Khôi phục version thành bản mới | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S07 |
-| <a id="documents-page-share"></a>`documents.page.share` — Quản lý link chỉ-đọc của page | COMPOSITE / SELF | Yes, gated | Disclosure (Sensitive) | Resolved delegated: action contract; source business rules unchanged | FX20-S01 |
-| <a id="documents-tag-read"></a>`documents.tag.read` — Xem Document tags | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
-| <a id="documents-tag-create"></a>`documents.tag.create` — Tạo Tag trong form | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
-| <a id="documents-tag-rename"></a>`documents.tag.rename` — Đổi tên Tag | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
-| <a id="documents-tag-remove"></a>`documents.tag.remove` — Xóa Tag không dùng | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
-| <a id="documents-support-read"></a>`documents.support.read` — Xem safe support projection của module | QUERY / SUPPORT | Yes, gated | Sensitive (Sensitive) | Resolved delegated: diagnostic projection only; private body excluded unless source scope explicitly permits | FX05-S03, FX05-S05 |
-| <a id="documents-format-import"></a>`documents.format.import` — Import Document file | COMPOSITE / SELF | Yes, gated | Disclosure (Sensitive) | Blocked Q-11 | FX20-S04, FX20-S05 |
-| <a id="documents-format-export"></a>`documents.format.export` — Export/convert Document | COMPOSITE / SELF | Yes, gated | Disclosure (Sensitive) | Blocked Q-11 | FX20-S04, FX20-S05 |
+| <a id="documents-library-read"></a>`documents.library.read` — Xem folder/current-location/Archived | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S01 |
+| <a id="documents-page-read"></a>`documents.page.read` — Xem page | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S01, FX20-S04, FX20-S05, FX20-S08 |
+| <a id="documents-folder-read"></a>`documents.folder.read` — Xem Folder | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
+| <a id="documents-folder-create"></a>`documents.folder.create` — Tạo Folder | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S01, FX20-S02 |
+| <a id="documents-folder-rename"></a>`documents.folder.rename` — Đổi tên Folder | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S01, FX20-S02 |
+| <a id="documents-folder-trash"></a>`documents.folder.trash` — Đưa folder vào Thùng rác | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
+| <a id="documents-folder-restore"></a>`documents.folder.restore` — Khôi phục folder từ Thùng rác | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
+| <a id="documents-folder-purge"></a>`documents.folder.purge` — Xóa vĩnh viễn folder | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S02 |
+| <a id="documents-page-create"></a>`documents.page.create` — Tạo root/child page | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S03 |
+| <a id="documents-page-save"></a>`documents.page.save` — Save content/metadata và tạo version | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S04, FX20-S05, FX20-S06 |
+| <a id="documents-page-publish"></a>`documents.page.publish` — Draft → Published | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S04, FX20-S05 |
+| <a id="documents-page-unpublish"></a>`documents.page.unpublish` — Published → Draft | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S04, FX20-S05 |
+| <a id="documents-page-archive"></a>`documents.page.archive` — Archive page | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S09 |
+| <a id="documents-page-unarchive"></a>`documents.page.unarchive` — Unarchive page | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S08, FX20-S09 |
+| <a id="documents-page-trash"></a>`documents.page.trash` — Đưa page vào Thùng rác | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S08, FX20-S10 |
+| <a id="documents-page-restore"></a>`documents.page.restore` — Khôi phục page từ Thùng rác | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S10 |
+| <a id="documents-page-purge"></a>`documents.page.purge` — Xóa vĩnh viễn page | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S10 |
+| <a id="documents-page-history"></a>`documents.page.history` — Xem lịch sử page | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S07 |
+| <a id="documents-page-restore-version"></a>`documents.page.restore_version` — Khôi phục version thành bản mới | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S07 |
+| <a id="documents-page-share"></a>`documents.page.share` — Quản lý link chỉ-đọc của page | COMPOSITE / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S01 |
+| <a id="documents-tag-read"></a>`documents.tag.read` — Xem Document tags | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
+| <a id="documents-tag-create"></a>`documents.tag.create` — Tạo Tag trong form | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
+| <a id="documents-tag-rename"></a>`documents.tag.rename` — Đổi tên Tag | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
+| <a id="documents-tag-remove"></a>`documents.tag.remove` — Xóa Tag không dùng | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX20-S06 |
+| <a id="documents-support-read"></a>`documents.support.read` — Xem safe support projection của module | QUERY / SUPPORT | Yes when active | Resolved delegated | Resolved delegated: diagnostic projection only; private body excluded unless source scope explicitly permits | FX05-S03, FX05-S05 |
+| <a id="documents-format-import"></a>`documents.format.import` — Import Document file | COMPOSITE / SELF | Yes when active | Resolved delegated | DEC-20260907-Q11; DOCX/MD basic subset | FX20-S04, FX20-S05 |
+| <a id="documents-format-export"></a>`documents.format.export` — Export/convert Document | COMPOSITE / SELF | Yes when active | Resolved delegated | DEC-20260907-Q11; DOCX/MD basic subset | FX20-S04, FX20-S05 |
 
-## Điều kiện riêng theo operation
-
-| Action | Guard / validation / effects | Explicit dependencies bổ sung |
+| Action | Exact guard / effect | Additional prerequisites |
 | --- | --- | --- |
 | `documents.library.read` | Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
 | `documents.page.read` | Owner/module + lifecycle; Archived read-only; Trash preview không live-share; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
@@ -72,21 +61,9 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 | `documents.tag.rename` | Document namespace; page tối đa1Tag; remove bị chặn nếu active/Archived/Trash page còn dùng; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
 | `documents.tag.remove` | Document namespace; page tối đa1Tag; remove bị chặn nếu active/Archived/Trash page còn dùng; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
 | `documents.support.read` | Qualified Admin + support.session.open + current one-module consent OR authorized SuperAdmin Emergency; target enabled; approved redacted projection only; no owner history/export/reveal/linked-module expansion; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
-| `documents.format.import` | Approved formats/fidelity Q-11; source state + actual create/save/export checks; immutable Type/Editor preserved; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
-| `documents.format.export` | Approved formats/fidelity Q-11; source state + actual create/save/export checks; immutable Type/Editor preserved; Owner; immutable DocumentType/EditorMode/Folder/Parent; Title editable ở Draft/Published theo current FX-20 delegated rule; explicit Save | Common + dynamic source/provider guards |
+| `documents.format.import` | Only .docx/.md, exact owned saved source/version and format permission; preview unsupported/lossy constructs, explicit acceptance; no external fetch/conversion; no PDF/HTML product export; immutable editor/type; manual Save | Common + dynamic source/provider guards |
+| `documents.format.export` | Only .docx/.md, exact owned saved source/version and format permission; preview unsupported/lossy constructs, explicit acceptance; no external fetch/conversion; no PDF/HTML product export; immutable editor/type; manual Save | Common + dynamic source/provider guards |
 
-## Deny và UX contract
+## Acceptance
 
-- Module off, grant missing/deny, resource wrong owner, disallowed lifecycle, current Q gate hoặc source dependency fail: không side effect; không dùng hidden button thay authorization.
-- Before/after field diff được kiểm tra cho Save, import, version restore, bulk, scheduler và automation. Form không được gửi status/reveal/export/owner trong generic Update.
-- Safe capability reason: ModuleUnavailable, ActionDenied, LifecycleLocked, DependencyUnavailable, DecisionBlocked hoặc StepUpRequired; unknown/wrong-owner resource trả unavailable chung để không enumerate.
-- Grant không thay đổi state graph. Chỉ quyền đã cấp và hợp lệ mới xuất hiện enabled; permission editor có thể hiển thị blocked row để giải thích, không cho bật.
-- Revocation và support/share/system contexts áp toàn bộ [common contract](../00-authorization-contract.md). Readonly projections không reuse full owner DTO.
-
-## Acceptance tối thiểu
-
-1. Với mỗi row: positive case đúng context/current state; wrong-owner và wrong-context negative; absent/deny Admin grant; module off; stale revision; lifecycle/Q gate.
-2. COMMAND/COMPOSITE: request replay/idempotency, before-commit recheck; affected fields cần đủ action. QUERY: owner-scoped filtering trước count/pagination/projection, cache không rò source revoked.
-3. LOCAL: keyboard/menu và tool entry cùng capability gate; không network/persist ngầm. SYSTEM: trusted caller, original authority và no UI grant.
-4. Row nhạy cảm: no secret in response preview, toast, logs, URL, search, browser persistent storage; current recent-auth gate nếu required.
-5. Nếu handler/source projection chưa có approved contract, action phải báo Blocked/Unavailable, không tự thực thi fallback rộng hơn.
+Check each active row: correct context/owner, Admin Allow/Deny/absent, deleted account, module off, stale version, protected-field diff, source dependencies and response projection. Paused/Blocked/Superseded denies even with Allow; no active UI/worker. Recovery needs SuperAdmin request-bound authorization and no operator plaintext; revoked link cannot revive after restore; internal flows must not auto-follow provider URLs. UI and keyboard call same source actions. Source BR/AC remain authoritative where not superseded by PO decisions.

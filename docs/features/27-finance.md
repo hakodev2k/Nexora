@@ -1,5 +1,7 @@
 # Personal Finance
 
+> **Current decision amendment — 2026-09-07:** Current basic scope is ManualCategory/ManualRecord category+amount entry. Advanced ledger/budget/debt/FX remains unconfirmed; new screens below. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-27 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -76,4 +78,3 @@ Category/bill/subscription list có search name/payee và filters state/date/acc
 - [phase-04-finance-and-vault.md](../requirements/phases/phase-04-finance-and-vault.md): `P04-ACC-001`, `P04-ACC-002`, `P04-ACC-003`, `P04-ACC-004`, `P04-ACC-005`, `P04-ACC-006`, `P04-BIL-001`, `P04-BIL-002`, `P04-BIL-003`, `P04-BIL-004`, `P04-BUD-001`, `P04-BUD-002`, `P04-CAT-001`, `P04-CAT-002`, `P04-CAT-003`, `P04-DEB-001`, `P04-REC-001`, `P04-REC-002`, `P04-RPT-001`, `P04-RPT-002`, `P04-RPT-003`, `P04-SAV-001`, `P04-SUB-001`, `P04-SUB-002`, `P04-TXN-001`, `P04-TXN-002`, `P04-TXN-003`, `P04-TXN-004`, `P04-TXN-005`, `P04-TXN-006`, `P04-TXN-007`, `P04-TXN-008`, `P04-TXN-009`
 
 Quyết định lớn cần PO: [Q-03](90-open-decisions.md#q-03), [Q-05](90-open-decisions.md#q-05). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
-

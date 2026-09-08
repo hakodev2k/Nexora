@@ -1,5 +1,7 @@
 # Nexora database design
 
+> **Current decision amendment — 2026-09-07:** New PO decisions partially resolve Q01/02/03/04/05/09, pause Q06/07, settle DOCX/MD and internal Calendar workflow; Q08 measurable targets and Q10 remain open. Current catalog v1.1; prior counts/statuses are baseline snapshots. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Đây là data model vật lý đề xuất cho toàn bộ catalog hiện tại và extension contracts cho module tương lai, **không phải database đã tạo**. Phần không phụ thuộc quyết định lớn được giải quyết ở cấp technical design; Q-01…Q-12 vẫn giữ nguyên quyền phê duyệt của Product Owner.
@@ -30,3 +32,7 @@ Tổng số bảng thiết kế: **181**. Không cố định core theo số mod
 ## Action catalog v1
 
 [714 operation contracts /40 feature scopes](../action-catalog/README.md), [screen bindings](../action-catalog/06-screen-bindings.md), and [database binding](../design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.
+
+## Current PO decision revision
+
+[Decision source](../requirements/10-owner-decisions-20260907.md) · [Current Q status](../features/90-open-decisions.md) · [Physical delta:4new tables](17-owner-decision-delta.md) · [Security/recovery ADR](../architecture/07-owner-decisions-security-and-recovery.md) · [Capacity policy](../architecture/08-capacity-and-verification-policy.md) · [Action catalog v1.1](../action-catalog/README.md). Historical181tables/197screens/714actions counts remain prior snapshots; current documented inventory includes185 table specs,202screens,733contracts with inactive scopes counted explicitly.

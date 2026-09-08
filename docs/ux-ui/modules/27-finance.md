@@ -1,5 +1,7 @@
 # FX-27 — Personal Finance — UX/UI Specification
 
+> **Current decision amendment — 2026-09-07:** Current basic scope is ManualCategory/ManualRecord category+amount entry. Advanced ledger/budget/debt/FX remains unconfirmed; new screens below. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
@@ -432,3 +434,7 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 ## Canonical action binding — catalog v1
 
 [FX-27 action catalog](../../action-catalog/modules/27-finance.md) and [screen bindings](../../action-catalog/06-screen-bindings.md) define exact keys, grantable contexts and Q gates. Descriptive verbs above are not permission names. Admin Self also needs explicit allowed action; User Self uses enabled-module owner baseline. SuperAdmin alone changes role/module/action grants. Local UI visibility does not replace server authorization.
+
+## Current basic Finance screens
+
+FX27-S13 /finance/records: manual records Table, category/amount/currency/date, filter category/date/currency, date descending, bounded pagination; New record and Manage categories. Group summaries only same currency, no balance/debt/net-worth. FX27-S14 full create/edit form: Category and Amount, explicit Currency, date default user-local today and optional Note; no Account or Income/Expense mandatory field. Save validates/records revision and safe Activity, returns list/detail, Cancel dirty guard. FX27-S15 category list/form: name unique owner-normalized; New/Edit/Remove unused; referenced category removal blocked with safe usage count. Empty create prompt, no-filter-results reset, error retry, denied read no payload; row keyboard actions, mobile stack, shared validation/focus/conflict patterns. Prior ledger/budget/debt screens remain Blocked until their semantics are approved.

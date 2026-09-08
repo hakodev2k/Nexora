@@ -1,5 +1,7 @@
 # FX-39 — Career / Jobs / Resume — UX/UI Specification
 
+> **Current decision amendment — 2026-09-07:** Linked Personal Calendar Events replace standalone Interview workflow; no external meetings. DOCX/MD basic Resume conversion only. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
@@ -318,3 +320,7 @@ Screen grouping/routes, shared profile selection, action placement, empty/error 
 ## Canonical action binding — catalog v1
 
 [FX-39 action catalog](../../action-catalog/modules/39-career.md) and [screen bindings](../../action-catalog/06-screen-bindings.md) define exact keys, grantable contexts and Q gates. Descriptive verbs above are not permission names. Admin Self also needs explicit allowed action; User Self uses enabled-module owner baseline. SuperAdmin alone changes role/module/action grants. Local UI visibility does not replace server authorization.
+
+## Current FX39-S04 replacement
+
+Linked events at /career/jobs/:jobId/events. Header Job title, primary Add event; choose Create personal Event (full internal Calendar form) or Link existing own Scheduled Personal Event. List Title/Start/End/Status from Calendar; Open stays in Nexora, Unlink removes reference only. No round/type/participant/feedback/conference form in current scope. Calendar readonly/disabled/revoked states rendered accurately; no duplicate reminder; missing source generic unavailable; all keyboard/mobile/back/dirty/conflict patterns apply. See [format/Calendar contract](../../features/95-docx-md-and-internal-calendar.md).

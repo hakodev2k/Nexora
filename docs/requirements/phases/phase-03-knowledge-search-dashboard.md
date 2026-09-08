@@ -1,5 +1,7 @@
 # Phase 3 — Documents, Global Search and Dashboard
 
+> **Current decision amendment — 2026-09-07:** Delivery scope update: Price/Automation/Integrations Paused, no coding/resume without PO. Current manual Finance/DOCX-MD/internal Calendar and soft-delete/recovery design follow new decisions; advanced/unanswered policies remain gated. [Normative PO decisions](../10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 **Phase ID:** `NX-PH-03`  
 **Version:** `1.2-draft`  
 **Outcome:** User lưu, tổ chức, chia sẻ read-only theo policy và tìm lại tri thức/tài liệu cá nhân; Dashboard tổng hợp dữ liệu của chính User mà không tạo source of truth mới.  

@@ -1,5 +1,7 @@
 # Vault
 
+> **Current decision amendment — 2026-09-07:** Deleted Vault values/history/keys retained encrypted. No purge/owner restore; SuperAdmin request-bound Recovery only, no operator plaintext. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+
 FX-28 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -74,4 +76,3 @@ Name/type/tags/favorite/folder đều owner metadata nhưng có thể nhạy c�
 - [phase-04-finance-and-vault.md](../requirements/phases/phase-04-finance-and-vault.md): `P04-CRY-001`, `P04-CRY-002`, `P04-CRY-003`, `P04-CRY-004`, `P04-CRY-005`, `P04-VAC-001`, `P04-VAC-002`, `P04-VAC-003`, `P04-VAC-004`, `P04-VAC-005`, `P04-VLT-001`, `P04-VLT-002`, `P04-VLT-003`, `P04-VLT-004`, `P04-VLT-005`, `P04-VLT-006`, `P04-VLT-007`, `P04-VLT-008`
 
 Quyết định lớn cần PO: [Q-02](90-open-decisions.md#q-02), [Q-04](90-open-decisions.md#q-04). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
-
