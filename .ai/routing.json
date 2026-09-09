@@ -8,7 +8,9 @@
     ".ai/verification.md",
     "docs/README.md",
     "docs/delivery/README.md",
-    "docs/delivery/01-current-scope.md"
+    "docs/delivery/01-current-scope.md",
+    "docs/goals/README.md",
+    "docs/goals/01-system-goals.md"
   ],
   "architecture": [
     ".ai/rules/software-architect/data-ownership-rules.md",

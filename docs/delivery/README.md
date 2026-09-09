@@ -24,3 +24,7 @@ Ngày review: 2026-09-08. Baseline: `1ca717a241cb084263de97adfba949d924ebf1ec`. 
 ## Kết quả của lượt này
 
 Chuẩn hóa các mâu thuẫn đã phát hiện (Documents formats, account/space activation, locale, soft-delete, sharing và các gate cũ); cụ thể hóa M01. Không tuyên bố toàn bộ 40 FX đã có API story-ready. Proposal còn lại được cô lập khỏi M01; R1 và production không được kết luận hoàn tất từ M01.
+
+## Goals và acceptance trace
+
+[Goals](../goals/README.md) nối current scope/M01 với P00–P08, RM00–RM22 và từng FX; [task/evidence template](../goals/05-task-and-evidence-template.md) yêu cầu trace goal tới source AC/action và actual test evidence. Không thay story contracts hoặc approval.

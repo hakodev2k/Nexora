@@ -15,6 +15,12 @@ the task brief. Read `docs/README.md`, `docs/delivery/README.md`, and
 `docs/delivery/01-current-scope.md`, then the relevant milestone contracts and
 current Product Owner decisions. Historical decisions are not current authority.
 
+Read `docs/goals/README.md` and the relevant system/phase/module goals for each
+planning, code or test task. Bind selected goal IDs to current source requirements,
+exact story/action/AC and test evidence using `docs/goals/05-task-and-evidence-template.md`.
+Goals summarize approved sources; they never override current PO decisions, unblock
+paused capabilities or grant implementation/deployment approval.
+
 The current delivery baseline says **no implementation approved**. Reviewing or
 updating this agent kit does not authorize application code, scaffolding, package
 installation, migrations, or deployment. Before application work, obtain explicit
