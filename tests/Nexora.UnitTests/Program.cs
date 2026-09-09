@@ -1,4 +1,5 @@
 using Nexora.Api.Features.Identity;
+using Nexora.Api.Features.Modules;
 using Nexora.Api.Security;
 using Nexora.Application.Identity;
 using Nexora.Application.Security;
@@ -8,6 +9,7 @@ using Nexora.Domain.Modules;
 using Nexora.UnitTests;
 
 var runner = new TestRunner();
+ModulePolicyStoreTests.Register(runner);
 
 runner.Add("email normalization trims and lowercases without provider alias rewriting", () =>
 {
@@ -188,7 +190,7 @@ runner.Add("idempotency digest is stable and body-sensitive", () =>
     AssertEx.False(IdempotencyDigest.FixedTimeEquals(left, different), "Different canonical request should produce different digest");
 });
 
-runner.Add("development identity store can register verify and login through service layer", () =>
+runner.Add("runtime store can register verify and login through service layer", () =>
 {
     var store = new DevelopmentIdentityStore(new PasswordHashService(), new SessionCookieService());
     var registration = store.Register(new RegistrationRequest("user@example.test", "correct-horse-phrase", "Asia/Ho_Chi_Minh", null));
@@ -205,7 +207,7 @@ runner.Add("development identity store can register verify and login through ser
     AssertEx.True(!string.IsNullOrWhiteSpace(login.Value!.RawSessionHandle), "Login should issue an opaque session handle");
 });
 
-runner.Add("development identity store prevents duplicate verification token replay", () =>
+runner.Add("runtime store prevents duplicate verification token replay", () =>
 {
     var store = new DevelopmentIdentityStore(new PasswordHashService(), new SessionCookieService());
     _ = store.Register(new RegistrationRequest("replay@example.test", "correct-horse-phrase", "Asia/Ho_Chi_Minh", null));
