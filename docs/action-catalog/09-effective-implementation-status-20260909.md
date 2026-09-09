@@ -48,6 +48,7 @@ Only these catalog actions are approved for implementation now, and only for M01
 Notes:
 
 - M01 also includes operator/developer work that has no user action key: S00 toolchain/runbook, S01 bootstrap SuperAdmin, S10 audit/outbox/jobs foundation and S11 evidence/restore rehearsal.
+- M01 API operationIds `getCsrf` and `reauth` are approved M01 control endpoints even though catalog v1.1 has no standalone action keys for them. `getCsrf` grants no user authority; `reauth` refreshes recent-auth proof under the identity/session control boundary.
 - M01 does not approve full Notification Center UI, full module settings, Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations.
 - `identity.account.soft_delete`, `identity.profile.change_email`, `identity.profile.change_password`, `access.user.disable`, `access.user.enable`, `access.user.revoke_sessions`, `modules.policy.sharing`, `modules.policy.settings`, `modules.runtime.register`, `modules.runtime.migrate`, `modules.runtime.health`, `settings.module.read`, `settings.module.update`, and `notifications.inbox.*` remain `DESIGN_RESOLVED_NOT_APPROVED_NOW` unless a later slice approves them.
 
