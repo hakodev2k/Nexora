@@ -1,4 +1,6 @@
-# M01-S00 implementation evidence
+# M01 implementation evidence note — PR #4
+
+Revision scope: `impl/m01-s00-scaffold`.
 
 Status: `SLICE_IMPLEMENTATION_STARTED`, not `SLICE_VERIFIED_LOCALLY`.
 
@@ -6,38 +8,80 @@ Status: `SLICE_IMPLEMENTATION_STARTED`, not `SLICE_VERIFIED_LOCALLY`.
 
 - Product Owner request: implement Nexora according to current docs and continue by dependency.
 - Current repository authority: `DEC-20260909-001` approves M01 stories S00-S11 plus backend/frontend scaffold and local scripts.
-- This change implements only the first coherent S00 scaffold package and does not implement S01-S11, business modules, paused modules, production deployment, provider calls, production secrets or production data.
+- This branch currently implements M01 local scaffold, the first identity API runtime surface, domain/application policy code, unit-test harness, and a SQL migration artifact.
+- It does not implement full M01, business modules, paused modules, production deployment, provider calls, production secrets or production data.
+
+## Current implemented code artifacts
+
+- M01 local scaffold and deterministic scripts.
+- ASP.NET Core API runtime surface under `/api/v1` for S02-S06 identity flows.
+- React/Vite local identity shell that calls the API surface.
+- Domain/application policy code used by identity, access, module, idempotency and profile rules.
+- Unit-test harness and tests for policy/runtime service behavior.
+- SQL Server migration artifact for the M01 identity/platform/security/operations/notifications tables.
+
+## API routes currently mapped
+
+- `GET /api/v1/auth/csrf`
+- `POST /api/v1/auth/registrations`
+- `POST /api/v1/auth/verifications`
+- `POST /api/v1/auth/verifications/resend`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/reauth`
+- `POST /api/v1/auth/password-resets`
+- `POST /api/v1/auth/password-resets/confirm`
+- `GET /api/v1/me`
+- `PATCH /api/v1/me`
+- `GET /api/v1/me/sessions`
+- `DELETE /api/v1/me/sessions/{sessionId}`
+- `POST /api/v1/me/sessions/revoke-all`
+- `GET /api/v1/dev/account-messages` in Development only, for captured local verification/reset tokens.
 
 ## Goal and requirement trace
 
 | Goal/source | Bound implementation |
 | --- | --- |
 | M01-S00 / M01-AC00 | Pinned toolchain files, reproducible local scripts, Docker Compose local SQL/Redis profile, application CI scaffold. |
-| M01 handoff | Backend scaffold, React scaffold and local scripts required before later M01 stories. |
-| Effective action status overlay | Only `getCsrf` M01 control endpoint is exposed; no non-M01 action handlers are added. |
+| M01-S02/S03/S04/S05/S06 API surface | Runtime routes for registration, verification, resend, login/logout/reauth, password reset, profile and sessions. |
+| M01-S01/S08/S09 policy foundation | Last-SuperAdmin, action grant and module dependency/paused policies. |
+| M01 data contract | SQL Server migration artifact for identity/platform/security/operations/notifications tables. |
+| Effective action status overlay | Only M01-approved identity/control/session/profile action routes are exposed; no non-M01 action handlers are added. |
 
-## Verification performed while preparing this branch
+## Verification actually executed in this ChatGPT runtime
 
-Environment available to the agent did not include the .NET SDK or outbound Git clone. Therefore .NET build, restore, migration and SQL integration tests were not run locally.
-
-Observed tool versions in the agent execution environment:
+The first scaffold revision was statically checked before later API additions:
 
 ```text
 node --version => v22.16.0
 npm --version => 10.9.2
 python3 --version => Python 3.13.5
 dotnet --info => dotnet: command not found
-```
 
-Static verification was executed against the generated file tree before commit:
+bash scripts/dev/doctor.sh
+[missing] .NET SDK 10 (dotnet)
+[ok] Node.js: v22.16.0
+[ok] npm: 10.9.2
+[ok] Python: Python 3.13.5
+[optional-missing] Docker (docker)
+S00 doctor completed with missing required tools; rerun with --strict to fail.
 
-```text
 python3 scripts/dev/verify-s00.py
 S00 static verification passed: scaffold files, .NET 10 pin, CSRF memory boundary, and paused-scope guards are present.
 ```
 
-`bash scripts/dev/doctor.sh` was also executed without `--strict` and correctly reported the missing .NET SDK instead of claiming readiness.
+## Not run / not claimed
 
-## Pending verification
+After the API/runtime additions, this environment still lacks the .NET SDK, so these remain **Not run** here:
 
-The PR CI workflow `M01 application scaffold` is the first place expected to execute `bash scripts/dev/verify.sh` on the final GitHub revision with .NET 10 and Node 22 available. Until CI passes and later SQL-backed stories are implemented, M01 remains partially implemented only.
+- `dotnet build`
+- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release`
+- SQL Server migration execution
+- SQL Server integration tests
+- Browser/manual E2E tests
+
+The current runtime store is a development in-memory implementation used to expose and exercise the M01 API surface. SQL-backed persistence, transaction locking, idempotency receipts, audit/outbox integration and true integration evidence still need follow-up implementation before M01 can be called verified.
+
+## Scope safety
+
+This branch does not implement Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations. It does not enable FX30/FX34/FX35 workers and does not use production data/secrets/provider calls.
