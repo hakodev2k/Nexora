@@ -23,7 +23,7 @@ app.MapGet("/api/v1/auth/csrf", (HttpContext context, CsrfTokenService tokens) =
 {
     var issued = tokens.Issue();
 
-    context.Response.Headers.CacheControl = "no-store";
+    context.Response.Headers["Cache-Control"] = "no-store";
     context.Response.Cookies.Append("__Host-NexoraCsrf", issued.CookieSecret, new CookieOptions
     {
         HttpOnly = true,
