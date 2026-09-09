@@ -51,10 +51,9 @@ public sealed class DevelopmentModuleStore
                 return ApiResult<ModulePolicyPreviewResponse>.Failure("ResourceUnavailable", StatusCodes.Status404NotFound, "Module unavailable.");
             }
 
-            var validation = ValidateEditableFields(request.SystemEnabled, request.RegistrationEnabled);
-            if (validation is not null)
+            if (!HasEditableField(request.SystemEnabled, request.RegistrationEnabled))
             {
-                return validation;
+                return ApiResult<ModulePolicyPreviewResponse>.Failure("ValidationFailed", StatusCodes.Status422UnprocessableEntity, "At least one editable module policy field is required.");
             }
 
             var changes = BuildDiffs(module, request.SystemEnabled, request.RegistrationEnabled);
@@ -91,10 +90,9 @@ public sealed class DevelopmentModuleStore
                 return ApiResult<ModuleResponse>.Failure("RevisionConflict", StatusCodes.Status412PreconditionFailed, "Module policy revision changed.");
             }
 
-            var validation = ValidateEditableFields(request.SystemEnabled, request.RegistrationEnabled);
-            if (validation is not null)
+            if (!HasEditableField(request.SystemEnabled, request.RegistrationEnabled))
             {
-                return validation;
+                return ApiResult<ModuleResponse>.Failure("ValidationFailed", StatusCodes.Status422UnprocessableEntity, "At least one editable module policy field is required.");
             }
 
             if (string.IsNullOrWhiteSpace(request.PreviewToken) ||
@@ -138,15 +136,8 @@ public sealed class DevelopmentModuleStore
         _modulesByCode[module.Code] = module;
     }
 
-    private static ApiResult<ModulePolicyPreviewResponse>? ValidateEditableFields(bool? systemEnabled, bool? registrationEnabled)
-    {
-        if (systemEnabled is null && registrationEnabled is null)
-        {
-            return ApiResult<ModulePolicyPreviewResponse>.Failure("ValidationFailed", StatusCodes.Status422UnprocessableEntity, "At least one editable module policy field is required.");
-        }
-
-        return null;
-    }
+    private static bool HasEditableField(bool? systemEnabled, bool? registrationEnabled) =>
+        systemEnabled is not null || registrationEnabled is not null;
 
     private IReadOnlyList<ModulePolicyBlocker> EvaluateBlockers(ModuleRecord module, bool? systemEnabled, bool? registrationEnabled)
     {
