@@ -56,6 +56,13 @@ button:focus-visible {
   gap: 0.75rem;
 }
 
+.module-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+  padding-left: 1.25rem;
+}
+
 dl {
   display: grid;
   grid-template-columns: max-content 1fr;
