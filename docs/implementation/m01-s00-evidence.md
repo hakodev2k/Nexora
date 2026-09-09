@@ -8,25 +8,25 @@ Status: `SLICE_IMPLEMENTATION_STARTED`, not `SLICE_VERIFIED_LOCALLY`.
 
 - Product Owner request: implement Nexora according to current docs and continue by dependency.
 - Current repository authority: `DEC-20260909-001` approves M01 stories S00-S11 plus backend/frontend scaffold and local scripts.
-- This branch currently implements M01 local scaffold, the first identity API runtime surface, domain/application policy code, unit-test harness, and a SQL migration artifact.
+- This branch currently implements M01 local scaffold, the first feature-based Minimal API identity runtime surface, domain/application policy code, unit-test harness, and a SQL migration artifact.
 - It does not implement full M01, business modules, paused modules, production deployment, provider calls, production secrets or production data.
 
 ## Backend layout correction
 
-`M01` is a delivery milestone, not a backend module or bounded context. Runtime API code is therefore organized by feature/responsibility:
+`M01` is a delivery milestone, not a backend module or bounded context. Runtime API code is therefore organized by feature/responsibility while keeping Minimal API style:
 
-- `src/Nexora.Api/Features/Identity/**` for identity HTTP contracts, endpoints and the temporary development identity store.
+- `src/Nexora.Api/Features/Identity/**` for identity HTTP contracts, Minimal API route mapping, and the temporary development identity store.
 - `src/Nexora.Api/Http/**` for HTTP result/problem helpers.
 - `src/Nexora.Api/Security/**` for CSRF, session cookie and password hashing support.
 - `src/Nexora.Application/**` for application policies/use-case inputs.
 - `src/Nexora.Domain/**` for domain policies and invariants.
 
-The milestone name remains only in docs, evidence, tests and PR traceability. No runtime code remains under `src/Nexora.Api/M01`.
+The milestone name remains only in docs, evidence, tests and PR traceability. No runtime code remains under `src/Nexora.Api/M01`, and no MVC controller surface is used for the current Identity slice.
 
 ## Current implemented code artifacts
 
 - M01 local scaffold and deterministic scripts.
-- ASP.NET Core API runtime surface under `/api/v1` for S02-S06 identity flows.
+- ASP.NET Core Minimal API runtime surface under `/api/v1` for S02-S06 identity flows.
 - React/Vite local identity shell that calls the API surface.
 - Domain/application policy code used by identity, access, module, idempotency and profile rules.
 - Unit-test harness and tests for policy/runtime service behavior.
