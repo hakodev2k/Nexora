@@ -1,3 +1,4 @@
+using System.Text;
 using Nexora.Domain.Common;
 
 namespace Nexora.Domain.Identity;
