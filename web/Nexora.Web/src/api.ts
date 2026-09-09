@@ -62,7 +62,7 @@ export type AdminModuleResponse = {
   systemEnabled: boolean;
   registrationEnabled: boolean;
   policyRevision: string;
-  etag: string;
+  eTag: string;
   requiredDependencies: string[];
   requiredBy: string[];
   unavailableReason: string | null;
@@ -97,7 +97,7 @@ export type ModulePolicyBlocker = {
 export type ModulePolicyPreviewResponse = {
   previewToken: string;
   expiresAt: string;
-  etag: string;
+  eTag: string;
   changes: ModuleChangeDiff[];
   blockers: ModulePolicyBlocker[];
 };
@@ -258,10 +258,10 @@ export function previewAdminModulePolicyDev(moduleId: string, change: ModulePoli
   });
 }
 
-export function setAdminModulePolicyDev(moduleId: string, etag: string, request: ModulePolicyCommitRequest) {
+export function setAdminModulePolicyDev(moduleId: string, eTag: string, request: ModulePolicyCommitRequest) {
   return apiFetch<AdminModuleResponse>(`/api/v1/admin/modules/${moduleId}/policy`, {
     method: 'PUT',
-    headers: devAdminHeaders({ 'If-Match': etag }),
+    headers: devAdminHeaders({ 'If-Match': eTag }),
     body: JSON.stringify(request)
   });
 }
