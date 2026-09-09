@@ -54,6 +54,54 @@ export type SessionPage = {
   nextCursor: string | null;
 };
 
+export type AdminModuleResponse = {
+  id: string;
+  code: string;
+  name: string;
+  state: string;
+  systemEnabled: boolean;
+  registrationEnabled: boolean;
+  policyRevision: string;
+  eTag: string;
+  requiredDependencies: string[];
+  requiredBy: string[];
+  unavailableReason: string | null;
+};
+
+export type AdminModulePageResponse = {
+  items: AdminModuleResponse[];
+  nextCursor: string | null;
+};
+
+export type ModulePolicyChangeRequest = {
+  systemEnabled?: boolean;
+  registrationEnabled?: boolean;
+};
+
+export type ModulePolicyCommitRequest = ModulePolicyChangeRequest & {
+  previewToken: string;
+};
+
+export type ModuleChangeDiff = {
+  field: string;
+  before: string;
+  after: string;
+};
+
+export type ModulePolicyBlocker = {
+  code: string;
+  message: string;
+  field: string | null;
+};
+
+export type ModulePolicyPreviewResponse = {
+  previewToken: string;
+  expiresAt: string;
+  eTag: string;
+  changes: ModuleChangeDiff[];
+  blockers: ModulePolicyBlocker[];
+};
+
 let csrfToken: string | null = null;
 let currentProfileETag: string | null = null;
 
@@ -122,6 +170,13 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+function devAdminHeaders(additional?: Record<string, string>): HeadersInit {
+  return {
+    'X-Nexora-Dev-SuperAdmin': 'true',
+    ...additional
+  };
+}
+
 export function registerDemoUser(email: string, password: string, timeZoneId = 'Asia/Ho_Chi_Minh') {
   return apiFetch<AcceptedResponse>('/api/v1/auth/registrations', {
     method: 'POST',
@@ -187,4 +242,26 @@ export function listSessions() {
 
 export function revokeAllSessions() {
   return apiFetch<void>('/api/v1/me/sessions/revoke-all', { method: 'POST' });
+}
+
+export function listAdminModulesDev() {
+  return apiFetch<AdminModulePageResponse>('/api/v1/admin/modules', {
+    headers: devAdminHeaders()
+  });
+}
+
+export function previewAdminModulePolicyDev(moduleId: string, change: ModulePolicyChangeRequest) {
+  return apiFetch<ModulePolicyPreviewResponse>(`/api/v1/admin/modules/${moduleId}/preview`, {
+    method: 'POST',
+    headers: devAdminHeaders(),
+    body: JSON.stringify(change)
+  });
+}
+
+export function setAdminModulePolicyDev(moduleId: string, eTag: string, request: ModulePolicyCommitRequest) {
+  return apiFetch<AdminModuleResponse>(`/api/v1/admin/modules/${moduleId}/policy`, {
+    method: 'PUT',
+    headers: devAdminHeaders({ 'If-Match': eTag }),
+    body: JSON.stringify(request)
+  });
 }
