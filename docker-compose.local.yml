@@ -1,0 +1,27 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: nexora-sqlserver-local
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: "${NEXORA_SQL_PASSWORD:-Nexora_local_2026!}"
+    ports:
+      - "14333:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"${NEXORA_SQL_PASSWORD:-Nexora_local_2026!}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - nexora_sqlserver_data:/var/opt/mssql
+
+  redis:
+    image: redis:7-alpine
+    container_name: nexora-redis-local
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+
+volumes:
+  nexora_sqlserver_data:
