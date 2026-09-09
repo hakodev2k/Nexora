@@ -1,10 +1,10 @@
 # Nexora Action Catalog v1.1
 
-2026-09-07 · Updated after [Product Owner decisions](../requirements/10-owner-decisions-20260907.md). Docs only; **chưa được phép implement**.
+2026-09-09 · Updated after [Product Owner decisions 2026-09-09](../requirements/11-owner-decisions-20260909-implementation-readiness.md). Docs/action contracts are design authority, not runtime evidence. **Only M01 + backend/frontend scaffold + local scripts are approved for implementation by `DEC-20260909-001`; all other action contracts require a later bounded approval.**
 
-733 registered/documented contracts across40 FX scopes, including retained historical keys; 202 documented Screen IDs including paused/conditional screens. Status counts: Resolved delegated **584**; Blocked **75**; Superseded **11**; Paused **63**. “Resolved delegated” describes action design, not implementation approval or a guarantee every dependent resource/proof is available.
+733 registered/documented contracts across40 FX scopes, including retained historical keys; 202 documented Screen IDs including paused/conditional screens. Status counts from catalog v1.1 remain: Resolved delegated **584**; Blocked **75**; Superseded **11**; Paused **63**. “Resolved delegated” describes action design, not a guarantee every dependent resource/proof exists or that every action is approved for implementation now.
 
-**User được cấp module; Admin được cấp module/action; SuperAdmin đổi grants.** Paused/Blocked/Superseded is stronger than Allow. No new User action-level grants. 641 action classes are theoretically Admin-grantable; 520 are in current resolved scope before resource/context checks.
+**User được cấp module; Admin được cấp module/action; SuperAdmin đổi grants.** Paused/Blocked/Superseded is stronger than Allow. No new User action-level grants. 641 action classes are theoretically Admin-grantable; 520 are in current resolved scope before resource/context checks. `DEC-20260909-001` narrows what may be implemented now to the M01 action/story set.
 
 [PO change mapping](08-owner-decision-changes.md) · [Decision status](../features/90-open-decisions.md) · [Authorization](00-authorization-contract.md) · [Composition](01-composition-and-field-guards.md) · [Revoke](02-revocation-and-runtime.md) · [Permission editor](03-permission-editor.md) · [SDK](04-module-action-contract.md) · [Acceptance](05-verification.md) · [Screen bindings](06-screen-bindings.md) · [Review](07-review-and-open-gates.md) · [CSV](catalog.csv)
 
@@ -52,3 +52,7 @@
 | FX-40 | [Learning / Work Log](modules/40-learning.md) | 58 | 56 | 2 | 0 | 0 |
 
 40 FX namespaces are not40 mandatory assemblies/DbContexts. New action registration never auto-grants Admin access. Source Modules/owner/lifecycle/current policy and explicit operating contexts remain mandatory. Local pure-tool capability controls UI availability, not a user's ability to run an algorithm elsewhere.
+
+## Current implementation rule
+
+For the next implementation agent, the action catalog must be filtered by M01 story/action lists under `docs/delivery/milestone-01`. Do not implement actions solely because this catalog lists them as Resolved delegated. Paused/Blocked/Superseded remains stronger than Allow/default-on. Runtime availability still requires installed code, compatible migrations, health/readiness, current scope, module enablement, action authority, lifecycle checks and field projection.
