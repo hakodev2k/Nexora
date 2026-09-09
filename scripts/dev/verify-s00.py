@@ -2,8 +2,9 @@
 """Static S00 checks for the Nexora local scaffold.
 
 These checks intentionally do not claim application runtime or SQL integration
-coverage. They guard the approved M01-S00 scaffold contract, actual M01 API route
-surface, and paused-scope boundaries until SQL-backed stories are fully verified.
+coverage. They guard the approved M01-S00 scaffold contract, actual identity API
+route surface, and paused-scope boundaries until SQL-backed stories are fully
+verified.
 """
 from __future__ import annotations
 
@@ -20,11 +21,12 @@ REQUIRED_FILES = [
     "docker-compose.local.yml",
     "src/Nexora.Api/Nexora.Api.csproj",
     "src/Nexora.Api/Program.cs",
-    "src/Nexora.Api/M01/M01IdentityEndpoints.cs",
-    "src/Nexora.Api/M01/M01RuntimeStore.cs",
-    "src/Nexora.Api/M01/M01Contracts.cs",
-    "src/Nexora.Api/M01/PasswordHashService.cs",
-    "src/Nexora.Api/M01/SessionCookieService.cs",
+    "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs",
+    "src/Nexora.Api/Features/Identity/DevelopmentIdentityStore.cs",
+    "src/Nexora.Api/Features/Identity/IdentityContracts.cs",
+    "src/Nexora.Api/Http/ApiResult.cs",
+    "src/Nexora.Api/Security/PasswordHashService.cs",
+    "src/Nexora.Api/Security/SessionCookieService.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
     "src/Nexora.Domain/Nexora.Domain.csproj",
@@ -81,6 +83,10 @@ def read(path: str) -> str:
 
 
 def main() -> int:
+    legacy_milestone_api_dir = ROOT / "src/Nexora.Api/M01"
+    if legacy_milestone_api_dir.exists():
+        fail("Backend API code must be organized by feature/domain, not under src/Nexora.Api/M01")
+
     for path in REQUIRED_FILES:
         read(path)
 
@@ -96,17 +102,19 @@ def main() -> int:
         fail("Nexora.Api must reference the domain and application policy projects")
 
     program = read("src/Nexora.Api/Program.cs")
-    if "MapM01IdentityEndpoints" not in program:
-        fail("Program.cs must map the M01 identity API endpoints")
+    if "MapIdentityEndpoints" not in program or "MapM01IdentityEndpoints" in program:
+        fail("Program.cs must map feature-based identity endpoints, not milestone-named endpoints")
+    if "Nexora.Api.M01" in program:
+        fail("Program.cs must not reference a milestone-named API namespace")
 
-    endpoints = read("src/Nexora.Api/M01/M01IdentityEndpoints.cs")
+    endpoints = read("src/Nexora.Api/Features/Identity/IdentityEndpoints.cs")
     for route in REQUIRED_API_ROUTES:
         if route not in endpoints:
-            fail(f"M01 identity endpoint route missing: {route}")
+            fail(f"Identity endpoint route missing: {route}")
     if "__Host-NexoraCsrf" not in endpoints:
-        fail("M01 CSRF endpoint must set the host-prefixed CSRF cookie")
-    if "__Host-NexoraSession" not in read("src/Nexora.Api/M01/SessionCookieService.cs"):
-        fail("M01 session cookie service must use the host-prefixed session cookie")
+        fail("CSRF endpoint must set the host-prefixed CSRF cookie")
+    if "__Host-NexoraSession" not in read("src/Nexora.Api/Security/SessionCookieService.cs"):
+        fail("Session cookie service must use the host-prefixed session cookie")
 
     web_api = read("web/Nexora.Web/src/api.ts")
     if "let csrfToken" not in web_api or "localStorage" in web_api or "sessionStorage" in web_api:
@@ -123,9 +131,6 @@ def main() -> int:
         if table not in migration:
             fail(f"M01 SQL migration table missing: {table}")
 
-    # Only scan executable runtime surfaces for forbidden paused/provider behavior.
-    # Domain policy and unit-test code may intentionally mention paused action keys
-    # to prove that those actions are blocked.
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "web/Nexora.Web/src/**/*"):
         scanned.extend(ROOT.glob(pattern))
@@ -133,11 +138,13 @@ def main() -> int:
         if path.is_file():
             text = path.read_text(encoding="utf-8")
             rel = path.relative_to(ROOT)
+            if "namespace Nexora.Api.M01" in text:
+                fail(f"milestone-named API namespace remains in {rel}")
             for forbidden in FORBIDDEN_RUNTIME_PATTERNS:
                 if re.search(forbidden, text):
                     fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("S00 static verification passed: scaffold files, .NET 10 pin, M01 identity API routes, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
+    print("S00 static verification passed: feature-based API layout, .NET 10 pin, identity API routes, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
     return 0
 
 
