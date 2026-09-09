@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AdminModuleResponse,
   DevAccountMessage,
   ProfileResponse,
   getCsrf,
   getMe,
+  listAdminModulesDev,
   listDevAccountMessages,
   listSessions,
   login,
@@ -21,6 +23,7 @@ export function App() {
   const [log, setLog] = useState<string[]>([]);
   const [messages, setMessages] = useState<DevAccountMessage[]>([]);
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [modules, setModules] = useState<AdminModuleResponse[]>([]);
   const demoEmail = useMemo(() => `demo-${Date.now()}@example.test`, []);
 
   useEffect(() => {
@@ -89,17 +92,23 @@ export function App() {
     return result;
   }
 
+  async function loadModules() {
+    const result = await listAdminModulesDev();
+    setModules(result.items);
+    return result;
+  }
+
   return (
     <main className="shell" aria-labelledby="page-title">
       <section className="card">
         <p className="eyebrow">Nexora</p>
-        <h1 id="page-title">M01 identity API implementation shell</h1>
+        <h1 id="page-title">M01 minimal API implementation shell</h1>
         <p>{message}</p>
         <dl>
           <dt>Approved decision</dt>
           <dd>DEC-20260909-001</dd>
           <dt>Current runtime surface</dt>
-          <dd>S02–S06 identity API endpoints, development store, local dev mailbox</dd>
+          <dd>S02–S06 identity APIs and S07/S09 module catalog smoke APIs, all development-only until SQL-backed.</dd>
           <dt>Status</dt>
           <dd>{status}</dd>
           <dt>Demo email</dt>
@@ -122,6 +131,26 @@ export function App() {
           <button onClick={() => run('list sessions', listSessions)}>List sessions</button>
           <button onClick={() => run('logout', logout)}>Logout</button>
         </div>
+      </section>
+
+      <section className="card" aria-labelledby="module-title">
+        <h2 id="module-title">Local module catalog smoke flow</h2>
+        <p className="hint">
+          Uses an explicit development-only SuperAdmin proof header. This is not the final authorization model; the SQL-backed access layer must replace it before M01 is verified.
+        </p>
+        <div className="actions">
+          <button onClick={() => run('list admin modules', loadModules)}>List admin modules</button>
+        </div>
+        {modules.length > 0 && (
+          <ul className="module-list" aria-label="Module catalog">
+            {modules.map((module) => (
+              <li key={module.id}>
+                <strong>{module.code}</strong> — {module.name}: {module.state}, system={String(module.systemEnabled)}, registration={String(module.registrationEnabled)}
+                {module.unavailableReason ? ` (${module.unavailableReason})` : ''}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {profile && (
