@@ -97,3 +97,5 @@ The current identity store is a development in-memory implementation used to exp
 ## Scope safety
 
 This branch does not implement Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations. It does not enable FX30/FX34/FX35 workers and does not use production data/secrets/provider calls.
+
+Last architecture note: Minimal API is the intended current API style for this branch.
