@@ -2,12 +2,13 @@
 
 Ngày review: 2026-09-09. Baseline: `1ca717a241cb084263de97adfba949d924ebf1ec`. **M01 + backend/frontend scaffold + local scripts đã được Product Owner approve để implement local-first theo `DEC-20260909-001`; các phần ngoài slice này vẫn cần approval riêng.**
 
-Đọc theo thứ tự: [phạm vi hiện hành](01-current-scope.md) → [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) → [milestone đầu tiên](milestone-01/README.md) → stories → API → DB/transactions → UX/acceptance → môi trường/evidence. Một action có thiết kế không đồng nghĩa có handler, endpoint đang chạy, hoặc được phép phát hành.
+Đọc theo thứ tự: [phạm vi hiện hành](01-current-scope.md) → [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) → [paused/blocked/gated register](04-paused-blocked-gate-register.md) → [milestone đầu tiên](milestone-01/README.md) → stories → API → DB/transactions → UX/acceptance → môi trường/evidence. Một action có thiết kế không đồng nghĩa có handler, endpoint đang chạy, hoặc được phép phát hành.
 
 | Câu hỏi | Nguồn hiện hành |
 | --- | --- |
 | Sản phẩm và Release 1 gồm gì? | [Scope](01-current-scope.md), [Product Owner record 2026-09-07](../requirements/10-owner-decisions-20260907.md), [PO implementation-readiness 2026-09-09](../requirements/11-owner-decisions-20260909-implementation-readiness.md) |
-| Milestone đầu tiên được làm gì sau approval? | [M01 handoff](milestone-01/README.md) |
+| Milestone đầu tiên được làm gì sau approval? | [M01 handoff](milestone-01/README.md), [M01 implementation handoff prompt](milestone-01/07-implementation-handoff.md) |
+| Paused/Blocked/Gated hiện nghĩa là gì trước khi code? | [Paused/blocked/gated register](04-paused-blocked-gate-register.md) |
 | Điểm nào đã tự chốt, điểm nào cần PO? | [Decision status](../features/90-open-decisions.md), [Decision proposals](02-decision-proposals.md) |
 | Mẫu tham khảo nào, áp dụng đến đâu? | [Evidence register](03-reference-evidence.md) |
 | Bản cũ ở đâu? | [Historical snapshot](../history/20260908/README.md) |
@@ -21,6 +22,7 @@ Ngày review: 2026-09-09. Baseline: `1ca717a241cb084263de97adfba949d924ebf1ec`. 
 - `Approved` chỉ cho lời PO; `Resolved delegated` cho quyết định trong quyền đã giao; `Proposed` cho thay đổi business/security còn cần PO; `Blocked` có phạm vi cụ thể; `Paused` chỉ resume khi PO yêu cầu.
 - Specification-ready, implementation-approved, implemented, runtime-verified và production-approved là năm trạng thái độc lập.
 - `DEC-20260909-001` chỉ approve M01 + scaffold/local scripts. Không lấy approval này để ship full Phase1/R1, bật module paused, deploy production hoặc dùng production secrets/data.
+- Trước khi code, mọi action chạm tới phải được phân loại bằng [paused/blocked/gated register](04-paused-blocked-gate-register.md). Nếu module file và register mâu thuẫn, dùng rule chặt hơn và sửa docs trước khi code capability đó.
 
 ## Kết quả của lượt này
 
