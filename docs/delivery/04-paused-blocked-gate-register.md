@@ -2,7 +2,7 @@
 
 2026-09-09 · Docs-only clarification layer. This document authorizes no application code, migration, runtime test, provider call, production deployment, production data access or secret access by itself.
 
-This register clarifies the effective meaning of `Paused`, `Blocked`, `Gated`, `Resolved delegated`, and `Approved for M01` after `DEC-20260909-001` through `DEC-20260909-010`. If an older catalog row still says `Blocked Q-*`, `DEP-EXT-01 boundary needs clarification`, or `no implementation approved`, read that row through this register until the catalog is regenerated. This file may narrow availability; it never expands the approved implementation boundary.
+This register clarifies the effective meaning of `Paused`, `Blocked`, `Gated`, `Resolved delegated`, and `Approved for M01` after `DEC-20260909-001` through `DEC-20260909-013`. If an older catalog row still says `Blocked Q-*`, `DEP-EXT-01 boundary needs clarification`, or `no implementation approved`, read that row through this register until the catalog is regenerated. This file may narrow availability; it never expands the approved implementation boundary.
 
 ## Status vocabulary
 
@@ -97,7 +97,7 @@ Before any implementation PR, the agent must record:
 
 - Current branch/revision.
 - Exact approved slice and decision ID.
-- Whether every touched action is `APPROVED_FOR_M01`, `DESIGN_RESOLVED_NOT_APPROVED_NOW`, `PO_PAUSED`, `NETWORK_GUARD_GATED`, `SENSITIVE_PROJECTION_GATED`, `PRODUCTION_OPS_GATED` or `SUPERSEDED`.
+- Whether every touched action is `APPROVED_FOR_M01`, `DESIGN_RESOLVED_NOT_APPROVED_NOW`, `POLICY_APPROVED_IMPLEMENTATION_GATED`, `PO_PAUSED`, `NETWORK_GUARD_GATED`, `SENSITIVE_PROJECTION_GATED`, `PRODUCTION_OPS_GATED` or `SUPERSEDED`.
 - Why no paused/blocked/gated action is implemented accidentally.
 - Runtime evidence that actually ran, or `Not run` with reason.
 
