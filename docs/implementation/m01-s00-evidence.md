@@ -11,6 +11,18 @@ Status: `SLICE_IMPLEMENTATION_STARTED`, not `SLICE_VERIFIED_LOCALLY`.
 - This branch currently implements M01 local scaffold, the first identity API runtime surface, domain/application policy code, unit-test harness, and a SQL migration artifact.
 - It does not implement full M01, business modules, paused modules, production deployment, provider calls, production secrets or production data.
 
+## Backend layout correction
+
+`M01` is a delivery milestone, not a backend module or bounded context. Runtime API code is therefore organized by feature/responsibility:
+
+- `src/Nexora.Api/Features/Identity/**` for identity HTTP contracts, endpoints and the temporary development identity store.
+- `src/Nexora.Api/Http/**` for HTTP result/problem helpers.
+- `src/Nexora.Api/Security/**` for CSRF, session cookie and password hashing support.
+- `src/Nexora.Application/**` for application policies/use-case inputs.
+- `src/Nexora.Domain/**` for domain policies and invariants.
+
+The milestone name remains only in docs, evidence, tests and PR traceability.
+
 ## Current implemented code artifacts
 
 - M01 local scaffold and deterministic scripts.
@@ -80,7 +92,7 @@ After the API/runtime additions, this environment still lacks the .NET SDK, so t
 - SQL Server integration tests
 - Browser/manual E2E tests
 
-The current runtime store is a development in-memory implementation used to expose and exercise the M01 API surface. SQL-backed persistence, transaction locking, idempotency receipts, audit/outbox integration and true integration evidence still need follow-up implementation before M01 can be called verified.
+The current identity store is a development in-memory implementation used to expose and exercise the M01 API surface. SQL-backed persistence, transaction locking, idempotency receipts, audit/outbox integration and true integration evidence still need follow-up implementation before M01 can be called verified.
 
 ## Scope safety
 
