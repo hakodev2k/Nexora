@@ -1,4 +1,5 @@
-using Nexora.Api.M01;
+using Nexora.Api.Features.Identity;
+using Nexora.Api.Security;
 using Nexora.Application.Identity;
 using Nexora.Application.Security;
 using Nexora.Domain.Access;
@@ -187,9 +188,9 @@ runner.Add("idempotency digest is stable and body-sensitive", () =>
     AssertEx.False(IdempotencyDigest.FixedTimeEquals(left, different), "Different canonical request should produce different digest");
 });
 
-runner.Add("runtime store can register verify and login through service layer", () =>
+runner.Add("development identity store can register verify and login through service layer", () =>
 {
-    var store = new M01RuntimeStore(new PasswordHashService(), new SessionCookieService());
+    var store = new DevelopmentIdentityStore(new PasswordHashService(), new SessionCookieService());
     var registration = store.Register(new RegistrationRequest("user@example.test", "correct-horse-phrase", "Asia/Ho_Chi_Minh", null));
     AssertEx.True(registration.Succeeded, "Registration should return generic success");
     AssertEx.Equal(202, registration.StatusCode, "Registration should return 202");
@@ -204,9 +205,9 @@ runner.Add("runtime store can register verify and login through service layer", 
     AssertEx.True(!string.IsNullOrWhiteSpace(login.Value!.RawSessionHandle), "Login should issue an opaque session handle");
 });
 
-runner.Add("runtime store prevents duplicate verification token replay", () =>
+runner.Add("development identity store prevents duplicate verification token replay", () =>
 {
-    var store = new M01RuntimeStore(new PasswordHashService(), new SessionCookieService());
+    var store = new DevelopmentIdentityStore(new PasswordHashService(), new SessionCookieService());
     _ = store.Register(new RegistrationRequest("replay@example.test", "correct-horse-phrase", "Asia/Ho_Chi_Minh", null));
     var token = store.CapturedMessages().Single(item => item.Purpose == "EmailVerification").Token;
 
