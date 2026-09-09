@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Nexora.Api.Features.Identity;
+using Nexora.Api.Features.Modules;
 using Nexora.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,7 @@ builder.Services.AddSingleton<CsrfTokenService>();
 builder.Services.AddSingleton<PasswordHashService>();
 builder.Services.AddSingleton<SessionCookieService>();
 builder.Services.AddSingleton<DevelopmentIdentityStore>();
+builder.Services.AddSingleton<DevelopmentModuleStore>();
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;
@@ -26,10 +28,11 @@ app.UseSecurityHeaders();
 app.MapGet("/health/live", () => Results.Ok(new HealthEnvelope("Live", "Nexora.Api")))
     .WithName("liveHealth");
 
-app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForIdentityMinimalApiSurface", "Nexora.Api")))
+app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForIdentityAndModuleMinimalApiSurface", "Nexora.Api")))
     .WithName("readyHealth");
 
 app.MapIdentityEndpoints();
+app.MapModuleEndpoints();
 
 app.MapFallback(() => Results.Problem(
     title: "Resource unavailable",
