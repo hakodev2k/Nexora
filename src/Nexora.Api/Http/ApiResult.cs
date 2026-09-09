@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace Nexora.Api.Http;
 
@@ -19,37 +19,30 @@ public sealed record ApiResult<T>(
         new(false, default, code, statusCode, title);
 }
 
-public static class ApiActionResultExtensions
+public static class ApiHttpResultExtensions
 {
-    public static ActionResult ToActionResult<T>(this ApiResult<T> result, ControllerBase controller)
+    public static IResult ToHttp<T>(this ApiResult<T> result, HttpContext context)
     {
-        controller.Response.Headers["Cache-Control"] = "no-store";
+        context.Response.Headers.CacheControl = "no-store";
 
         if (result.Succeeded)
         {
             if (result.StatusCode == StatusCodes.Status204NoContent)
             {
-                return controller.NoContent();
+                return Results.NoContent();
             }
 
-            return new ObjectResult(result.Value)
-            {
-                StatusCode = result.StatusCode
-            };
+            return Results.Json(result.Value, statusCode: result.StatusCode);
         }
 
-        var problem = new ProblemDetails
-        {
-            Title = result.Title,
-            Status = result.StatusCode,
-            Type = $"/problems/{result.Code}"
-        };
-        problem.Extensions["code"] = result.Code;
-        problem.Extensions["traceId"] = controller.HttpContext.TraceIdentifier;
-
-        return new ObjectResult(problem)
-        {
-            StatusCode = result.StatusCode
-        };
+        return Results.Problem(
+            title: result.Title,
+            statusCode: result.StatusCode,
+            type: $"/problems/{result.Code}",
+            extensions: new Dictionary<string, object?>
+            {
+                ["code"] = result.Code,
+                ["traceId"] = context.TraceIdentifier
+            });
     }
 }
