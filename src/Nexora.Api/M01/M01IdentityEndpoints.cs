@@ -7,6 +7,30 @@ public static class M01IdentityEndpoints
     public static WebApplication MapM01IdentityEndpoints(this WebApplication app)
     {
         var api = app.MapGroup("/api/v1");
+        api.AddEndpointFilter(async (invocationContext, next) =>
+        {
+            var http = invocationContext.HttpContext;
+            if (HttpMethods.IsPost(http.Request.Method) || HttpMethods.IsPut(http.Request.Method) || HttpMethods.IsPatch(http.Request.Method) || HttpMethods.IsDelete(http.Request.Method))
+            {
+                var csrf = http.RequestServices.GetRequiredService<CsrfTokenService>();
+                var cookieSecret = http.Request.Cookies["__Host-NexoraCsrf"];
+                var requestToken = http.Request.Headers["X-CSRF-Token"].ToString();
+                if (!csrf.Validate(cookieSecret, requestToken))
+                {
+                    return Results.Problem(
+                        title: "CSRF token is invalid.",
+                        statusCode: StatusCodes.Status403Forbidden,
+                        type: "/problems/CsrfInvalid",
+                        extensions: new Dictionary<string, object?>
+                        {
+                            ["code"] = "CsrfInvalid",
+                            ["traceId"] = http.TraceIdentifier
+                        });
+                }
+            }
+
+            return await next(invocationContext);
+        });
 
         api.MapGet("/auth/csrf", (HttpContext context, CsrfTokenService tokens) =>
         {
