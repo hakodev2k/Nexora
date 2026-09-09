@@ -96,9 +96,9 @@ Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi l�
 
 Các tài liệu này không tuyên bố đã implement. Current Product Owner decisions > approved requirements > resolved delegated decisions > features > these technical/UX designs > historical roadmap/reference products.
 
-## Action catalog v1
+## Current action catalog
 
-[714 operation contracts /40 feature scopes](action-catalog/README.md), [screen bindings](action-catalog/06-screen-bindings.md), and [database binding](design-database/16-action-catalog-binding.md). Docs-only; implementation chỉ được phép cho bounded slice đã có PO approval.
+[733 documented action contracts /40 feature scopes](action-catalog/README.md), [screen bindings](action-catalog/06-screen-bindings.md), and [database binding](design-database/16-action-catalog-binding.md). Docs-only; implementation chỉ được phép cho bounded slice đã có PO approval.
 
 ## Current PO decision revision
 
