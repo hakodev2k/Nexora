@@ -1,3 +1,4 @@
+using Nexora.Api.M01;
 using Nexora.Application.Identity;
 using Nexora.Application.Security;
 using Nexora.Domain.Access;
@@ -30,6 +31,14 @@ runner.Add("password policy accepts fifteen unicode code points", () =>
 {
     var decision = PasswordPolicy.Validate(new string('a', 15));
     AssertEx.True(decision.Allowed, "Fifteen-code-point password should pass length policy");
+});
+
+runner.Add("password hash verifies only the original secret", () =>
+{
+    var service = new PasswordHashService();
+    var hash = service.Hash("correct-horse-phrase");
+    AssertEx.True(service.Verify("correct-horse-phrase", hash), "Original password should verify");
+    AssertEx.False(service.Verify("wrong-correct-horse", hash), "Different password must not verify");
 });
 
 runner.Add("registration defaults display name and locale", () =>
@@ -176,6 +185,37 @@ runner.Add("idempotency digest is stable and body-sensitive", () =>
 
     AssertEx.True(IdempotencyDigest.FixedTimeEquals(left, same), "Same canonical request should produce same digest");
     AssertEx.False(IdempotencyDigest.FixedTimeEquals(left, different), "Different canonical request should produce different digest");
+});
+
+runner.Add("runtime store can register verify and login through service layer", () =>
+{
+    var store = new M01RuntimeStore(new PasswordHashService(), new SessionCookieService());
+    var registration = store.Register(new RegistrationRequest("user@example.test", "correct-horse-phrase", "Asia/Ho_Chi_Minh", null));
+    AssertEx.True(registration.Succeeded, "Registration should return generic success");
+    AssertEx.Equal(202, registration.StatusCode, "Registration should return 202");
+
+    var message = store.CapturedMessages().Single(item => item.Purpose == "EmailVerification");
+    var verification = store.Verify(new TokenProofRequest(message.Token));
+    AssertEx.True(verification.Succeeded, "Verification token should activate account");
+    AssertEx.Equal("Active", verification.Value!.Profile.State, "Verified account should be active");
+
+    var login = store.Login(new CredentialsRequest("user@example.test", "correct-horse-phrase"));
+    AssertEx.True(login.Succeeded, "Verified account should login");
+    AssertEx.True(!string.IsNullOrWhiteSpace(login.Value!.RawSessionHandle), "Login should issue an opaque session handle");
+});
+
+runner.Add("runtime store prevents duplicate verification token replay", () =>
+{
+    var store = new M01RuntimeStore(new PasswordHashService(), new SessionCookieService());
+    _ = store.Register(new RegistrationRequest("replay@example.test", "correct-horse-phrase", "Asia/Ho_Chi_Minh", null));
+    var token = store.CapturedMessages().Single(item => item.Purpose == "EmailVerification").Token;
+
+    var first = store.Verify(new TokenProofRequest(token));
+    var second = store.Verify(new TokenProofRequest(token));
+
+    AssertEx.True(first.Succeeded, "First verification should succeed");
+    AssertEx.False(second.Succeeded, "Second verification should be rejected");
+    AssertEx.Equal("TokenUnavailable", second.Code, "Replay should produce TokenUnavailable");
 });
 
 return runner.Run();
