@@ -24,3 +24,41 @@ jobs:
           node-version: '22'
       - name: Verify M01-S00 scaffold
         run: bash scripts/dev/verify.sh
+      - name: Build local operator tooling
+        run: dotnet build src/Nexora.Local/Nexora.Local.csproj --configuration Release -p:RestoreLockedMode=true
+
+  sql-bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_PID: Developer
+          # Synthetic, disposable CI service credential; never used outside this job.
+          MSSQL_SA_PASSWORD: Nexora_CI_Synthetic_Only_9384!
+        ports:
+          - 14333:1433
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build SQL integration tests
+        run: dotnet build tests/Nexora.IntegrationTests/Nexora.IntegrationTests.csproj --configuration Release -p:RestoreLockedMode=true
+      - name: Wait for synthetic SQL service
+        run: |
+          for attempt in $(seq 1 30); do
+            if docker exec "${{ job.services.sql.id }}" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Nexora_CI_Synthetic_Only_9384!' -C -Q 'SELECT 1' >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - name: Run real SQL migration and bootstrap assertions
+        env:
+          NEXORA_TEST_SQL_CONNECTION: Server=localhost,14333;Database=Nexora_Test_82395523571346be973d6d6920d74b87;User Id=sa;Password=Nexora_CI_Synthetic_Only_9384!;Encrypt=True;TrustServerCertificate=True
+        run: dotnet tests/Nexora.IntegrationTests/bin/Release/net10.0/Nexora.IntegrationTests.dll

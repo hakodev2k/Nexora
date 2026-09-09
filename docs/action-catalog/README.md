@@ -1,6 +1,6 @@
 # Nexora Action Catalog
 
-2026-09-09 · Docs/action contracts are design authority, not runtime evidence. **Only M01 + backend/frontend scaffold + local scripts are approved for implementation by `DEC-20260909-001`; every non-M01 action requires a later bounded vertical-slice approval.**
+2026-09-09 · Docs/action contracts are design authority, not runtime evidence. **Full documented R1 local implementation is approved by [DEC-20260909-014](../requirements/12-owner-decisions-20260909-local-e2e.md). Complete each vertical slice's contracts before code.**
 
 ## Read order before implementation
 
@@ -17,10 +17,10 @@ The older module tables remain useful for action names, contexts, guards, depend
 Important consequences:
 
 - Rows listed as `APPROVED_FOR_M01` may be implemented now only inside the exact M01 package and still need runtime evidence.
-- Rows not listed as M01-approved default to `DESIGN_RESOLVED_NOT_APPROVED_NOW`, unless they are explicitly `PO_PAUSED`, `NETWORK_GUARD_GATED`, `SENSITIVE_PROJECTION_GATED`, `POLICY_APPROVED_IMPLEMENTATION_GATED`, `PRODUCTION_OPS_GATED` or `SUPERSEDED`.
-- `Resolved delegated` means the action design is resolved; it does not mean the action is approved for implementation now.
+- Former `DESIGN_RESOLVED_NOT_APPROVED_NOW` rows are locally approved subject to contracts. Former `PO_PAUSED` R1 rows are locally simulation-approved. Projection, security, contract, production and retired-action gates still apply.
+- `Resolved delegated` describes design readiness. DEC-20260909-014 supplies local implementation authority, conditional on complete contracts.
 - `Paused`, `Blocked`, `Gated` and `Superseded` are stronger than Allow/default-on/module catalog membership.
-- There is no `Full R1 implementation-ready` Go state. Future work proceeds by explicitly approved vertical slices.
+- There is no `Full R1 implementation-ready` Go state. Future work proceeds by contract-complete vertical slices under DEC-20260909-014.
 
 ## Module indexes
 
@@ -71,4 +71,4 @@ Important consequences:
 
 ## Current implementation rule
 
-For the next implementation agent, filter the action catalog by M01 story/action lists under `docs/delivery/milestone-01` and by [effective action implementation status](09-effective-implementation-status-20260909.md). Do not implement actions solely because a module table lists them as `Resolved delegated`. Runtime availability still requires installed code, compatible migrations, health/readiness, current scope, module enablement, action authority, lifecycle checks and field projection.
+For the next implementation agent, bind the selected actions to their slice contracts (M01 foundation under `docs/delivery/milestone-01`) and by [effective action implementation status](09-effective-implementation-status-20260909.md). Do not implement actions solely because a module table lists them as `Resolved delegated`. Runtime availability still requires installed code, compatible migrations, health/readiness, current scope, module enablement, action authority, lifecycle checks and field projection.

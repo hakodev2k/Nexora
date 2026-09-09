@@ -1,5 +1,23 @@
 # Paused / blocked / gated register — pre-implementation
 
+## Current authority: DEC-20260909-014
+
+[Full local E2E approval](../requirements/12-owner-decisions-20260909-local-e2e.md)
+approves documented R1 implementation in contract-complete vertical slices.
+Former DESIGN_RESOLVED_NOT_APPROVED_NOW actions are locally approved; formerly
+PO_PAUSED R1 actions may use local simulated adapters. Real external execution
+remains unapproved. Missing contracts, sensitive projections, cryptography,
+owner isolation, independent review and runtime evidence remain required.
+SUPERSEDED actions remain retired. Local synthetic backup/restore is approved;
+production operations are not.
+
+## Pre-014 record (superseded approval restrictions)
+
+The classifications and inventories below preserve the earlier decision record.
+Their M01-only, repeated-slice-approval and no-local-code-for-paused restrictions
+are superseded by DEC-20260909-014 and are not current implementation instructions.
+Apply the current amendment's effective-status table before reading the old gates.
+
 2026-09-09 · Docs-only clarification layer. This document authorizes no application code, migration, runtime test, provider call, production deployment, production data access or secret access by itself.
 
 This register clarifies the effective meaning of `Paused`, `Blocked`, `Gated`, `Resolved delegated`, and `Approved for M01` after `DEC-20260909-001` through `DEC-20260909-013`. If an older catalog row still says `Blocked Q-*`, `DEP-EXT-01 boundary needs clarification`, or `no implementation approved`, read that row through this register until the catalog is regenerated. This file may narrow availability; it never expands the approved implementation boundary.

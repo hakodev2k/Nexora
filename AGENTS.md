@@ -21,14 +21,14 @@ exact story/action/AC and test evidence using `docs/goals/05-task-and-evidence-t
 Goals summarize approved sources; they never override current PO decisions, unblock
 paused capabilities or grant implementation/deployment approval.
 
-Current Product Owner approval is bounded by `DEC-20260909-001`: M01 stories S00-S11
-plus the backend/frontend scaffold and local scripts needed to prove that slice.
-Do not ask again for this already authorized M01 package. All work outside that
-boundary still requires explicit approval for the affected slice. This approval
-does not authorize full Phase1/R1, business modules outside M01, paused modules,
-production deployment, provider spend, domains, production secrets/data or public
-launch. Routine technical choices delegated by approved docs can be resolved and
-recorded without inventing product behavior.
+Current Product Owner approval is `DEC-20260909-014`, recorded in
+`docs/requirements/12-owner-decisions-20260909-local-e2e.md`: full documented R1
+local E2E implementation may proceed slice-by-slice, including previously paused
+modules as local/simulated/integration-safe code. Do not ask again for this approval.
+Complete missing API/DB/UX/AC/security/evidence contracts before affected code.
+Production deployment, real provider execution, real secrets/data, paid services,
+public launch and external destructive actions remain unapproved. Resolve routine
+technical choices without inventing unspecified business behavior.
 
 ## Authority and source precedence
 
@@ -52,8 +52,9 @@ Load `.ai/roles/technical-lead/README.md` as the primary operating role. The Tec
 
 ## Nexora invariants
 
-- Consult current delivery scope each time: M01 is an internal foundation slice,
-  not all Phase1/R1. FX30/34/35 are paused; do not enable their workers implicitly.
+- Consult current delivery scope each time: M01 is an internal foundation slice.
+  FX30/34/35 may use explicitly configured local simulation under DEC-20260909-014;
+  real provider wiring remains disabled by default.
 - Nexora is personal-only. `OwnerId` identifies PersonalSpace, not `UserId`.
   The generic tenant gate maps to owner isolation; it does not introduce team tenancy.
 

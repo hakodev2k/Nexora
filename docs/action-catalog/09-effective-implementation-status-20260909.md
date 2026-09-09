@@ -1,5 +1,23 @@
 # Effective action implementation status — 2026-09-09
 
+## Current authority: DEC-20260909-014
+
+[Full local E2E approval](../requirements/12-owner-decisions-20260909-local-e2e.md)
+approves documented R1 implementation in contract-complete vertical slices.
+Former DESIGN_RESOLVED_NOT_APPROVED_NOW actions are locally approved; formerly
+PO_PAUSED R1 actions may use local simulated adapters. Real external execution
+remains unapproved. Missing contracts, sensitive projections, cryptography,
+owner isolation, independent review and runtime evidence remain required.
+SUPERSEDED actions remain retired. Local synthetic backup/restore is approved;
+production operations are not.
+
+## Pre-014 record (superseded approval restrictions)
+
+The classifications and inventories below preserve the earlier decision record.
+Their M01-only, repeated-slice-approval and no-local-code-for-paused restrictions
+are superseded by DEC-20260909-014 and are not current implementation instructions.
+Apply the current amendment's effective-status table before reading the old gates.
+
 Docs-only normalization layer. This file is the current implementation-status overlay for the action catalog after the Product Owner delegated the recommended action decisions on 2026-09-09.
 
 It authorizes no application code, migration, runtime test, provider call, production deployment, production data access or secret access by itself.
