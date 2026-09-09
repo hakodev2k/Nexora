@@ -10,6 +10,7 @@ Outcome: từ clean local candidate, operator bootstrap an toàn; User đăng k�
 4. [UX và acceptance](04-ux-and-acceptance.md)
 5. [Environment/runbook specification](05-environment-and-runbook.md)
 6. [Readiness và evidence gates](06-readiness-and-evidence.md)
+7. [Implementation handoff prompt](07-implementation-handoff.md)
 
 ## Approved implementation package
 
