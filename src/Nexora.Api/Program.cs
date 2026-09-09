@@ -1,8 +1,18 @@
+using System.Text.Json.Serialization;
+using Nexora.Api.M01;
 using Nexora.Api.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+});
+
 builder.Services.AddSingleton<CsrfTokenService>();
+builder.Services.AddSingleton<PasswordHashService>();
+builder.Services.AddSingleton<SessionCookieService>();
+builder.Services.AddSingleton<M01RuntimeStore>();
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;
@@ -16,26 +26,10 @@ app.UseSecurityHeaders();
 app.MapGet("/health/live", () => Results.Ok(new HealthEnvelope("Live", "Nexora.Api")))
     .WithName("liveHealth");
 
-app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForS00", "Nexora.Api")))
+app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForM01ApiSurface", "Nexora.Api")))
     .WithName("readyHealth");
 
-app.MapGet("/api/v1/auth/csrf", (HttpContext context, CsrfTokenService tokens) =>
-{
-    var issued = tokens.Issue();
-
-    context.Response.Headers["Cache-Control"] = "no-store";
-    context.Response.Cookies.Append("__Host-NexoraCsrf", issued.CookieSecret, new CookieOptions
-    {
-        HttpOnly = true,
-        Secure = true,
-        SameSite = SameSiteMode.Strict,
-        Path = "/",
-        MaxAge = TimeSpan.FromMinutes(30)
-    });
-
-    return Results.Ok(new CsrfEnvelope(issued.RequestToken, "csrf", 1800));
-})
-.WithName("getCsrf");
+app.MapM01IdentityEndpoints();
 
 app.MapFallback(() => Results.Problem(
     title: "Resource unavailable",
@@ -49,4 +43,3 @@ app.Run();
 public partial class Program;
 
 internal sealed record HealthEnvelope(string Status, string Service);
-internal sealed record CsrfEnvelope(string RequestToken, string TokenType, int ExpiresInSeconds);
