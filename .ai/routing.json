@@ -1,0 +1,84 @@
+{
+  "baseline": [
+    "AGENTS.md",
+    ".agents/skills/nexora-engineering/SKILL.md",
+    ".ai/profiles/nexora-implementation-agent.md",
+    ".ai/roles/technical-lead/README.md",
+    ".ai/roles/technical-lead/rules/core-rules.md",
+    ".ai/verification.md",
+    "docs/README.md",
+    "docs/delivery/README.md",
+    "docs/delivery/01-current-scope.md"
+  ],
+  "architecture": [
+    ".ai/rules/software-architect/data-ownership-rules.md",
+    ".ai/rules/software-architect/module-boundary-rules.md",
+    ".ai/rules/software-architect/transaction-consistency-rules.md",
+    ".ai/skills/software-architect/modular-monolith-design.md",
+    ".ai/skills/software-architect/system-boundaries-modularity.md"
+  ],
+  "backend": [
+    ".ai/rules/dotnet-backend-developer/authorization-rules.md",
+    ".ai/rules/dotnet-backend-developer/background-processing-rules.md",
+    ".ai/rules/dotnet-backend-developer/caching-rules.md",
+    ".ai/rules/dotnet-backend-developer/ef-core-rules.md",
+    ".ai/rules/dotnet-backend-developer/migration-safety-rules.md",
+    ".ai/rules/dotnet-backend-developer/security-rules.md",
+    ".ai/rules/dotnet-backend-developer/testing-rules.md",
+    ".ai/skills/dotnet-backend-developer/authentication-authorization.md",
+    ".ai/skills/dotnet-backend-developer/distributed-caching.md",
+    ".ai/skills/dotnet-backend-developer/ef-core-data-access.md",
+    ".ai/skills/dotnet-backend-developer/idempotency.md",
+    ".ai/skills/dotnet-backend-developer/input-validation-secure-coding.md",
+    ".ai/skills/dotnet-backend-developer/rest-api-design.md",
+    ".ai/skills/dotnet-backend-developer/testing-strategy.md"
+  ],
+  "frontend": [
+    ".ai/rules/react-developer/accessibility-rules.md",
+    ".ai/rules/react-developer/browser-security-rules.md",
+    ".ai/rules/react-developer/design-system-rules.md",
+    ".ai/rules/react-developer/form-validation-rules.md",
+    ".ai/rules/react-developer/testing-rules.md",
+    ".ai/skills/react-developer/accessibility.md",
+    ".ai/skills/react-developer/component-design.md",
+    ".ai/skills/react-developer/frontend-security.md",
+    ".ai/skills/react-developer/testing-strategy.md"
+  ],
+  "security": [
+    ".ai/rules/privacy-engineer/privacy-access-control-rules.md",
+    ".ai/rules/security-engineer/data-protection-rules.md",
+    ".ai/rules/security-engineer/identity-access-rules.md",
+    ".ai/rules/security-engineer/secrets-management-rules.md",
+    ".ai/rules/security-engineer/threat-modeling-rules.md",
+    ".ai/skills/security-engineer/secrets-key-management.md",
+    ".ai/skills/security-engineer/security-code-review.md",
+    ".ai/skills/security-engineer/threat-modeling.md"
+  ],
+  "database": [
+    ".ai/skills/database-engineer/schema-migrations-zero-downtime.md",
+    ".ai/skills/database-engineer/transactions-isolation-concurrency.md",
+    ".ai/rules/dotnet-backend-developer/ef-core-rules.md",
+    ".ai/rules/dotnet-backend-developer/migration-safety-rules.md",
+    ".ai/skills/dotnet-backend-developer/ef-core-data-access.md"
+  ],
+  "verification": [
+    ".ai/skills/qa-automation-engineer/contract-testing.md",
+    ".ai/skills/qa-automation-engineer/test-strategy.md",
+    ".ai/guards/agent-ground-truth-completion-gate/README.md",
+    ".ai/guards/agent-ground-truth-completion-gate/rules/completion-claim-policy.md",
+    ".ai/guards/agent-ground-truth-completion-gate/skills/evidence-grounded-verification.md"
+  ],
+  "cache": [
+    ".ai/rules/dotnet-backend-developer/caching-rules.md",
+    ".ai/skills/dotnet-backend-developer/distributed-caching.md"
+  ],
+  "jobs": [
+    ".ai/rules/dotnet-backend-developer/background-processing-rules.md",
+    ".ai/skills/dotnet-backend-developer/idempotency.md"
+  ],
+  "owner-isolation": [
+    ".ai/controls/agent-multi-tenant-data-boundary-gate/README.md",
+    ".ai/controls/agent-multi-tenant-data-boundary-gate/rules/multi-tenant-safety.md",
+    ".ai/controls/agent-multi-tenant-data-boundary-gate/skills/tenant-boundary-review.md"
+  ]
+}

@@ -1,5 +1,10 @@
 # Agent Ground-Truth Completion Gate
 
+## Nexora adaptation (takes precedence over upstream usage below)
+
+Read repository-root `.ai/verification.md` before use. Run all baseline tests with Python 3.9+: `python3 .ai/scripts/verify-baseline.py` from repository root; no pytest installation required. These scripts validate self-reported manifests, not application behavior. Completion evidence requires revision/reference and explicit true freshness/success; contradictory current failures block. Boundary policy.yaml is descriptive, not runtime-loaded; edit/review the script and tests for policy changes. Tenant maps to PersonalSpace OwnerId; route values cannot grant authority. Cross-owner access requires dedicated contract tests and independent review.
+
+
 **Category:** Thinking
 
 ## Problem

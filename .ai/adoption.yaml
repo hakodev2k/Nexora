@@ -51,12 +51,15 @@ mcp:
   rationale: "Use host/runtime GitHub access with least privilege. Do not vendor provider connectors until credential, allowlist, approval, logging, revocation and execution boundaries are approved."
 
 local_adaptations:
+  - "Native .agents/skills bridge, exact routing manifest and standard-library CI verifier."
+  - "Strict gate inputs and revision-bound evidence; see .ai/verification.md for limitations."
+  - "Original imported blob hashes in .ai/upstream-manifest.json."
   - "AGENTS.md defines Nexora source precedence, invariants, approvals and PR workflow."
   - ".ai/profiles/nexora-implementation-agent.md defines lazy specialist loading and phase-on-demand gates."
   - "docs/ai-engineering-adoption.md records rationale, exclusions and future activation."
 
 verification:
-  status: "selection and package structure reviewed; executable gates are copied but application integration tests cannot run until Nexora implementation/runtime exists"
+  status: "Local package checks, 10 routing groups, native skill validation and 15 gate regressions pass; app tests not run; CI status must be checked on PR"
 
 owner: "Nexora Technical Lead"
 license: "MIT; upstream license retained at .ai/upstream/AI-Engineering-LICENSE"

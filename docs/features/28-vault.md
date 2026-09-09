@@ -1,5 +1,7 @@
 # Vault
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/28-vault.md) is historical evidence, not implementation input.
+
 FX-28 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -18,7 +20,7 @@ Password, SecureNote, APIKey, Token, SSHKey, DatabaseCredential, RecoveryCodes, 
 
 1. Owner unlock/xác thực tăng cường theo Q-02/Q-04 → list masked.
 2. Create type/name/protected fields → encrypted version.
-3. Detail explicit reveal/copy; edit/restore version; Trash/purge; lock.
+3. Detail explicit reveal/copy; edit creates encrypted version; xóa mềm IsDeleted; gửi recovery request cho SuperAdmin nếu cần phục hồi; lock. Không có owner restore/purge.
 
 ## Dữ liệu và validation
 
@@ -32,12 +34,12 @@ Password, SecureNote, APIKey, Token, SSHKey, DatabaseCredential, RecoveryCodes, 
 - **FX-28-BR-002:** Search/dashboard/share/webhook không payload; no public/restricted secret links theo proposed deny Q-04.
 - **FX-28-BR-003:** Reveal tự che30s delegated; clipboard explicit best-effort clear30s nếu chưa đổi, không hứa xóa clipboard hệ điều hành.
 - **FX-28-BR-004:** No secrets URLs/logs/analytics/persistent browser cache; protected response no-store.
-- **FX-28-BR-005:** History encrypted tới purge; crypto envelope/key rotation/backup/recovery phải ADR+Q-04 trước implement.
+- **FX-28-BR-005:** History/values/needed key wraps giữ encrypted khi xóa mềm, không purge/crypto-erasure. Server-recoverable envelope theo ADR-PO-04; restoration chỉ qua request-bound SuperAdmin Recovery, không operator plaintext.
 - **FX-28-BR-006:** Password generator local CSPRNG length 16 default,12–128 allowed, categories explicit; chỉ persist khi Save.
 
 ## Quyền, API và tích hợp
 
-- CreateSecret/UpdateSecret/RevealSecret/CopySecret/RestoreSecretVersion permissions tách riêng.
+- CreateSecret/UpdateSecret/RevealSecret/CopySecret tách riêng; restore version/item qua vault.recovery.* và SuperAdmin authorization. Owner restore/purge keys đã retired.
 - ResolveVaultRef theo owner-authorized service purpose; audit action/ID không secret; no bulk plaintext endpoint.
 
 Áp dụng [hợp đồng chung](00-shared-behavior.md): owner isolation, module/action gate, concurrency, idempotency, lỗi/loading/empty, phân trang và lifecycle. Support/Emergency chỉ read-only có grant; không thừa hưởng owner mutation, secret reveal hoặc export. API cụ thể phải theo command/query này và được chốt trong solution design.
@@ -53,7 +55,7 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 
 ## Item field dictionary
 
-Protected payload schema phải versioned; bảng này xác định UX fields, không quyết định key architecture Q-04.
+Protected payload schema phải versioned; bảng này xác định UX fields, dùng server-recoverable key architecture ADR-PO-04; owner portability/safe support metadata còn proposal.
 
 | Type | Payload bắt buộc | Optional protected fields |
 |---|---|---|
@@ -74,4 +76,3 @@ Name/type/tags/favorite/folder đều owner metadata nhưng có thể nhạy c�
 - [phase-04-finance-and-vault.md](../requirements/phases/phase-04-finance-and-vault.md): `P04-CRY-001`, `P04-CRY-002`, `P04-CRY-003`, `P04-CRY-004`, `P04-CRY-005`, `P04-VAC-001`, `P04-VAC-002`, `P04-VAC-003`, `P04-VAC-004`, `P04-VAC-005`, `P04-VLT-001`, `P04-VLT-002`, `P04-VLT-003`, `P04-VLT-004`, `P04-VLT-005`, `P04-VLT-006`, `P04-VLT-007`, `P04-VLT-008`
 
 Quyết định lớn cần PO: [Q-02](90-open-decisions.md#q-02), [Q-04](90-open-decisions.md#q-04). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
-

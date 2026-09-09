@@ -1,5 +1,7 @@
 # Hợp đồng hành vi chung
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/00-shared-behavior.md) is historical evidence, not implementation input.
+
 Ngày: 2026-09-06. Áp dụng cho mọi FX-01…FX-40. Các default nhỏ là **Resolved (delegated)** theo DEC-GOV-001; quyết định lớn ở [Decision queue](90-open-decisions.md). Đây là requirement/design, không phải implementation hoặc approval để code.
 
 ## Thứ tự áp dụng
@@ -98,7 +100,7 @@ Routes UI trong từng feature chưa phải API đã deploy. Solution design ph�
 | Nhóm | Share | History/Trash | Calendar | Import/export |
 |---|---|---|---|---|
 | Projects/Tasks | Read-only, Project bao gồm Task details | Mọi thay đổi; Trash owner purge | Chỉ Task projection | Module import/export deferred; Calendar ICS Task projection là exception |
-| Documents | Chỉ tạo khi Published; Archive giữ link hợp lệ | Save version; archive/tree/Trash rules | Không | Formats Q-11 |
+| Documents | Chỉ tạo khi Published; Archive giữ link hợp lệ | Save version; archive/tree/Trash rules | Không | DOCX/MD basic, Q11 scope closed |
 | Personal Calendar Event | Không | Không version; Delete=Cancel terminal | Chính nó | ICS confirmed |
 | Vault | Không public; authenticated/export chờ Q-04 | Encrypted versions/Trash | Không | Q-04 |
 | Finance/Assets/Career nhạy cảm | Safe projection theo Q-03, Resume qua Sharing | Domain history/dependency rules | Chỉ nguồn được duyệt; Interview Q-12 | Per-provider, không universal export |
@@ -117,4 +119,3 @@ Routes UI trong từng feature chưa phải API đã deploy. Solution design ph�
 ## Definition of Ready
 
 Feature được tách story implement khi: source scope/AC được trace; Q ảnh hưởng story đã đóng; state/field/action matrix và API schema được solution design; permissions/concurrency/lifecycle tests xác định; dependencies/limits/threat model được review; PO **approve implementation riêng**. Không cần hỏi lại chi tiết UX delegated nếu không đổi hành vi đã Approved.
-

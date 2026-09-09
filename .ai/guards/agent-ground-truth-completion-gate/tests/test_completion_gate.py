@@ -7,13 +7,36 @@ POLICY=ROOT/"config"/"completion-policy.json"
 
 
 def run(ledger):
+    ledger.setdefault("revision", "test-tree")
     with tempfile.NamedTemporaryFile("w",suffix=".json",delete=False) as f:
         json.dump(ledger,f); p=f.name
     return subprocess.run([sys.executable,str(SCRIPT),p,"--policy",str(POLICY)],capture_output=True,text=True)
 
 
 def ev(*types):
-    return [{"type":t,"fresh":True,"passed":True} for t in types]
+    return [{"type":t,"fresh":True,"passed":True,"revision":"test-tree","reference":"test-output.log"} for t in types]
+
+
+def test_missing_or_non_boolean_success_does_not_pass():
+    for field in ("fresh", "passed", "revision", "reference"):
+        for value in ((None, "", False) if field == "reference" else (None, "false", False)):
+            evidence=ev("change_recorded")
+            evidence[0][field]=value
+            assert run({"claims":["implemented"],"evidence":evidence}).returncode==4
+
+
+def test_empty_claims_are_invalid():
+    assert run({"claims":[],"evidence":[]}).returncode==2
+
+
+def test_other_revision_does_not_pass():
+    assert run({"revision":"other-tree","claims":["implemented"],"evidence":ev("change_recorded")}).returncode==4
+
+
+def test_contradictory_current_failure_blocks():
+    evidence=ev("test_executed","test_passed","evidence_fresh")
+    evidence.append(dict(evidence[1], passed=False))
+    assert run({"claims":["tests_passed"],"evidence":evidence}).returncode==4
 
 
 def test_tests_passed_requires_execution_pass_and_freshness():

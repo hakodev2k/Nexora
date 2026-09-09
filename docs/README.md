@@ -1,5 +1,7 @@
 # Nexora Documentation
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](history/20260908/snapshot/docs/README.md) is historical evidence, not implementation input.
+
 Bộ tài liệu này là nguồn yêu cầu chính thức (single source of truth) cho Nexora. Nội dung được tái cấu trúc từ bản `Super Website — Product Requirements Draft v0.2` thành các yêu cầu có mã định danh, tiêu chí nghiệm thu và cổng quyết định theo từng phase.
 
 ## Trạng thái tài liệu
@@ -75,3 +77,26 @@ Mã yêu cầu không được tái sử dụng. Khi bỏ một yêu cầu, gi�
 
 Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi lại từng thao tác. Proposal còn Q chưa Approved; application implementation vẫn chờ approval riêng của Product Owner.
 
+
+
+
+## Design review 2026-09-07 — documentation only
+
+- [Database: tables, fields, types, relations, module evolution](design-database/README.md)
+- [Architecture review and upgraded design](architecture/README.md)
+- [UX/UI detailed screens and common interaction contracts](ux-ui/README.md)
+- [Cross-layer consistency, decisions and readiness report](design-review/README.md)
+
+Các tài liệu này không tuyên bố đã implement hoặc đã duyệt các Q quyết định lớn. Current Product Owner decisions > approved requirements > resolved delegated decisions > features > these technical/UX designs > historical roadmap/reference products.
+
+## Action catalog v1
+
+[714 operation contracts /40 feature scopes](action-catalog/README.md), [screen bindings](action-catalog/06-screen-bindings.md), and [database binding](design-database/16-action-catalog-binding.md). Docs-only; separate PO approval required before implementation.
+
+## Current PO decision revision
+
+[Decision source](requirements/10-owner-decisions-20260907.md) · [Current Q status](features/90-open-decisions.md) · [Physical delta:4new tables](design-database/17-owner-decision-delta.md) · [Security/recovery ADR](architecture/07-owner-decisions-security-and-recovery.md) · [Capacity policy](architecture/08-capacity-and-verification-policy.md) · [Action catalog v1.1](action-catalog/README.md). Historical181tables/197screens/714actions counts remain prior snapshots; current documented inventory includes185 table specs,202screens,733contracts with inactive scopes counted explicitly.
+
+## Current milestone handoff
+
+Start from [current delivery specification](delivery/README.md). M01 scope, API/DB/UX/acceptance and evidence gates are linked there. A local/internal milestone is not Release1 completion. Scripts/migrations/runtime evidence remain future implementation artifacts, not executed by this documentation update.

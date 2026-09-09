@@ -2,7 +2,7 @@
 """Validate completion claims against a structured evidence ledger.
 
 Input ledger JSON example:
-{"claims":["tests_passed"],"evidence":[{"type":"test_executed","fresh":true},{"type":"test_passed","fresh":true},{"type":"evidence_fresh","fresh":true}]}
+See repository-root .ai/verification.md for the revision-bound ledger contract.
 Exit 0 supported, 4 unsupported, 2 invalid.
 """
 from __future__ import annotations
@@ -24,17 +24,22 @@ def main() -> int:
     try:
         ledger,policy=load(a.ledger),load(a.policy)
         claims=ledger.get("claims",[]); evidence=ledger.get("evidence",[])
-        if not isinstance(claims,list) or not all(isinstance(x,str) for x in claims): raise ValueError("claims must be string array")
+        if not isinstance(claims,list) or not claims or not all(isinstance(x,str) and x for x in claims): raise ValueError("claims must be nonempty string array")
         if not isinstance(evidence,list) or not all(isinstance(x,dict) for x in evidence): raise ValueError("evidence must be object array")
-        present={e.get("type") for e in evidence if isinstance(e.get("type"),str) and e.get("fresh",True) is True and e.get("passed",True) is not False}
+        revision=ledger.get("revision")
+        if not isinstance(revision,str) or not revision.strip(): raise ValueError("revision is required")
+        present={e.get("type") for e in evidence if isinstance(e.get("type"),str) and e.get("fresh") is True and e.get("passed") is True and e.get("revision")==revision and isinstance(e.get("reference"),str) and e["reference"].strip()}
         reqs=policy.get("claim_requirements",{})
+        if not isinstance(reqs,dict): raise ValueError("claim_requirements must be object")
         unsupported={}
         for claim in claims:
             required=reqs.get(claim)
-            if not isinstance(required,list):
+            if not isinstance(required,list) or not required or not all(isinstance(x,str) and x for x in required):
                 unsupported[claim]=["claim type has no policy"]
                 continue
             missing=[r for r in required if r not in present]
+            conflicting=[e.get("type") for e in evidence if e.get("type") in required and e.get("revision")==revision and e.get("fresh") is True and e.get("passed") is False]
+            if conflicting: missing.append("contradictory failed evidence: " + ", ".join(sorted(set(conflicting))))
             if missing: unsupported[claim]=missing
         status="supported" if not unsupported else "blocked"
         print(json.dumps({"status":status,"claims":claims,"available_evidence":sorted(x for x in present if x),"unsupported":unsupported},indent=2))

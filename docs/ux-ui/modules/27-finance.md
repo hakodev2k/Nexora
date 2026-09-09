@@ -1,143 +1,124 @@
-# FX-27 — Personal Finance — UX/UI Specification
+# Finance — UX/UI Specification
 
-**Status:** UX blueprint; implementation not approved by this document.  
-**Baseline:** `89198351a3d6cf937179d234a0f16e8cf8c259d7`
+Current basic scope · 2026-09-08 · Docs-only. [Previous advanced UX](../../history/20260908/snapshot/docs/ux-ui/modules/27-finance.md) is proposal history.
 
 ## 1. Scope
-Translate the current FX-27 feature behavior into a coherent Nexora UI. Reference products do not add scope automatically.
+
+Manual categories/prices; advanced ledger and correction workflows gated P-H05, sensitive sharing P-H03. Not part of M01.
 
 ## 2. Requirement sources
-- `docs/features/27-finance.md`
-- `docs/features/00-shared-behavior.md`
-- `docs/features/90-open-decisions.md`
-- related `docs/requirements/**` and phase requirements referenced by the feature source
-- `docs/ux-ui/global/**`
+
+[Feature](../../features/27-finance.md), [PO Q05](../../requirements/10-owner-decisions-20260907.md), [actions](../../action-catalog/modules/27-finance.md), [data](../../design-database/07-finance-vault.md#finance-manualrecord).
 
 ## 3. Reference products
-- Actual Budget
-- YNAB
-- Monarch Money
+
+Actual Budget reference retained from [product register](../references/product-reference-register.md). PO manual entry controls scope; no external account sync.
 
 ## 4. Reference behavior analysis
-- Dense account/ledger IA.
-- Balance derived, never arbitrary free edit.
-- Transfer presents both sides together.
-- Reports never fake mixed-currency grand total.
-- Budget/debt/savings/correction semantics remain Proposed.
 
-Classification:
-- **Apply** familiar mechanics that do not change Nexora semantics.
-- **Adapt** when ownership/lifecycle/privacy differs.
-- **Reject** unapproved collaboration, retention, automation or editing behavior.
-- **Future** useful behavior requiring explicit scope.
+| Product | Behavior | Decision | Rationale |
+| --- | --- | --- | --- |
+| Actual Budget | Dense transaction table | Adapt common Nexora table | Date/category/price rows are comparable, no balance semantics imported |
+| Actual Budget | Linked transfers | Future / blocked | Manual prices do not have ledger legs; P-H05 required |
 
-## 5. UX principles
-1. Primary job is within one transition from module entry.
-2. Current state and next valid action are visible.
-3. Disabled/read-only/stale/provider-failed/empty are distinct.
-4. UI reflects server lifecycle proactively.
-5. Reuse global primitives before defining exceptions.
+## 5. UX principles for this module
+
+Always display currency beside amount; zero differs missing. No inferred financial accounting. Explicit Save and owner-private data.
 
 ## 6. Information architecture
-One global module entry. Stable subareas use module-local navigation. Browse uses list/grid/table/board only where supported. Detail uses page or context panel. Global Search uses safe provider projections.
+
+Finance → Records, Categories. Advanced sidebar entries absent until approved and implemented. Full catalog definitions are not fake working navigation.
 
 ## 7. Screen inventory
-- 01 — Overview
-- 02 — Accounts
-- 03 — Transactions
-- 04 — Bills
-- 05 — Subscriptions
-- 06 — Budgets
-- 07 — Savings
-- 08 — Debts
-- 09 — Reports
-- 10 — CSV Import
 
-Routes are UX proposals, not claims about deployed frontend/API routes.
+| ID | Screen | Proposed route | Purpose | Primary action |
+| --- | --- | --- | --- | --- |
+| FX27-S13 | Manual records | /finance/records | Owned price records and filtered same-currency totals | New record |
+| FX27-S14 | Manual record form | /finance/records/new; /finance/records/:id/edit | Category/amount/currency/date/note | Save |
+| FX27-S15 | Categories | /finance/categories | Own category names | New category |
+
+FX27-S01..S12 remain historical advanced screen IDs, not current implementation entry points; exact former layouts are in the snapshot and require P-H05 before resumption.
 
 ## 8. Navigation
-Preserve filter/sort/scroll when returning from detail. Deep links resolve after auth/module/permission checks. Mobile converts nested panes to stacked navigation. Ctrl/Cmd+K never bypasses lifecycle gates.
 
-## 9. User journeys
-- Primary: entry → browse/search → open/create → validate → explicit Save/action → feedback → reconcile.
-- Alternative: browse → filter/sort/view → inspect → return with context.
-- Error: action → safe error → preserve state → retry/recover.
-- Read-only: open → visible reason/state → browse allowed data.
-- Destructive: action → impact preview when needed → explicit confirmation → authoritative update.
+Finance opens Records; toolbar Categories and New record. Row opens form; Back/Cancel restores filters/scroll; direct form link Back→Records. Dirty guard Save/Discard/Keep editing.
+
+## 9. Primary user journeys
+
+Create category → New record → explicit currency + amount/date → Save → record visible. Alternative: inline category create, then continue form. Empty category state offers Create. Invalid category/amount shows field errors. Used-category deletion shows dependency count without deleting; foreign record404 and safe Back.
 
 ## 10. Screen specifications
-Browse: title, primary action, scoped search, supported filters/sort, distinct loading/empty/error/unavailable.
-Detail: identity, status, high-priority metadata, primary valid action, secondary actions, history where owned.
-Create/Edit: explicit Save, inline validation, dirty guard, immutable fields visible, stale revision never overwrites.
 
-## 11. Forms & validation
-Use `global/05-forms-and-validation.md`. Required fields/domain validation come from source.
+| Screen | Header / regions | Search/filter/sort | States and behavior |
+| --- | --- | --- | --- |
+| S13 | Finance; New record; category/date/currency toolbar; table; grouped totals | Search category/note; filter category/currency/date; OccurredOn desc + ID; page25 | First-use CTA; filtered-none Clear filters; skeleton on first load;503 retry, no fake0;403 clear data; row opens S14 |
+| S14 | New/Edit record; fields; Save/Cancel footer | N/A form; category picker owner-scoped | Required category/amount/currency/date, optional note; duplicate submit disabled;422 focus field;412 compare/reload; session expiry clears protected draft; no delete/status/post controls |
+| S15 | Categories; New category; name table; usage count | Name search; normalizedTitle asc+ID; page25 | Inline rename explicit Save; delete unused only after confirmation; referenced category409 explain; mobile list detail retains actions |
 
-## 12. Collection behavior
-Use `global/06-lists-grids-tables-kanban.md`. Drag always has accessible alternative.
+No Archive/Trash state for current basic records until lifecycle approved; generic component must not expose those actions. Disabled module replaces content with safe unavailable screen, not empty data. Read-only permission removes Save and explains reason; API remains authoritative.
+
+## 11. Forms and validation
+
+Category1–100, record amount decimal string nonnegative within28,8; explicit currency, local date; note≤2000. No account/type/transfer/FX field. Inline category creation has its own retry identity; cancel record does not silently delete an already saved category.
+
+## 12. Lists / Grid / Table / Kanban behavior
+
+Table columns date/category/amount+currency/note indicator/actions. No Grid/Kanban in current basic slice. Touch row opens detail; action buttons keyboard labeled; no bulk mutation until semantic contract exists.
 
 ## 13. Search / Filter / Sort
-Scope is visible. Local search stays local. Filter state survives detail navigation. Sensitive payload never appears in preview.
+
+Server owner filter before text/filter/page. Query change resets cursor; preserve filter in internal URL only, never note or amount value in route. Totals reflect same current filter and remain per currency. Failed fetch is not no results.
 
 ## 14. Lifecycle UX
-Terminal/Archived/Trash are not generic synonyms. Read-only lifecycle has a persistent visible explanation.
+
+Saved records read/edit; no posted/draft ledger distinction. Financial deletion unresolved; no Trash/void/post/reverse. Category removable only unused.
 
 ## 15. Action matrix
-| Context | Browse | Inspect | Edit | Lifecycle | Purge |
-|---|---:|---:|---:|---:|---:|
-| Active owner | Yes | Yes | If allowed | If valid | If supported |
-| Read-only lifecycle | Yes | Yes | No unless source allows | Limited | Per feature |
-| Trash | Trash view | Safe detail | No | Restore if valid | If allowed |
-| Support | Scoped | Yes | No | No | No |
-| Emergency | Scoped | Yes | No | No | No |
-| Share viewer | Shared projection | Yes | No | No | No |
+
+| State | Action | Available | UX |
+| --- | --- | --- | --- |
+| Own saved record | Read/Edit | Yes if authorized | Explicit Save with revision |
+| Own saved record | Delete/Archive/Share | No current contract | No executable control; gated scope |
+| Unused category | Rename/Remove | Yes | Save / destructive confirmation |
+| Used category | Remove | No | Explain references, preserve records |
+| Module disabled | Any source mutation | No | Unavailable page, no stale edit |
 
 ## 16. Dialogs
-Confirmation for meaningful lifecycle changes; reason dialog when source requires it; dependency/aggregate preview before destructive batch/tree operations.
+
+Unused category removal: title/name/reference preview, Remove category/Cancel, irreversible unused metadata warning;409 stays dialog. Stale edit: compare server fields and draft, Reload/Keep editing; no overwrite. Record deletion dialog N/A until business rule approved.
 
 ## 17. Loading / Empty / Error / Degraded
-Distinct: initial no data, no search result, no filtered result, loading, request failed, unavailable, denied, stale/provider-degraded when applicable.
 
-## 18. Permissions / Sensitive context
-Client visibility is not authorization. Support/Emergency are scoped read-only only. Follow `global/12-security-sensitive-ux.md`.
+Skeleton first load; first-use New record; filtered-none Clear; inline422;412 conflict;401 reauth;403 unavailable;503 retry. No provider dependency for manual prices; no fake currency conversion.
 
-## 19. Responsive
-Desktop can use module nav + workspace + optional detail panel. Tablet collapses navigation. Mobile stacks browse→detail. Tables prioritize fields.
+## 18. Permissions / Read-only / Sensitive contexts
+
+Owner-only baseline. Admin/SuperAdmin normal route does not read another user's records. Sharing/support projection pending; masking not authorization. No amount/note toast/log or persistent browser storage.
+
+## 19. Responsive behavior
+
+Desktop table; tablet keep date/category/amount, note in detail; mobile stacked rows and full-screen form. Currency never hidden, Save visible above keyboard; do not force horizontal page scroll.
 
 ## 20. Accessibility
-Keyboard create/open/edit/save/cancel; no drag-only actions; visible focus; text/icon status; accessible dialogs/tables/charts; focus returns after overlays.
+
+Amount label includes currency; localized visual formatting with canonical submit string; error text linked; totals table/text equivalent; focus return from dialog, keyboard row actions, status not color-only.
 
 ## 21. Cross-module integration
-Cross-module objects are references. Owning module retains state authority.
 
-## 22. Delegated UX decisions
-Layout, pane choice, toolbar order, responsive transform, confirmation presentation and keyboard affordances are Resolved delegated unless they change major product/security/financial/privacy behavior.
+Typed ManualCategory/ManualRecord and Resource owner identity; no TransactionLeg/Account dependency. Own search/dashboard only approved projections; disabled modules invalidate contributions. No paused automation handlers.
+
+## 22. UX decisions made by delegated authority
+
+Table/default sort/page25, explicit currency/display unit, inline category create and conflict handling. None approves advanced finance semantics.
 
 ## 23. Major open questions
-Q-03, Q-05
 
-Behavior depending on these remains **Proposed/Blocked**, not Approved.
+[P-H03 sensitive projections and P-H05 advanced Finance](../../delivery/02-decision-proposals.md). Basic manual record contract does not depend on resolving every ledger question.
 
 ## 24. Acceptance checklist
-- [ ] Primary journey has no hidden interaction dependency.
-- [ ] Lifecycle state and valid next actions are visible.
-- [ ] Loading/empty/error/unavailable differ.
-- [ ] Keyboard path exists.
-- [ ] Mobile has no dead end.
-- [ ] Destructive vocabulary is canonical.
-- [ ] Support/Emergency cannot mutate.
-- [ ] Reference products add no unapproved scope.
-- [ ] Major open decisions are marked Proposed/Blocked.
 
-## 25. Module-specific screen anatomy
-Finance sub-navigation: Overview, Accounts, Transactions, Bills, Subscriptions, Budgets, Savings, Debts, Reports.
-
-Transactions primary table: Date | Payee | Category | Account | Type | Amount | Actions. Numeric columns right-aligned.
-
-Transfer form displays From and To together; different currencies show both explicit amounts/currencies and never infer hidden FX.
-
-Bills/subscriptions show next due date, amount/currency and derived state. Recording payment previews ledger effect.
-
-Budgets/savings/debt design remains marked Model pending product decision until Q-05 closes.
-
-Reports always provide table/text equivalents and currency-aware drill-down.
+- Required fields and no Account prerequisite match FX27-MAN-AC01..05.
+- Two-currency totals remain separate; locale/timezone do not reinterpret values.
+- Conflict, cross-owner, read-only, module-disabled and failed-fetch tests specified.
+- Old S01..S12 workflows cannot execute without explicit scope/contract upgrade.
+- Runtime/UI tests not executed in this documentation phase.

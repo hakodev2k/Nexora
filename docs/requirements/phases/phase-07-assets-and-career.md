@@ -1,5 +1,7 @@
 # Phase 7 — Personal Assets, Digital Assets and Career/Learning
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../../history/20260908/snapshot/docs/requirements/phases/phase-07-assets-and-career.md) is historical evidence, not implementation input.
+
 **Phase ID:** `NX-PH-07`  
 **Version:** `1.2-draft`  
 **Outcome:** User quản lý vòng đời tài sản vật lý/số và hồ sơ nghề nghiệp/học tập cá nhân bằng files, reminders, search, sharing, Finance links và Vault references.  
@@ -117,8 +119,8 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 | ID | Pri | Requirement | Acceptance criteria |
 |---|---:|---|---|
 | `P07-COM-001` | P0 | Company has name, URL, industry/location/notes and related opportunities; duplicate/merge policy clear. | Merge preserves links/history; external content sanitized. |
-| `P07-INT-001` | P0 | Interview has job, round/type, start/end/timezone, location/link, participants as user-entered text/contact refs, notes and status. | Calendar/reminder link idempotent; reschedule/cancel invalidates stale event/reminder. |
-| `P07-INT-002` | P0 | Interview feedback/private notes excluded from share by default. | Shared job projection does not include hidden fields. |
+| `P07-INT-001` | P0 | Create/link an internal Personal Calendar Event to JobApplication; Calendar owns fields/state/reminder. | Same-owner/idempotent transaction, no standalone interview/conference provider or duplicated reminder. |
+| `P07-INT-002` | P0 | Internal event/reference does not expose private job/contact/salary notes to share viewers. | Resume share remains separate and pins exact version; no external interview workflow. |
 
 ## 6. Resume Manager
 
@@ -176,4 +178,3 @@ Remote device control/MDM, password/credential duplication outside Vault, VPS sh
 - Expiry/reminder idempotency/timezone/update tests pass.
 - Personal ownership từng module được khóa; cross-user/revoked-support/module-disabled tests pass.
 - Responsive/accessibility P0 journeys pass; no Critical/High finding remains.
-

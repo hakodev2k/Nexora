@@ -1,5 +1,7 @@
 # Local Development Roadmap and Runbook
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/roadmap/03-local-development-roadmap.md) is historical evidence, not implementation input.
+
 **Status:** PLANNED. Chưa cài SDK/Node/SQL/Redis, tạo project/database, chạy migration hoặc thay runtime configuration. Mọi config/command dưới đây chỉ là specification cho implementation tương lai.
 [Master RM02–RM18](00-master-implementation-roadmap.md) · [Architecture](02-solution-architecture-roadmap.md) · [Local Stable gate](09-local-stable-release.md)
 
@@ -145,3 +147,7 @@ Bảng là contract cho kế hoạch tương lai. Nếu script/path/version/prof
 Mock/test adapters cần cho repeatable tests nhưng không đủ chứng minh Email/Push thực. Trước RM18 phải có local application gửi controlled verification/reminder/security notification qua real test Email transport và Browser Push trên browser hỗ trợ; ghi bằng chứng của cả success và denial/outage. External push delivery có thể cần Internet dù app host vẫn local. Không phải lý do chọn cloud hosting trước RM18.
 
 Fresh-machine/full-checkout rehearsal tại RM17 xác minh toàn bộ runbook trên dependency profile đã pin. Sau đó replace “planned script contract” bằng tested operational steps trong task implementation tương lai. Deliverable của task hiện tại vẫn chỉ là tài liệu này.
+
+## Current milestone handoff
+
+Start from [current delivery specification](../delivery/README.md). M01 scope, API/DB/UX/acceptance and evidence gates are linked there. A local/internal milestone is not Release1 completion. Scripts/migrations/runtime evidence remain future implementation artifacts, not executed by this documentation update.

@@ -1,5 +1,7 @@
 # Read-only Sharing Engine
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/04-read-only-sharing.md) is historical evidence, not implementation input.
+
 FX-04 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -31,7 +33,7 @@ Link live read-only, expiry/revoke và module-level sharing policy.
 - **FX-04-BR-002:** Project share toàn bộ Task details còn hiện hữu live, không hide task. Documents link chỉ Published tạo mới; Draft suspend; Archived giữ link đã active.
 - **FX-04-BR-003:** Share không tự bao gồm child Documents, history/reasons/audit/reminder configs/private notes hoặc các resource liên kết.
 - **FX-04-BR-004:** Calendar Event không share; Vault payload không share. Sensitive Finance/Asset projections phải Q-03/Q-04.
-- **FX-04-BR-005:** Trash deny ngay; link reuse sau restore và disable-policy effects còn Q-03, proposal suspended không tự hồi sinh.
+- **FX-04-BR-005:** Trash/source delete hoặc sharing off xóa khả năng dùng link vĩnh viễn; restore/re-enable cần token mới, token cũ404 không lộ title. Draft chỉ tạm khóa link còn hợp lệ; Archived giữ link theo rule đã chốt.
 
 ## Quyền, API và tích hợp
 

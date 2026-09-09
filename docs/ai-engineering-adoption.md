@@ -68,3 +68,21 @@ Product Manager/Product Owner authority also remains human-owned through Nexora 
 5. Exact requirement / feature / UX files for the task.
 
 The baseline is governance and implementation guidance only; it does not claim application tests have run while Nexora remains documentation-first.
+
+## PR #1 review adaptations
+
+Reviewed against delivery baseline `d7810b9ce88b931a50ef734cac1b5fb0f28cd903` and pinned upstream `a9f31a7a6a2f65ddc77c3791fde303f990f72d52`. All 95 imported assets matched upstream blobs before local adaptations.
+
+| Finding | Resolution |
+| --- | --- |
+| Review workflow could proceed directly into application coding | Explicit existing-approval check and current delivery/PO scope in root AGENTS |
+| Copied Markdown skills lacked a native entrypoint | `.agents/skills/nexora-engineering/SKILL.md` and manual-loading fallback |
+| Wildcard routes and absent gates could be mistaken for executed controls | Exact validated routing and explicit on-demand policy |
+| Completion accepted omitted freshness/success or unrelated evidence | Explicit true booleans, matching revision, artifact reference, nonempty claims and contradictory-failure blocking |
+| Boundary accepted unknown operations, boolean strings and route authority | Strict inputs, server-context sources and cross-owner escalation |
+| No executable baseline CI | Standard-library runner and read-only PR workflow |
+| Upstream role implied unapproved delegation | One accountable owner; host/user authorization controls delegation |
+
+Validation: package checks, native skill validation, 10 routing groups and 15 gate regressions pass locally. Independent review found contradictory evidence and usage-documentation issues; addressed with a regression and package entrypoint notes. No application tests run or implementation approval granted. Manifest evidence is self-reported; runtime interception, authenticated artifact collection and branch protection are not implemented. Host agents must load root AGENTS.
+
+Independent follow-up review after those fixes remains pending: the reviewer session reached its usage limit. Local regression verification is not a substitute for that review.

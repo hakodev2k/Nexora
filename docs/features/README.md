@@ -1,5 +1,7 @@
 # Nexora — Feature Specifications
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/README.md) is historical evidence, not implementation input.
+
 Ngày: **2026-09-06** · Baseline đọc: [d0d8418](https://github.com/hakodev2k/Nexora/commit/d0d84181e0043f9ffa38b475cbe461d34449805e) · **Documentation only; chưa được approve implement.**
 
 Bộ này phân tích **40 ranh giới feature/capability** cho toàn bộ module catalog hiện tại; không có nghĩa website cần40 menu hay40 plugin độc lập. Mỗi đặc tả có sản phẩm tham chiếu, phần áp dụng/điều chỉnh cho Nexora, luồng màn hình, dữ liệu/validation, lifecycle, commands/integrations, acceptance scenarios và source requirement mapping.
@@ -18,7 +20,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 
 | ID | Feature/capability | Sản phẩm tham chiếu | Major decisions |
 |---|---|---|---|
-| FX-01 | [Identity, Registration và Profile](01-identity-and-profile.md) | Auth0 | Q-01, Q-02, Q-09 |
+| FX-01 | [Identity, Registration và Profile](01-identity-and-profile.md) | Auth0 | Q-01, Q-02, Q09 language resolved |
 | FX-02 | [Users, Roles và Action Permissions](02-users-roles-and-permissions.md) | WordPress | Không phát sinh riêng; common gates áp dụng |
 | FX-03 | [Module Platform và Module Manager](03-module-platform.md) | WordPress | Không phát sinh riêng; common gates áp dụng |
 | FX-04 | [Read-only Sharing Engine](04-read-only-sharing.md) | Google Drive | Q-03, Q-04 |
@@ -26,8 +28,8 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-06 | [Notification Center và Delivery](06-notification-center.md) | GitHub Notifications | Không phát sinh riêng; common gates áp dụng |
 | FX-07 | [Files, Uploads và Attachments](07-files-and-attachments.md) | Google Drive, Google Drive | Q-08 |
 | FX-08 | [Trash, Activity và Audit](08-trash-activity-and-audit.md) | Google Drive, Microsoft Customer Lockbox | Q-01, Q-08 |
-| FX-09 | [Settings và Application Shell](09-settings-and-app-shell.md) | Notion Sidebar, WordPress | Q-09 |
-| FX-10 | [Import, Export và Backup/Restore](10-import-export-and-backup.md) | Google Calendar, GitLab | Q-01, Q-04, Q-08, Q-11 |
+| FX-09 | [Settings và Application Shell](09-settings-and-app-shell.md) | Notion Sidebar, WordPress | Q09 language resolved |
+| FX-10 | [Import, Export và Backup/Restore](10-import-export-and-backup.md) | Google Calendar, GitLab | Q-01, Q-04, Q-08, Q11 resolved DOCX/MD |
 | FX-11 | [Projects](11-projects.md) | Microsoft To Do, TickTick | Không phát sinh riêng; common gates áp dụng |
 | FX-12 | [Tasks, Kanban và Table](12-tasks.md) | Microsoft To Do, TickTick | Q-10 |
 | FX-13 | [Calendar, Personal Events và ICS](13-calendar.md) | Google Calendar | Không phát sinh riêng; common gates áp dụng |
@@ -37,7 +39,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-17 | [Habit Tracker](17-habits.md) | TickTick | Không phát sinh riêng; common gates áp dụng |
 | FX-18 | [Time Tracking](18-time-tracking.md) | Toggl Track | Không phát sinh riêng; common gates áp dụng |
 | FX-19 | [Pomodoro và Focus](19-pomodoro.md) | TickTick Focus, TickTick | Không phát sinh riêng; common gates áp dụng |
-| FX-20 | [Documents, Note và Knowledge Pages](20-documents.md) | Google Docs, Notion | Q-11 |
+| FX-20 | [Documents, Note và Knowledge Pages](20-documents.md) | Google Docs, Notion | Q11 resolved DOCX/MD |
 | FX-21 | [Bookmarks](21-bookmarks.md) | Raindrop.io | Không phát sinh riêng; common gates áp dụng |
 | FX-22 | [Code Snippets](22-snippets.md) | GitHub Gists, DevToys | Không phát sinh riêng; common gates áp dụng |
 | FX-23 | [Read Later](23-read-later.md) | Instapaper | Không phát sinh riêng; common gates áp dụng |
@@ -56,7 +58,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-36 | [Monitoring và Job Operations](36-monitoring-and-job-operations.md) | UptimeRobot | Q-07, Q-08 |
 | FX-37 | [Personal Assets, Inventory và Devices](37-personal-assets.md) | Snipe-IT | Q-03 |
 | FX-38 | [Domains, Hosting, VPS, Certificates, Licenses và Services](38-digital-assets.md) | Cloudflare Registrar, Snipe-IT | Q-03, Q-07 |
-| FX-39 | [Career, Companies, Interviews và Resumes](39-career-and-resumes.md) | Teal Job Tracker | Q-11, Q-12 |
+| FX-39 | [Career, Companies, Interviews và Resumes](39-career-and-resumes.md) | Teal Job Tracker | Q11 resolved DOCX/MD, Q-12 |
 | FX-40 | [Skills, Courses, Certifications, Learning Plan và Work Log](40-learning-and-work-log.md) | Moodle, Toggl Track | Q-03 |
 
 ## Bản đồ nghiệp vụ chính
@@ -72,4 +74,3 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 Personal-only, verified email rồi dùng ngay; không Workspace/team collaboration. Project terminal không mở lại; Event terminal không mở lại; Documents manual Save và immutable type/editor/parent/folder; notifications luôn cả ba kênh. Projects/Tasks import-export deferred, Calendar ICS included. Developer viết module; User/Admin không upload executable plugin. No-code builder/marketplace vẫn Deferred.
 
 Chi tiết delegated có thể được điều chỉnh khi review mà không yêu cầu phỏng vấn từng click. Nếu thay một quyết định Approved hoặc mở rộng phạm vi/chi phí/privacy, phải ghi lại quyết định PO trước.
-

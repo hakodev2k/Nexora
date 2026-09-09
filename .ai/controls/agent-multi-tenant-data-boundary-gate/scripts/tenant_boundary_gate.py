@@ -14,6 +14,15 @@ def finding(code, severity, message, evidence):
     return {"code": code, "severity": severity, "message": message, "evidence": evidence}
 
 def evaluate(doc):
+    if not isinstance(doc, dict):
+        raise ValueError("manifest must be an object")
+    for key in ("tenant_source_trusted", "read_tenant_scoped", "write_tenant_match_verified", "cross_tenant", "exception_approved", "uses_query_filter_bypass", "tenant_from_request_body"):
+        if key in doc and type(doc[key]) is not bool:
+            raise ValueError(f"{key} must be a JSON boolean")
+    if not isinstance(doc.get("kind"), str) or doc["kind"] not in {"read", "query", "write", "create", "update", "delete"}:
+        raise ValueError("kind must be a supported explicit operation")
+    if not isinstance(doc.get("tenant"), str) or not doc["tenant"].strip():
+        raise ValueError("tenant must be a nonempty owner identifier")
     fs = []
     tenant = doc.get("tenant")
     operation = str(doc.get("operation", "unknown"))
@@ -26,7 +35,7 @@ def evaluate(doc):
 
     if not tenant:
         fs.append(finding("TENANT_MISSING", "critical", "Tenant context is missing.", ["tenant is empty"]))
-    if not source or not trusted:
+    if not isinstance(source, str) or source not in {"claim", "service-context"} or not trusted:
         fs.append(finding("TENANT_SOURCE_UNTRUSTED", "critical", "Tenant source is missing or untrusted.", [f"tenant_source={source!r}", f"trusted={trusted}"]))
 
     kind = str(doc.get("kind", "read")).lower()
@@ -36,6 +45,8 @@ def evaluate(doc):
         fs.append(finding("WRITE_OWNERSHIP_UNVERIFIED", "critical", "Write target tenant ownership is not verified.", ["write_tenant_match_verified=false"]))
     if cross and not approved:
         fs.append(finding("CROSS_TENANT_UNAPPROVED", "critical", "Cross-tenant operation lacks explicit approval.", ["cross_tenant=true", "exception_approved=false"]))
+    if cross:
+        fs.append(finding("CROSS_OWNER_REVIEW_REQUIRED", "high", "This generic manifest cannot verify Nexora access-context grants, field projections or recovery authority; require dedicated contract tests and independent review.", ["cross_tenant=true"]))
     if doc.get("uses_query_filter_bypass", False):
         fs.append(finding("FILTER_BYPASS", "high", "Query-filter bypass requires explicit evidence and approval.", ["uses_query_filter_bypass=true"]))
     if doc.get("tenant_from_request_body", False):

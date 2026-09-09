@@ -2,6 +2,16 @@
 
 Primary role: `../roles/technical-lead/README.md`.
 
+All task routing paths are repository-root-relative in `.ai/routing.json`.
+Load `baseline` plus every matching route before affected work. The table below
+describes triggers; the manifest supplies exact existing paths. Follow root
+`AGENTS.md` for authorization, source precedence and delegation limits.
+
+Phase-on-demand controls below are **not installed or executable gates**. Before
+affected implementation, record equivalent concrete verification from approved
+delivery contracts, or review/adopt the required package within authorized scope.
+Never report an absent package as run or install upstream connectors automatically.
+
 The Technical Lead remains final owner. Specialist capability is supplied through focused Rules/Skills rather than competing autonomous role packages.
 
 | Change type | Load from the baseline | Gate / verification |

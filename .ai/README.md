@@ -19,3 +19,7 @@ Repository-root `AGENTS.md` defines source precedence, Nexora invariants, approv
 Do not load every file for every task. Start with `AGENTS.md`, this README, the Technical Lead role README, and the exact Nexora requirement/feature/UX source. Then load only the specialist Rule/Skill required by the task.
 
 Additional upstream gates named in the profile are **phase-on-demand**: evaluate and copy their complete package only when Nexora reaches a change that needs them.
+
+## Nexora runtime integration
+
+Mandatory local entry: `.agents/skills/nexora-engineering/SKILL.md` (repository-root-relative), followed by exact paths in `.ai/routing.json`. See `.ai/verification.md` for the executable baseline check and evidence contract. Vendored Markdown procedures are reference skills; only the native SKILL.md bridge is packaged for host discovery. Root AGENTS supplies a manual-loading fallback. Manifest gates do not inspect application code or enforce host behavior.

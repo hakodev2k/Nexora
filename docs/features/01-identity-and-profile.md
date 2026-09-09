@@ -1,5 +1,7 @@
 # Identity, Registration và Profile
 
+> Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/01-identity-and-profile.md) is historical evidence, not implementation input.
+
 FX-01 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
@@ -16,16 +18,16 @@ FX-01 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 ## Luồng sử dụng
 
-1. Đăng ký email/password → PendingVerification và Personal Space private duy nhất.
-2. Mở verification link → Verified; redirect onboarding/profile; enable toàn bộ module theo policy đăng ký.
+1. Đăng ký email/password → PendingVerification + verification intent; chưa tạo Personal Space trước xác minh.
+2. Xác minh token qua explicit POST → Active; tạo đúng một PersonalSpace và default grants cho installed/Ready/active-scope modules atomically; sang Login dùng ngay, không Admin approval. Paused/uninstalled không bật.
 3. Login → session; profile đổi tên/avatar/timezone; reset password qua email với kết quả không tiết lộ account tồn tại.
-4. Logout session hiện tại hoặc revoke all sessions; account deletion/export theo Q-01.
+4. Logout session hiện tại hoặc revoke all sessions; account deletion = soft-delete; restore/email reuse và export portability là scope riêng chưa duyệt.
 
 ## Dữ liệu và validation
 
 - Email chuẩn hóa lookup, unique theo identity policy; display name 1–100; password theo security policy nguồn, không log.
-- UserId/PersonalSpaceId server-generated; status PendingVerification/Active/Disabled/DeletionPending; emailVerifiedAt server-only.
-- Timezone IANA nhận từ browser và User đổi được; avatar qua File Service. Locale/language Q-09.
+- UserId/PersonalSpaceId server-generated; status PendingVerification/Active/Disabled/Deleted; IsDeleted đồng nhất Deleted; emailVerifiedAt server-only.
+- Timezone IANA nhận từ browser và User đổi được; avatar qua File Service. Locale vi mặc định, User chọn en; độc lập timezone/currency.
 
 ## Hành vi và lifecycle
 
@@ -33,7 +35,7 @@ FX-01 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 - **FX-01-BR-002:** Reset token30min, single-use; password reset revoke sessions và gửi Security notification all 3. Không tự đăng nhập từ reset link.
 - **FX-01-BR-003:** PendingVerification chỉ verify/resend/logout/help; direct module API bị chặn.
 - **FX-01-BR-004:** Đổi email cần verify email mới, giữ email cũ cho tới thành công, thông báo cả địa chỉ phù hợp mà không lộ secret.
-- **FX-01-BR-005:** Không phân biệt lỗi account tồn tại ở forgot-password; throttle server-side; MFA/passkey/recovery Q-02.
+- **FX-01-BR-005:** Không phân biệt lỗi account tồn tại ở forgot-password; throttle server-side; Google Authenticator TOTP optional đã chốt; lost-device recovery theo P-H01, passkey/social login ngoài scope.
 
 ## Quyền, API và tích hợp
 
@@ -57,4 +59,8 @@ Các AC nguồn và common gates vẫn bắt buộc; đây là các scenario b�
 - [08-workspaces-and-collaboration.md](../requirements/08-workspaces-and-collaboration.md): `PDS-OWN-001`, `PDS-OWN-002`, `PDS-OWN-003`, `PDS-OWN-004`, `PDS-OWN-005`, `PDS-OWN-006`
 - [phase-01-core-platform.md](../requirements/phases/phase-01-core-platform.md): `P01-AUT-001`, `P01-AUT-002`, `P01-AUT-003`, `P01-AUT-004`, `P01-AUT-005`, `P01-AUT-006`, `P01-AUT-007`, `P01-AUT-008`, `P01-AUT-009`, `P01-AUT-010`, `P01-AUT-011`, `P01-AUT-012`, `P01-PDS-001`, `P01-USR-001`, `P01-USR-002`, `P01-USR-003`, `P01-USR-004`, `P01-USR-005`
 
-Quyết định lớn cần PO: [Q-01](90-open-decisions.md#q-01), [Q-02](90-open-decisions.md#q-02), [Q-09](90-open-decisions.md#q-09). Các hành vi phụ thuộc chúng chưa đạt Definition of Ready.
+Chỉ account restore/email reuse và lost-device MFA recovery còn proposal; [M01](../delivery/milestone-01/README.md) password/email/profile không bị chặn bởi các phần đó.
+
+## Current language and account lifecycle
+
+UI language default vi regardless of browser locale; Settings explicitly switches en/vi, persists per account and updates all app-owned UI/notifications at render/composition time without translating user content. Timezone and currency independent. Deleted account cannot login/reset into active status; retention disclosed before account soft delete. Q02 method confirmed: optional Google Authenticator TOTP (DEC-20260908-Q02-TOTP); enabled-MFA recovery remains pending. No Google OAuth flow added.
