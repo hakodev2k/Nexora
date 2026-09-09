@@ -1,0 +1,482 @@
+{
+  "repository": "hakodev2k/AI-Engineering",
+  "revision": "a9f31a7a6a2f65ddc77c3791fde303f990f72d52",
+  "note": "Upstream blob hashes before Nexora adaptations; not local content hashes. Review local changes before upgrading.",
+  "files": [
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/README.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/README.md",
+      "upstream_sha": "c031997f8769ef64bc76d63e047ba36305539891"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/config/policy.yaml",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/config/policy.yaml",
+      "upstream_sha": "50e1ab9d63a97097ad106a2548c05cb6083681eb"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/examples/safe-read.json",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/examples/safe-read.json",
+      "upstream_sha": "d100b4df26cef6b5fcdd9f26d9af915af0e5f60e"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/examples/unsafe-write.json",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/examples/unsafe-write.json",
+      "upstream_sha": "a71f7c61c384ade65faaa9fb8b27a3e8e95e7208"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/hooks/lifecycle.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/hooks/lifecycle.md",
+      "upstream_sha": "3849cc5f20654abe0651afaa265488b61bec15d9"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/rules/multi-tenant-safety.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/rules/multi-tenant-safety.md",
+      "upstream_sha": "77e28839e295f17bb735336bbed635eb08a3b30b"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/schemas/boundary-result.schema.json",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/schemas/boundary-result.schema.json",
+      "upstream_sha": "679cd38754ef34228e22a76f31a704ca9dde734c"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/scripts/tenant_boundary_gate.py",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/scripts/tenant_boundary_gate.py",
+      "upstream_sha": "984651dd87e2082a99823b7c3ef2b536a6bff9a9"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/scripts/verify_package.py",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/scripts/verify_package.py",
+      "upstream_sha": "06ba9a47ea68c67cd02098784a2453bbda46438e"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/skills/tenant-boundary-review.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/skills/tenant-boundary-review.md",
+      "upstream_sha": "def2147d4034ad2226d78f5c8d719e65d77605fd"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/subagents/boundary-explorer.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/subagents/boundary-explorer.md",
+      "upstream_sha": "34a5d4aa88f09f9ddf9622bc0345c604631b1df6"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/subagents/boundary-implementer.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/subagents/boundary-implementer.md",
+      "upstream_sha": "e653f9d8823149073b8c727f62c1d91fe09aef4b"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/subagents/boundary-planner.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/subagents/boundary-planner.md",
+      "upstream_sha": "5fdab81bc319ee6b50af14e5767742b00856fd3f"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/subagents/boundary-verifier.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/subagents/boundary-verifier.md",
+      "upstream_sha": "833339fcb36051aa80198ee400878aa70ce26696"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/templates/operation-manifest.json",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/templates/operation-manifest.json",
+      "upstream_sha": "70c6343375d09c5c61954742cec6b20597627d77"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/tests/test_tenant_boundary_gate.py",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/tests/test_tenant_boundary_gate.py",
+      "upstream_sha": "8089d895fa93df3f937b2651cceeb56c32973a7f"
+    },
+    {
+      "path": ".ai/controls/agent-multi-tenant-data-boundary-gate/workflows/tenant-boundary-workflow.md",
+      "source": "Daily AI Engineering Kit/agent-multi-tenant-data-boundary-gate/workflows/tenant-boundary-workflow.md",
+      "upstream_sha": "ee44421a62feb49d1eb1cb59aef9229d6e07f770"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/README.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/README.md",
+      "upstream_sha": "efe03793c59a7e6343630fb22e46356573d5aaad"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/config/completion-policy.json",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/config/completion-policy.json",
+      "upstream_sha": "f9dd3d78fa0c73429dce420f392947b306394808"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/evidence/research.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/evidence/research.md",
+      "upstream_sha": "bc60040ab89d030c3ab4e5bb69cd6d3cb191eb21"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/hooks/pre-completion-gate.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/hooks/pre-completion-gate.md",
+      "upstream_sha": "718dc0f2ee4482ca847017d82a9494eb947241db"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/rules/completion-claim-policy.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/rules/completion-claim-policy.md",
+      "upstream_sha": "fdee42314c3c5ccba24656b4263025579a7ba991"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/scripts/completion_gate.py",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/scripts/completion_gate.py",
+      "upstream_sha": "0e4654cd2ee6a4f8fe84f841f0e4e1da846d8372"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/skills/evidence-grounded-verification.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/skills/evidence-grounded-verification.md",
+      "upstream_sha": "9be6c6e5d98d409106ee0413bc5285d26aca3972"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/subagents/independent-verifier.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/subagents/independent-verifier.md",
+      "upstream_sha": "0c68ab21f24ff2e7d0f1d062943302c68728d42c"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/tests/test_completion_gate.py",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/tests/test_completion_gate.py",
+      "upstream_sha": "5b427ee8c1a48b70a5ff83d31ab3857459804592"
+    },
+    {
+      "path": ".ai/guards/agent-ground-truth-completion-gate/workflows/verify-before-complete.md",
+      "source": "Daily AI Engineering Security - Performance - Thinking/agent-ground-truth-completion-gate/workflows/verify-before-complete.md",
+      "upstream_sha": "a8649c044e1c3cb3f45caf78828f1bf70737b7d5"
+    },
+    {
+      "path": ".ai/roles/technical-lead/README.md",
+      "source": "Daily AI Role/technical-lead/README.md",
+      "upstream_sha": "a50ee61c64a81c4b66cfb276f9aa01478062091d"
+    },
+    {
+      "path": ".ai/roles/technical-lead/checklists/definition-of-done.md",
+      "source": "Daily AI Role/technical-lead/checklists/definition-of-done.md",
+      "upstream_sha": "6b73a906b80bea7987f5df968c8b868a41ded960"
+    },
+    {
+      "path": ".ai/roles/technical-lead/config/role.yaml",
+      "source": "Daily AI Role/technical-lead/config/role.yaml",
+      "upstream_sha": "84e59d522bb6018a2482f8a317f62aec843490e8"
+    },
+    {
+      "path": ".ai/roles/technical-lead/examples/sample-task.json",
+      "source": "Daily AI Role/technical-lead/examples/sample-task.json",
+      "upstream_sha": "ef92633df3a9d5634d6e1f43ad91f0da447d0e1d"
+    },
+    {
+      "path": ".ai/roles/technical-lead/hooks/lifecycle-hooks.md",
+      "source": "Daily AI Role/technical-lead/hooks/lifecycle-hooks.md",
+      "upstream_sha": "beb246b1ef0e630efcb4256e506cd2272fcbe94c"
+    },
+    {
+      "path": ".ai/roles/technical-lead/knowledge/delivery-and-review-playbook.md",
+      "source": "Daily AI Role/technical-lead/knowledge/delivery-and-review-playbook.md",
+      "upstream_sha": "6fb270d847d24e06cb2b67d8aca8ee8bd3fc8e85"
+    },
+    {
+      "path": ".ai/roles/technical-lead/knowledge/operating-model.md",
+      "source": "Daily AI Role/technical-lead/knowledge/operating-model.md",
+      "upstream_sha": "02bc742e2ad336dc85b2e42e862a7b3ee61563ae"
+    },
+    {
+      "path": ".ai/roles/technical-lead/metrics/scorecard.md",
+      "source": "Daily AI Role/technical-lead/metrics/scorecard.md",
+      "upstream_sha": "fc70dc5e5bf4f356fa13f268e88d0bce278fba14"
+    },
+    {
+      "path": ".ai/roles/technical-lead/rules/core-rules.md",
+      "source": "Daily AI Role/technical-lead/rules/core-rules.md",
+      "upstream_sha": "6b2ce4ba263aa36a921eefb37010759facb1e0d6"
+    },
+    {
+      "path": ".ai/roles/technical-lead/schemas/task.schema.json",
+      "source": "Daily AI Role/technical-lead/schemas/task.schema.json",
+      "upstream_sha": "156953bf6676bc8125c756cc2fe1ff3b1366fe6e"
+    },
+    {
+      "path": ".ai/roles/technical-lead/scripts/check-package.py",
+      "source": "Daily AI Role/technical-lead/scripts/check-package.py",
+      "upstream_sha": "808fbc50d52f69a2afeb97110845cf17690b17c5"
+    },
+    {
+      "path": ".ai/roles/technical-lead/scripts/validate-task.py",
+      "source": "Daily AI Role/technical-lead/scripts/validate-task.py",
+      "upstream_sha": "4b524eb9fa21947f1cde8237b53657a71e799728"
+    },
+    {
+      "path": ".ai/roles/technical-lead/skills/code-change-review.md",
+      "source": "Daily AI Role/technical-lead/skills/code-change-review.md",
+      "upstream_sha": "27051639d75b6326405f999e4653b274307a66b9"
+    },
+    {
+      "path": ".ai/roles/technical-lead/skills/delivery-risk-management.md",
+      "source": "Daily AI Role/technical-lead/skills/delivery-risk-management.md",
+      "upstream_sha": "cc8130d534e992255c18b97cbbbf7c62341c018b"
+    },
+    {
+      "path": ".ai/roles/technical-lead/skills/incident-leadership.md",
+      "source": "Daily AI Role/technical-lead/skills/incident-leadership.md",
+      "upstream_sha": "4f2b55332e61d5f51209af85c7fa3b87a42c5e44"
+    },
+    {
+      "path": ".ai/roles/technical-lead/skills/work-intake-and-decomposition.md",
+      "source": "Daily AI Role/technical-lead/skills/work-intake-and-decomposition.md",
+      "upstream_sha": "ec8f196f12bb836918eaa7c5a7d4f72c349accb2"
+    },
+    {
+      "path": ".ai/roles/technical-lead/subagents/implementation-owner.md",
+      "source": "Daily AI Role/technical-lead/subagents/implementation-owner.md",
+      "upstream_sha": "b748d91ddc168f01fd21118118a326520121c3ef"
+    },
+    {
+      "path": ".ai/roles/technical-lead/subagents/independent-reviewer.md",
+      "source": "Daily AI Role/technical-lead/subagents/independent-reviewer.md",
+      "upstream_sha": "f0e94d4703801e4677fd3c4c442ab0959c991c35"
+    },
+    {
+      "path": ".ai/roles/technical-lead/subagents/repository-explorer.md",
+      "source": "Daily AI Role/technical-lead/subagents/repository-explorer.md",
+      "upstream_sha": "f87d136f022c6583b9d7ee0f118f83fde852f4e2"
+    },
+    {
+      "path": ".ai/roles/technical-lead/subagents/risk-and-dependency-controller.md",
+      "source": "Daily AI Role/technical-lead/subagents/risk-and-dependency-controller.md",
+      "upstream_sha": "eafcea9da9cd5e0233d2f65fe065184aa4fdf4d0"
+    },
+    {
+      "path": ".ai/roles/technical-lead/subagents/verification-owner.md",
+      "source": "Daily AI Role/technical-lead/subagents/verification-owner.md",
+      "upstream_sha": "7913f410f062fb13bae83f9982a28be90a1907de"
+    },
+    {
+      "path": ".ai/roles/technical-lead/templates/decision-record.md",
+      "source": "Daily AI Role/technical-lead/templates/decision-record.md",
+      "upstream_sha": "e1e715698f6c2dd7fc25fff4ce81d3cf9726d825"
+    },
+    {
+      "path": ".ai/roles/technical-lead/templates/handoff.md",
+      "source": "Daily AI Role/technical-lead/templates/handoff.md",
+      "upstream_sha": "d8b6b1423207e6343543c65c6910bb5ecf41fd90"
+    },
+    {
+      "path": ".ai/roles/technical-lead/templates/task-brief.md",
+      "source": "Daily AI Role/technical-lead/templates/task-brief.md",
+      "upstream_sha": "60f5e923366c69e1f59999faa9974e529187070c"
+    },
+    {
+      "path": ".ai/roles/technical-lead/workflows/code-review-loop.md",
+      "source": "Daily AI Role/technical-lead/workflows/code-review-loop.md",
+      "upstream_sha": "a8b6592d65838ea89c77552e7e8eea6491548c59"
+    },
+    {
+      "path": ".ai/roles/technical-lead/workflows/feature-delivery.md",
+      "source": "Daily AI Role/technical-lead/workflows/feature-delivery.md",
+      "upstream_sha": "840445e1d0626af63d201442d5fa0ed817d77fce"
+    },
+    {
+      "path": ".ai/roles/technical-lead/workflows/incident-response.md",
+      "source": "Daily AI Role/technical-lead/workflows/incident-response.md",
+      "upstream_sha": "a0e3e2164b33a3f3f87fd1ec9d27e72113c4ec8a"
+    },
+    {
+      "path": ".ai/roles/technical-lead/workflows/release-readiness.md",
+      "source": "Daily AI Role/technical-lead/workflows/release-readiness.md",
+      "upstream_sha": "f3b48c7d03b73f6504e7f450b1129ee079e8c545"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/authorization-rules.md",
+      "source": "Rules/dotnet-backend-developer/authorization-rules.md",
+      "upstream_sha": "a225225c1cdcbd38d4b2655b9bae5458f98ffb28"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/background-processing-rules.md",
+      "source": "Rules/dotnet-backend-developer/background-processing-rules.md",
+      "upstream_sha": "8402ee66130fa97a18614ed95dad1524264ae07d"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/caching-rules.md",
+      "source": "Rules/dotnet-backend-developer/caching-rules.md",
+      "upstream_sha": "20ab77e82deab1f64639c08ddc0162f414d02025"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/ef-core-rules.md",
+      "source": "Rules/dotnet-backend-developer/ef-core-rules.md",
+      "upstream_sha": "79fb7038adde0b249dc2574f8951c5ac529f964c"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/migration-safety-rules.md",
+      "source": "Rules/dotnet-backend-developer/migration-safety-rules.md",
+      "upstream_sha": "6af63cfe1470071c93d7b4e392d075432c3f32cb"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/security-rules.md",
+      "source": "Rules/dotnet-backend-developer/security-rules.md",
+      "upstream_sha": "de86aa11340cbf4f2463731f0d871bf421dc6412"
+    },
+    {
+      "path": ".ai/rules/dotnet-backend-developer/testing-rules.md",
+      "source": "Rules/dotnet-backend-developer/testing-rules.md",
+      "upstream_sha": "08dba70c248991aa46f6847e6b2580337b7af53f"
+    },
+    {
+      "path": ".ai/rules/privacy-engineer/privacy-access-control-rules.md",
+      "source": "Rules/privacy-engineer/privacy-access-control-rules.md",
+      "upstream_sha": "bda8c1134de85f9350e4204dc6d35b94bb10c464"
+    },
+    {
+      "path": ".ai/rules/react-developer/accessibility-rules.md",
+      "source": "Rules/react-developer/accessibility-rules.md",
+      "upstream_sha": "644dd99d57e0bc8d27bb6bace3df192f41a0edd3"
+    },
+    {
+      "path": ".ai/rules/react-developer/browser-security-rules.md",
+      "source": "Rules/react-developer/browser-security-rules.md",
+      "upstream_sha": "ffb33038cac6ba2ba0d10852665c3ad480474729"
+    },
+    {
+      "path": ".ai/rules/react-developer/design-system-rules.md",
+      "source": "Rules/react-developer/design-system-rules.md",
+      "upstream_sha": "b11514be75197021c2249918421a3451127ef24d"
+    },
+    {
+      "path": ".ai/rules/react-developer/form-validation-rules.md",
+      "source": "Rules/react-developer/form-validation-rules.md",
+      "upstream_sha": "dc70ab8986347a10ec7647c7306ae561c5842b9b"
+    },
+    {
+      "path": ".ai/rules/react-developer/testing-rules.md",
+      "source": "Rules/react-developer/testing-rules.md",
+      "upstream_sha": "9e6189652c20a233eba31f68b744b1953e5c4714"
+    },
+    {
+      "path": ".ai/rules/security-engineer/data-protection-rules.md",
+      "source": "Rules/security-engineer/data-protection-rules.md",
+      "upstream_sha": "44bff4cbac8d35ff9a786b454f771d2b364aa0a2"
+    },
+    {
+      "path": ".ai/rules/security-engineer/identity-access-rules.md",
+      "source": "Rules/security-engineer/identity-access-rules.md",
+      "upstream_sha": "8d6ba229d7c6d924f5a2cee3ef0ceec08cb4f12d"
+    },
+    {
+      "path": ".ai/rules/security-engineer/secrets-management-rules.md",
+      "source": "Rules/security-engineer/secrets-management-rules.md",
+      "upstream_sha": "c1f62bcd543757d4a3947f97613a8a3ee205b0df"
+    },
+    {
+      "path": ".ai/rules/security-engineer/threat-modeling-rules.md",
+      "source": "Rules/security-engineer/threat-modeling-rules.md",
+      "upstream_sha": "e95f4892c84fb50a962a077899ee32d970bfe7f8"
+    },
+    {
+      "path": ".ai/rules/software-architect/data-ownership-rules.md",
+      "source": "Rules/software-architect/data-ownership-rules.md",
+      "upstream_sha": "f3a2df1a9d6438e47ad3e9020724943f053fa27c"
+    },
+    {
+      "path": ".ai/rules/software-architect/module-boundary-rules.md",
+      "source": "Rules/software-architect/module-boundary-rules.md",
+      "upstream_sha": "45a3a91dab825ede46963e145f03034910dc497f"
+    },
+    {
+      "path": ".ai/rules/software-architect/transaction-consistency-rules.md",
+      "source": "Rules/software-architect/transaction-consistency-rules.md",
+      "upstream_sha": "fd329d0bddec5b5cfc16e71a14b7c1d9c78ddeb4"
+    },
+    {
+      "path": ".ai/skills/database-engineer/schema-migrations-zero-downtime.md",
+      "source": "Skills/database-engineer/schema-migrations-zero-downtime.md",
+      "upstream_sha": "d9724de15ea318d2613d3e31d56292be7e012e5e"
+    },
+    {
+      "path": ".ai/skills/database-engineer/transactions-isolation-concurrency.md",
+      "source": "Skills/database-engineer/transactions-isolation-concurrency.md",
+      "upstream_sha": "a0c3a0700df7cc4d16fbba254ca5360a980032ab"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/authentication-authorization.md",
+      "source": "Skills/dotnet-backend-developer/authentication-authorization.md",
+      "upstream_sha": "f8965734cbc7be8ec2ecbb8a87464cfdaf2b0439"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/distributed-caching.md",
+      "source": "Skills/dotnet-backend-developer/distributed-caching.md",
+      "upstream_sha": "7fa01fe13b1c67c5199f8e3306cd4438a23d261b"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/ef-core-data-access.md",
+      "source": "Skills/dotnet-backend-developer/ef-core-data-access.md",
+      "upstream_sha": "79f22d10dd1f20c5e99176e9b7173fcd4017dac3"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/idempotency.md",
+      "source": "Skills/dotnet-backend-developer/idempotency.md",
+      "upstream_sha": "4aafb28a4dde072937f3be77b8eb9daf4ed360ec"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/input-validation-secure-coding.md",
+      "source": "Skills/dotnet-backend-developer/input-validation-secure-coding.md",
+      "upstream_sha": "dcdb1bd326b433e7ecfbff044131ed16d3bb090a"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/rest-api-design.md",
+      "source": "Skills/dotnet-backend-developer/rest-api-design.md",
+      "upstream_sha": "20454d6bf2402f8678c06ec240597a0e14d34290"
+    },
+    {
+      "path": ".ai/skills/dotnet-backend-developer/testing-strategy.md",
+      "source": "Skills/dotnet-backend-developer/testing-strategy.md",
+      "upstream_sha": "6cea6cb65d295657431f1b5b326187283224119a"
+    },
+    {
+      "path": ".ai/skills/qa-automation-engineer/contract-testing.md",
+      "source": "Skills/qa-automation-engineer/contract-testing.md",
+      "upstream_sha": "7215575d33d08f7e95405fa08137074a919f2d86"
+    },
+    {
+      "path": ".ai/skills/qa-automation-engineer/test-strategy.md",
+      "source": "Skills/qa-automation-engineer/test-strategy.md",
+      "upstream_sha": "6c1f6b922719f311bdf7d3ed5c4ef026309b6a54"
+    },
+    {
+      "path": ".ai/skills/react-developer/accessibility.md",
+      "source": "Skills/react-developer/accessibility.md",
+      "upstream_sha": "29f1160de7d514561319fc71a3bc94a44e4c8265"
+    },
+    {
+      "path": ".ai/skills/react-developer/component-design.md",
+      "source": "Skills/react-developer/component-design.md",
+      "upstream_sha": "6d5ecfc75b6af0974be1884a8015440936b8bbe7"
+    },
+    {
+      "path": ".ai/skills/react-developer/frontend-security.md",
+      "source": "Skills/react-developer/frontend-security.md",
+      "upstream_sha": "02aea4d3b7cf32f0406334ded6c3c02b5f10da4b"
+    },
+    {
+      "path": ".ai/skills/react-developer/testing-strategy.md",
+      "source": "Skills/react-developer/testing-strategy.md",
+      "upstream_sha": "5671db73818446d91e394516ac8dfb2d17d93677"
+    },
+    {
+      "path": ".ai/skills/security-engineer/secrets-key-management.md",
+      "source": "Skills/security-engineer/secrets-key-management.md",
+      "upstream_sha": "efe0ee368577e65ed5caf9d54123b0c56cd7358e"
+    },
+    {
+      "path": ".ai/skills/security-engineer/security-code-review.md",
+      "source": "Skills/security-engineer/security-code-review.md",
+      "upstream_sha": "493363c4228eaf0912c81d9d2f7baedaa99a6ea5"
+    },
+    {
+      "path": ".ai/skills/security-engineer/threat-modeling.md",
+      "source": "Skills/security-engineer/threat-modeling.md",
+      "upstream_sha": "8ab08f36147af2dbfc7afd6a295e86b8caa55d93"
+    },
+    {
+      "path": ".ai/skills/software-architect/modular-monolith-design.md",
+      "source": "Skills/software-architect/modular-monolith-design.md",
+      "upstream_sha": "1cb9551c51d65b6aa96e88836f81e1f185763e40"
+    },
+    {
+      "path": ".ai/skills/software-architect/system-boundaries-modularity.md",
+      "source": "Skills/software-architect/system-boundaries-modularity.md",
+      "upstream_sha": "ebcec79b92546a75d7fdaf7aab4615cfb5cc8da8"
+    }
+  ]
+}
