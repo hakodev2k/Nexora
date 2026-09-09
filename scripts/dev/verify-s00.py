@@ -2,9 +2,9 @@
 """Static S00 checks for the Nexora local scaffold.
 
 These checks intentionally do not claim application runtime or SQL integration
-coverage. They guard the approved M01-S00 scaffold contract, controller-based
-Identity API route surface, and paused-scope boundaries until SQL-backed stories
-are fully verified.
+coverage. They guard the approved M01-S00 scaffold contract, Minimal API-based
+Identity route surface, and paused-scope boundaries until SQL-backed stories are
+fully verified.
 """
 from __future__ import annotations
 
@@ -21,9 +21,7 @@ REQUIRED_FILES = [
     "docker-compose.local.yml",
     "src/Nexora.Api/Nexora.Api.csproj",
     "src/Nexora.Api/Program.cs",
-    "src/Nexora.Api/Controllers/AuthController.cs",
-    "src/Nexora.Api/Controllers/MeController.cs",
-    "src/Nexora.Api/Controllers/DevAccountMessagesController.cs",
+    "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs",
     "src/Nexora.Api/Features/Identity/DevelopmentIdentityStore.cs",
     "src/Nexora.Api/Features/Identity/IdentityContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
@@ -31,7 +29,6 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Security/PasswordHashService.cs",
     "src/Nexora.Api/Security/SessionCookieService.cs",
     "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
-    "src/Nexora.Api/Security/ValidateCsrfAttribute.cs",
     "src/Nexora.Domain/Nexora.Domain.csproj",
     "src/Nexora.Application/Nexora.Application.csproj",
     "tests/Nexora.UnitTests/Nexora.UnitTests.csproj",
@@ -44,26 +41,20 @@ REQUIRED_FILES = [
     "scripts/dev/verify.sh",
 ]
 
-AUTH_ROUTE_MARKERS = [
-    "[Route(\"api/v1/auth\")]",
-    "[HttpGet(\"csrf\"",
-    "[HttpPost(\"registrations\"",
-    "[HttpPost(\"verifications\"",
-    "[HttpPost(\"verifications/resend\"",
-    "[HttpPost(\"login\"",
-    "[HttpPost(\"logout\"",
-    "[HttpPost(\"reauth\"",
-    "[HttpPost(\"password-resets\"",
-    "[HttpPost(\"password-resets/confirm\"",
-]
-
-ME_ROUTE_MARKERS = [
-    "[Route(\"api/v1/me\")]",
-    "[HttpGet(Name = \"getMe\")]",
-    "[HttpPatch(Name = \"updateMe\")]",
-    "[HttpGet(\"sessions\"",
-    "[HttpDelete(\"sessions/{sessionId:guid}\"",
-    "[HttpPost(\"sessions/revoke-all\"",
+REQUIRED_API_ROUTES = [
+    "/api/v1",
+    "/auth/csrf",
+    "/auth/registrations",
+    "/auth/verifications",
+    "/auth/verifications/resend",
+    "/auth/login",
+    "/auth/logout",
+    "/auth/reauth",
+    "/auth/password-resets",
+    "/auth/password-resets/confirm",
+    "/me",
+    "/me/sessions",
+    "/me/sessions/revoke-all",
 ]
 
 FORBIDDEN_RUNTIME_PATTERNS = [
@@ -94,8 +85,10 @@ def read(path: str) -> str:
 def main() -> int:
     if (ROOT / "src/Nexora.Api/M01").exists():
         fail("M01 is a delivery milestone, not a runtime API folder; src/Nexora.Api/M01 must not exist")
-    if (ROOT / "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs").exists():
-        fail("Identity API must be controller-based; minimal endpoint extension must not exist")
+    if (ROOT / "src/Nexora.Api/Controllers").exists():
+        fail("Identity API is intentionally Minimal API-based; src/Nexora.Api/Controllers must not exist in this slice")
+    if (ROOT / "src/Nexora.Api/Security/ValidateCsrfAttribute.cs").exists():
+        fail("Controller-only CSRF attribute must not exist for the Minimal API slice")
 
     for path in REQUIRED_FILES:
         read(path)
@@ -112,31 +105,23 @@ def main() -> int:
         fail("Nexora.Api must reference the domain and application policy projects")
 
     program = read("src/Nexora.Api/Program.cs")
-    if "AddControllers" not in program or "MapControllers" not in program:
-        fail("Program.cs must register and map MVC controllers")
-    if "MapIdentityEndpoints" in program or "MapM01IdentityEndpoints" in program:
-        fail("Program.cs must not use milestone/minimal endpoint extensions for Identity")
+    if "MapIdentityEndpoints" not in program:
+        fail("Program.cs must map the feature-based Minimal API identity endpoints")
+    if "AddControllers" in program or "MapControllers" in program:
+        fail("Program.cs must not register MVC controllers in the Minimal API slice")
+    if "MapM01IdentityEndpoints" in program:
+        fail("Program.cs must not use milestone-named runtime endpoint extensions")
 
-    auth = read("src/Nexora.Api/Controllers/AuthController.cs")
-    for marker in AUTH_ROUTE_MARKERS:
-        if marker not in auth:
-            fail(f"AuthController marker missing: {marker}")
-    if "[ApiController]" not in auth or "[ValidateCsrf]" not in auth:
-        fail("AuthController must use ApiController and ValidateCsrf attributes")
-    if "__Host-NexoraCsrf" not in auth:
-        fail("CSRF controller action must set the host-prefixed CSRF cookie")
-
-    me = read("src/Nexora.Api/Controllers/MeController.cs")
-    for marker in ME_ROUTE_MARKERS:
-        if marker not in me:
-            fail(f"MeController marker missing: {marker}")
-    if "[ApiController]" not in me or "[ValidateCsrf]" not in me:
-        fail("MeController must use ApiController and ValidateCsrf attributes")
-
-    dev = read("src/Nexora.Api/Controllers/DevAccountMessagesController.cs")
-    if "api/v1/dev/account-messages" not in dev or "IsDevelopment()" not in dev:
-        fail("development account-message controller must be development-gated")
-
+    endpoints = read("src/Nexora.Api/Features/Identity/IdentityEndpoints.cs")
+    for route in REQUIRED_API_ROUTES:
+        if route not in endpoints:
+            fail(f"Identity Minimal API route missing: {route}")
+    if "MapGroup(\"/api/v1\")" not in endpoints:
+        fail("Identity endpoints must use the /api/v1 route group")
+    if "AddEndpointFilter" not in endpoints or "X-CSRF-Token" not in endpoints:
+        fail("Identity Minimal API route group must apply CSRF validation to unsafe methods")
+    if "__Host-NexoraCsrf" not in endpoints:
+        fail("CSRF endpoint must set the host-prefixed CSRF cookie")
     if "__Host-NexoraSession" not in read("src/Nexora.Api/Security/SessionCookieService.cs"):
         fail("M01 session cookie service must use the host-prefixed session cookie")
 
@@ -169,7 +154,7 @@ def main() -> int:
                 if re.search(forbidden, text):
                     fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("S00 static verification passed: controller-based Identity API routes, .NET 10 pin, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
+    print("S00 static verification passed: feature-based Minimal API identity routes, .NET 10 pin, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
     return 0
 
 
