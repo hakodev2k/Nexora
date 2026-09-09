@@ -100,3 +100,7 @@ Các tài liệu này không tuyên bố đã implement hoặc đã duyệt các
 ## Current milestone handoff
 
 Start from [current delivery specification](delivery/README.md). M01 scope, API/DB/UX/acceptance and evidence gates are linked there. A local/internal milestone is not Release1 completion. Scripts/migrations/runtime evidence remain future implementation artifacts, not executed by this documentation update.
+
+## Goals cho agents
+
+[Goals xuyên phase và từng module](goals/README.md): 9 product phases, 23 delivery steps, M01, 40 module goals và cross-module test/evidence contracts. Đọc trước khi lập plan/code/test; goals không cấp approval implementation.
