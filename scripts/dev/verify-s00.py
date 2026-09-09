@@ -2,8 +2,8 @@
 """Static S00 checks for the Nexora local scaffold.
 
 These checks intentionally do not claim application runtime or SQL integration
-coverage. They guard the approved M01-S00 scaffold contract and paused-scope
-boundaries until SQL-backed stories are implemented.
+coverage. They guard the approved M01-S00 scaffold contract, actual M01 API route
+surface, and paused-scope boundaries until SQL-backed stories are fully verified.
 """
 from __future__ import annotations
 
@@ -20,17 +20,39 @@ REQUIRED_FILES = [
     "docker-compose.local.yml",
     "src/Nexora.Api/Nexora.Api.csproj",
     "src/Nexora.Api/Program.cs",
+    "src/Nexora.Api/M01/M01IdentityEndpoints.cs",
+    "src/Nexora.Api/M01/M01RuntimeStore.cs",
+    "src/Nexora.Api/M01/M01Contracts.cs",
+    "src/Nexora.Api/M01/PasswordHashService.cs",
+    "src/Nexora.Api/M01/SessionCookieService.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
     "src/Nexora.Domain/Nexora.Domain.csproj",
     "src/Nexora.Application/Nexora.Application.csproj",
     "tests/Nexora.UnitTests/Nexora.UnitTests.csproj",
     "tests/Nexora.UnitTests/Program.cs",
+    "database/migrations/20260909_0001_m01_identity_platform.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
     "scripts/dev/doctor.sh",
     "scripts/dev/verify.sh",
+]
+
+REQUIRED_API_ROUTES = [
+    "/api/v1",
+    "/auth/csrf",
+    "/auth/registrations",
+    "/auth/verifications",
+    "/auth/verifications/resend",
+    "/auth/login",
+    "/auth/logout",
+    "/auth/reauth",
+    "/auth/password-resets",
+    "/auth/password-resets/confirm",
+    "/me",
+    "/me/sessions",
+    "/me/sessions/revoke-all",
 ]
 
 FORBIDDEN_RUNTIME_PATTERNS = [
@@ -74,8 +96,17 @@ def main() -> int:
         fail("Nexora.Api must reference the domain and application policy projects")
 
     program = read("src/Nexora.Api/Program.cs")
-    if "/api/v1/auth/csrf" not in program or "__Host-NexoraCsrf" not in program:
-        fail("S00 backend must expose the approved getCsrf control endpoint with host-prefixed CSRF cookie")
+    if "MapM01IdentityEndpoints" not in program:
+        fail("Program.cs must map the M01 identity API endpoints")
+
+    endpoints = read("src/Nexora.Api/M01/M01IdentityEndpoints.cs")
+    for route in REQUIRED_API_ROUTES:
+        if route not in endpoints:
+            fail(f"M01 identity endpoint route missing: {route}")
+    if "__Host-NexoraCsrf" not in endpoints:
+        fail("M01 CSRF endpoint must set the host-prefixed CSRF cookie")
+    if "__Host-NexoraSession" not in read("src/Nexora.Api/M01/SessionCookieService.cs"):
+        fail("M01 session cookie service must use the host-prefixed session cookie")
 
     web_api = read("web/Nexora.Web/src/api.ts")
     if "let csrfToken" not in web_api or "localStorage" in web_api or "sessionStorage" in web_api:
@@ -86,6 +117,11 @@ def main() -> int:
     for dep in ("react", "react-dom", "vite", "typescript"):
         if dep not in deps:
             fail(f"frontend dependency missing: {dep}")
+
+    migration = read("database/migrations/20260909_0001_m01_identity_platform.sql")
+    for table in ("[identity].[User]", "[identity].[Session]", "[identity].[OneTimeToken]", "[platform].[PersonalSpace]", "[security].[AuditEvent]", "[operations].[Outbox]"):
+        if table not in migration:
+            fail(f"M01 SQL migration table missing: {table}")
 
     # Only scan executable runtime surfaces for forbidden paused/provider behavior.
     # Domain policy and unit-test code may intentionally mention paused action keys
@@ -101,7 +137,7 @@ def main() -> int:
                 if re.search(forbidden, text):
                     fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("S00 static verification passed: scaffold files, .NET 10 pin, CSRF memory boundary, unit harness, and paused-scope runtime guards are present.")
+    print("S00 static verification passed: scaffold files, .NET 10 pin, M01 identity API routes, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
     return 0
 
 
