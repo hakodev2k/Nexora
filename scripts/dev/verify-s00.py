@@ -3,8 +3,8 @@
 
 These checks intentionally do not claim application runtime or SQL integration
 coverage. They guard the approved M01-S00 scaffold contract, Minimal API-based
-Identity route surface, and paused-scope boundaries until SQL-backed stories are
-fully verified.
+Identity and Module policy route surfaces, and paused-scope boundaries until
+SQL-backed stories are fully verified.
 """
 from __future__ import annotations
 
@@ -24,8 +24,12 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs",
     "src/Nexora.Api/Features/Identity/DevelopmentIdentityStore.cs",
     "src/Nexora.Api/Features/Identity/IdentityContracts.cs",
+    "src/Nexora.Api/Features/Modules/ModuleEndpoints.cs",
+    "src/Nexora.Api/Features/Modules/DevelopmentModuleStore.cs",
+    "src/Nexora.Api/Features/Modules/ModuleContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
+    "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
     "src/Nexora.Api/Security/PasswordHashService.cs",
     "src/Nexora.Api/Security/SessionCookieService.cs",
     "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
@@ -41,7 +45,7 @@ REQUIRED_FILES = [
     "scripts/dev/verify.sh",
 ]
 
-REQUIRED_API_ROUTES = [
+IDENTITY_ROUTES = [
     "/api/v1",
     "/auth/csrf",
     "/auth/registrations",
@@ -55,6 +59,15 @@ REQUIRED_API_ROUTES = [
     "/me",
     "/me/sessions",
     "/me/sessions/revoke-all",
+]
+
+MODULE_ROUTE_MARKERS = [
+    "/api/v1/admin/modules",
+    "listModules",
+    "previewModule",
+    "setModulePolicy",
+    "RequireDevelopmentSuperAdminProof",
+    "RequireCsrfForUnsafeMethods",
 ]
 
 FORBIDDEN_RUNTIME_PATTERNS = [
@@ -105,15 +118,17 @@ def main() -> int:
         fail("Nexora.Api must reference the domain and application policy projects")
 
     program = read("src/Nexora.Api/Program.cs")
-    if "MapIdentityEndpoints" not in program:
-        fail("Program.cs must map the feature-based Minimal API identity endpoints")
+    if "MapIdentityEndpoints" not in program or "MapModuleEndpoints" not in program:
+        fail("Program.cs must map feature-based Minimal API identity and module endpoints")
+    if "DevelopmentModuleStore" not in program:
+        fail("Program.cs must register the development module policy store")
     if "AddControllers" in program or "MapControllers" in program:
         fail("Program.cs must not register MVC controllers in the Minimal API slice")
     if "MapM01IdentityEndpoints" in program:
         fail("Program.cs must not use milestone-named runtime endpoint extensions")
 
     endpoints = read("src/Nexora.Api/Features/Identity/IdentityEndpoints.cs")
-    for route in REQUIRED_API_ROUTES:
+    for route in IDENTITY_ROUTES:
         if route not in endpoints:
             fail(f"Identity Minimal API route missing: {route}")
     if "MapGroup(\"/api/v1\")" not in endpoints:
@@ -124,6 +139,20 @@ def main() -> int:
         fail("CSRF endpoint must set the host-prefixed CSRF cookie")
     if "__Host-NexoraSession" not in read("src/Nexora.Api/Security/SessionCookieService.cs"):
         fail("M01 session cookie service must use the host-prefixed session cookie")
+
+    module_endpoints = read("src/Nexora.Api/Features/Modules/ModuleEndpoints.cs")
+    for marker in MODULE_ROUTE_MARKERS:
+        if marker not in module_endpoints:
+            fail(f"Module Minimal API marker missing: {marker}")
+
+    module_store = read("src/Nexora.Api/Features/Modules/DevelopmentModuleStore.cs")
+    for marker in ("FX30", "FX34", "FX35", "ModulePolicy.CanEnable", "ModulePolicy.CanDisable", "PreviewStale", "DependencyEnabled"):
+        if marker not in module_store:
+            fail(f"Module policy store marker missing: {marker}")
+
+    filters = read("src/Nexora.Api/Security/EndpointSecurityFilters.cs")
+    if "X-Nexora-Dev-SuperAdmin" not in filters or "IsDevelopment" not in filters:
+        fail("Development admin guard must be environment-gated and explicit")
 
     web_api = read("web/Nexora.Web/src/api.ts")
     if "let csrfToken" not in web_api or "localStorage" in web_api or "sessionStorage" in web_api:
@@ -154,7 +183,7 @@ def main() -> int:
                 if re.search(forbidden, text):
                     fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("S00 static verification passed: feature-based Minimal API identity routes, .NET 10 pin, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
+    print("S00 static verification passed: feature-based Minimal API identity/module routes, .NET 10 pin, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
     return 0
 
 
