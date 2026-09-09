@@ -104,17 +104,8 @@ public static class M01IdentityEndpoints
             .WithName("listSessions");
 
         api.MapDelete("/me/sessions/{sessionId:guid}", (HttpContext context, Guid sessionId, M01RuntimeStore store, SessionCookieService cookies) =>
-        {
-            var result = store.RevokeSession(cookies.ReadRawHandle(context.Request), sessionId);
-            if (result.Succeeded)
-            {
-                // Clear defensively. If the revoked session is not current, deleting an absent cookie is harmless.
-                cookies.Clear(context.Response);
-            }
-
-            return result.ToHttp(context);
-        })
-        .WithName("revokeSession");
+            store.RevokeSession(cookies.ReadRawHandle(context.Request), sessionId).ToHttp(context))
+            .WithName("revokeSession");
 
         api.MapPost("/me/sessions/revoke-all", (HttpContext context, M01RuntimeStore store, SessionCookieService cookies) =>
         {
