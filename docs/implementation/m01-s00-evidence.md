@@ -21,7 +21,7 @@ Status: `SLICE_IMPLEMENTATION_STARTED`, not `SLICE_VERIFIED_LOCALLY`.
 - `src/Nexora.Application/**` for application policies/use-case inputs.
 - `src/Nexora.Domain/**` for domain policies and invariants.
 
-The milestone name remains only in docs, evidence, tests and PR traceability.
+The milestone name remains only in docs, evidence, tests and PR traceability. No runtime code remains under `src/Nexora.Api/M01`.
 
 ## Current implemented code artifacts
 
