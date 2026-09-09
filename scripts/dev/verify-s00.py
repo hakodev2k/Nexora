@@ -2,9 +2,9 @@
 """Static S00 checks for the Nexora local scaffold.
 
 These checks intentionally do not claim application runtime or SQL integration
-coverage. They guard the approved M01-S00 scaffold contract, actual identity API
-route surface, and paused-scope boundaries until SQL-backed stories are fully
-verified.
+coverage. They guard the approved M01-S00 scaffold contract, controller-based
+Identity API route surface, and paused-scope boundaries until SQL-backed stories
+are fully verified.
 """
 from __future__ import annotations
 
@@ -21,14 +21,17 @@ REQUIRED_FILES = [
     "docker-compose.local.yml",
     "src/Nexora.Api/Nexora.Api.csproj",
     "src/Nexora.Api/Program.cs",
-    "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs",
+    "src/Nexora.Api/Controllers/AuthController.cs",
+    "src/Nexora.Api/Controllers/MeController.cs",
+    "src/Nexora.Api/Controllers/DevAccountMessagesController.cs",
     "src/Nexora.Api/Features/Identity/DevelopmentIdentityStore.cs",
     "src/Nexora.Api/Features/Identity/IdentityContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
+    "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/PasswordHashService.cs",
     "src/Nexora.Api/Security/SessionCookieService.cs",
-    "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
+    "src/Nexora.Api/Security/ValidateCsrfAttribute.cs",
     "src/Nexora.Domain/Nexora.Domain.csproj",
     "src/Nexora.Application/Nexora.Application.csproj",
     "tests/Nexora.UnitTests/Nexora.UnitTests.csproj",
@@ -41,20 +44,26 @@ REQUIRED_FILES = [
     "scripts/dev/verify.sh",
 ]
 
-REQUIRED_API_ROUTES = [
-    "/api/v1",
-    "/auth/csrf",
-    "/auth/registrations",
-    "/auth/verifications",
-    "/auth/verifications/resend",
-    "/auth/login",
-    "/auth/logout",
-    "/auth/reauth",
-    "/auth/password-resets",
-    "/auth/password-resets/confirm",
-    "/me",
-    "/me/sessions",
-    "/me/sessions/revoke-all",
+AUTH_ROUTE_MARKERS = [
+    "[Route(\"api/v1/auth\")]",
+    "[HttpGet(\"csrf\"",
+    "[HttpPost(\"registrations\"",
+    "[HttpPost(\"verifications\"",
+    "[HttpPost(\"verifications/resend\"",
+    "[HttpPost(\"login\"",
+    "[HttpPost(\"logout\"",
+    "[HttpPost(\"reauth\"",
+    "[HttpPost(\"password-resets\"",
+    "[HttpPost(\"password-resets/confirm\"",
+]
+
+ME_ROUTE_MARKERS = [
+    "[Route(\"api/v1/me\")]",
+    "[HttpGet(Name = \"getMe\")]",
+    "[HttpPatch(Name = \"updateMe\")]",
+    "[HttpGet(\"sessions\"",
+    "[HttpDelete(\"sessions/{sessionId:guid}\"",
+    "[HttpPost(\"sessions/revoke-all\"",
 ]
 
 FORBIDDEN_RUNTIME_PATTERNS = [
@@ -83,9 +92,10 @@ def read(path: str) -> str:
 
 
 def main() -> int:
-    legacy_milestone_api_dir = ROOT / "src/Nexora.Api/M01"
-    if legacy_milestone_api_dir.exists():
-        fail("Backend API code must be organized by feature/domain, not under src/Nexora.Api/M01")
+    if (ROOT / "src/Nexora.Api/M01").exists():
+        fail("M01 is a delivery milestone, not a runtime API folder; src/Nexora.Api/M01 must not exist")
+    if (ROOT / "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs").exists():
+        fail("Identity API must be controller-based; minimal endpoint extension must not exist")
 
     for path in REQUIRED_FILES:
         read(path)
@@ -102,19 +112,33 @@ def main() -> int:
         fail("Nexora.Api must reference the domain and application policy projects")
 
     program = read("src/Nexora.Api/Program.cs")
-    if "MapIdentityEndpoints" not in program or "MapM01IdentityEndpoints" in program:
-        fail("Program.cs must map feature-based identity endpoints, not milestone-named endpoints")
-    if "Nexora.Api.M01" in program:
-        fail("Program.cs must not reference a milestone-named API namespace")
+    if "AddControllers" not in program or "MapControllers" not in program:
+        fail("Program.cs must register and map MVC controllers")
+    if "MapIdentityEndpoints" in program or "MapM01IdentityEndpoints" in program:
+        fail("Program.cs must not use milestone/minimal endpoint extensions for Identity")
 
-    endpoints = read("src/Nexora.Api/Features/Identity/IdentityEndpoints.cs")
-    for route in REQUIRED_API_ROUTES:
-        if route not in endpoints:
-            fail(f"Identity endpoint route missing: {route}")
-    if "__Host-NexoraCsrf" not in endpoints:
-        fail("CSRF endpoint must set the host-prefixed CSRF cookie")
+    auth = read("src/Nexora.Api/Controllers/AuthController.cs")
+    for marker in AUTH_ROUTE_MARKERS:
+        if marker not in auth:
+            fail(f"AuthController marker missing: {marker}")
+    if "[ApiController]" not in auth or "[ValidateCsrf]" not in auth:
+        fail("AuthController must use ApiController and ValidateCsrf attributes")
+    if "__Host-NexoraCsrf" not in auth:
+        fail("CSRF controller action must set the host-prefixed CSRF cookie")
+
+    me = read("src/Nexora.Api/Controllers/MeController.cs")
+    for marker in ME_ROUTE_MARKERS:
+        if marker not in me:
+            fail(f"MeController marker missing: {marker}")
+    if "[ApiController]" not in me or "[ValidateCsrf]" not in me:
+        fail("MeController must use ApiController and ValidateCsrf attributes")
+
+    dev = read("src/Nexora.Api/Controllers/DevAccountMessagesController.cs")
+    if "api/v1/dev/account-messages" not in dev or "IsDevelopment()" not in dev:
+        fail("development account-message controller must be development-gated")
+
     if "__Host-NexoraSession" not in read("src/Nexora.Api/Security/SessionCookieService.cs"):
-        fail("Session cookie service must use the host-prefixed session cookie")
+        fail("M01 session cookie service must use the host-prefixed session cookie")
 
     web_api = read("web/Nexora.Web/src/api.ts")
     if "let csrfToken" not in web_api or "localStorage" in web_api or "sessionStorage" in web_api:
@@ -131,6 +155,9 @@ def main() -> int:
         if table not in migration:
             fail(f"M01 SQL migration table missing: {table}")
 
+    # Only scan executable runtime surfaces for forbidden paused/provider behavior.
+    # Domain policy and unit-test code may intentionally mention paused action keys
+    # to prove that those actions are blocked.
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "web/Nexora.Web/src/**/*"):
         scanned.extend(ROOT.glob(pattern))
@@ -138,13 +165,11 @@ def main() -> int:
         if path.is_file():
             text = path.read_text(encoding="utf-8")
             rel = path.relative_to(ROOT)
-            if "namespace Nexora.Api.M01" in text:
-                fail(f"milestone-named API namespace remains in {rel}")
             for forbidden in FORBIDDEN_RUNTIME_PATTERNS:
                 if re.search(forbidden, text):
                     fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("S00 static verification passed: feature-based API layout, .NET 10 pin, identity API routes, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
+    print("S00 static verification passed: controller-based Identity API routes, .NET 10 pin, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
     return 0
 
 
