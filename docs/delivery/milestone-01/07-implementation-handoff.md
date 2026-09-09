@@ -17,9 +17,10 @@ Before coding:
 5. Read docs/requirements/11-owner-decisions-20260909-implementation-readiness.md.
 6. Read docs/delivery/README.md.
 7. Read docs/delivery/01-current-scope.md.
-8. Read docs/delivery/04-paused-blocked-gate-register.md and classify every touched action/status through it.
-9. Read all files under docs/delivery/milestone-01/.
-10. Read docs/goals/README.md and bind the relevant goal IDs to M01 story/action/acceptance IDs.
+8. Read docs/delivery/04-paused-blocked-gate-register.md.
+9. Read docs/action-catalog/09-effective-implementation-status-20260909.md and classify every touched action through it.
+10. Read all files under docs/delivery/milestone-01/.
+11. Read docs/goals/README.md and bind the relevant goal IDs to M01 story/action/acceptance IDs.
 
 Implement only the smallest coherent vertical slice for M01. Do not implement business modules outside M01. Do not implement Files, Sharing, Support/Emergency, Vault, full Notification Center UI, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations.
 
@@ -32,7 +33,7 @@ Mandatory technical boundaries:
 - M01 is password/email only. MFA-enabled fixtures must fail closed; do not bypass them.
 - Deleted accounts must not login, reset into active state or allow email reuse for a new owner.
 - Paused modules FX30/34/35 must remain unavailable and must not start workers.
-- Paused/blocked/gated actions must be denied or unavailable according to docs/delivery/04-paused-blocked-gate-register.md; if a module file conflicts with that register, stop and patch docs before coding the affected capability.
+- Paused/blocked/gated actions must be denied or unavailable according to docs/action-catalog/09-effective-implementation-status-20260909.md and docs/delivery/04-paused-blocked-gate-register.md; if a module file conflicts with those registers, stop and patch docs before coding the affected capability.
 - Real outbound provider work is not approved for M01. Use local/captured/simulated transports for evidence.
 - Use synthetic data only. Do not use production secrets/data.
 
@@ -61,7 +62,7 @@ Required evidence before marking done:
 Open a PR to main. Do not write directly to main. In the PR body, include:
 - Approved scope and DEC-20260909-001 reference.
 - Story/action/AC coverage table.
-- Pause/blocked/gated status mapping for every touched action, using docs/delivery/04-paused-blocked-gate-register.md.
+- Effective action status mapping for every touched action, using docs/action-catalog/09-effective-implementation-status-20260909.md.
 - Files changed summary.
 - Commands/tests actually run and results.
 - Evidence links/artifacts.
