@@ -2,33 +2,34 @@
 
 ## Current status
 
-Specification is concrete enough to review a **bounded first implementation approval**, starting S00. No application compiled, DB created, migration executed, browser journey tested, capacity measured or production service approved. Documentation validation checks references/contracts only.
+M01 + backend/frontend scaffold + local scripts are approved for implementation by `DEC-20260909-001`. No application has yet been compiled, DB created, migration executed, browser journey tested, capacity measured or production service approved by this documentation amendment. Runtime evidence must be produced by the implementation PRs.
 
 | Gate | M01 effect | Current state / next owner |
 | --- | --- | --- |
-| G01 Product Owner implementation approval | Blocks code execution for all stories | Await explicit PO approval; this docs task is not that approval |
+| G01 Product Owner implementation approval | Unblocks code execution for M01 + scaffold only | **Satisfied for bounded M01 package** by DEC-20260909-001; does not approve full Phase1/R1/production |
 | G02 Exact package/toolchain compatibility | S00 technical work; blocks merging scaffold/runtime setup until evidence | SDK/runtime/SQL/Node/React/Vite research pins specified; resolve transitive pins and lockfiles in S00 |
 | G03 Authentication security implementation | Blocks declaring S02–S06 runtime-complete | Password/CSRF/session/rate-limit/SQL/replay acceptance specified; actual tests not run |
 | G04 Last SuperAdmin and grant concurrency | Blocks declaring S08/S09 complete | SQL lock/revision/preview algorithm specified; two-request race tests not run |
 | G05 Three-channel intent/delivery semantics | Blocks S10 complete | Capture/test transports and unavailable states defined; real transport integration separate evidence gate |
-| G06 Local recovery and clean checkout | Blocks Local Verified label | S11 rehearsal not run; scripts are required future artifacts |
+| G06 Local recovery and clean checkout | Blocks Local Verified label | S11 rehearsal not run; scripts are required implementation artifacts |
 
 ## Decisions deliberately outside this milestone
 
-| Remaining proposal | Blocked capability | Why M01 can proceed after approval |
+| Remaining topic | Current decision / blocked capability | Why M01 can proceed |
 | --- | --- | --- |
-| P-H01 MFA lost-device recovery | MFA enrollment/recovery release | Password-only local slice; enabled-factor fixtures deny, never bypass |
-| P-H02 deleted account recovery/email reuse | Account restore/reuse workflow | UQ retained, deleted account denied; no account restore endpoint |
-| P-H03 sensitive share/support | Finance/Vault/Assets/Career/Learning external/support projections | M01 has identity/access metadata only |
-| P-H04 Vault portability | Encrypted owner export/import policy | Vault not in M01 |
-| P-H05 advanced Finance | Ledger/debt/FX/deletion semantics | Finance not in M01; basic fields already separated |
-| P-H06 Task extensions | Recurrence/subtask/snooze | Productivity not in M01; core flat Tasks retain approved scope |
-| P-H07 outbound ingestion | News/GitHub/monitoring network behavior | No product ingestion in M01; foundation notifications distinct |
-| P-H08 R1 final scope / production budget/SLA | Release1 completion/public production commitment | M01 explicitly internal, not release-complete |
+| TOTP enrollment/recovery | Policy resolved: one-time recovery codes; email+password alone cannot reset MFA; implementation outside M01 | Password-only local slice; enabled-factor fixtures deny, never bypass |
+| Deleted account restore UI/API | Policy resolved: same-account restore only, no email reuse, no purge; self-service restore outside M01 | UQ retained, deleted account denied; no account restore endpoint in M01 |
+| Sensitive share/support projections | Policy resolved at allowlist/default-hidden level; concrete field contracts still required by module | M01 has identity/access metadata only |
+| Vault portability/recovery | Policy resolved hybrid/no-operator-plaintext; crypto/key/package ADR still required | Vault not in M01 |
+| Advanced Finance | Initial Finance scope resolved as basic manual records; ledger/debt/FX/budget etc. remain gated | Finance not in M01; basic fields already separated |
+| Task extensions | Initial Productivity scope resolved as flat Task + one reminder; recurrence/subtask/snooze/standalone reminder/attachments gated | Productivity not in M01; core flat Tasks retain approved scope |
+| Read-only outbound ingestion | News/GitHub/Monitoring read-only public outbound allowed only under later contract and network guards | No product ingestion in M01; foundation notifications distinct |
+| R1 final scope / production budget/SLA | Local Stable must precede production; provider/capacity/RPO/RTO/SLA not committed | M01 explicitly internal, not release-complete |
+| FX30/34/35 paused modules | Price Tracking, Automation/Scheduler/Workflows and Integrations/Webhooks/n8n remain Paused, not moved to R2 | M01 does not need them and must not enable their workers |
 
 ## Required evidence by story
 
-| Story | Design evidence now | Runtime evidence required later |
+| Story | Design evidence now | Runtime evidence required in implementation PRs |
 | --- | --- | --- |
 | S00 | Environment pins/scripts contracts | doctor + complete lockfiles/advisory review |
 | S01 | TX01 + AC01 | Concurrent bootstrap, no default credential, audit redaction |
@@ -46,3 +47,5 @@ Specification is concrete enough to review a **bounded first implementation appr
 ## Completion vocabulary
 
 `Specified`: contract written. `Approved to implement`: PO authorizes exact slice. `Implemented`: code merged subject to process. `Verified locally`: all runtime acceptance passes with evidence. `Production-ready`: additional security/ops/capacity/provider gates approved and verified. Không dùng số lượng docs/actions/tables làm bằng chứng cho các trạng thái sau.
+
+For M01, `Approved to implement` is true only for the bounded package in `DEC-20260909-001`. `Implemented`, `Verified locally` and `Production-ready` remain false until the required code/evidence exists.
