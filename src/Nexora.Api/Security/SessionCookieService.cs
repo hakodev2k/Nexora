@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using Microsoft.Extensions.Primitives;
 
 namespace Nexora.Api.Security;
 
@@ -24,7 +23,7 @@ public sealed class SessionCookieService
 
     public void Append(HttpResponse response, string rawHandle, DateTimeOffset expiresAt)
     {
-        response.Headers.CacheControl = new StringValues("no-store");
+        response.Headers["Cache-Control"] = "no-store";
         response.Cookies.Append(CookieName, rawHandle, new CookieOptions
         {
             HttpOnly = true,
@@ -37,7 +36,7 @@ public sealed class SessionCookieService
 
     public void Clear(HttpResponse response)
     {
-        response.Headers.CacheControl = new StringValues("no-store");
+        response.Headers["Cache-Control"] = "no-store";
         response.Cookies.Delete(CookieName, new CookieOptions
         {
             HttpOnly = true,
