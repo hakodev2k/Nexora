@@ -7,8 +7,16 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     proxy: {
-      '/api': 'https://localhost:5001',
-      '/health': 'https://localhost:5001'
+      '/api': {
+        target: 'https://localhost:5001',
+        changeOrigin: true,
+        secure: false
+      },
+      '/health': {
+        target: 'https://localhost:5001',
+        changeOrigin: true,
+        secure: false
+      }
     }
   }
 });
