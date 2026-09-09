@@ -1,6 +1,6 @@
 # M01 stories — linked implementation inputs
 
-Tất cả story: Docs specified / implementation unapproved. Dependencies là story order, không sprint dates. Mọi request/response xem [API](02-api-contracts.md), SQL field types xem [data mapping](03-data-and-transactions.md); từng screen/failure xem [UX/acceptance](04-ux-and-acceptance.md).
+M01 stories S00-S11 are specified and approved for local-first implementation by `DEC-20260909-001`. Approval is limited to M01 plus the backend/frontend scaffold and local scripts required to prove M01; it does not approve full Phase 1, full R1, production, paused modules or non-M01 business modules. Dependencies are story order, not sprint dates. Mọi request/response xem [API](02-api-contracts.md), SQL field types xem [data mapping](03-data-and-transactions.md); từng screen/failure xem [UX/acceptance](04-ux-and-acceptance.md).
 
 | Story | User outcome | Actions / operationIds | Requirement + UX | Data / transaction | Depends |
 | --- | --- | --- | --- | --- | --- |
