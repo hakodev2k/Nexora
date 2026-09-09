@@ -11,16 +11,16 @@ public static class ModuleEndpoints
             .RequireCsrfForUnsafeMethods()
             .RequireDevelopmentSuperAdminProof();
 
-        modules.MapGet("/", (int? limit, DevelopmentModuleStore store) =>
-            store.ListModules(limit).ToHttp())
+        modules.MapGet("/", (HttpContext context, int? limit, DevelopmentModuleStore store) =>
+            store.ListModules(limit).ToHttp(context))
             .WithName("listModules");
 
-        modules.MapPost("/{moduleId:guid}/preview", (Guid moduleId, ModulePolicyChangeRequest request, DevelopmentModuleStore store) =>
-            store.PreviewModule(moduleId, request).ToHttp())
+        modules.MapPost("/{moduleId:guid}/preview", (HttpContext context, Guid moduleId, ModulePolicyChangeRequest request, DevelopmentModuleStore store) =>
+            store.PreviewModule(moduleId, request).ToHttp(context))
             .WithName("previewModule");
 
         modules.MapPut("/{moduleId:guid}/policy", (HttpContext context, Guid moduleId, ModulePolicyCommitRequest request, DevelopmentModuleStore store) =>
-            store.SetModulePolicy(moduleId, context.Request.Headers.IfMatch.ToString(), request).ToHttp())
+            store.SetModulePolicy(moduleId, context.Request.Headers.IfMatch.ToString(), request).ToHttp(context))
             .WithName("setModulePolicy");
 
         return app;
