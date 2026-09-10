@@ -1,6 +1,6 @@
 # Productivity contract-alignment slice
 
-Status: `Partial / runtime Not run` on PR #4. CI run `34507159651` / `147`
+Status: `Partial / runtime Not run` on PR #4. CI run `34508111597` / `147`
 passed the existing boundary/build/unit/frontend checks; SQL/API/browser runtime
 remains `Not run`. This note records the bounded
 Projects, Tasks and Calendar changes; it does not claim FX11–FX13 acceptance.
@@ -9,9 +9,9 @@ Projects, Tasks and Calendar changes; it does not claim FX11–FX13 acceptance.
 
 | Goal | Source requirements / AC | Action/API contract | DB | Code/UI | Evidence |
 |---|---|---|---|---|---|
-| `NXG-FX11-G01..G03` | `docs/features/11-projects.md`, `FX-11-BR-001..006`, `FX-11-AC-001..004` | `projects.project.*`; `/api/v1/projects`, `/api/v1/projects/{id}/transition` | `productivity.Project`, `ProjectHistory`; migration `20260910_0019_productivity_contract_alignment.sql` widens the legacy `[Name]` title mapping and description storage | `SqlProductivityService`, `ProductivityEndpoints`, `App.tsx` | Local API/Bootstrap/frontend builds and CI run `147` pass; SQL/API/browser `Not run` |
-| `NXG-FX12-G01..G03` | `docs/features/12-tasks.md`, `FX-12-BR-001..006`, `FX-12-AC-001..004` | `tasks.task.*`; `/api/v1/tasks`, `/api/v1/tasks/{id}/transition` | `productivity.Task`, `TaskHistory`; `Task.IsOverdue` is a response projection; migration `20260910_0020_task_calendar_projection.sql` adds the projection key | `SqlProductivityService`, `ProductivityEndpoints`, `App.tsx` | Local API/Bootstrap/frontend builds and CI run `147` pass; SQL lifecycle/isolation `Not run` |
-| `NXG-FX13-G01..G03` | `docs/features/13-calendar.md`, `FX-13-BR-001..006`, `FX-13-AC-001..004` | `calendar.event.*`; `/api/v1/calendar/events*` | `calendar.Event`; migration `20260910_0020_task_calendar_projection.sql` adds owner/task unique projection | `SqlProductivityService`, `ProductivityEndpoints`, `App.tsx` | Local API/Bootstrap/frontend builds and CI run `147` pass; DST/ICS/SQL/browser `Not run` |
+| `NXG-FX11-G01..G03` | `docs/features/11-projects.md`, `FX-11-BR-001..006`, `FX-11-AC-001..004` | `projects.project.*`; `/api/v1/projects`, `/api/v1/projects/{id}/transition` | `productivity.Project`, `ProjectHistory`; migration `20260910_0019_productivity_contract_alignment.sql` widens the legacy `[Name]` title mapping and description storage | `SqlProductivityService`, `ProductivityEndpoints`, `App.tsx` | Local API/Bootstrap/frontend builds and CI run `149` pass; SQL/API/browser `Not run` |
+| `NXG-FX12-G01..G03` | `docs/features/12-tasks.md`, `FX-12-BR-001..006`, `FX-12-AC-001..004` | `tasks.task.*`; `/api/v1/tasks`, `/api/v1/tasks/{id}/transition` | `productivity.Task`, `TaskHistory`; `Task.IsOverdue` is a response projection; migration `20260910_0020_task_calendar_projection.sql` adds the projection key | `SqlProductivityService`, `ProductivityEndpoints`, `App.tsx` | Local API/Bootstrap/frontend builds and CI run `149` pass; SQL lifecycle/isolation `Not run` |
+| `NXG-FX13-G01..G03` | `docs/features/13-calendar.md`, `FX-13-BR-001..006`, `FX-13-AC-001..004` | `calendar.event.*`; `/api/v1/calendar/events*` | `calendar.Event`; migration `20260910_0020_task_calendar_projection.sql` adds owner/task unique projection | `SqlProductivityService`, `ProductivityEndpoints`, `App.tsx` | Local API/Bootstrap/frontend builds and CI run `149` pass; DST/ICS/SQL/browser `Not run` |
 
 ## Implemented behavior in this bounded slice
 

@@ -1,6 +1,6 @@
 # Local Release 1 implementation status
 
-Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Current branch head: `839518a3eea0e4a5cebf03a2e0df2a2ff5e77248` (documentation/evidence follow-up); code implementation commit: `e42516e2360ad2afd7d8a0144412a15086770983`. `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d` is the earlier blocker-remediation commit. This is not a merge, production or runtime-verification claim.
+Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Current branch head: `a3a0a7b84a124a8a9063d35d65641119e2824718` (documentation/evidence follow-up); code implementation commit: `e42516e2360ad2afd7d8a0144412a15086770983`. `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d` is the earlier blocker-remediation commit. This is not a merge, production or runtime-verification claim.
 
 ## Implemented in this revision
 
@@ -57,19 +57,20 @@ Production deployment, public launch, real secrets/provider calls, real OAuth/pa
 
 The current instruction remains code-only: no new tests, fixtures, demo records
 or provider/runtime data were added. The following commands were actually run
-on the current source; the matching CI workflow ran on
-`e42516e2360ad2afd7d8a0144412a15086770983`:
+on the current source; the matching CI workflow ran on current branch head
+`a3a0a7b84a124a8a9063d35d65641119e2824718` (with code implementation from
+`e42516e2360ad2afd7d8a0144412a15086770983`):
 
 - `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (local run; restore required elevated local NuGet-config access; CI repeated it).
 - `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (local run; CI repeated it).
-- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Pass in CI run 147** as the existing unit-check step; no new tests were added and the suite does not prove SQL behavior.
-- `npm ci --prefix web/Nexora.Web` — **Pass in CI run 147**.
-- `npm run build --prefix web/Nexora.Web` — **Pass**, TypeScript and Vite production bundle completed locally and in CI run 147.
+- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Pass in CI run 149** as the existing unit-check step; no new tests were added and the suite does not prove SQL behavior.
+- `npm ci --prefix web/Nexora.Web` — **Pass in CI run 149**.
+- `npm run build --prefix web/Nexora.Web` — **Pass**, TypeScript and Vite production bundle completed locally and in CI run 149.
 - `git diff --check` — **Pass**.
 - `bash scripts/dev/verify.sh` — **Not run**: the Windows environment denied WSL/Bash instance creation (`E_ACCESSDENIED`) before the script executed.
 
-The current workflow `34507159651` / run `147` is **Pass** (`success`) for
-`Nexora local implementation checks`; Agent baseline `34507159640` / run `164`
+The current workflow `34508111597` / run `149` is **Pass** (`success`) for
+`Nexora local implementation checks`; Agent baseline `34508111463` / run `166`
 is also **Pass**. `bash scripts/dev/verify.sh` ran in CI and passed; the local
 Windows WSL invocation remains **Not run** because the host denied WSL/Bash
 creation (`E_ACCESSDENIED`). SQL integration was **Not run** because
