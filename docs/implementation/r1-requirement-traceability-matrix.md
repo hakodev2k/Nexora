@@ -1,6 +1,6 @@
 # Release 1 requirement traceability matrix
 
-> Source implementation revision: `e42516e2360ad2afd7d8a0144412a15086770983`; current evidence/head: `c53f501df0774dc9d7bd19b8cb4935980ea12ab8`.
+> Source implementation revision: `e42516e2360ad2afd7d8a0144412a15086770983`; latest passing CI/evidence revision: `a3a0a7b84a124a8a9063d35d65641119e2824718` (workflow run `149`).
 > Branch: `impl/m01-s00-scaffold`.
 >
 > Authority: current approved requirements and Product Owner decision

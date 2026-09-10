@@ -1,6 +1,6 @@
 # Local Release 1 implementation status
 
-Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Current branch head: `c53f501df0774dc9d7bd19b8cb4935980ea12ab8` (documentation/evidence follow-up); code implementation commit: `e42516e2360ad2afd7d8a0144412a15086770983`. `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d` is the earlier blocker-remediation commit. This is not a merge, production or runtime-verification claim.
+Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Code implementation commit: `e42516e2360ad2afd7d8a0144412a15086770983`; latest passing CI/evidence revision: `a3a0a7b84a124a8a9063d35d65641119e2824718` (workflow run `149`). Subsequent branch commits are documentation-only. This is not a merge, production or runtime-verification claim.
 
 ## Implemented in this revision
 
