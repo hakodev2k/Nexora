@@ -51,7 +51,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-29 | [News, RSS và Topic Watch](29-news-and-feeds.md) | Feedly | Read-only public outbound boundary approved after network guard contract; not in M01 |
 | FX-30 | [Shopee Price Tracking](30-shopee-price-tracking.md) | camelcamelcamel | Paused; not moved to R2; no worker/auto-enable |
 | FX-31 | [Wishlist, Comparison, Orders, Sellers và Warranty](31-shopping-records.md) | AnyList | Sensitive projection policy applies where needed; not in M01 |
-| FX-32 | [Developer Toolbox](32-developer-toolbox.md) | DevToys | Local tools only unless network capability gets slice contract; not in M01 |
+| FX-32 | [Developer Toolbox](32-developer-toolbox.md) | DevToys | Pure local Base64/URL/HTML/hash/UUID/password/JSON/regex slice implemented; remaining tools/network gated |
 | FX-33 | [GitHub Discovery](33-github-discovery.md) | GitHub Search API | Read-only public outbound boundary approved after network guard contract; not in M01 |
 | FX-34 | [Automation, Scheduler và Workflows](34-automation.md) | n8n | Paused; not moved to R2; core platform jobs distinct |
 | FX-35 | [Integrations, Webhooks và n8n](35-integrations-webhooks-and-n8n.md) | n8n | Paused; not moved to R2 |

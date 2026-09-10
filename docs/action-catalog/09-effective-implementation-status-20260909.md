@@ -150,6 +150,14 @@ Decision: keep in R1 catalog, but no OAuth, connection, credential, inbound/outb
 
 Decision: keep inactive under the integration/network boundary. Local pure tools may remain designed, but arbitrary HTTP/DNS execution needs separate PO/network approval.
 
+The current PR #4 overlay implements the bounded local subset:
+`toolbox.catalog.read`, `toolbox.base64.run`, `toolbox.url_codec.run`,
+`toolbox.html_codec.run`, `toolbox.hash.run`, `toolbox.uuid.run`,
+`toolbox.password.run`, `toolbox.json.run` and `toolbox.regex.run`. These
+operations are memory-only, server-gated by FX32 and never execute input or
+contact a provider. XML/YAML/CSV conversion, advanced formatters, QR,
+certificates, history/favorites, Save-to-Snippet and network rows remain gated.
+
 ## `NETWORK_GUARD_GATED` rows
 
 Read-only outbound policy is approved only for News, GitHub Discovery and Monitoring after a future slice defines network guards and evidence.
@@ -238,7 +246,7 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 
 All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard, Shopping manual records, Developer Toolbox local tools, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text and Read-Later Bookmark-reference keys are governed by their slice evidence documents rather than this default.
+This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard, Shopping manual records, Developer Toolbox advanced/history/network rows, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text, Read-Later Bookmark-reference and the FX32 pure-toolbox subset are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 

@@ -155,8 +155,8 @@
 | FX31-S05 | Sellers / merge | `/shopping/sellers; /shopping/sellers/:sellerId/merge` | Current / per-action gate |
 | FX31-S06 | Warranty detail / claims | `/shopping/warranties/:warrantyId` | Current / per-action gate |
 | FX31-S07 | Create Asset handoff | `/shopping/orders/:orderId/create-asset` | Current / per-action gate |
-| FX32-S01 | Tool catalog | `/developer/tools` | Current / per-action gate |
-| FX32-S02 | Tool workbench | `/developer/tools/:toolCode` | Current / per-action gate |
+| FX32-S01 | Tool catalog | `/developer/tools` | Local slice / per-action gate |
+| FX32-S02 | Tool workbench | `/developer/tools/:toolCode` | Local pure subset / per-action gate |
 | FX32-S03 | Tool history / favorites | `/developer/tools/saved` | Current / per-action gate |
 | FX32-S04 | Network request preview | `/developer/tools/:toolCode/network-preview` | Current / per-action gate |
 | FX33-S01 | Discovery feed | `/developer/github` | Current / per-action gate |

@@ -306,6 +306,28 @@ export type TagPage = {
   nextCursor: string | null;
 };
 
+export type ToolboxTool = {
+  code: string;
+  name: string;
+  category: string;
+  description: string;
+  executionMode: string;
+  actionKey: string;
+  acceptsOptions: boolean;
+};
+
+export type ToolboxCatalog = {
+  items: ToolboxTool[];
+};
+
+export type ToolboxRunResult = {
+  toolCode: string;
+  output: string;
+  warning: string | null;
+  errorPath: string | null;
+  durationMilliseconds: number;
+};
+
 export type FinanceRecordInput = {
   categoryId: string;
   amount: string;
@@ -1074,6 +1096,17 @@ export function removeOrganizationTag(id: string, etag: string, idempotencyKey =
   return apiFetch<void>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function listDeveloperTools() {
+  return apiFetch<ToolboxCatalog>('/api/v1/developer/tools');
+}
+
+export function runDeveloperTool(toolCode: string, input: string, options: Record<string, string> = {}) {
+  return apiFetch<ToolboxRunResult>('/api/v1/developer/tools/run', {
+    method: 'POST',
+    body: JSON.stringify({ toolCode, input, options })
   });
 }
 

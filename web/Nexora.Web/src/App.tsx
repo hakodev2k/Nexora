@@ -13,6 +13,8 @@ import {
   PreferenceRecord,
   ReadingItemRecord,
   TagRecord,
+  ToolboxTool,
+  ToolboxRunResult,
   TrashItemRecord,
   NexoraApiError,
   ProjectRecord,
@@ -92,10 +94,12 @@ import {
   listOrganizationTags,
   createOrganizationTag,
   renameOrganizationTag,
-  removeOrganizationTag
+  removeOrganizationTag,
+  listDeveloperTools,
+  runDeveloperTool
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'module';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -134,6 +138,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'readLater' };
     case '/organize/tags':
       return { screen: 'tags' };
+    case '/developer/tools':
+      return { screen: 'tools' };
     case '/login':
       return { screen: 'login' };
     case '/':
@@ -176,6 +182,8 @@ function pathForLocation(location: LocationState): string {
       return '/read-later';
     case 'tags':
       return '/organize/tags';
+    case 'tools':
+      return '/developer/tools';
     case 'login':
       return '/login';
     case 'module':
@@ -753,7 +761,8 @@ function Shell({
   const canSnippets = profile.modules.some((module) => module.code.toUpperCase() === 'FX22' && module.enabled);
   const canReadLater = profile.modules.some((module) => module.code.toUpperCase() === 'FX23' && module.enabled);
   const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22', 'FX23', 'FX24'].includes(module.code.toUpperCase()));
+  const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -775,6 +784,7 @@ function Shell({
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
           {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>Read Later</span></button>}
           {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>Tags</span></button>}
+          {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>Developer tools</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -821,6 +831,7 @@ function Shell({
           {location.screen === 'snippets' && <SnippetsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'readLater' && <ReadLaterScreen onAuthLost={onAuthLost} />}
           {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
         </main>
@@ -2288,6 +2299,144 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
   );
 }
 
+type ToolboxOptions = Record<string, string>;
+
+function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [tools, setTools] = useState<ToolboxTool[]>([]);
+  const [selectedCode, setSelectedCode] = useState('base64');
+  const [input, setInput] = useState('');
+  const [operation, setOperation] = useState('encode');
+  const [algorithm, setAlgorithm] = useState('SHA-256');
+  const [count, setCount] = useState('1');
+  const [length, setLength] = useState('24');
+  const [indent, setIndent] = useState(true);
+  const [pattern, setPattern] = useState('');
+  const [ignoreCase, setIgnoreCase] = useState(false);
+  const [output, setOutput] = useState<ToolboxRunResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function loadCatalog() {
+    setLoading(true);
+    setError(null);
+    try {
+      const catalog = await listDeveloperTools();
+      setTools(Array.isArray(catalog.items) ? catalog.items : []);
+      if (catalog.items?.length > 0 && !catalog.items.some((tool) => tool.code === selectedCode)) {
+        setSelectedCode(catalog.items[0].code);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void loadCatalog(); }, []);
+
+  const selectedTool = tools.find((tool) => tool.code === selectedCode);
+
+  function optionsForTool(): ToolboxOptions {
+    switch (selectedCode) {
+      case 'base64':
+      case 'url-codec':
+      case 'html-codec':
+        return { operation };
+      case 'hash':
+        return { algorithm };
+      case 'uuid':
+        return { count };
+      case 'password':
+        return { length };
+      case 'json':
+        return { indent: String(indent) };
+      case 'regex':
+        return { pattern, ignoreCase: String(ignoreCase) };
+      default:
+        return {};
+    }
+  }
+
+  async function run(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setCopied(false);
+    if (new TextEncoder().encode(input).length > 1024 * 1024) {
+      setError(new NexoraApiError('Input tối đa 1 MiB UTF-8.', 422, 'InputTooLarge'));
+      return;
+    }
+    if (selectedCode === 'regex' && !pattern.trim()) {
+      setError(new NexoraApiError('Regex pattern là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy(true);
+    try {
+      setOutput(await runDeveloperTool(selectedCode, input, optionsForTool()));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyOutput() {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output.output);
+      setCopied(true);
+    } catch {
+      setError(new NexoraApiError('Không thể truy cập clipboard; hãy chọn và copy thủ công.', 0, 'ClipboardUnavailable'));
+    }
+  }
+
+  function clearWorkbench() {
+    setInput('');
+    setOutput(null);
+    setError(null);
+    setCopied(false);
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="developer-tools-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX32 / DEVELOPER TOOLBOX</p>
+          <h1 id="developer-tools-title">Developer tools</h1>
+          <p className="lead">Pure utilities chạy local trong memory. Không chạy code, không gọi network và không tự lưu input/output.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void loadCatalog()} disabled={loading || busy}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải danh mục tool…</div> : tools.length === 0 ? <div className="empty-state"><h2>Chưa có tool khả dụng</h2><p>Module hoặc action grant hiện không khả dụng trong PersonalSpace này.</p></div> : <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={run} noValidate>
+          <div className="section-heading"><h2>Workbench</h2><span className="state-pill state-active">Local only</span></div>
+          <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={(event) => { setSelectedCode(event.target.value); setOutput(null); setError(null); }} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
+          {selectedTool && <div className="security-policy"><strong>{selectedTool.description}</strong><span>Action: {selectedTool.actionKey} · {selectedTool.executionMode}</span></div>}
+          {(selectedCode === 'base64' || selectedCode === 'url-codec' || selectedCode === 'html-codec') && <div className="field-group"><label htmlFor="tool-operation">Operation</label><select id="tool-operation" value={operation} onChange={(event) => setOperation(event.target.value)} disabled={busy}><option value="encode">Encode</option><option value="decode">Decode</option></select></div>}
+          {selectedCode === 'hash' && <div className="field-group"><label htmlFor="tool-algorithm">Algorithm</label><select id="tool-algorithm" value={algorithm} onChange={(event) => setAlgorithm(event.target.value)} disabled={busy}><option>SHA-256</option><option>SHA-384</option><option>SHA-512</option><option>MD5</option><option>SHA-1</option></select></div>}
+          {selectedCode === 'uuid' && <div className="field-group"><label htmlFor="tool-count">Số UUID (1–20)</label><input id="tool-count" inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value)} min={1} max={20} disabled={busy} /></div>}
+          {selectedCode === 'password' && <div className="field-group"><label htmlFor="tool-length">Độ dài password (15–128)</label><input id="tool-length" inputMode="numeric" value={length} onChange={(event) => setLength(event.target.value)} min={15} max={128} disabled={busy} /></div>}
+          {selectedCode === 'json' && <label className="check-row"><input type="checkbox" checked={indent} onChange={(event) => setIndent(event.target.checked)} disabled={busy} /><span>Indent output</span></label>}
+          {selectedCode === 'regex' && <><div className="field-group"><label htmlFor="tool-pattern">Regex pattern</label><input id="tool-pattern" value={pattern} onChange={(event) => setPattern(event.target.value)} maxLength={10000} disabled={busy} required /></div><label className="check-row"><input type="checkbox" checked={ignoreCase} onChange={(event) => setIgnoreCase(event.target.checked)} disabled={busy} /><span>Ignore case</span></label></>}
+          <div className="field-group"><label htmlFor="tool-input">Input <span className="optional">(tối đa 1 MiB)</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); }} rows={12} maxLength={1024 * 1024} disabled={busy} spellCheck={false} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={clearWorkbench} disabled={busy}>Xóa</button><SubmitButton busy={busy}>Chạy tool</SubmitButton></div>
+        </form>
+        <div className="resource-list">
+          <div className="section-heading"><h2>Output</h2>{output && <button className="secondary-button" type="button" onClick={() => void copyOutput()}>{copied ? 'Đã copy' : 'Copy output'}</button>}</div>
+          {!output ? <div className="empty-state"><h3>Chưa có output</h3><p>Nhập dữ liệu và bấm “Chạy tool”. Output chỉ tồn tại trong memory của phiên trình duyệt.</p></div> : <div className="form-panel"><div className="delivery-summary"><span>{output.durationMilliseconds} ms</span><span>UTF-8 · memory-only</span>{output.warning && <span>{output.warning}</span>}</div>{output.errorPath && <Notice kind="error">Vị trí lỗi: {output.errorPath}</Notice>}<pre className="snippet-code" aria-label="Tool output">{output.output}</pre></div>}
+          <div className="security-policy"><strong>Safety boundary</strong><span>Network HTTP/DNS, code formatter execution, QR navigation, history persistence và Save to Snippet chưa nằm trong local slice này.</span></div>
+        </div>
+      </div>}
+    </section>
+  );
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -2547,6 +2696,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX24') {
     return <OrganizationTagsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX32') {
+    return <DeveloperToolsScreen onAuthLost={onAuthLost} />;
   }
 
   return (

@@ -132,7 +132,16 @@ public static class ActionGrantPolicy
         "organization.tag.read",
         "organization.tag.create",
         "organization.tag.rename",
-        "organization.tag.remove"
+        "organization.tag.remove",
+        "toolbox.catalog.read",
+        "toolbox.base64.run",
+        "toolbox.url_codec.run",
+        "toolbox.html_codec.run",
+        "toolbox.hash.run",
+        "toolbox.uuid.run",
+        "toolbox.password.run",
+        "toolbox.json.run",
+        "toolbox.regex.run"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

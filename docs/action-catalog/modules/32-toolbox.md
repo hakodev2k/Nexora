@@ -1,25 +1,25 @@
 # FX-32 — Developer Toolbox: action catalog v1.1
 
-Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/32-developer-toolbox.md), [UX](../../ux-ui/modules/32-developer-toolbox.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
+Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/32-developer-toolbox.md), [UX](../../ux-ui/modules/32-developer-toolbox.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). FX32-S01/S02 pure local subset is implemented on PR #4; remaining rows stay contract-gated or paused.
 
 New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
 
 | Action | Kind / context | Admin-grantable | Current scope | Gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="toolbox-catalog-read"></a>`toolbox.catalog.read` — Tìm/xem tools | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S01 |
-| <a id="toolbox-base64-run"></a>`toolbox.base64.run` — Base64 encode/decode | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-url-codec-run"></a>`toolbox.url_codec.run` — URL encode/decode | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-html-codec-run"></a>`toolbox.html_codec.run` — HTML entities | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-hash-run"></a>`toolbox.hash.run` — Hash/checksum | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-password-run"></a>`toolbox.password.run` — Generate password | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-uuid-run"></a>`toolbox.uuid.run` — Generate UUID | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
+| <a id="toolbox-catalog-read"></a>`toolbox.catalog.read` — Tìm/xem tools | QUERY / SELF | Yes when active | SLICE_IMPLEMENTED (local) | SQL module/action gate; catalog is memory-only | FX32-S01 |
+| <a id="toolbox-base64-run"></a>`toolbox.base64.run` — Base64 encode/decode | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Bounded UTF-8 transform; no persistence/network | FX32-S02 |
+| <a id="toolbox-url-codec-run"></a>`toolbox.url_codec.run` — URL encode/decode | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Text transform only; never fetches URLs | FX32-S02 |
+| <a id="toolbox-html-codec-run"></a>`toolbox.html_codec.run` — HTML entities | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Text transform only; output remains data | FX32-S02 |
+| <a id="toolbox-hash-run"></a>`toolbox.hash.run` — Hash/checksum | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | SHA-2 plus legacy checksum warning | FX32-S02 |
+| <a id="toolbox-password-run"></a>`toolbox.password.run` — Generate password | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | CSPRNG, bounded length, no persistence | FX32-S02 |
+| <a id="toolbox-uuid-run"></a>`toolbox.uuid.run` — Generate UUID | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | CSPRNG-backed UUID v4, bounded count | FX32-S02 |
 | <a id="toolbox-datetime-run"></a>`toolbox.datetime.run` — Timestamp/date calculator | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-json-run"></a>`toolbox.json.run` — JSON format/validate | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
+| <a id="toolbox-json-run"></a>`toolbox.json.run` — JSON format/validate | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | JsonDocument validation/indent; no execution | FX32-S02 |
 | <a id="toolbox-xml-run"></a>`toolbox.xml.run` — XML format/validate | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
 | <a id="toolbox-yaml-run"></a>`toolbox.yaml.run` — YAML format/validate | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
 | <a id="toolbox-csv-run"></a>`toolbox.csv.run` — CSV view/convert | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
 | <a id="toolbox-data-convert-run"></a>`toolbox.data_convert.run` — JSON/XML/YAML/CSV conversion | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
-| <a id="toolbox-regex-run"></a>`toolbox.regex.run` — Regex test | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
+| <a id="toolbox-regex-run"></a>`toolbox.regex.run` — Regex test | LOCAL / SELF | Yes when active | SLICE_IMPLEMENTED (local) | 100 KiB sample, 10k pattern and 250 ms timeout | FX32-S02 |
 | <a id="toolbox-text-diff-run"></a>`toolbox.text_diff.run` — Text diff | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
 | <a id="toolbox-color-run"></a>`toolbox.color.run` — Color conversion | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |
 | <a id="toolbox-qr-run"></a>`toolbox.qr.run` — QR generation | LOCAL / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX32-S02 |

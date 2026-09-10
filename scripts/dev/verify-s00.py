@@ -46,6 +46,8 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Reading/ReadingContracts.cs",
     "src/Nexora.Api/Features/Organization/OrganizationEndpoints.cs",
     "src/Nexora.Api/Features/Organization/OrganizationContracts.cs",
+    "src/Nexora.Api/Features/DeveloperTools/DeveloperToolsEndpoints.cs",
+    "src/Nexora.Api/Features/DeveloperTools/DeveloperToolsContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -65,6 +67,7 @@ REQUIRED_FILES = [
     "src/Nexora.Application/Snippets/SnippetServiceContracts.cs",
     "src/Nexora.Application/Reading/ReadingServiceContracts.cs",
     "src/Nexora.Application/Organization/TagServiceContracts.cs",
+    "src/Nexora.Application/DeveloperTools/ToolboxServiceContracts.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -79,6 +82,7 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Snippets/SqlSnippetService.cs",
     "src/Nexora.Infrastructure/Reading/SqlReadingService.cs",
     "src/Nexora.Infrastructure/Organization/SqlTagService.cs",
+    "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
     "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
@@ -92,6 +96,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0010_snippets_manual.sql",
     "database/migrations/20260910_0011_reading_queue_bookmarks.sql",
     "database/migrations/20260910_0012_organization_tags.sql",
+    "database/migrations/20260910_0013_developer_toolbox_pure.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -238,6 +243,11 @@ def main() -> int:
         if marker not in organization_endpoints:
             fail(f"organization route marker missing: {marker}")
 
+    toolbox_endpoints = read("src/Nexora.Api/Features/DeveloperTools/DeveloperToolsEndpoints.cs")
+    for marker in ("/developer/tools", "/developer/tools/run", "listDeveloperTools", "runDeveloperTool", "IToolboxService"):
+        if marker not in toolbox_endpoints:
+            fail(f"developer toolbox route marker missing: {marker}")
+
     filters = read("src/Nexora.Api/Security/EndpointSecurityFilters.cs")
     if "RequireCsrfForUnsafeMethods" not in filters or "X-CSRF-Token" not in filters:
         fail("shared CSRF filter is missing")
@@ -303,6 +313,10 @@ def main() -> int:
     for marker in ("[organization].[Tag]", "[organization].[ResourceTag]", "organization.tag.create", "organization.tag.remove"):
         if marker not in migration12:
             fail(f"organization migration marker missing: {marker}")
+    migration13 = read("database/migrations/20260910_0013_developer_toolbox_pure.sql")
+    for marker in ("toolbox.catalog.read", "toolbox.base64.run", "toolbox.json.run", "toolbox.regex.run"):
+        if marker not in migration13:
+            fail(f"developer toolbox migration marker missing: {marker}")
 
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):
@@ -316,7 +330,7 @@ def main() -> int:
             if re.search(forbidden, text):
                 fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
+    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags plus local developer-toolbox runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
     return 0
 
 

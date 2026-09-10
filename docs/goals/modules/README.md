@@ -35,7 +35,7 @@ Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext
 | FX-29 | [News, RSS và Topic Watch](29-news-and-feeds.md) | P05 | RM13 | Xem file: partial gates |
 | FX-30 | [Shopee Price Tracking](30-shopee-price-tracking.md) | P05 | RM13 | Paused Q-06 |
 | FX-31 | [Wishlist, Comparison, Orders, Sellers và Warranty](31-shopping-records.md) | P05 | RM13 | Xem file: partial gates |
-| FX-32 | [Developer Toolbox](32-developer-toolbox.md) | P06 | RM14 | Xem file: partial gates |
+| FX-32 | [Developer Toolbox](32-developer-toolbox.md) | P06 | RM14 | Pure local toolbox subset implemented; network/history/advanced tools gated |
 | FX-33 | [GitHub Discovery](33-github-discovery.md) | P06 | RM14 | Xem file: partial gates |
 | FX-34 | [Automation, Scheduler và Workflows](34-automation-and-scheduler.md) | P06 | RM14 | Paused Q-07 |
 | FX-35 | [Integrations, Webhooks và n8n](35-integrations-webhooks-and-n8n.md) | P06 | RM14 | Paused Q-07 |

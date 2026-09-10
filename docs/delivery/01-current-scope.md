@@ -59,7 +59,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-29 | [News, RSS và Topic Watch](../features/29-news-and-feeds.md) | Internal stored reader; read-only public outbound allowed only after slice contract and SSRF/provider guards | Not in M01 |
 | FX-30 | [Shopee Price Tracking](../features/30-shopee-price-tracking.md) | Paused by Product Owner; no worker/auto-enable; not moved to R2 | Not in M01 |
 | FX-31 | [Wishlist, Comparison, Orders, Sellers và Warranty](../features/31-shopping-records.md) | Current owner-only scope; sensitive projection allowlists required where applicable | Not in M01 |
-| FX-32 | [Developer Toolbox](../features/32-developer-toolbox.md) | Local tools active; network tools held under integration/outbound boundary | Not in M01 |
+| FX-32 | [Developer Toolbox](../features/32-developer-toolbox.md) | Pure local toolbox subset active; network/history/advanced tools held behind their contracts | Not in M01 |
 | FX-33 | [GitHub Discovery](../features/33-github-discovery.md) | Internal stored metadata; read-only public outbound allowed only after slice contract and network guards | Not in M01 |
 | FX-34 | [Automation, Scheduler và Workflows](../features/34-automation-and-scheduler.md) | Paused by Product Owner; core platform jobs unaffected; not moved to R2 | Not in M01 |
 | FX-35 | [Integrations, Webhooks và n8n](../features/35-integrations-webhooks-and-n8n.md) | Paused by Product Owner; foundation email/push distinct; not moved to R2 | Not in M01 |
