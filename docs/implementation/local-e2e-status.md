@@ -23,8 +23,28 @@ Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under
 - SQL-backed FX26-S01 Dashboard attention slice: owner-scoped due/overdue Tasks, today's Calendar Events, recent Draft/Published Documents and unread Notifications are projected through independent Ready/Empty/Unavailable/Degraded widgets. The React Home dashboard consumes `GET /api/v1/dashboard`; layout persistence, widget mutation, quick-create and provider widgets remain gated.
 - SQL-backed FX25-S01 Global Search slice: bounded owner-scoped source queries across Projects, Tasks, Calendar Events, Documents, Bookmarks, Snippets and Goals with type/date/archive filters, deterministic ranking, safe previews and per-source capability/degraded states. The React shell exposes `/search`; saved searches, Recents, Command Palette and persisted index remain gated.
 - SQL-backed FX25-S03 Favorites slice: owner-scoped typed Project/Task/Event/Document/Bookmark/Snippet/Goal references with source capability/lifecycle/Trash recheck, safe unavailable projection, cursor pagination, bounded rank, ETag/If-Match, durable safe-response idempotency and audit. The React shell exposes `/favorites`; no source payload snapshot or authority is copied.
-- SELF authorization now resolves current module enablement and per-action grants from SQL on every protected feature request. Ordinary Users and SuperAdmins use the approved own-resource baseline; Admin SELF access requires an explicit resolved `Allow`, with matching `Deny` winning and legacy action aliases retained only for local migration compatibility.
-- Reference Release 1 catalog and productivity/calendar schema migration. Formerly paused modules remain real-provider-disabled; only explicitly local/simulated/integration-safe code may be added under DEC-014.
+- SELF authorization now resolves current module enablement from SQL on every protected feature request. Users, Admins and SuperAdmins retain the approved own-resource baseline; `AdminPermission` is reserved for administrative, cross-user and support operations and does not remove self-service access. Matching deny semantics remain applicable to those administrative paths.
+- The documented Release 1 catalog is broader than this local runtime. Forward-only migration `20260910_0018_local_runtime_catalog_gate.sql` keeps every catalog row for traceability, marks only implemented local slices `Ready + SystemEnabled + RegistrationEnabled`, disables existing grants for gated modules, and leaves FX30/FX34/FX35 `Paused` with no provider execution.
+
+## Catalog versus runtime availability
+
+These labels are intentionally separate. A catalog row is not runtime evidence,
+and a source implementation is not SQL/runtime verification.
+
+| Classification | Modules | Meaning in this revision |
+| --- | --- | --- |
+| Documented R1 catalog | FX01–FX40 | The product catalog remains represented in SQL for policy/dependency traceability. |
+| Locally implemented | FX01, FX02, FX03, FX06, FX08, FX09, FX11, FX12, FX13, FX16, FX20, FX21, FX22, FX23, FX24, FX25, FX26, FX27, FX32 | Source, SQL, authorization and local UI slices exist; this code-only run does not claim SQL runtime verification. |
+| Runtime-available after the catalog gate | The locally implemented list above | Effective SQL state is `Ready`, `SystemEnabled=1`, `RegistrationEnabled=1`; new verified users receive grants only from this set. |
+| Deliberately unimplemented | FX04, FX05, FX07, FX10, FX14, FX15, FX17, FX18, FX19, FX28, FX29, FX31, FX33, FX36, FX37, FX38, FX39, FX40 | Effective state is `Blocked`, system disabled and registration disabled; navigation exposes no usable module. |
+| Provider/production gated | FX30, FX34, FX35 | Effective state is `Paused`, system disabled and registration disabled. No real provider, production, secret or paid-service execution is enabled. |
+
+`/health/live` checks only process liveness. `/health/ready` returns `503`
+unless SQL opens, the migration journal exists, every required migration through
+`0018` is applied, and the bootstrap/security invariant is valid. Its response
+contains only coarse dependency states. The API also fails fast unless
+`NEXORA_IDEMPOTENCY_SECRET` is supplied separately from the SQL connection
+string/password.
 
 ## Deliberately not claimed
 
@@ -34,12 +54,21 @@ Production deployment, public launch, real secrets/provider calls, real OAuth/pa
 
 ## Verification ownership
 
-The current instruction is code-only. On this revision the agent ran
-`python3 scripts/dev/verify-s00.py`, `python3 .ai/scripts/verify-baseline.py`,
-`bash -n scripts/dev/*.sh`, `python3 -m py_compile scripts/dev/verify-s00.py`
-and `git diff --check`. `npm run build --prefix web/Nexora.Web` was not run
-because `node_modules` is unavailable in this checkout. No .NET build was
-possible because the SDK is unavailable. Functional tests, SQL integration
-tests, E2E/browser tests, manual QA, fixture/mock-data preparation, JSON
-manifest parsing and runtime migration checks were not performed by the agent
-and remain owner work.
+The current instruction remains code-only: no new tests, fixtures, demo records
+or provider/runtime data were added. The following commands were actually run
+on the remediation working tree:
+
+- `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (restore required elevated local NuGet-config access).
+- `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors.
+- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Pass**, 24 passed, 0 failed. These are existing unit checks; they do not prove SQL behavior.
+- `npm ci --prefix web/Nexora.Web` — **Pass**, 69 packages audited, 0 vulnerabilities.
+- `npm run build --prefix web/Nexora.Web` — **Pass**, TypeScript and Vite production bundle completed.
+- `git diff --check` — **Pass**.
+- `bash scripts/dev/verify.sh` — **Not run**: the Windows environment denied WSL/Bash instance creation (`E_ACCESSDENIED`) before the script executed.
+
+The workflow now includes the existing unit-check command after the API/
+Bootstrap build. GitHub Actions status was not queried in this environment and
+is **Not run/Pending** until the branch is pushed/CI executes. SQL integration
+was **Not run** because `NEXORA_TEST_SQL_CONNECTION` is absent; no SQL migration,
+health endpoint, browser/E2E or manual QA runtime evidence is claimed. The
+manual flow is documented in `pr4-review-qa-script.md` for the human owner.

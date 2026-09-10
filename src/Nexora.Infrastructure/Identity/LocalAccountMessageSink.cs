@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Nexora.Application.Identity;
 
 namespace Nexora.Infrastructure.Identity;

@@ -104,7 +104,7 @@ VALUES
                 Add(tokenCommand, "@userId", SqlDbType.UniqueIdentifier, userId);
                 Add(tokenCommand, "@tokenHash", SqlDbType.Binary, HashToken(rawToken), 32);
                 Add(tokenCommand, "@email", SqlDbType.NVarChar, draft.OriginalEmail, 320);
-                Add(tokenCommand, "@expiresAt", SqlDbType.DateTime2, expiresAt.UtcDateTime);
+                Add(tokenCommand, "@expiresAt", SqlDbType.DateTime2, expiresAt);
                 tokenCommand.ExecuteNonQuery();
             }
 
@@ -373,14 +373,14 @@ INSERT INTO [identity].[Session]
 VALUES
     (@sessionId, @userId, @handleHash, @deviceLabel, @securityStamp, @now,
      @now, @idleExpiresAt, @absoluteExpiresAt, @now);",
-                ("@sessionId", SqlDbType.UniqueIdentifier, (object)sessionId),
-                ("@userId", SqlDbType.UniqueIdentifier, (object)user.Id),
+                ("@sessionId", SqlDbType.UniqueIdentifier, (object)sessionId, 0),
+                ("@userId", SqlDbType.UniqueIdentifier, (object)user.Id, 0),
                 ("@handleHash", SqlDbType.Binary, (object)HashSession(rawHandle), 32),
                 ("@deviceLabel", SqlDbType.NVarChar, (object)NormalizeDeviceLabel(deviceLabel), 160),
                 ("@securityStamp", SqlDbType.NVarChar, (object)user.SecurityStamp, 128),
-                ("@now", SqlDbType.DateTime2, (object)now),
-                ("@idleExpiresAt", SqlDbType.DateTime2, (object)now.Add(IdleTtl)),
-                ("@absoluteExpiresAt", SqlDbType.DateTime2, (object)absoluteExpiresAt));
+                ("@now", SqlDbType.DateTime2, (object)now, 0),
+                ("@idleExpiresAt", SqlDbType.DateTime2, (object)now.Add(IdleTtl), 0),
+                ("@absoluteExpiresAt", SqlDbType.DateTime2, (object)absoluteExpiresAt, 0));
 
             InsertAudit(connection, transaction, user.Id, user.PersonalSpaceId, "identity.account.login", "Session", sessionId, "Succeeded", null, traceId, now);
             var profile = LoadProfile(connection, transaction, user.Id);
@@ -436,7 +436,7 @@ WHERE [HandleHash] = @handleHash;");
         using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var receiptFailure = CheckReceipt<object?>(connection, transaction, null,
             "identity.session.reauthenticate", idempotencyKey,
-            $"handle:{(string.IsNullOrWhiteSpace(rawSessionHandle) ? "missing" : Convert.ToHexString(HashSession(rawSessionHandle!)))}|passwordLength:{password?.Length ?? 0}",
+            $"handle:{(string.IsNullOrWhiteSpace(rawSessionHandle) ? "missing" : Convert.ToHexString(HashSession(rawSessionHandle!)))}|passwordLength:{password.Length}",
             UtcNow(), out var receipt);
         if (receiptFailure is not null)
         {
@@ -562,7 +562,7 @@ WHERE [UserId] = @userId AND [Purpose] = 'PasswordReset' AND [ConsumedAt] IS NUL
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<object?>(connection, transaction, null,
             "identity.account.reset_confirm", idempotencyKey,
-            $"token:{Convert.ToHexString(HashToken(token))}|passwordLength:{newPassword?.Length ?? 0}", UtcNow(), out var receipt);
+            $"token:{Convert.ToHexString(HashToken(token))}|passwordLength:{newPassword.Length}", UtcNow(), out var receipt);
         if (receiptFailure is not null)
         {
             RollbackQuietly(transaction);
@@ -575,7 +575,10 @@ WHERE [UserId] = @userId AND [Purpose] = 'PasswordReset' AND [ConsumedAt] IS NUL
 SELECT TOP (1)
     t.[Id] AS [TokenId], t.[UserId], t.[ExpiresAt], t.[ConsumedAt],
     u.[PasswordHash], u.[SecurityStamp], u.[State], u.[EmailConfirmed],
-    u.[IsDeleted], ps.[Id] AS [PersonalSpaceId]
+    u.[IsDeleted], ps.[Id] AS [PersonalSpaceId],
+    CASE WHEN EXISTS
+      (SELECT 1 FROM [identity].[MfaCredential] m WHERE m.[UserId] = u.[Id] AND m.[State] = 'Enabled')
+      THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS [HasEnabledMfa]
 FROM [identity].[OneTimeToken] t WITH (UPDLOCK, ROWLOCK)
 INNER JOIN [identity].[User] u WITH (UPDLOCK, ROWLOCK) ON u.[Id] = t.[UserId]
 LEFT JOIN [platform].[PersonalSpace] ps WITH (UPDLOCK, ROWLOCK) ON ps.[UserId] = u.[Id]
@@ -613,8 +616,8 @@ SET [PasswordHash] = @passwordHash, [SecurityStamp] = @securityStamp, [UpdatedAt
 WHERE [Id] = @userId AND [IsDeleted] = 0;",
                 ("@passwordHash", SqlDbType.NVarChar, (object)_passwords.Hash(newPassword), 1024),
                 ("@securityStamp", SqlDbType.NVarChar, (object)newStamp, 128),
-                ("@now", SqlDbType.DateTime2, (object)now),
-                ("@userId", SqlDbType.UniqueIdentifier, (object)row.UserId));
+                ("@now", SqlDbType.DateTime2, (object)now, 0),
+                ("@userId", SqlDbType.UniqueIdentifier, (object)row.UserId, 0));
             ExecuteNonQuery(connection, transaction, @"
 UPDATE [identity].[Session] SET [RevokedAt] = COALESCE([RevokedAt], @now)
 WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
@@ -926,7 +929,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
 
             var receiptFailure = CheckReceipt<object?>(connection, transaction, auth.User.UserId,
                 "identity.account.soft_delete", idempotencyKey,
-                $"confirmation:{confirmation}|passwordLength:{password?.Length ?? 0}", UtcNow(), out var receipt);
+                $"confirmation:{confirmation}|passwordLength:{password.Length}", UtcNow(), out var receipt);
             if (receiptFailure is not null)
             {
                 RollbackQuietly(transaction);
@@ -1086,25 +1089,25 @@ INSERT INTO [identity].[User]
 VALUES
     (@userId, @email, @normalizedEmail, @passwordHash, @securityStamp, 'Active',
      1, @now, 0, @displayName, @timeZoneId, @locale);",
-                ("@userId", SqlDbType.UniqueIdentifier, (object)userId),
+                ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0),
                 ("@email", SqlDbType.NVarChar, (object)draft.OriginalEmail, 320),
                 ("@normalizedEmail", SqlDbType.NVarChar, (object)draft.NormalizedEmail, 320),
                 ("@passwordHash", SqlDbType.NVarChar, (object)_passwords.Hash(command.Password), 1024),
                 ("@securityStamp", SqlDbType.NVarChar, (object)NewStamp(), 128),
-                ("@now", SqlDbType.DateTime2, (object)now),
+                ("@now", SqlDbType.DateTime2, (object)now, 0),
                 ("@displayName", SqlDbType.NVarChar, (object)draft.DisplayName, 100),
                 ("@timeZoneId", SqlDbType.NVarChar, (object)draft.TimeZoneId, 128),
                 ("@locale", SqlDbType.VarChar, (object)draft.Locale, 8));
             ExecuteNonQuery(connection, transaction, @"
 INSERT INTO [platform].[PersonalSpace] ([Id], [UserId], [State], [CreatedAt], [UpdatedAt])
 VALUES (@spaceId, @userId, 'Active', @now, @now);",
-                ("@spaceId", SqlDbType.UniqueIdentifier, (object)spaceId),
-                ("@userId", SqlDbType.UniqueIdentifier, (object)userId),
-                ("@now", SqlDbType.DateTime2, (object)now));
+                ("@spaceId", SqlDbType.UniqueIdentifier, (object)spaceId, 0),
+                ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0),
+                ("@now", SqlDbType.DateTime2, (object)now, 0));
             ExecuteNonQuery(connection, transaction, @"
 INSERT INTO [identity].[UserRole] ([UserId], [RoleId])
 SELECT @userId, [Id] FROM [identity].[Role] WHERE [Code] = 'SuperAdmin';",
-                ("@userId", SqlDbType.UniqueIdentifier, (object)userId));
+                ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0));
             GrantReadyModules(connection, transaction, userId, now);
             InsertAudit(connection, transaction, userId, spaceId, "identity.superadmin.bootstrap", "User", userId, "Succeeded", null, traceId, now);
             ExecuteNonQuery(connection, transaction, @"
@@ -1243,7 +1246,7 @@ SELECT TOP (1)
     s.[Id] AS [SessionId], s.[UserId], s.[SecurityStamp] AS [SessionSecurityStamp],
     s.[RecentAuthenticatedAt], s.[RevokedAt], s.[IdleExpiresAt], s.[AbsoluteExpiresAt],
     u.[Email], u.[PasswordHash], u.[SecurityStamp], u.[State], u.[EmailConfirmed],
-    u.[IsDeleted], ps.[Id] AS [PersonalSpaceId],
+    u.[IsDeleted], ps.[Id] AS [PersonalSpaceId], u.[RowVersion],
     CASE WHEN EXISTS
       (SELECT 1 FROM [identity].[MfaCredential] m WHERE m.[UserId] = u.[Id] AND m.[State] = 'Enabled')
       THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END AS [HasEnabledMfa],
@@ -1334,7 +1337,8 @@ WHERE [Id] = @sessionId AND [RevokedAt] IS NULL;",
         reader.GetString(reader.GetOrdinal("State")),
         reader.GetBoolean(reader.GetOrdinal("EmailConfirmed")),
         reader.GetBoolean(reader.GetOrdinal("IsDeleted")),
-        reader.IsDBNull(reader.GetOrdinal("PersonalSpaceId")) ? null : reader.GetGuid(reader.GetOrdinal("PersonalSpaceId")));
+        reader.IsDBNull(reader.GetOrdinal("PersonalSpaceId")) ? null : reader.GetGuid(reader.GetOrdinal("PersonalSpaceId")),
+        reader.GetBoolean(reader.GetOrdinal("HasEnabledMfa")));
 
     private static ProfileRow ReadProfileRow(SqlDataReader reader) => new(
         reader.GetGuid(reader.GetOrdinal("Id")),
@@ -1363,6 +1367,7 @@ WHERE [Id] = @sessionId AND [RevokedAt] IS NULL;",
         reader.GetBoolean(reader.GetOrdinal("EmailConfirmed")),
         reader.GetBoolean(reader.GetOrdinal("IsDeleted")),
         reader.IsDBNull(reader.GetOrdinal("PersonalSpaceId")) ? null : reader.GetGuid(reader.GetOrdinal("PersonalSpaceId")),
+        reader.GetFieldValue<byte[]>(reader.GetOrdinal("RowVersion")),
         reader.GetBoolean(reader.GetOrdinal("HasEnabledMfa")),
         reader.GetString(reader.GetOrdinal("Role")));
 
@@ -1374,12 +1379,12 @@ INSERT INTO [identity].[OneTimeToken]
     ([Id], [UserId], [Purpose], [TokenHash], [EmailSnapshot], [ExpiresAt])
 VALUES
     (@tokenId, @userId, @purpose, @tokenHash, @email, @expiresAt);",
-            ("@tokenId", SqlDbType.UniqueIdentifier, (object)tokenId),
-            ("@userId", SqlDbType.UniqueIdentifier, (object)userId),
+            ("@tokenId", SqlDbType.UniqueIdentifier, (object)tokenId, 0),
+            ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0),
             ("@purpose", SqlDbType.VarChar, (object)purpose, 32),
             ("@tokenHash", SqlDbType.Binary, (object)HashToken(rawToken), 32),
             ("@email", SqlDbType.NVarChar, (object)email, 320),
-            ("@expiresAt", SqlDbType.DateTime2, (object)expiresAt));
+            ("@expiresAt", SqlDbType.DateTime2, (object)expiresAt, 0));
     }
 
     private static void InsertAccountMessageIntent(SqlConnection connection, SqlTransaction transaction, Guid tokenId,
@@ -1390,11 +1395,11 @@ INSERT INTO [identity].[AccountMessageIntent]
     ([Id], [UserId], [NormalizedEmailHash], [Purpose], [State], [NotBeforeAt], [CreatedAt], [UpdatedAt])
 VALUES
     (@id, @userId, @emailHash, @purpose, 'Pending', @now, @now, @now);",
-            ("@id", SqlDbType.UniqueIdentifier, (object)tokenId),
-            ("@userId", SqlDbType.UniqueIdentifier, (object)userId),
-            ("@emailHash", SqlDbType.Binary, (object)HashText(normalizedEmail), 32),
-            ("@purpose", SqlDbType.VarChar, (object)purpose, 64),
-            ("@now", SqlDbType.DateTime2, (object)now));
+                ("@id", SqlDbType.UniqueIdentifier, (object)tokenId, 0),
+                ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0),
+                ("@emailHash", SqlDbType.Binary, (object)HashText(normalizedEmail), 32),
+                ("@purpose", SqlDbType.VarChar, (object)purpose, 64),
+                ("@now", SqlDbType.DateTime2, (object)now, 0));
     }
 
     private static void InsertOutbox(SqlConnection connection, SqlTransaction transaction, Guid? ownerUserId,
@@ -1405,11 +1410,11 @@ INSERT INTO [operations].[Outbox]
     ([OwnerUserId], [LogicalKey], [Kind], [PayloadJson], [State], [CreatedAt], [NotBeforeAt])
 VALUES
     (@ownerUserId, @logicalKey, @kind, @payloadJson, 'Pending', @now, @now);",
-            ("@ownerUserId", SqlDbType.UniqueIdentifier, (object?)ownerUserId ?? DBNull.Value),
+            ("@ownerUserId", SqlDbType.UniqueIdentifier, (object?)ownerUserId ?? DBNull.Value, 0),
             ("@logicalKey", SqlDbType.NVarChar, (object)logicalKey, 200),
             ("@kind", SqlDbType.NVarChar, (object)kind, 100),
-            ("@payloadJson", SqlDbType.NVarChar, (object)JsonSerializer.Serialize(payload)),
-            ("@now", SqlDbType.DateTime2, (object)now));
+            ("@payloadJson", SqlDbType.NVarChar, (object)JsonSerializer.Serialize(payload), 0),
+            ("@now", SqlDbType.DateTime2, (object)now, 0));
     }
 
     private static void InsertSecurityNotification(SqlConnection connection, SqlTransaction transaction, Guid userId,
@@ -1422,10 +1427,10 @@ INSERT INTO [notifications].[Notification]
 VALUES
     (@id, @userId, @logicalKey, 'Security.PasswordReset', N'Password changed',
      N'Your Nexora password was changed. Existing sessions were signed out.', @now);",
-            ("@id", SqlDbType.UniqueIdentifier, (object)notificationId),
-            ("@userId", SqlDbType.UniqueIdentifier, (object)userId),
+            ("@id", SqlDbType.UniqueIdentifier, (object)notificationId, 0),
+            ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0),
             ("@logicalKey", SqlDbType.NVarChar, (object)logicalKey, 200),
-            ("@now", SqlDbType.DateTime2, (object)now));
+            ("@now", SqlDbType.DateTime2, (object)now, 0));
         // Schedule all channels in one transaction. Browser Push is explicitly
         // unavailable until a local subscription/provider is configured; that
         // state must not be represented as a false delivery success.
@@ -1436,8 +1441,8 @@ VALUES
     (@notificationId, 'InApp', 'Pending', NULL, @now, @now),
     (@notificationId, 'Email', 'Pending', NULL, @now, @now),
     (@notificationId, 'BrowserPush', 'PermissionUnavailable', 'PushPermissionUnavailable', @now, @now);",
-            ("@notificationId", SqlDbType.UniqueIdentifier, (object)notificationId),
-            ("@now", SqlDbType.DateTime2, (object)now));
+            ("@notificationId", SqlDbType.UniqueIdentifier, (object)notificationId, 0),
+            ("@now", SqlDbType.DateTime2, (object)now, 0));
         InsertOutbox(connection, transaction, userId, $"notification.dispatch:{logicalKey}",
             "Notifications.DispatchRequested", new { notificationId, channels = new[] { "InApp", "Email", "BrowserPush" } }, now);
     }
@@ -1464,15 +1469,15 @@ INSERT INTO [security].[AuditEvent]
     ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [RedactedDiffJson], [TraceId], [CreatedAt])
 VALUES
     (@actorUserId, @ownerUserId, @actionKey, @targetType, @targetId, @result, @redactedDiffJson, @traceId, @now);",
-            ("@actorUserId", SqlDbType.UniqueIdentifier, (object?)actorUserId ?? DBNull.Value),
-            ("@ownerUserId", SqlDbType.UniqueIdentifier, (object?)ownerUserId ?? DBNull.Value),
+            ("@actorUserId", SqlDbType.UniqueIdentifier, (object?)actorUserId ?? DBNull.Value, 0),
+            ("@ownerUserId", SqlDbType.UniqueIdentifier, (object?)ownerUserId ?? DBNull.Value, 0),
             ("@actionKey", SqlDbType.NVarChar, (object)actionKey, 160),
             ("@targetType", SqlDbType.NVarChar, (object)targetType, 100),
-            ("@targetId", SqlDbType.UniqueIdentifier, (object?)targetId ?? DBNull.Value),
+            ("@targetId", SqlDbType.UniqueIdentifier, (object?)targetId ?? DBNull.Value, 0),
             ("@result", SqlDbType.VarChar, (object)result, 32),
-            ("@redactedDiffJson", SqlDbType.NVarChar, (object?)redactedDiffJson ?? DBNull.Value),
+            ("@redactedDiffJson", SqlDbType.NVarChar, (object?)redactedDiffJson ?? DBNull.Value, 0),
             ("@traceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value, 128),
-            ("@now", SqlDbType.DateTime2, (object)now));
+            ("@now", SqlDbType.DateTime2, (object)now, 0));
     }
 
     private void PublishMessage(LocalAccountMessage message)
@@ -1665,10 +1670,10 @@ VALUES
 
     private sealed record ResetRow(Guid TokenId, Guid UserId, DateTime ExpiresAt, DateTime? ConsumedAt,
         string PasswordHash, string SecurityStamp, string State, bool EmailConfirmed, bool IsDeleted,
-        Guid? PersonalSpaceId)
+        Guid? PersonalSpaceId, bool HasEnabledMfa)
     {
         public UserLoginSnapshot ToSnapshot() => new(UserId, ParseState(State), EmailConfirmed, IsDeleted,
-            ParseState(State) == UserState.Disabled, false, SecurityStamp);
+            ParseState(State) == UserState.Disabled, HasEnabledMfa, SecurityStamp);
     }
 
     private sealed record ProfileRow(Guid Id, string Email, string DisplayName, string TimeZoneId, string Locale,
@@ -1677,7 +1682,7 @@ VALUES
     private sealed record AuthRow(Guid SessionId, Guid UserId, string SessionSecurityStamp,
         DateTime? RecentAuthenticatedAt, DateTime? RevokedAt, DateTime IdleExpiresAt, DateTime AbsoluteExpiresAt,
         string Email, string PasswordHash, string SecurityStamp, string State, bool EmailConfirmed, bool IsDeleted,
-        Guid? PersonalSpaceId, bool HasEnabledMfa, string Role)
+        Guid? PersonalSpaceId, byte[] RowVersion, bool HasEnabledMfa, string Role)
     {
         public UserLoginSnapshot ToSnapshot() => new(UserId, ParseState(State), EmailConfirmed, IsDeleted,
             ParseState(State) == UserState.Disabled, HasEnabledMfa, SecurityStamp);

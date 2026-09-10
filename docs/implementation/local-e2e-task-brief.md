@@ -1,7 +1,8 @@
 # Full local E2E implementation task
 
 Owner: implementation agent `/root`. Source branch: `impl/m01-s00-scaffold`.
-Starting revision: `f61619120b51d3fa921ca7fc412aea959132c7dd` (clean tree).
+Starting revision: `b17537263e2d478d8a9b14258891a3c1658534e1`; this continuation
+contains the uncommitted PR #4 remediation working tree.
 Delivery target: existing PR #4 to `main`; commit/push/update authorized; no merge.
 Authorization: current PO prompt, recorded as DEC-20260909-014.
 
@@ -39,10 +40,35 @@ security/migration review remains Pending until actually performed.
 
 ## Initial evidence and unresolved work
 
-GitHub connector verified PR #4 open/unmerged, base main, matching source HEAD.
-Local tool discovery found dotnet, Node/npm, Docker and sqlcmd executables; their
-versions/runtime readiness have not yet been tested. Python is absent from PATH.
-No application build, test or migration has run during this continuation yet.
-Current runtime uses transitional memory stores; full SQL flows, integration
-tests and the remaining R1 modules are unimplemented. Documentation reconciliation
-is in progress. No full-slice or R1 completion is claimed.
+The branch is `impl/m01-s00-scaffold` and remains unmerged. Local tool discovery
+found dotnet, Node/npm, Docker and sqlcmd executables; exact restore/frontend/SQL
+runtime readiness remains pending. This brief does not claim GitHub Actions state.
+The remaining R1 modules are deliberately unimplemented. No full-slice or R1
+completion is claimed.
+
+## PR #4 blocker-remediation continuation
+
+Requested outcome: make the existing PR #4 branch merge-ready for the approved
+local implementation surface without merge, production/provider execution, real
+secrets/data, paid services or external destructive actions. Current PO authority
+is `DEC-20260909-014`; the current execution amendment is code-only, so the
+human owner owns functional QA, test-data design and runtime verification.
+
+Affected review gates: M01-S03/S04/S05/S06/S07/S08/S09, M01-AC03–AC09,
+`NXG-SYS-03`, `NXG-SYS-04`, `NXG-SYS-05`, `NXG-SYS-12`, `NXG-SYS-14`, and the
+local R1 FX16/FX20/FX21/FX22/FX23/FX24/FX25/FX26/FX27/FX32 overlays.
+The implementation work covers SQL MFA reset fail-closed behavior, response-wide
+CSRF rotation capture, Toolbox idempotency, module catalog gating, Admin SELF
+baseline authorization, SQL readiness, request-size/idempotency hardening and
+stale M01 naming/comments.
+
+The selected Nexora engineering skill and routed baseline/architecture/backend/
+frontend/security/database/verification/owner-isolation rules were loaded from
+`.agents/skills/nexora-engineering/SKILL.md`, `.ai/profiles/`, `.ai/roles/`
+and `.ai/routing.json`. Remaining gates at handoff are exact restore-based CI
+verification and the workflow's GitHub status, SQL runtime/migration
+verification, the documented owner-run manual QA script, and independent review.
+The local API/Bootstrap Release builds, existing unit checks and frontend build
+have now run successfully; Bash verification was blocked before execution by
+the host's WSL access policy, and SQL/runtime/CI/owner QA remain `Not run` or
+`Pending`.

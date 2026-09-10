@@ -58,6 +58,8 @@ public sealed record IdentitySessionPage(IReadOnlyList<IdentitySession> Items, s
 /// <summary>
 /// Trusted identity context used by other feature modules. OwnerId is the
 /// PersonalSpace identifier; it must never be accepted from request input.
+/// Role-specific administrative grants do not replace the enabled-module
+/// own-resource baseline used by the Admin role.
 /// </summary>
 public sealed record IdentityPrincipal(
     Guid UserId,

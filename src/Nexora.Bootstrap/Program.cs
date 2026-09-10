@@ -1,6 +1,7 @@
 using Nexora.Application.Identity;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Local;
+using Nexora.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 
 var connectionString = Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING");

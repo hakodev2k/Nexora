@@ -4,7 +4,7 @@ namespace Nexora.Domain.Access;
 
 public static class ActionGrantPolicy
 {
-    private static readonly HashSet<string> ApprovedForM01 = new(StringComparer.Ordinal)
+    private static readonly HashSet<string> ApprovedLocalActions = new(StringComparer.Ordinal)
     {
         "identity.account.register",
         "identity.account.verify",
@@ -190,7 +190,7 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Network toolbox action is inactive until a future PO/network decision.");
         }
 
-        if (!ApprovedForM01.Contains(actionKey))
+        if (!ApprovedLocalActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current local Release 1 scope.");
         }
@@ -198,5 +198,5 @@ public static class ActionGrantPolicy
         return PolicyDecision.Allow("GrantAllowed", "Action is approved for local Release 1 grant mutation.");
     }
 
-    public static bool IsApprovedForM01(string actionKey) => ApprovedForM01.Contains(actionKey);
+    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedLocalActions.Contains(actionKey);
 }
