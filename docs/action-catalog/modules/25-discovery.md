@@ -1,6 +1,9 @@
 # FX-25 — Search / Favorites / Command Palette: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07 · Source business decisions giữ nguyên; the current
+PR #4 overlay implements only the bounded FX25-S01 Search and FX25-S03
+Favorites rows locally. Remaining rows stay delegated/gated; Blocked rows
+không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 
@@ -18,10 +21,10 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 | <a id="discovery-search-query"></a>`discovery.search.query` — Search across enabled providers | QUERY / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — bounded owner-scoped source query; runtime not run | FX25-S01 |
 | <a id="discovery-command-read"></a>`discovery.command.read` — Liệt kê commands khả dụng | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S02 |
 | <a id="discovery-command-execute"></a>`discovery.command.execute` — Thực thi command đã chọn | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S02 |
-| <a id="discovery-favorite-read"></a>`discovery.favorite.read` — Xem favorites | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
-| <a id="discovery-favorite-add"></a>`discovery.favorite.add` — Favorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
-| <a id="discovery-favorite-remove"></a>`discovery.favorite.remove` — Unfavorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
-| <a id="discovery-favorite-reorder"></a>`discovery.favorite.reorder` — Sắp xếp favorites | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
+| <a id="discovery-favorite-read"></a>`discovery.favorite.read` — Xem favorites | QUERY / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — owner-scoped typed references; source access/lifecycle/trash rechecked; runtime not run | FX25-S03 |
+| <a id="discovery.favorite-add"></a>`discovery.favorite.add` — Favorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — SQL reference write with source recheck; runtime not run | FX25-S03 |
+| <a id="discovery.favorite-remove"></a>`discovery.favorite.remove` — Unfavorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — owner/ETag/idempotent delete; runtime not run | FX25-S03 |
+| <a id="discovery.favorite-reorder"></a>`discovery.favorite.reorder` — Sắp xếp favorites | COMMAND / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — bounded rank with owner/ETag guard; runtime not run | FX25-S03 |
 | <a id="discovery-recent-read"></a>`discovery.recent.read` — Xem recents | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
 | <a id="discovery-recent-clear"></a>`discovery.recent.clear` — Xóa recents của mình | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
 | <a id="discovery-saved-search-read"></a>`discovery.saved_search.read` — Xem Saved Search | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S04 |

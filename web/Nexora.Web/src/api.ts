@@ -81,6 +81,26 @@ export type SearchPage = {
   nextCursor: string | null;
 };
 
+export type FavoriteRecord = {
+  id: string;
+  resourceType: string;
+  resourceId: string;
+  state: string;
+  title: string | null;
+  status: string | null;
+  updatedAt: string | null;
+  route: string | null;
+  rank: number;
+  createdAt: string;
+  favoriteUpdatedAt: string;
+  etag: string;
+};
+
+export type FavoritePage = {
+  items: FavoriteRecord[];
+  nextCursor: string | null;
+};
+
 export type LoginResponse = {
   profile: ProfileResponse;
   expiresAt: string;
@@ -745,6 +765,37 @@ export function searchResources(
   if (includeArchived) params.set('includeArchived', 'true');
   params.set('limit', String(limit));
   return apiFetch<SearchPage>(`/api/v1/search?${params.toString()}`);
+}
+
+export function listFavorites(resourceType = '', limit = 100, cursor = '') {
+  const params = new URLSearchParams();
+  if (resourceType) params.set('resourceType', resourceType);
+  params.set('limit', String(limit));
+  if (cursor) params.set('cursor', cursor);
+  return apiFetch<FavoritePage>(`/api/v1/favorites?${params.toString()}`);
+}
+
+export function addFavorite(resourceType: string, resourceId: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FavoriteRecord>('/api/v1/favorites', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ resourceType, resourceId })
+  });
+}
+
+export function removeFavorite(favoriteId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/favorites/${encodeURIComponent(favoriteId)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function reorderFavorite(favoriteId: string, etag: string, rank: number, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FavoriteRecord>(`/api/v1/favorites/${encodeURIComponent(favoriteId)}/rank`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ rank })
+  });
 }
 
 export function updateMe(patch: ProfilePatch, idempotencyKey = createIdempotencyKey()) {

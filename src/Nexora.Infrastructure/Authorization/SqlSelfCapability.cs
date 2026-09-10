@@ -28,7 +28,17 @@ internal sealed class SqlSelfCapability
 
         using var connection = _connections.Create();
         connection.Open();
+        return IsAllowed(connection, null, actor, moduleCode, actionKeys);
+    }
+
+    public bool IsAllowed(SqlConnection connection, SqlTransaction? transaction,
+        IdentityPrincipal actor, string moduleCode, params string[] actionKeys)
+    {
+        if (connection is null || actor is null || string.IsNullOrWhiteSpace(moduleCode) || actionKeys.Length == 0)
+            return false;
+
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         var keyNames = new List<string>(actionKeys.Length);
         for (var index = 0; index < actionKeys.Length; index++)
         {

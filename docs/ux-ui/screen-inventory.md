@@ -116,7 +116,7 @@
 | FX24-S05 | Template preview / apply | `/organize/templates/:templateId` | Current / per-action gate |
 | FX25-S01 | Global Search | `/search` | Local source-query search / per-action gate |
 | FX25-S02 | Command palette | `/command-palette` | Current / per-action gate |
-| FX25-S03 | Favorites / recents | `/favorites; /recent` | Current / per-action gate |
+| FX25-S03 | Favorites / recents | `/favorites; /recent` | Local Favorites typed-reference slice; Recents gated / per-action gate |
 | FX25-S04 | Saved searches | `/search/saved` | Current / per-action gate |
 | FX26-S01 | Home dashboard | `/` | Local attention projection / per-action gate |
 | FX26-S02 | Dashboard configuration | `/settings/dashboard` | Current / per-action gate |

@@ -1,16 +1,18 @@
 # FX-25 — Search / Favorites / Command Palette — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · FX25-S01 bounded source-query search is implemented locally on PR #4; saved/favorite/recent/command surfaces remain documentation-only.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · FX25-S01 bounded source-query search and FX25-S03 typed Favorites are implemented locally on PR #4; Recents/Saved Search/Command surfaces remain documentation-only.
 
 ## Current PR #4 UX overlay
 
 The `/search` screen exposes a bounded query, resource type/date/archive
 filters, safe result cards and per-source status. Results are owner-scoped and
-opening a hit navigates only to its internal source route. Saved searches,
-favorites/recents, command palette and destructive command execution remain
-gated.
+opening a hit navigates only to its internal source route. The `/favorites`
+screen is the implemented typed-reference subset: it rechecks source access
+and lifecycle, supports safe unavailable references and owner-scoped reorder /
+remove. Recents, Saved Search, Command Palette and destructive command
+execution remain gated.
 
-Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
+Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. The `/search` and `/favorites` routes are implemented by the current local slices; other route strings remain navigation proposals, not existing endpoints.
 
 ## 1. Scope
 

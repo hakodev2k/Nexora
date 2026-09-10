@@ -116,7 +116,7 @@
 | FX24-S05 — Template preview / apply | `/organize/templates/:templateId` | Current / per-action gate | `organization.template.instantiate` |
 | FX25-S01 — Global Search | `/search` | Local source-query search / per-action gate | `discovery.search.query` (implemented) |
 | FX25-S02 — Command palette | `/command-palette` | Current / per-action gate | `discovery.command.read`, `discovery.command.execute` |
-| FX25-S03 — Favorites / recents | `/favorites; /recent` | Current / per-action gate | `discovery.favorite.read`, `discovery.favorite.add`, `discovery.favorite.remove`, `discovery.favorite.reorder`, `discovery.recent.read`, `discovery.recent.clear` |
+| FX25-S03 — Favorites / recents | `/favorites; /recent` | Local Favorites typed-reference slice; Recents remain gated | `discovery.favorite.read`, `discovery.favorite.add`, `discovery.favorite.remove`, `discovery.favorite.reorder` (implemented); `discovery.recent.read`, `discovery.recent.clear` (gated) |
 | FX25-S04 — Saved searches | `/search/saved` | Current / per-action gate | `discovery.saved_search.read`, `discovery.saved_search.create`, `discovery.saved_search.update`, `discovery.saved_search.delete`, `discovery.saved_search.run` |
 | FX26-S01 — Home dashboard | `/` | Local attention projection / per-action gate | `dashboard.dashboard.read` (implemented); `dashboard.widget.refresh`, `dashboard.quick_create.open` (gated) |
 | FX26-S02 — Dashboard configuration | `/settings/dashboard` | Current / per-action gate | `dashboard.layout.update`, `dashboard.layout.add_widget`, `dashboard.layout.configure_widget`, `dashboard.layout.remove_widget`, `dashboard.layout.reorder_widget` |

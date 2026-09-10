@@ -138,6 +138,8 @@ builder.Services.AddSingleton<IDashboardService>(services =>
     new SqlDashboardService(services.GetRequiredService<SqlConnectionFactory>()));
 builder.Services.AddSingleton<ISearchService>(services =>
     new SqlSearchService(services.GetRequiredService<SqlConnectionFactory>()));
+builder.Services.AddSingleton<IFavoriteService>(services =>
+    new SqlFavoriteService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;
@@ -171,6 +173,7 @@ app.MapDeveloperToolsEndpoints();
 app.MapGoalsEndpoints();
 app.MapDashboardEndpoints();
 app.MapSearchEndpoints();
+app.MapFavoriteEndpoints();
 
 app.MapFallback(() => Results.Problem(
     title: "Resource unavailable",

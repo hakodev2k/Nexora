@@ -2,11 +2,11 @@
 
 > Current specification · reconciled 2026-09-09. [Previous version](../history/20260908/snapshot/docs/features/README.md) is historical evidence, not implementation input.
 
-Ngày: **2026-09-09** · Baseline đọc: [d0d8418](https://github.com/hakodev2k/Nexora/commit/d0d84181e0043f9ffa38b475cbe461d34449805e) · **Feature behavior docs are not runtime evidence. M01 + scaffold only is approved for implementation by `DEC-20260909-001`.**
+Ngày: **2026-09-09** · Baseline đọc: [d0d8418](https://github.com/hakodev2k/Nexora/commit/d0d84181e0043f9ffa38b475cbe461d34449805e) · **Feature behavior docs are not runtime evidence. Current local implementation authority is `DEC-20260909-014`; it supersedes the older M01-only boundary while keeping contracts-first, provider/production and evidence gates.**
 
 Bộ này phân tích **40 ranh giới feature/capability** cho toàn bộ module catalog hiện tại; không có nghĩa website cần40 menu hay40 plugin độc lập. Mỗi đặc tả có sản phẩm tham chiếu, phần áp dụng/điều chỉnh cho Nexora, luồng màn hình, dữ liệu/validation, lifecycle, commands/integrations, acceptance scenarios và source requirement mapping.
 
-Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quyết chi tiết thông thường theo DEC-GOV-001. Những vấn đề ảnh hưởng phạm vi lớn, dữ liệu nhạy cảm, tiền, chi phí và irreversible loss được gom thành decision groups. Sau quyết định PO ngày 2026-09-09, một số policy đã Approved, nhưng implementation vẫn chỉ approved cho M01 + scaffold; các module/slice khác cần bounded approval riêng.
+Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quyết chi tiết thông thường theo DEC-GOV-001. Những vấn đề ảnh hưởng phạm vi lớn, dữ liệu nhạy cảm, tiền, chi phí và irreversible loss được gom thành decision groups. Theo DEC-014, mọi Release 1 module/slice có đủ API/DB/UX/acceptance/security/evidence contract có thể được implement local slice-by-slice; không cần xin lại approval kỹ thuật. Real provider calls, production deployment, real secrets/data, paid services và external destructive actions vẫn chưa được phép.
 
 ## Cách đọc
 
@@ -44,7 +44,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-22 | [Code Snippets](22-snippets.md) | GitHub Gists, DevToys | Not in M01; common gates apply |
 | FX-23 | [Read Later](23-read-later.md) | Instapaper | Bookmark-reference slice implemented locally; News/body reader and common gates remain |
 | FX-24 | [Tags, Collections và Templates](24-organization-and-templates.md) | Notion Templates, Raindrop.io | FX24-S01 Tag catalog implemented locally; assignment/collections/templates remain gated |
-| FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Notion Search, Raindrop.io Search, Notion Sidebar | Local FX25-S01 source-query search on PR #4; saved/favorite/command gates apply |
+| FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Notion Search, Raindrop.io Search, Notion Sidebar | Local FX25-S01 Search + FX25-S03 typed Favorites on PR #4; Recents/Saved/Command gates apply |
 | FX-26 | [Dashboard và Widgets](26-dashboard.md) | ClickUp Dashboards | Local FX26-S01 attention slice on PR #4; layout/quick-create gates apply |
 | FX-27 | [Personal Finance](27-finance.md) | Actual Budget | Initial basic manual records approved; advanced Finance gated; sensitive projection policy applies |
 | FX-28 | [Vault](28-vault.md) | Bitwarden | Hybrid/no-operator-plaintext policy approved; crypto/recovery implementation gated |

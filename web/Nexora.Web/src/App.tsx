@@ -12,6 +12,7 @@ import {
   GoalTargetRecord,
   DashboardSnapshot,
   SearchPage,
+  FavoritePage,
   AdminUserAccess,
   AdminUserRecord,
   NotificationRecord,
@@ -47,6 +48,10 @@ import {
   getMe,
   getDashboard,
   searchResources,
+  listFavorites,
+  addFavorite,
+  removeFavorite,
+  reorderFavorite,
   getDocument,
   getGoal,
   getAdminUserAccess,
@@ -112,7 +117,7 @@ import {
   transitionGoal
 } from './api';
 
-type Screen = 'home' | 'search' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'module';
+type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -137,6 +142,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'security' };
     case '/search':
       return { screen: 'search' };
+    case '/favorites':
+      return { screen: 'favorites' };
     case '/notifications':
       return { screen: 'notifications' };
     case '/trash':
@@ -185,6 +192,8 @@ function pathForLocation(location: LocationState): string {
       return '/settings/security';
     case 'search':
       return '/search';
+    case 'favorites':
+      return '/favorites';
     case 'notifications':
       return '/notifications';
     case 'trash':
@@ -803,6 +812,7 @@ function Shell({
         <nav className="primary-nav" aria-label="Điều hướng chính">
           <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>Home</span></button>
           {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>Search</span></button>}
+          {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}>★ <span>Favorites</span></button>}
           {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>Finance</span></button>}
           {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
@@ -846,7 +856,8 @@ function Shell({
         </header>
         <main className="shell-main">
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
-          {location.screen === 'search' && <SearchScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'favorites' && (canSearch ? <FavoritesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
           {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} />}
           {location.screen === 'security' && <SecurityScreen onAuthLost={onAuthLost} />}
           {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
@@ -1338,6 +1349,130 @@ function SearchScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
       </>}
       {!page && !loading && <div className="empty-state"><h3>Bắt đầu tìm kiếm</h3><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
+    </section>
+  );
+}
+
+function ModuleUnavailableScreen({ moduleCode }: { moduleCode: string }) {
+  return (
+    <section className="content-section" aria-labelledby="module-unavailable-title">
+      <p className="eyebrow">{moduleCode}</p>
+      <h1 id="module-unavailable-title">Module không khả dụng</h1>
+      <p className="lead">Server hiện không cấp module này cho PersonalSpace hoặc module đang bị disable.</p>
+    </section>
+  );
+}
+
+const FAVORITE_RESOURCE_TYPES = ['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal'];
+
+function FavoritesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [page, setPage] = useState<FavoritePage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [resourceType, setResourceType] = useState('Project');
+  const [resourceId, setResourceId] = useState('');
+  const [rankDraft, setRankDraft] = useState<Record<string, string>>({});
+  const [cursor, setCursor] = useState('');
+
+  async function load(nextCursor = '') {
+    setLoading(true);
+    setError(null);
+    try {
+      const next = await listFavorites('', 100, nextCursor);
+      setPage((current) => nextCursor && current ? {
+        items: [...current.items, ...next.items],
+        nextCursor: next.nextCursor
+      } : next);
+      setCursor(next.nextCursor ?? '');
+      setRankDraft((current) => ({
+        ...current,
+        ...Object.fromEntries(next.items.map((item) => [item.id, String(item.rank)]))
+      }));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function add(event: FormEvent) {
+    event.preventDefault();
+    const trimmedId = resourceId.trim();
+    if (!trimmedId) {
+      setError(new NexoraApiError('Resource id là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('add');
+    setError(null);
+    try {
+      await addFavorite(resourceType, trimmedId);
+      setResourceId('');
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(item: FavoritePage['items'][number]) {
+    setBusy(`remove:${item.id}`);
+    setError(null);
+    try {
+      await removeFavorite(item.id, item.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reorder(item: FavoritePage['items'][number]) {
+    const value = Number(rankDraft[item.id] ?? item.rank);
+    if (!Number.isFinite(value) || value < 0 || value > 1_000_000_000 || Math.round(value * 100_000_000) !== value * 100_000_000) {
+      setError(new NexoraApiError('Rank phải từ 0 đến 1000000000 và tối đa 8 chữ số thập phân.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy(`rank:${item.id}`);
+    setError(null);
+    try {
+      await reorderFavorite(item.id, item.etag, value);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function openSource(route: string | null) {
+    if (route && route.startsWith('/') && !route.startsWith('//')) window.location.assign(route);
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="favorites-title">
+      <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="favorites-title">Favorites</h1><p className="lead">Favorites chỉ lưu typed reference theo PersonalSpace. Server recheck quyền và trạng thái nguồn mỗi lần đọc.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>Tải lại</button></div>
+      <form className="form-panel" onSubmit={(event) => void add(event)}>
+        <div className="section-heading"><h2>Thêm favorite</h2><span className="muted">Không nhập title hoặc owner; server tự resolve nguồn</span></div>
+        <div className="form-grid"><div className="field-group"><label htmlFor="favorite-resource-type">Resource type</label><select id="favorite-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value)}>{FAVORITE_RESOURCE_TYPES.map((type) => <option key={type}>{type}</option>)}</select></div><div className="field-group"><label htmlFor="favorite-resource-id">Resource id</label><input id="favorite-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID của resource đã có quyền đọc" maxLength={36} required /></div></div>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={busy !== null || !resourceId.trim()}>{busy === 'add' ? 'Đang thêm…' : 'Thêm favorite'}</button></div>
+      </form>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải favorites…</div> : !page || page.items.length === 0 ? <div className="empty-state"><h2>Chưa có favorite</h2><p>Thêm một resource id thuộc nguồn bạn đang được cấp quyền.</p></div> : <><div className="resource-cards">{page.items.map((item) => item.state === 'Unavailable' ? <article key={item.id} className="resource-card source-unavailable"><div><h3>Unavailable source</h3><p className="source-unavailable-message">{item.resourceType} · {item.resourceId}</p><p className="muted">Nguồn đã bị xóa, trash, archive, disable hoặc quyền đọc đã thay đổi. Không hiển thị snapshot cũ.</p></div><button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang xóa…' : 'Xóa favorite'}</button></article> : <article key={item.id} className="resource-card"><div><div className="module-card-heading"><h3>{item.title ?? item.resourceType}</h3><span className="state-pill state-active">Available</span></div><p className="muted">{item.resourceType}{item.status ? ` · ${item.status}` : ''}{item.updatedAt ? ` · Cập nhật ${dateTime(item.updatedAt)}` : ''}</p><p className="muted">Favorite id: <code>{item.id}</code></p></div><div className="resource-actions"><label className="field-group"><span className="sr-only">Rank</span><input aria-label={`Rank cho ${item.title ?? item.resourceType}`} inputMode="decimal" value={rankDraft[item.id] ?? String(item.rank)} onChange={(event) => setRankDraft((current) => ({ ...current, [item.id]: event.target.value }))} /></label><button className="secondary-button" type="button" onClick={() => void reorder(item)} disabled={busy !== null}>{busy === `rank:${item.id}` ? 'Đang lưu…' : 'Lưu rank'}</button>{item.route && <button className="secondary-button" type="button" onClick={() => openSource(item.route)}>Mở nguồn</button>}<button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang xóa…' : 'Xóa'}</button></div></article>)}</div>{page.nextCursor && <div className="form-actions"><button className="secondary-button" type="button" onClick={() => void load(cursor)} disabled={loading || busy !== null}>Tải thêm</button></div>}</>}
     </section>
   );
 }
