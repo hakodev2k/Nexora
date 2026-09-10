@@ -35,7 +35,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-13 | [Calendar, Personal Events và ICS](13-calendar.md) | Google Calendar | Not in M01; common gates apply |
 | FX-14 | [Reminders và Due Scheduling](14-reminders-and-scheduling.md) | TickTick | One task/event reminder core; standalone/snooze extensions gated |
 | FX-15 | [Daily và Weekly Planner](15-planner.md) | Microsoft To Do, TickTick | Not in M01; common gates apply |
-| FX-16 | [Goals và Targets](16-goals.md) | ClickUp Goals | Not in M01; common gates apply |
+| FX-16 | [Goals và Targets](16-goals.md) | ClickUp Goals | Numeric Goal slice implemented locally; advanced targets/gates remain |
 | FX-17 | [Habit Tracker](17-habits.md) | TickTick | Not in M01; common gates apply |
 | FX-18 | [Time Tracking](18-time-tracking.md) | Toggl Track | Not in M01; common gates apply |
 | FX-19 | [Pomodoro và Focus](19-pomodoro.md) | TickTick Focus, TickTick | Not in M01; common gates apply |

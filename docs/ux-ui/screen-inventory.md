@@ -74,10 +74,10 @@
 | FX15-S01 | Daily planner | `/planner?view=day` | Current / per-action gate |
 | FX15-S02 | Weekly planner | `/planner?view=week` | Current / per-action gate |
 | FX15-S03 | Plan Task picker | `/planner/add` | Current / per-action gate |
-| FX16-S01 | Goal list | `/goals` | Current / per-action gate |
-| FX16-S02 | Goal create / edit | `/goals/new; /goals/:goalId/edit` | Current / per-action gate |
-| FX16-S03 | Goal detail | `/goals/:goalId` | Current / per-action gate |
-| FX16-S04 | Progress update | `/goals/:goalId/progress` | Current / per-action gate |
+| FX16-S01 | Goal list | `/goals` | Local numeric slice / per-action gate |
+| FX16-S02 | Goal create / edit | `/goals/new; /goals/:goalId/edit` | Local numeric slice / per-action gate |
+| FX16-S03 | Goal detail | `/goals/:goalId` | Local numeric slice / per-action gate |
+| FX16-S04 | Progress update | `/goals/:goalId/progress` | Local numeric slice / per-action gate |
 | FX17-S01 | Today habits | `/habits/today` | Current / per-action gate |
 | FX17-S02 | Habit library | `/habits` | Current / per-action gate |
 | FX17-S03 | Habit form | `/habits/new; /habits/:habitId/edit` | Current / per-action gate |

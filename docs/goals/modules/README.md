@@ -1,6 +1,6 @@
 # Goals theo 40 module/capability
 
-Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext riêng. Đọc [quy tắc chung](../README.md) trước từng file. Các goal đều mới **Specified**, chưa có implementation/runtime evidence.
+Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext riêng. Đọc [quy tắc chung](../README.md) trước từng file. Các goal vẫn là **Specified** trừ những slice được ghi rõ `SLICE_IMPLEMENTED (local)`; implementation không đồng nghĩa runtime evidence.
 
 | FX | Module goals | Product phase | Delivery | Gate riêng |
 | --- | --- | --- | --- | --- |
@@ -19,7 +19,7 @@ Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext
 | FX-13 | [Calendar, Personal Events và ICS](13-calendar.md) | P02 | RM08 | Current action/story gates |
 | FX-14 | [Reminders và Due Scheduling](14-reminders-and-scheduling.md) | P02 | RM08 | Xem file: partial gates |
 | FX-15 | [Daily và Weekly Planner](15-planner.md) | P02 | RM10 | Current action/story gates |
-| FX-16 | [Goals và Targets](16-goals.md) | P02 | RM10 | Xem file: partial gates |
+| FX-16 | [Goals và Targets](16-goals.md) | P02 | RM10 | Numeric Goal slice implemented locally; advanced targets remain gated |
 | FX-17 | [Habit Tracker](17-habits.md) | P02 | RM10 | Current action/story gates |
 | FX-18 | [Time Tracking](18-time-tracking.md) | P02 | RM10 | Current action/story gates |
 | FX-19 | [Pomodoro và Focus](19-pomodoro.md) | P02 | RM10 | Current action/story gates |

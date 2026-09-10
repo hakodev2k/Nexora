@@ -141,7 +141,17 @@ public static class ActionGrantPolicy
         "toolbox.uuid.run",
         "toolbox.password.run",
         "toolbox.json.run",
-        "toolbox.regex.run"
+        "toolbox.regex.run",
+        "goals.goal.read",
+        "goals.goal.create",
+        "goals.goal.update",
+        "goals.goal.start",
+        "goals.goal.complete",
+        "goals.goal.abandon",
+        "goals.goal.reopen",
+        "goals.target.read",
+        "goals.target.create",
+        "goals.target.record_progress"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

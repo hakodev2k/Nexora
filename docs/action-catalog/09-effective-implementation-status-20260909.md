@@ -7,6 +7,14 @@ Current implementation-status overlay for the action catalog. `DEC-20260909-014`
 
 It authorizes no production/provider call, production deployment, production data access or secret access by itself. Local implementation still requires a sufficient API/DB/UX/acceptance/security/evidence contract. The current run is code-only and does not add test/mock/demo data.
 
+Current PR #4 slice overlay: FX16 numeric Goals is now implemented locally for
+`goals.goal.read`, `goals.goal.create`, `goals.goal.update`,
+`goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`,
+`goals.goal.reopen`, `goals.target.read`, `goals.target.create` and
+`goals.target.record_progress`. These rows remain owner/module/action gated and
+are not runtime-verified in this code-only environment. Boolean/Tasks targets,
+archive/trash/history, reminders, support and provider rows remain gated.
+
 ## Authority
 
 This file applies these current decisions:
@@ -246,7 +254,7 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 
 All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard, Shopping manual records, Developer Toolbox advanced/history/network rows, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text, Read-Later Bookmark-reference and the FX32 pure-toolbox subset are governed by their slice evidence documents rather than this default.
+This includes but is not limited to Reminders, Planner, advanced Goals targets/archive/trash/history, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard, Shopping manual records, Developer Toolbox advanced/history/network rows, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text, Read-Later Bookmark-reference, FX16 numeric Goals and the FX32 pure-toolbox subset are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 

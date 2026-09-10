@@ -328,6 +328,42 @@ export type ToolboxRunResult = {
   durationMilliseconds: number;
 };
 
+export type GoalRecord = {
+  id: string;
+  title: string;
+  description: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  status: string;
+  progress: number;
+  targetCount: number;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type GoalTargetRecord = {
+  id: string;
+  kind: string;
+  title: string;
+  initialValue: number | null;
+  currentValue: number | null;
+  targetValue: number | null;
+  progress: number;
+  updatedAt: string;
+  etag: string;
+};
+
+export type GoalDetail = {
+  goal: GoalRecord;
+  targets: GoalTargetRecord[];
+};
+
+export type GoalPage = {
+  items: GoalRecord[];
+  nextCursor: string | null;
+};
+
 export type FinanceRecordInput = {
   categoryId: string;
   amount: string;
@@ -1107,6 +1143,71 @@ export function runDeveloperTool(toolCode: string, input: string, options: Recor
   return apiFetch<ToolboxRunResult>('/api/v1/developer/tools/run', {
     method: 'POST',
     body: JSON.stringify({ toolCode, input, options })
+  });
+}
+
+export function listGoals(status = '', query = '', limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (status.trim()) params.set('status', status.trim());
+  if (query.trim()) params.set('query', query.trim());
+  return apiFetch<GoalPage>(`/api/v1/goals?${params.toString()}`);
+}
+
+export function getGoal(id: string) {
+  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(id)}`);
+}
+
+export function createGoal(
+  title: string,
+  description: string | null,
+  startDate: string | null,
+  endDate: string | null,
+  numericTarget: { title: string; initialValue: number; currentValue: number; targetValue: number } | null = null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<GoalDetail>('/api/v1/goals', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ title, description, startDate: startDate || null, endDate: endDate || null, numericTarget })
+  });
+}
+
+export function updateGoal(
+  id: string,
+  etag: string,
+  title: string,
+  description: string | null,
+  startDate: string | null,
+  endDate: string | null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ title, description, startDate: startDate || null, endDate: endDate || null, numericTarget: null })
+  });
+}
+
+export function recordGoalProgress(
+  goalId: string,
+  targetId: string,
+  goalEtag: string,
+  currentValue: number,
+  note: string | null = null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/${encodeURIComponent(targetId)}/progress`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': goalEtag }),
+    body: JSON.stringify({ currentValue, note })
+  });
+}
+
+export function transitionGoal(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status })
   });
 }
 

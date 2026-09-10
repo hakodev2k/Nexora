@@ -7,6 +7,9 @@ import {
   FinanceCategoryRecord,
   FinanceManualRecord,
   FinanceSummary,
+  GoalDetail,
+  GoalRecord,
+  GoalTargetRecord,
   AdminUserAccess,
   AdminUserRecord,
   NotificationRecord,
@@ -41,6 +44,7 @@ import {
   getCsrf,
   getMe,
   getDocument,
+  getGoal,
   getAdminUserAccess,
   listCalendarEvents,
   listDocuments,
@@ -96,10 +100,15 @@ import {
   renameOrganizationTag,
   removeOrganizationTag,
   listDeveloperTools,
-  runDeveloperTool
+  runDeveloperTool,
+  listGoals,
+  createGoal,
+  updateGoal,
+  recordGoalProgress,
+  transitionGoal
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'module';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -140,6 +149,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'tags' };
     case '/developer/tools':
       return { screen: 'tools' };
+    case '/goals':
+      return { screen: 'goals' };
     case '/login':
       return { screen: 'login' };
     case '/':
@@ -184,6 +195,8 @@ function pathForLocation(location: LocationState): string {
       return '/organize/tags';
     case 'tools':
       return '/developer/tools';
+    case 'goals':
+      return '/goals';
     case 'login':
       return '/login';
     case 'module':
@@ -762,7 +775,8 @@ function Shell({
   const canReadLater = profile.modules.some((module) => module.code.toUpperCase() === 'FX23' && module.enabled);
   const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
   const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
+  const canGoals = profile.modules.some((module) => module.code.toUpperCase() === 'FX16' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX16', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -785,6 +799,7 @@ function Shell({
           {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>Read Later</span></button>}
           {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>Tags</span></button>}
           {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>Developer tools</span></button>}
+          {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>Goals</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -832,6 +847,7 @@ function Shell({
           {location.screen === 'readLater' && <ReadLaterScreen onAuthLost={onAuthLost} />}
           {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'goals' && <GoalsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
         </main>
@@ -2437,6 +2453,230 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
   );
 }
 
+type GoalFormDraft = {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  targetTitle: string;
+  initialValue: string;
+  currentValue: string;
+  targetValue: string;
+};
+
+function emptyGoalDraft(): GoalFormDraft {
+  return { title: '', description: '', startDate: '', endDate: '', targetTitle: '', initialValue: '0', currentValue: '0', targetValue: '' };
+}
+
+function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<GoalRecord[]>([]);
+  const [selected, setSelected] = useState<GoalDetail | null>(null);
+  const [editing, setEditing] = useState<GoalRecord | null>(null);
+  const [draft, setDraft] = useState<GoalFormDraft>(emptyGoalDraft);
+  const [progressValue, setProgressValue] = useState('');
+  const [progressNote, setProgressNote] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(selectedId?: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listGoals('', '', 100);
+      const nextItems = Array.isArray(page.items) ? page.items : [];
+      setItems(nextItems);
+      const id = selectedId ?? selected?.goal.id;
+      if (id && nextItems.some((item) => item.id === id)) {
+        setSelected(await getGoal(id));
+      } else if (!id || !nextItems.some((item) => item.id === id)) {
+        setSelected(null);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function resetEditor() {
+    setEditing(null);
+    setDraft(emptyGoalDraft());
+    requestKey.current = null;
+    setConflict(false);
+  }
+
+  function beginEdit(goal: GoalRecord) {
+    setEditing(goal);
+    setDraft({
+      title: goal.title,
+      description: goal.description ?? '',
+      startDate: goal.startDate ?? '',
+      endDate: goal.endDate ?? '',
+      targetTitle: '',
+      initialValue: '0',
+      currentValue: '0',
+      targetValue: ''
+    });
+    requestKey.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const title = draft.title.trim();
+    if (!title || title.length > 200) {
+      setError(new NexoraApiError('Tên goal phải từ 1 đến 200 ký tự.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
+      setError(new NexoraApiError('Ngày kết thúc không được trước ngày bắt đầu.', 422, 'ValidationFailed'));
+      return;
+    }
+    let numericTarget: { title: string; initialValue: number; currentValue: number; targetValue: number } | null = null;
+    const targetFields = [draft.targetTitle.trim(), draft.initialValue.trim(), draft.currentValue.trim(), draft.targetValue.trim()];
+    if (!editing && targetFields.some(Boolean)) {
+      const initialValue = Number(draft.initialValue);
+      const currentValue = Number(draft.currentValue);
+      const targetValue = Number(draft.targetValue);
+      if (!draft.targetTitle.trim() || !Number.isFinite(initialValue) || !Number.isFinite(currentValue) || !Number.isFinite(targetValue) || targetValue <= initialValue) {
+        setError(new NexoraApiError('Numeric target cần title hợp lệ và target lớn hơn initial.', 422, 'ValidationFailed'));
+        return;
+      }
+      numericTarget = { title: draft.targetTitle.trim(), initialValue, currentValue, targetValue };
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      const result = editing
+        ? await updateGoal(editing.id, editing.etag, title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, requestKey.current)
+        : await createGoal(title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, numericTarget, requestKey.current);
+      requestKey.current = null;
+      setSelected(result);
+      resetEditor();
+      await load(result.goal.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load(editing?.id);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function selectGoal(id: string) {
+    setBusy(`load:${id}`);
+    setError(null);
+    try {
+      setSelected(await getGoal(id));
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(status: string) {
+    if (!selected) return;
+    setBusy(`transition:${status}`);
+    setError(null);
+    setConflict(false);
+    try {
+      const result = await transitionGoal(selected.goal.id, selected.goal.etag, status);
+      setSelected(result);
+      await load(result.goal.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load(selected.goal.id);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function recordProgress(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const target = selected.targets.find((item) => item.kind === 'Numeric');
+    const value = Number(progressValue);
+    if (!target || !Number.isFinite(value)) {
+      setError(new NexoraApiError('Nhập một giá trị numeric hợp lệ.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('progress');
+    setError(null);
+    setConflict(false);
+    try {
+      const result = await recordGoalProgress(selected.goal.id, target.id, selected.goal.etag, value, progressNote.trim() || null);
+      setSelected(result);
+      setProgressValue('');
+      setProgressNote('');
+      await load(result.goal.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load(selected.goal.id);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const numericTarget = selected?.targets.find((item) => item.kind === 'Numeric');
+  const percent = selected ? Math.round(Math.max(0, Math.min(1, selected.goal.progress)) * 100) : 0;
+  return (
+    <section className="content-section" aria-labelledby="goals-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX16 / GOALS</p>
+          <h1 id="goals-title">Goals</h1>
+          <p className="lead">Goal và numeric target thuộc PersonalSpace hiện tại. Progress được ghi thành event SQL; không tự liên kết Task hay provider ngoài.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Goal đã thay đổi ở nơi khác. Draft vẫn giữ trong memory; hãy tải revision mới trước khi lưu.</span><button className="inline-button" type="button" onClick={() => void load(selected?.goal.id)} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{editing ? 'Sửa goal' : 'Goal mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+          <div className="field-group"><label htmlFor="goal-title">Tên goal</label><input id="goal-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); }} required /></div>
+          <div className="field-group"><label htmlFor="goal-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="goal-description" value={draft.description} maxLength={20000} rows={3} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); }} /></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="goal-start">Bắt đầu</label><input id="goal-start" type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} /></div><div className="field-group"><label htmlFor="goal-end">Kết thúc</label><input id="goal-end" type="date" value={draft.endDate} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} /></div></div>
+          {!editing && <div className="form-panel nested-panel"><div className="section-heading"><h3>Numeric target <span className="optional">(tùy chọn)</span></h3></div><div className="field-group"><label htmlFor="goal-target-title">Tên target</label><input id="goal-target-title" value={draft.targetTitle} maxLength={200} onChange={(event) => setDraft({ ...draft, targetTitle: event.target.value })} /></div><div className="form-grid"><div className="field-group"><label htmlFor="goal-target-initial">Initial</label><input id="goal-target-initial" type="number" step="any" value={draft.initialValue} onChange={(event) => setDraft({ ...draft, initialValue: event.target.value })} /></div><div className="field-group"><label htmlFor="goal-target-current">Current</label><input id="goal-target-current" type="number" step="any" value={draft.currentValue} onChange={(event) => setDraft({ ...draft, currentValue: event.target.value })} /></div><div className="field-group"><label htmlFor="goal-target-value">Target</label><input id="goal-target-value" type="number" step="any" value={draft.targetValue} onChange={(event) => setDraft({ ...draft, targetValue: event.target.value })} /></div></div><p className="field-help">Target phải lớn hơn initial; các giá trị được lưu tối đa 8 chữ số thập phân.</p></div>}
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu goal' : 'Tạo goal'}</SubmitButton></div>
+        </form>
+        <div className="content-section">
+          <div className="section-heading"><h2>Goals của bạn</h2><span className="muted">{items.length} goal</span></div>
+          {loading ? <div className="loading-state" role="status">Đang tải goals…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có goal</h2><p>Tạo goal đầu tiên để theo dõi một kết quả có thể đo lường.</p></div> : <div className="resource-cards">{items.map((goal) => { const itemPercent = Math.round(Math.max(0, Math.min(1, goal.progress)) * 100); return <article className={selected?.goal.id === goal.id ? 'resource-card selected-card' : 'resource-card'} key={goal.id}><button className="resource-card-button" type="button" onClick={() => void selectGoal(goal.id)} disabled={busy !== null}><span><strong>{goal.title}</strong><span className="muted">{goal.status} · {goal.targetCount} target · {itemPercent}%</span></span><span className="goal-progress"><progress max={100} value={itemPercent} aria-label={`Tiến độ ${goal.title}`} /></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(goal)} disabled={busy !== null || goal.status === 'Completed' || goal.status === 'Abandoned'}>Sửa</button></div></article>; })}</div>}
+        </div>
+      </div>
+      {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED GOAL</p><h2>{selected.goal.title}</h2></div><span className="state-pill state-active">{selected.goal.status}</span></div><p>{selected.goal.description || 'Không có mô tả.'}</p><div className="goal-progress-summary"><strong>{percent}%</strong><progress max={100} value={percent} aria-label="Tiến độ goal" /><span className="muted">{selected.goal.targetCount} target · cập nhật {dateTime(selected.goal.updatedAt)}</span></div><div className="form-actions">{selected.goal.status === 'Draft' && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Bắt đầu</button>}{selected.goal.status === 'Active' && <><button className="secondary-button" type="button" onClick={() => void transition('Completed')} disabled={busy !== null}>Hoàn thành</button><button className="secondary-button" type="button" onClick={() => void transition('Abandoned')} disabled={busy !== null}>Bỏ goal</button></>}{(selected.goal.status === 'Completed' || selected.goal.status === 'Abandoned') && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Mở lại</button>}</div>{numericTarget && <form className="nested-panel" onSubmit={recordProgress} noValidate><div className="section-heading"><h3>{numericTarget.title}</h3><span className="muted">{numericTarget.currentValue} / {numericTarget.targetValue}</span></div><div className="form-grid"><div className="field-group"><label htmlFor="goal-progress-value">Current value</label><input id="goal-progress-value" type="number" step="any" value={progressValue} onChange={(event) => setProgressValue(event.target.value)} required /></div><div className="field-group"><label htmlFor="goal-progress-note">Note <span className="optional">(tùy chọn)</span></label><input id="goal-progress-note" value={progressNote} maxLength={2000} onChange={(event) => setProgressNote(event.target.value)} /></div></div><button className="primary-button" type="submit" disabled={busy !== null}>{busy === 'progress' ? 'Đang ghi…' : 'Ghi progress'}</button></form>}</div>}
+      <div className="security-policy"><strong>Boundary</strong><span>Slice này chỉ có Goal CRUD, numeric target và explicit progress/status. Task-linked targets, habits, reminders, planner, history/trash và automation chưa được bật.</span></div>
+    </section>
+  );
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -2699,6 +2939,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX32') {
     return <DeveloperToolsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX16') {
+    return <GoalsScreen onAuthLost={onAuthLost} />;
   }
 
   return (
@@ -3080,6 +3323,7 @@ export function App() {
     case 'profile':
     case 'security':
     case 'finance':
+    case 'goals':
     case 'module':
     case 'login':
     default:

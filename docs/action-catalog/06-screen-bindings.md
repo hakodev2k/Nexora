@@ -74,10 +74,10 @@
 | FX15-S01 — Daily planner | `/planner?view=day` | Current / per-action gate | `planner.plan.read`, `planner.plan.pin`, `planner.plan.unpin`, `planner.plan.reorder`, `planner.plan.notes` |
 | FX15-S02 — Weekly planner | `/planner?view=week` | Current / per-action gate | `planner.plan.read`, `planner.plan.reschedule` |
 | FX15-S03 — Plan Task picker | `/planner/add` | Current / per-action gate | `planner.plan.pin` |
-| FX16-S01 — Goal list | `/goals` | Current / per-action gate | `goals.goal.read`, `goals.goal.create`, `goals.goal.archive`, `goals.goal.unarchive`, `goals.goal.trash`, `goals.goal.restore`, `goals.goal.purge` |
-| FX16-S02 — Goal create / edit | `/goals/new; /goals/:goalId/edit` | Current / per-action gate | `goals.goal.create`, `goals.goal.update` |
-| FX16-S03 — Goal detail | `/goals/:goalId` | Current / per-action gate | `goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`, `goals.goal.reopen`, `goals.target.read`, `goals.target.create`, `goals.target.update`, `goals.target.remove`, `goals.target.link_task`, `goals.target.unlink_task`, `goals.progress.read`, `goals.goal.history`, `goals.target.record_progress` |
-| FX16-S04 — Progress update | `/goals/:goalId/progress` | Current / per-action gate | `goals.target.record_progress` |
+| FX16-S01 — Goal list | `/goals` | Local numeric slice / per-action gate | `goals.goal.read`, `goals.goal.create` (archive/trash rows remain gated) |
+| FX16-S02 — Goal create / edit | `/goals/new; /goals/:goalId/edit` | Local numeric slice / per-action gate | `goals.goal.create`, `goals.goal.update`, `goals.target.create` (numeric target only) |
+| FX16-S03 — Goal detail | `/goals/:goalId` | Local numeric slice / per-action gate | `goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`, `goals.goal.reopen`, `goals.target.read` |
+| FX16-S04 — Progress update | `/goals/:goalId/progress` | Local numeric slice / per-action gate | `goals.target.record_progress` |
 | FX17-S01 — Today habits | `/habits/today` | Current / per-action gate | `habits.habit.read`, `habits.checkin.record`, `habits.checkin.correct` |
 | FX17-S02 — Habit library | `/habits` | Current / per-action gate | `habits.habit.read`, `habits.habit.pause`, `habits.habit.resume`, `habits.habit.archive`, `habits.habit.unarchive`, `habits.habit.trash`, `habits.habit.restore`, `habits.habit.purge` |
 | FX17-S03 — Habit form | `/habits/new; /habits/:habitId/edit` | Current / per-action gate | `habits.habit.create`, `habits.habit.update`, `habits.habit.schedule`, `habits.habit.set_reminder` |
