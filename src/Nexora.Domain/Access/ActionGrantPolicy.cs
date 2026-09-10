@@ -70,7 +70,41 @@ public static class ActionGrantPolicy
         "settings.view",
         "settings.update",
         "backup.create",
-        "backup.restore"
+        "backup.restore",
+
+        // DEC-014 permits the implemented local Release 1 self slices. These
+        // canonical catalog keys are grantable for Admin SELF access; the
+        // legacy aliases above remain accepted so existing local rows continue
+        // to behave deterministically during the migration window.
+        "projects.project.read",
+        "projects.project.create",
+        "projects.project.update",
+        "projects.project.start",
+        "projects.project.revert",
+        "projects.project.complete",
+        "projects.project.skip",
+        "projects.project.trash",
+        "tasks.task.read",
+        "tasks.task.create",
+        "tasks.task.update",
+        "tasks.task.start",
+        "tasks.task.complete",
+        "tasks.task.skip",
+        "tasks.task.revert",
+        "tasks.task.trash",
+        "calendar.event.read",
+        "calendar.event.create",
+        "calendar.event.update",
+        "calendar.event.complete",
+        "calendar.event.cancel",
+        "notifications.inbox.read",
+        "notifications.inbox.mark_read",
+        "notifications.inbox.mark_unread",
+        "notifications.inbox.mark_all_read",
+        "notifications.inbox.delete",
+        "lifecycle.trash.read",
+        "lifecycle.resource.restore",
+        "lifecycle.resource.purge"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Settings;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -17,16 +18,18 @@ public sealed class SqlSettingsService : ISettingsService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly SqlSelfCapability _capabilities;
 
     public SqlSettingsService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<PreferencePage> ListPreferences(IdentityPrincipal actor)
     {
-        if (!ModuleAvailable(actor, "FX09")) return ModuleUnavailable<PreferencePage>();
+        if (!ModuleAvailable(actor, "FX09", "settings.preference.read")) return ModuleUnavailable<PreferencePage>();
         using var connection = _connections.Create();
         connection.Open();
         using var command = connection.CreateCommand();
@@ -41,7 +44,7 @@ public sealed class SqlSettingsService : ISettingsService
     public IdentityOperationResult<PreferenceRecord> UpdatePreference(IdentityPrincipal actor, PreferenceUpdateCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX09")) return ModuleUnavailable<PreferenceRecord>();
+        if (!ModuleAvailable(actor, "FX09", "settings.preference.update")) return ModuleUnavailable<PreferenceRecord>();
         var validation = Validate(command);
         if (validation is not null) return validation;
         using var connection = _connections.Create();
@@ -158,16 +161,8 @@ public sealed class SqlSettingsService : ISettingsService
 
     private static PreferenceRecord Read(SqlDataReader reader) => new(reader.GetGuid(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), ToOffset(reader.GetDateTime(4)), ToOffset(reader.GetDateTime(5)), EncodeETag(reader.GetFieldValue<byte[]>(6)));
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode)
-    {
-        using var connection = _connections.Create();
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND COALESCE(g.[Enabled], 0) = 1 THEN 1 ELSE 0 END FROM [platform].[Module] m LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id] AND g.[UserId] = @UserId WHERE m.[Code] = @Code;";
-        Add(command, "@UserId", SqlDbType.UniqueIdentifier, actor.UserId);
-        Add(command, "@Code", SqlDbType.VarChar, moduleCode);
-        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
-    }
+    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
     {

@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Documents;
 using Nexora.Application.Identity;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -19,16 +20,18 @@ public sealed class SqlDocumentService : IDocumentService
     private const int MaxBodyBytes = 1_048_576;
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly SqlSelfCapability _capabilities;
 
     public SqlDocumentService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX20")) return ModuleUnavailable<DocumentPage>();
+        if (!ModuleAvailable(actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
         var normalizedStatus = NormalizeStatus(status);
         if (status is not null && normalizedStatus is null)
             return Failure<DocumentPage>("ValidationFailed", 422, "Document status is invalid.");
@@ -56,7 +59,7 @@ public sealed class SqlDocumentService : IDocumentService
 
     public IdentityOperationResult<DocumentDetail> Get(IdentityPrincipal actor, Guid documentId)
     {
-        if (!ModuleAvailable(actor, "FX20")) return ModuleUnavailable<DocumentDetail>();
+        if (!ModuleAvailable(actor, "FX20", "documents.page.read")) return ModuleUnavailable<DocumentDetail>();
         using var connection = _connections.Create();
         connection.Open();
         var document = ReadDetail(connection, null, actor.OwnerId, documentId, forUpdate: false);
@@ -66,7 +69,7 @@ public sealed class SqlDocumentService : IDocumentService
     public IdentityOperationResult<DocumentDetail> Create(IdentityPrincipal actor, DocumentCreateCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX20")) return ModuleUnavailable<DocumentDetail>();
+        if (!ModuleAvailable(actor, "FX20", "documents.page.create")) return ModuleUnavailable<DocumentDetail>();
         var validation = ValidateCreate(command);
         if (validation is not null) return validation;
 
@@ -115,7 +118,7 @@ public sealed class SqlDocumentService : IDocumentService
     public IdentityOperationResult<DocumentDetail> Save(IdentityPrincipal actor, Guid documentId, string? ifMatch,
         DocumentSaveCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX20")) return ModuleUnavailable<DocumentDetail>();
+        if (!ModuleAvailable(actor, "FX20", "documents.page.save")) return ModuleUnavailable<DocumentDetail>();
         var validation = ValidateSave(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition(ifMatch);
@@ -179,7 +182,7 @@ public sealed class SqlDocumentService : IDocumentService
     public IdentityOperationResult<DocumentDetail> Transition(IdentityPrincipal actor, Guid documentId, string? ifMatch,
         DocumentTransitionCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX20")) return ModuleUnavailable<DocumentDetail>();
+        if (!ModuleAvailable(actor, "FX20", DocumentTransitionAction(command.Status))) return ModuleUnavailable<DocumentDetail>();
         if (command.Status is not ("Draft" or "Published" or "Archived"))
             return Failure<DocumentDetail>("ValidationFailed", 422, "Document status must be Draft, Published or Archived.");
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition(ifMatch);
@@ -255,22 +258,16 @@ public sealed class SqlDocumentService : IDocumentService
         return null;
     }
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode)
+    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
+
+    private static string DocumentTransitionAction(string status) => status switch
     {
-        using var connection = _connections.Create();
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND COALESCE(g.[Enabled], 0) = 1 THEN 1 ELSE 0 END
-            FROM [platform].[Module] m
-            LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id]
-                AND g.[UserId] = (SELECT [UserId] FROM [platform].[PersonalSpace] WHERE [Id] = @OwnerId)
-            WHERE m.[Code] = @Code;
-            """;
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        Add(command, "@Code", SqlDbType.VarChar, moduleCode);
-        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
-    }
+        "Published" => "documents.page.publish",
+        "Draft" => "documents.page.unpublish",
+        "Archived" => "documents.page.archive",
+        _ => "documents.page.save"
+    };
 
     private static DocumentDetail? ReadDetail(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid documentId, bool forUpdate)
     {

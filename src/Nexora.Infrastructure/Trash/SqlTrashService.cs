@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Trash;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -17,16 +18,18 @@ public sealed class SqlTrashService : ITrashService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly SqlSelfCapability _capabilities;
 
     public SqlTrashService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<TrashPage> List(IdentityPrincipal actor, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX08")) return ModuleUnavailable<TrashPage>();
+        if (!ModuleAvailable(actor, "FX08", "lifecycle.trash.read")) return ModuleUnavailable<TrashPage>();
         var take = Math.Clamp(limit ?? 100, 1, 200);
         using var connection = _connections.Create();
         connection.Open();
@@ -48,7 +51,7 @@ public sealed class SqlTrashService : ITrashService
     public IdentityOperationResult<TrashRestoreResult> Restore(IdentityPrincipal actor, Guid deletionBatchId,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX08")) return ModuleUnavailable<TrashRestoreResult>();
+        if (!ModuleAvailable(actor, "FX08", "lifecycle.resource.restore")) return ModuleUnavailable<TrashRestoreResult>();
         if (deletionBatchId == Guid.Empty) return Failure<TrashRestoreResult>("ValidationFailed", 422, "Deletion batch is required.");
         using var connection = _connections.Create();
         connection.Open();
@@ -130,7 +133,7 @@ public sealed class SqlTrashService : ITrashService
     public IdentityOperationResult<object?> Purge(IdentityPrincipal actor, TrashPurgeCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX08")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX08", "lifecycle.resource.purge")) return ModuleUnavailable<object?>();
         if (command.DeletionBatchId == Guid.Empty) return Failure<object?>("ValidationFailed", 422, "Deletion batch is required.");
         if (!string.Equals(command.Confirmation?.Trim(), "PURGE", StringComparison.Ordinal))
             return Failure<object?>("ConfirmationRequired", 422, "Type PURGE to permanently delete this Trash batch.");
@@ -201,16 +204,8 @@ public sealed class SqlTrashService : ITrashService
         return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
     }
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode)
-    {
-        using var connection = _connections.Create();
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND COALESCE(g.[Enabled], 0) = 1 THEN 1 ELSE 0 END FROM [platform].[Module] m LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id] AND g.[UserId] = @UserId WHERE m.[Code] = @Code;";
-        Add(command, "@UserId", SqlDbType.UniqueIdentifier, actor.UserId);
-        Add(command, "@Code", SqlDbType.VarChar, moduleCode);
-        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
-    }
+    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
     {

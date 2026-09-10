@@ -66,6 +66,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0004_notifications_inbox.sql",
     "database/migrations/20260910_0005_preferences.sql",
     "database/migrations/20260910_0006_documents_pages.sql",
+    "database/migrations/20260910_0007_action_catalog_alignment.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",

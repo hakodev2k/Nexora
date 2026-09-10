@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Notifications;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -19,16 +20,18 @@ public sealed class SqlNotificationService : INotificationService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly SqlSelfCapability _capabilities;
 
     public SqlNotificationService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<NotificationPage> List(IdentityPrincipal actor, bool unreadOnly = false, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX06")) return ModuleUnavailable<NotificationPage>();
+        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.read", "notifications.view")) return ModuleUnavailable<NotificationPage>();
         var take = Math.Clamp(limit ?? 50, 1, 200);
         using var connection = _connections.Create();
         connection.Open();
@@ -73,7 +76,7 @@ public sealed class SqlNotificationService : INotificationService
     public IdentityOperationResult<NotificationRecord> MarkRead(IdentityPrincipal actor, Guid notificationId,
         NotificationMarkReadCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX06")) return ModuleUnavailable<NotificationRecord>();
+        if (!ModuleAvailable(actor, "FX06", command.Read ? "notifications.inbox.mark_read" : "notifications.inbox.mark_unread")) return ModuleUnavailable<NotificationRecord>();
         if (!TryDecodeETag(command.IfMatch, out var expectedVersion)) return Precondition<NotificationRecord>(command.IfMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -114,7 +117,7 @@ public sealed class SqlNotificationService : INotificationService
     public IdentityOperationResult<NotificationMarkAllReadResult> MarkAllRead(IdentityPrincipal actor,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX06")) return ModuleUnavailable<NotificationMarkAllReadResult>();
+        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.mark_all_read")) return ModuleUnavailable<NotificationMarkAllReadResult>();
         var watermark = DateTime.UtcNow;
         using var connection = _connections.Create();
         connection.Open();
@@ -146,7 +149,7 @@ public sealed class SqlNotificationService : INotificationService
     public IdentityOperationResult<object?> Delete(IdentityPrincipal actor, NotificationDeleteCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX06")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.delete", "notifications.delete")) return ModuleUnavailable<object?>();
         var ids = command.NotificationIds.Distinct().Take(100).ToArray();
         if (ids.Length == 0) return Failure<object?>("ValidationFailed", 422, "At least one notification is required.");
         using var connection = _connections.Create();
@@ -188,7 +191,7 @@ public sealed class SqlNotificationService : INotificationService
     {
         if (!string.Equals(actor.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase))
             return Failure<NotificationRecord>("PermissionDenied", 403, "Only a SuperAdmin may publish a system notification.");
-        if (!ModuleAvailable(actor, "FX06")) return ModuleUnavailable<NotificationRecord>();
+        if (!ModuleAvailable(actor, "FX06", "notifications.dispatch.publish")) return ModuleUnavailable<NotificationRecord>();
         var validation = ValidatePublish(command);
         if (validation is not null) return validation;
         var recipientId = command.RecipientUserId ?? actor.UserId;
@@ -262,22 +265,8 @@ public sealed class SqlNotificationService : INotificationService
         return null;
     }
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode)
-    {
-        using var connection = _connections.Create();
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1
-                              AND COALESCE(g.[Enabled], 0) = 1 THEN 1 ELSE 0 END
-            FROM [platform].[Module] m
-            LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id] AND g.[UserId] = @UserId
-            WHERE m.[Code] = @Code;
-            """;
-        Add(command, "@UserId", SqlDbType.UniqueIdentifier, actor.UserId);
-        Add(command, "@Code", SqlDbType.VarChar, moduleCode);
-        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
-    }
+    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
 
     private static bool UserOwnsActiveSpace(SqlConnection connection, SqlTransaction transaction, Guid userId)
     {

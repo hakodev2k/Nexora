@@ -3,6 +3,7 @@ using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Productivity;
 using Nexora.Domain.Identity;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -18,16 +19,18 @@ public sealed class SqlProductivityService : IProductivityService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly SqlSelfCapability _capabilities;
 
     public SqlProductivityService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections;
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)));
+        _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX11")) return ModuleUnavailable<ProjectPage>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.read", "projects.view")) return ModuleUnavailable<ProjectPage>();
         var take = Math.Clamp(limit ?? 50, 1, 100);
         using var connection = _connections.Create();
         connection.Open();
@@ -48,7 +51,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectRecord> CreateProject(IdentityPrincipal actor, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11")) return ModuleUnavailable<ProjectRecord>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.create", "projects.create")) return ModuleUnavailable<ProjectRecord>();
         var validation = ValidateProject(command);
         if (validation is not null) return validation;
         var id = Guid.NewGuid();
@@ -93,7 +96,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectRecord> UpdateProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11")) return ModuleUnavailable<ProjectRecord>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.update", "projects.update")) return ModuleUnavailable<ProjectRecord>();
         var validation = ValidateProject(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<ProjectRecord>(ifMatch);
@@ -156,7 +159,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11")) return ModuleUnavailable<ProjectRecord>();
+        if (!ModuleAvailable(actor, "FX11", ProjectTransitionAction(status))) return ModuleUnavailable<ProjectRecord>();
         if (status is not ("NotStarted" or "InProgress" or "Completed" or "Skipped"))
             return IdentityOperationResult<ProjectRecord>.Failure("ValidationFailed", 422, "Project status is invalid.");
         if (!TryDecodeETag(ifMatch, out var expectedVersion))
@@ -216,7 +219,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<object?> DeleteProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.trash", "projects.delete")) return ModuleUnavailable<object?>();
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -271,7 +274,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX12")) return ModuleUnavailable<TaskPage>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view")) return ModuleUnavailable<TaskPage>();
         var take = Math.Clamp(limit ?? 100, 1, 200);
         using var connection = _connections.Create();
         connection.Open();
@@ -294,7 +297,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskRecord> CreateTask(IdentityPrincipal actor, TaskCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12")) return ModuleUnavailable<TaskRecord>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.create", "tasks.create")) return ModuleUnavailable<TaskRecord>();
         var validation = ValidateTask(command);
         if (validation is not null) return validation;
         if (command.Status is "Completed" or "Skipped")
@@ -351,7 +354,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12")) return ModuleUnavailable<TaskRecord>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.update", "tasks.update")) return ModuleUnavailable<TaskRecord>();
         var validation = ValidateTask(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<TaskRecord>(ifMatch);
@@ -436,7 +439,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskRecord> TransitionTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12")) return ModuleUnavailable<TaskRecord>();
+        if (!ModuleAvailable(actor, "FX12", TaskTransitionAction(status))) return ModuleUnavailable<TaskRecord>();
         if (status is not ("NotStarted" or "InProgress" or "Completed" or "Skipped"))
             return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task status is invalid.");
         if (!TryDecodeETag(ifMatch, out _))
@@ -454,7 +457,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<object?> DeleteTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.trash", "tasks.delete")) return ModuleUnavailable<object?>();
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -511,7 +514,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX13")) return ModuleUnavailable<EventPage>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.read", "calendar.view")) return ModuleUnavailable<EventPage>();
         var take = Math.Clamp(limit ?? 100, 1, 200);
         using var connection = _connections.Create();
         connection.Open();
@@ -536,7 +539,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventRecord> CreateEvent(IdentityPrincipal actor, EventCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX13")) return ModuleUnavailable<EventRecord>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.create", "calendar.create")) return ModuleUnavailable<EventRecord>();
         var validation = ValidateEvent(command);
         if (validation is not null) return validation;
         var id = Guid.NewGuid();
@@ -580,7 +583,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX13")) return ModuleUnavailable<EventRecord>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.update", "calendar.update")) return ModuleUnavailable<EventRecord>();
         var validation = ValidateEvent(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<EventRecord>(ifMatch);
@@ -649,7 +652,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventRecord> TransitionEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string status, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX13")) return ModuleUnavailable<EventRecord>();
+        if (!ModuleAvailable(actor, "FX13", EventTransitionAction(status))) return ModuleUnavailable<EventRecord>();
         if (status is not ("Scheduled" or "Completed" or "Canceled"))
             return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event status is invalid.");
         if (!TryDecodeETag(ifMatch, out _))
@@ -667,7 +670,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<object?> DeleteEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX13")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.cancel", "calendar.event.delete")) return ModuleUnavailable<object?>();
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -780,23 +783,33 @@ public sealed class SqlProductivityService : IProductivityService
     private static string CanonicalProject(ProjectCommand command, Guid? id = null, string? etag = null) =>
         $"project:{id?.ToString("N")}|etag:{etag}|name:{command.Name.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|notes:{command.Notes?.Trim()}";
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode)
+    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
+
+    private static string ProjectTransitionAction(string status) => status switch
     {
-        using var connection = _connections.Create();
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1
-                              AND COALESCE(g.[Enabled], 0) = 1 THEN 1 ELSE 0 END
-            FROM [platform].[Module] m
-            LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id] AND g.[UserId] =
-                (SELECT [UserId] FROM [platform].[PersonalSpace] WHERE [Id] = @OwnerId)
-            WHERE m.[Code] = @Code;
-            """;
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        Add(command, "@Code", SqlDbType.VarChar, moduleCode);
-        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
-    }
+        "InProgress" => "projects.project.start",
+        "NotStarted" => "projects.project.revert",
+        "Completed" => "projects.project.complete",
+        "Skipped" => "projects.project.skip",
+        _ => "projects.project.update"
+    };
+
+    private static string TaskTransitionAction(string status) => status switch
+    {
+        "InProgress" => "tasks.task.start",
+        "NotStarted" => "tasks.task.revert",
+        "Completed" => "tasks.task.complete",
+        "Skipped" => "tasks.task.skip",
+        _ => "tasks.task.update"
+    };
+
+    private static string EventTransitionAction(string status) => status switch
+    {
+        "Completed" => "calendar.event.complete",
+        "Canceled" => "calendar.event.cancel",
+        _ => "calendar.event.update"
+    };
 
     private static bool ProjectExists(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid projectId)
     {

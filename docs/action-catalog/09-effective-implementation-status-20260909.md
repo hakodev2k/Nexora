@@ -70,6 +70,15 @@ implemented document action subset is `documents.library.read`,
 implementation authority only; each slice remains separately labelled
 `SLICE_IMPLEMENTED` or `SLICE_VERIFIED_LOCALLY` by its evidence document.
 
+The local implementation evaluates the current `platform.Module`,
+`platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
+rows for each protected SELF request. Admin SELF access is default-deny and
+requires an explicit resolved `Allow`; a matching `Deny` wins. Canonical
+resource-qualified keys for the implemented Projects, Tasks, Calendar,
+Notifications and Trash operations are registered by migration `0007`.
+Legacy compact keys remain accepted only as a compatibility bridge for existing
+local grant rows and are not a new catalog authority.
+
 ## `PO_PAUSED` rows
 
 ### FX30 Price Tracking — R1 committed but paused

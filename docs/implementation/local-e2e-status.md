@@ -13,6 +13,7 @@ Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under
 - React local shell with register/verify-token input, login/logout, reset-token input, profile/settings/session screens, CSRF kept in memory, idempotency headers, error/loading/empty states and server-projection-based module navigation.
 - React local shell also exposes the SQL-backed Notification inbox, Trash batch restore/purge controls and non-secret Theme preference editor with explicit loading/empty/error/conflict states.
 - SQL-backed Documents/Notes/Knowledge page core: owner-scoped list/detail, explicit type/editor selection, bounded Markdown/Block body, immutable save versions, publish/unpublish/archive lifecycle and `ETag`/`If-Match` concurrency. The React shell exposes the same local page create/save/lifecycle flow without rendering unsanitized HTML.
+- SELF authorization now resolves current module enablement and per-action grants from SQL on every protected feature request. Ordinary Users and SuperAdmins use the approved own-resource baseline; Admin SELF access requires an explicit resolved `Allow`, with matching `Deny` winning and legacy action aliases retained only for local migration compatibility.
 - Reference Release 1 catalog and productivity/calendar schema migration. Formerly paused modules remain real-provider-disabled; only explicitly local/simulated/integration-safe code may be added under DEC-014.
 
 ## Deliberately not claimed
