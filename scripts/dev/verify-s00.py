@@ -40,6 +40,8 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Finance/FinanceContracts.cs",
     "src/Nexora.Api/Features/Bookmarks/BookmarkEndpoints.cs",
     "src/Nexora.Api/Features/Bookmarks/BookmarkContracts.cs",
+    "src/Nexora.Api/Features/Snippets/SnippetEndpoints.cs",
+    "src/Nexora.Api/Features/Snippets/SnippetContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -56,6 +58,7 @@ REQUIRED_FILES = [
     "src/Nexora.Application/Productivity/ProductivityServiceContracts.cs",
     "src/Nexora.Application/Finance/FinanceServiceContracts.cs",
     "src/Nexora.Application/Bookmarks/BookmarkServiceContracts.cs",
+    "src/Nexora.Application/Snippets/SnippetServiceContracts.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -67,6 +70,7 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Productivity/SqlProductivityService.cs",
     "src/Nexora.Infrastructure/Finance/SqlFinanceService.cs",
     "src/Nexora.Infrastructure/Bookmarks/SqlBookmarkService.cs",
+    "src/Nexora.Infrastructure/Snippets/SqlSnippetService.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
     "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
@@ -77,6 +81,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0007_action_catalog_alignment.sql",
     "database/migrations/20260910_0008_finance_manual_records.sql",
     "database/migrations/20260910_0009_bookmarks_manual.sql",
+    "database/migrations/20260910_0010_snippets_manual.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -160,7 +165,7 @@ def main() -> int:
             fail(f"Nexora.Api must reference {project}")
 
     program = read("src/Nexora.Api/Program.cs")
-    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
+    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
         if marker not in program:
             fail(f"Program.cs marker missing: {marker}")
     if "DevelopmentIdentityStore" in program or "DevelopmentModuleStore" in program:
@@ -207,6 +212,11 @@ def main() -> int:
     for marker in ("/bookmarks", "listBookmarks", "createBookmark", "updateBookmark", "transitionBookmark", "IBookmarkService"):
         if marker not in bookmark_endpoints:
             fail(f"bookmark route marker missing: {marker}")
+
+    snippet_endpoints = read("src/Nexora.Api/Features/Snippets/SnippetEndpoints.cs")
+    for marker in ("/snippets", "listSnippets", "createSnippet", "saveSnippet", "transitionSnippet", "ISnippetService"):
+        if marker not in snippet_endpoints:
+            fail(f"snippet route marker missing: {marker}")
 
     filters = read("src/Nexora.Api/Security/EndpointSecurityFilters.cs")
     if "RequireCsrfForUnsafeMethods" not in filters or "X-CSRF-Token" not in filters:
@@ -261,6 +271,10 @@ def main() -> int:
     for marker in ("[knowledge].[Bookmark]", "[CanonicalUrl]", "[UrlDigest]", "[MetadataJson]", "[Status]"):
         if marker not in migration9:
             fail(f"bookmark migration marker missing: {marker}")
+    migration10 = read("database/migrations/20260910_0010_snippets_manual.sql")
+    for marker in ("[knowledge].[Snippet]", "[knowledge].[SnippetVersion]", "[SourceText]", "[CurrentVersion]", "snippets.snippet.save"):
+        if marker not in migration10:
+            fail(f"snippet migration marker missing: {marker}")
 
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):

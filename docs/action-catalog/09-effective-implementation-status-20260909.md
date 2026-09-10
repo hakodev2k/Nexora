@@ -88,6 +88,14 @@ API and React flow are labelled `SLICE_IMPLEMENTED` in
 `docs/implementation/bookmarks-manual-slice.md`; refresh, external navigation,
 tags, collections, Trash, sharing/support and provider rows remain gated.
 
+The current PR #4 Snippets overlay permits the text/version subset:
+`snippets.snippet.read`, `snippets.snippet.create`, `snippets.snippet.save`,
+`snippets.snippet.archive` and `snippets.snippet.unarchive`. The owner-scoped
+SQL current/version tables, escaped source boundary, API and React flow are
+labelled `SLICE_IMPLEMENTED` in `docs/implementation/snippets-text-slice.md`;
+history/diff/restore, export, tags/templates, Trash and sharing/support rows
+remain gated. Explicit local Copy does not execute or persist source.
+
 The local implementation evaluates the current `platform.Module`,
 `platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
 rows for each protected SELF request. Admin SELF access is default-deny and
@@ -211,7 +219,7 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 
 All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual and Bookmarks-manual keys are governed by their slice evidence documents rather than this default.
+This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later, Snippet history/diff/restore/export/tags, Dashboard, Shopping manual records, Developer Toolbox local tools, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual and Snippets-text keys are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 

@@ -189,6 +189,29 @@ code {
   overflow-wrap: anywhere;
 }
 
+.snippet-card {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.snippet-content {
+  min-width: 0;
+}
+
+.snippet-code {
+  background: #182338;
+  border-radius: 0.6rem;
+  color: #edf3ff;
+  font: 0.82rem/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin: 0.75rem 0 0;
+  max-height: 20rem;
+  overflow: auto;
+  padding: 0.85rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .field-group label {
   color: #23314c;
   font-size: 0.9rem;
@@ -1117,6 +1140,10 @@ td .muted {
 
   .notification-card {
     grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .snippet-card {
+    grid-template-columns: 1fr;
   }
 
   .notification-card > .secondary-button {

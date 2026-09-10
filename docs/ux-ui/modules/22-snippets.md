@@ -1,8 +1,8 @@
 # FX-22 — Snippets — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Text/version UI slice implemented locally on PR #4; runtime verification remains owner work.
 
-Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
+Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. `/snippets` is implemented for the local text/version slice; detail/history route strings remain future contracts.
 
 ## 1. Scope
 

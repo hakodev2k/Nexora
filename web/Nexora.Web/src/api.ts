@@ -252,6 +252,24 @@ export type BookmarkPage = {
   nextCursor: string | null;
 };
 
+export type SnippetRecord = {
+  id: string;
+  title: string;
+  language: string;
+  body: string;
+  description: string | null;
+  versionNumber: number;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type SnippetPage = {
+  items: SnippetRecord[];
+  nextCursor: string | null;
+};
+
 export type FinanceRecordInput = {
   categoryId: string;
   amount: string;
@@ -928,6 +946,36 @@ export function updateBookmark(id: string, etag: string, url: string, title: str
 
 export function transitionBookmark(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status })
+  });
+}
+
+export function listSnippets(includeArchived = false, query = '', limit = 100) {
+  const params = new URLSearchParams({ includeArchived: String(includeArchived), limit: String(limit) });
+  if (query.trim()) params.set('query', query.trim());
+  return apiFetch<SnippetPage>(`/api/v1/snippets?${params.toString()}`);
+}
+
+export function createSnippet(title: string, language: string, body: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<SnippetRecord>('/api/v1/snippets', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ title, language, body, description })
+  });
+}
+
+export function saveSnippet(id: string, etag: string, title: string, language: string, body: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ title, language, body, description })
+  });
+}
+
+export function transitionSnippet(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })

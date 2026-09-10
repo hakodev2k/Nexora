@@ -17,6 +17,7 @@ import {
   ProfilePatch,
   ProfileResponse,
   SessionProjection,
+  SnippetRecord,
   TaskRecord,
   clearProfileRevision,
   confirmPasswordReset,
@@ -47,6 +48,7 @@ import {
   listBookmarks,
   listProjects,
   listSessions,
+  listSnippets,
   listTasks,
   login,
   markAllNotificationsRead,
@@ -58,6 +60,7 @@ import {
   setAdminActionGrant,
   setAdminUserRole,
   saveDocument,
+  saveSnippet,
   transitionDocument,
   updatePreference,
   logout,
@@ -74,13 +77,15 @@ import {
   transitionProject,
   transitionCalendarEvent,
   transitionBookmark,
+  transitionSnippet,
   removeFinanceCategory,
   updateFinanceCategory,
   updateFinanceRecord,
-  updateBookmark
+  updateBookmark,
+  createSnippet
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'module';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -113,6 +118,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'finance' };
     case '/bookmarks':
       return { screen: 'bookmarks' };
+    case '/snippets':
+      return { screen: 'snippets' };
     case '/login':
       return { screen: 'login' };
     case '/':
@@ -149,6 +156,8 @@ function pathForLocation(location: LocationState): string {
       return '/finance';
     case 'bookmarks':
       return '/bookmarks';
+    case 'snippets':
+      return '/snippets';
     case 'login':
       return '/login';
     case 'module':
@@ -723,7 +732,8 @@ function Shell({
   const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
   const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
   const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21'].includes(module.code.toUpperCase()));
+  const canSnippets = profile.modules.some((module) => module.code.toUpperCase() === 'FX22' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -742,6 +752,7 @@ function Shell({
           <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>Home</span></button>
           {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>Finance</span></button>}
           {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
+          {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -785,6 +796,7 @@ function Shell({
           {location.screen === 'admin' && <AdminAccessScreen onAuthLost={onAuthLost} />}
           {location.screen === 'finance' && <FinanceScreen onAuthLost={onAuthLost} />}
           {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'snippets' && <SnippetsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
         </main>
@@ -1753,6 +1765,185 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   );
 }
 
+type SnippetDraft = {
+  title: string;
+  language: string;
+  body: string;
+  description: string;
+};
+
+function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<SnippetRecord[]>([]);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [query, setQuery] = useState('');
+  const [queryDraft, setQueryDraft] = useState('');
+  const [draft, setDraft] = useState<SnippetDraft>({ title: '', language: 'plaintext', body: '', description: '' });
+  const [editing, setEditing] = useState<SnippetRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived) {
+    setLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const page = await listSnippets(nextIncludeArchived, nextQuery, 100);
+      setItems(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [query, includeArchived]);
+
+  function resetEditor() {
+    setEditing(null);
+    setDraft({ title: '', language: 'plaintext', body: '', description: '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function beginEdit(item: SnippetRecord) {
+    setEditing(item);
+    setDraft({ title: item.title, language: item.language, body: item.body, description: item.description ?? '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const title = draft.title.trim();
+    const language = draft.language.trim();
+    const body = draft.body;
+    const description = draft.description.trim() || null;
+    if (!title || title.length > 200) {
+      setError(new NexoraApiError('Tiêu đề là bắt buộc và tối đa 200 ký tự.', 422, 'ValidationFailed', null, { title: ['Tiêu đề là bắt buộc và tối đa 200 ký tự.'] }));
+      return;
+    }
+    if (!language || !/^[A-Za-z0-9][A-Za-z0-9+.#_-]{0,49}$/.test(language)) {
+      setError(new NexoraApiError('Language phải là nhãn text hợp lệ tối đa 50 ký tự.', 422, 'ValidationFailed', null, { language: ['Language không hợp lệ.'] }));
+      return;
+    }
+    if (!body || new TextEncoder().encode(body).length > 1024 * 1024) {
+      setError(new NexoraApiError('Source code là bắt buộc và tối đa 1 MiB UTF-8.', 422, 'ValidationFailed', null, { body: ['Source code không hợp lệ.'] }));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      if (editing) {
+        await saveSnippet(editing.id, editing.etag, title, language, body, description, requestKey.current);
+      } else {
+        await createSnippet(title, language, body, description, requestKey.current);
+      }
+      requestKey.current = null;
+      resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(item: SnippetRecord) {
+    const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
+    if (!window.confirm(`${nextStatus === 'Archived' ? 'Archive' : 'Unarchive'} snippet “${item.title}”?`)) return;
+    setBusy(`transition:${item.id}`);
+    setError(null);
+    try {
+      await transitionSnippet(item.id, item.etag, nextStatus, createIdempotencyKey());
+      await load();
+      if (editing?.id === item.id) resetEditor();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function copySnippet(item: SnippetRecord) {
+    setBusy(`copy:${item.id}`);
+    setError(null);
+    try {
+      if (!navigator.clipboard) throw new Error('ClipboardUnavailable');
+      await navigator.clipboard.writeText(item.body);
+      setCopiedId(item.id);
+      window.setTimeout(() => setCopiedId((current) => current === item.id ? null : current), 1800);
+    } catch {
+      setError(new NexoraApiError('Clipboard không khả dụng; source vẫn chỉ được hiển thị dạng text.', 409, 'ClipboardUnavailable'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applySearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setQuery(queryDraft.trim());
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="snippets-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX22 / KNOWLEDGE</p>
+          <h1 id="snippets-title">Code snippets</h1>
+          <p className="lead">Lưu code/text cá nhân dưới dạng dữ liệu escaped. Nexora không chạy, compile, gửi AI/lint service hoặc publish source.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Snippet đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; tải revision mới trước khi áp dụng lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={save} noValidate>
+            <div className="section-heading"><h2>{editing ? 'Sửa snippet' : 'Snippet mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="snippet-title">Tiêu đề</label><input id="snippet-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="snippet-title-error" /><FieldError id="snippet-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
+            <div className="field-group"><label htmlFor="snippet-language">Language</label><input id="snippet-language" value={draft.language} maxLength={50} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, language: event.target.value }); setError(null); }} placeholder="plaintext" required aria-describedby="snippet-language-error" /><FieldError id="snippet-language-error" message={error ? firstFieldError(error, 'language') : undefined} /></div>
+            <div className="field-group"><label htmlFor="snippet-body">Source code / text</label><textarea id="snippet-body" value={draft.body} maxLength={1024 * 1024} rows={13} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, body: event.target.value }); setError(null); }} spellCheck={false} required aria-describedby="snippet-body-help snippet-body-error" /><p className="field-help" id="snippet-body-help">Tối đa 1 MiB UTF-8; shell/HTML/script chỉ được lưu và hiển thị như text.</p><FieldError id="snippet-body-error" message={error ? firstFieldError(error, 'body') : undefined} /></div>
+            <div className="field-group"><label htmlFor="snippet-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="snippet-description" value={draft.description} maxLength={20000} rows={3} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu version' : 'Tạo snippet'}</SubmitButton></div>
+          </form>
+          <div className="security-policy"><strong>Safety boundary</strong><span>Version cũ được giữ append-only trong SQL; Archive là readonly. Copy chỉ xảy ra khi người dùng bấm rõ ràng và không ghi source vào audit.</span></div>
+        </div>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={applySearch} noValidate>
+            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="snippet-query">Tìm theo tiêu đề, language, mô tả hoặc source</label><input id="snippet-query" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị snippet đã archive</span></label>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+          </form>
+          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button><button className={item.status === 'Archived' ? 'secondary-button' : 'danger-button'} type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : item.status === 'Archived' ? 'Unarchive' : 'Archive'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -2003,6 +2194,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX21') {
     return <BookmarksScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX22') {
+    return <SnippetsScreen onAuthLost={onAuthLost} />;
   }
 
   return (

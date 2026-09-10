@@ -117,7 +117,12 @@ public static class ActionGrantPolicy
         "bookmarks.bookmark.create",
         "bookmarks.bookmark.update",
         "bookmarks.bookmark.archive",
-        "bookmarks.bookmark.unarchive"
+        "bookmarks.bookmark.unarchive",
+        "snippets.snippet.read",
+        "snippets.snippet.create",
+        "snippets.snippet.save",
+        "snippets.snippet.archive",
+        "snippets.snippet.unarchive"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)
