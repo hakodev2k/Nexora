@@ -290,6 +290,22 @@ export type ReadingPage = {
   nextCursor: string | null;
 };
 
+export type TagRecord = {
+  id: string;
+  namespace: string;
+  name: string;
+  color: string | null;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type TagPage = {
+  items: TagRecord[];
+  nextCursor: string | null;
+};
+
 export type FinanceRecordInput = {
   categoryId: string;
   amount: string;
@@ -1028,6 +1044,36 @@ export function updateReadingItem(id: string, etag: string, state: string, progr
     method: 'PATCH',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify(progress === undefined ? { state } : { state, progress })
+  });
+}
+
+export function listOrganizationTags(tagNamespace = '', query = '', limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (tagNamespace.trim()) params.set('namespace', tagNamespace.trim());
+  if (query.trim()) params.set('query', query.trim());
+  return apiFetch<TagPage>(`/api/v1/organization/tags?${params.toString()}`);
+}
+
+export function createOrganizationTag(tagNamespace: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<TagRecord>('/api/v1/organization/tags', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ namespace: tagNamespace, name, color })
+  });
+}
+
+export function renameOrganizationTag(id: string, etag: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<TagRecord>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ name, color })
+  });
+}
+
+export function removeOrganizationTag(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   });
 }
 

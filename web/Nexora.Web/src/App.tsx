@@ -12,6 +12,7 @@ import {
   NotificationRecord,
   PreferenceRecord,
   ReadingItemRecord,
+  TagRecord,
   TrashItemRecord,
   NexoraApiError,
   ProjectRecord,
@@ -87,10 +88,14 @@ import {
   createSnippet,
   saveReadingItem,
   removeReadingItem,
-  updateReadingItem
+  updateReadingItem,
+  listOrganizationTags,
+  createOrganizationTag,
+  renameOrganizationTag,
+  removeOrganizationTag
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'module';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -127,6 +132,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'snippets' };
     case '/read-later':
       return { screen: 'readLater' };
+    case '/organize/tags':
+      return { screen: 'tags' };
     case '/login':
       return { screen: 'login' };
     case '/':
@@ -167,6 +174,8 @@ function pathForLocation(location: LocationState): string {
       return '/snippets';
     case 'readLater':
       return '/read-later';
+    case 'tags':
+      return '/organize/tags';
     case 'login':
       return '/login';
     case 'module':
@@ -743,7 +752,8 @@ function Shell({
   const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
   const canSnippets = profile.modules.some((module) => module.code.toUpperCase() === 'FX22' && module.enabled);
   const canReadLater = profile.modules.some((module) => module.code.toUpperCase() === 'FX23' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22', 'FX23'].includes(module.code.toUpperCase()));
+  const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22', 'FX23', 'FX24'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -764,6 +774,7 @@ function Shell({
           {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
           {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>Read Later</span></button>}
+          {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>Tags</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -809,6 +820,7 @@ function Shell({
           {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
           {location.screen === 'snippets' && <SnippetsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'readLater' && <ReadLaterScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
         </main>
@@ -2124,6 +2136,158 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   );
 }
 
+const LOCAL_TAG_NAMESPACES = ['projects', 'documents', 'bookmarks', 'snippets'] as const;
+
+function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<TagRecord[]>([]);
+  const [tagNamespace, setTagNamespace] = useState<(typeof LOCAL_TAG_NAMESPACES)[number]>('projects');
+  const [queryDraft, setQueryDraft] = useState('');
+  const [query, setQuery] = useState('');
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('');
+  const [editing, setEditing] = useState<TagRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextNamespace = tagNamespace, nextQuery = query) {
+    setLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const page = await listOrganizationTags(nextNamespace, nextQuery, 100);
+      setItems(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [tagNamespace, query]);
+
+  function resetEditor() {
+    setEditing(null);
+    setName('');
+    setColor('');
+    requestKey.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  function beginEdit(tag: TagRecord) {
+    setEditing(tag);
+    setTagNamespace(tag.namespace as (typeof LOCAL_TAG_NAMESPACES)[number]);
+    setName(tag.name);
+    setColor(tag.color ?? '');
+    requestKey.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    const trimmedColor = color.trim();
+    if (!trimmedName || trimmedName.length > 50) {
+      setError(new NexoraApiError('Tên tag phải từ 1 đến 50 ký tự.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (trimmedColor && !/^#[0-9a-f]{6}$/i.test(trimmedColor)) {
+      setError(new NexoraApiError('Màu tag phải có dạng #RRGGBB.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    setError(null);
+    setConflict(false);
+    try {
+      if (editing) {
+        await renameOrganizationTag(editing.id, editing.etag, trimmedName, trimmedColor || null, requestKey.current);
+      } else {
+        await createOrganizationTag(tagNamespace, trimmedName, trimmedColor || null, requestKey.current);
+      }
+      requestKey.current = null;
+      resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(tag: TagRecord) {
+    if (tag.usageCount > 0 || !window.confirm(`Xóa tag “${tag.name}” khỏi namespace ${tag.namespace}?`)) return;
+    setBusy(`remove:${tag.id}`);
+    setError(null);
+    setConflict(false);
+    try {
+      await removeOrganizationTag(tag.id, tag.etag);
+      if (editing?.id === tag.id) resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applySearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setQuery(queryDraft.trim());
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="organization-tags-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX24 / ORGANIZATION</p>
+          <h1 id="organization-tags-title">Tag management</h1>
+          <p className="lead">Tag là nhãn cá nhân theo namespace. Slice này chỉ quản lý catalog; chưa gắn tag vào resource và tag không cấp quyền.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{editing ? 'Đổi tên tag' : 'Tag mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+          <div className="field-group"><label htmlFor="organization-tag-namespace">Namespace</label><select id="organization-tag-namespace" value={tagNamespace} onChange={(event) => { requestKey.current = null; setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); setError(null); }} disabled={editing !== null || busy !== null}>{LOCAL_TAG_NAMESPACES.map((value) => <option key={value} value={value}>{value}</option>)}</select><p className="field-help">Projects và Tasks dùng chung namespace; các provider khác giữ namespace riêng.</p></div>
+          <div className="field-group"><label htmlFor="organization-tag-name">Tên tag</label><input id="organization-tag-name" value={name} maxLength={50} onChange={(event) => { requestKey.current = null; setName(event.target.value); setError(null); }} required /></div>
+          <div className="field-group"><label htmlFor="organization-tag-color">Màu <span className="optional">(#RRGGBB, tùy chọn)</span></label><input id="organization-tag-color" value={color} maxLength={7} placeholder="#2F67D8" onChange={(event) => { requestKey.current = null; setColor(event.target.value); setError(null); }} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu tag' : 'Tạo tag'}</SubmitButton></div>
+        </form>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={applySearch} noValidate>
+            <div className="section-heading"><h2>Tags của bạn</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+          </form>
+          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><button className="danger-button" type="button" onClick={() => void remove(tag)} disabled={busy !== null || tag.usageCount > 0}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+      <div className="security-policy"><strong>Boundary</strong><span>Assignment vào Project/Task/Document/Bookmark/Snippet, Collections, Templates và sharing chưa nằm trong slice; server vẫn giữ action gate riêng cho các capability đó.</span></div>
+    </section>
+  );
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -2380,6 +2544,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX23') {
     return <ReadLaterScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX24') {
+    return <OrganizationTagsScreen onAuthLost={onAuthLost} />;
   }
 
   return (

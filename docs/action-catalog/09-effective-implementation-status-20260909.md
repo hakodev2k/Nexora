@@ -106,6 +106,15 @@ cross-module News state, search/tags, sharing/support and advanced lifecycle
 rows remain gated. Position is explicit metadata only and never an inferred
 reading percentage.
 
+The current PR #4 FX24 overlay permits the owner-scoped Tag catalog subset:
+`organization.tag.read`, `organization.tag.create`, `organization.tag.rename`
+and `organization.tag.remove`. The SQL/API/React flow is labelled
+`SLICE_IMPLEMENTED (local)` in
+`docs/implementation/organization-tags-slice.md`. Only the local provider
+namespaces (`projects`, `documents`, `bookmarks`, `snippets`) are accepted.
+Assignment, Collections, Templates and sharing remain gated; a tag never
+grants access or ownership.
+
 The local implementation evaluates the current `platform.Module`,
 `platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
 rows for each protected SELF request. Admin SELF access is default-deny and

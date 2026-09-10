@@ -44,6 +44,8 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Snippets/SnippetContracts.cs",
     "src/Nexora.Api/Features/Reading/ReadingEndpoints.cs",
     "src/Nexora.Api/Features/Reading/ReadingContracts.cs",
+    "src/Nexora.Api/Features/Organization/OrganizationEndpoints.cs",
+    "src/Nexora.Api/Features/Organization/OrganizationContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -62,6 +64,7 @@ REQUIRED_FILES = [
     "src/Nexora.Application/Bookmarks/BookmarkServiceContracts.cs",
     "src/Nexora.Application/Snippets/SnippetServiceContracts.cs",
     "src/Nexora.Application/Reading/ReadingServiceContracts.cs",
+    "src/Nexora.Application/Organization/TagServiceContracts.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -75,6 +78,7 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Bookmarks/SqlBookmarkService.cs",
     "src/Nexora.Infrastructure/Snippets/SqlSnippetService.cs",
     "src/Nexora.Infrastructure/Reading/SqlReadingService.cs",
+    "src/Nexora.Infrastructure/Organization/SqlTagService.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
     "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
@@ -87,6 +91,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0009_bookmarks_manual.sql",
     "database/migrations/20260910_0010_snippets_manual.sql",
     "database/migrations/20260910_0011_reading_queue_bookmarks.sql",
+    "database/migrations/20260910_0012_organization_tags.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -170,7 +175,7 @@ def main() -> int:
             fail(f"Nexora.Api must reference {project}")
 
     program = read("src/Nexora.Api/Program.cs")
-    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
+    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
         if marker not in program:
             fail(f"Program.cs marker missing: {marker}")
     if "DevelopmentIdentityStore" in program or "DevelopmentModuleStore" in program:
@@ -227,6 +232,11 @@ def main() -> int:
     for marker in ("/read-later", "listReadingQueue", "saveReadingItem", "removeReadingItem", "updateReadingItem", "IReadingService"):
         if marker not in reading_endpoints:
             fail(f"reading route marker missing: {marker}")
+
+    organization_endpoints = read("src/Nexora.Api/Features/Organization/OrganizationEndpoints.cs")
+    for marker in ("/organization/tags", "listOrganizationTags", "createOrganizationTag", "renameOrganizationTag", "removeOrganizationTag", "ITagService"):
+        if marker not in organization_endpoints:
+            fail(f"organization route marker missing: {marker}")
 
     filters = read("src/Nexora.Api/Security/EndpointSecurityFilters.cs")
     if "RequireCsrfForUnsafeMethods" not in filters or "X-CSRF-Token" not in filters:
@@ -289,6 +299,10 @@ def main() -> int:
     for marker in ("[knowledge].[ReadingItem]", "[SourceType]", "[SourceId]", "[SafeTitleSnapshot]", "[SafeUrlSnapshot]", "reading.item.position"):
         if marker not in migration11:
             fail(f"reading migration marker missing: {marker}")
+    migration12 = read("database/migrations/20260910_0012_organization_tags.sql")
+    for marker in ("[organization].[Tag]", "[organization].[ResourceTag]", "organization.tag.create", "organization.tag.remove"):
+        if marker not in migration12:
+            fail(f"organization migration marker missing: {marker}")
 
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):
@@ -302,7 +316,7 @@ def main() -> int:
             if re.search(forbidden, text):
                 fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
+    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
     return 0
 
 

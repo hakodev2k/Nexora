@@ -4,6 +4,11 @@ FX-24 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
 
+PO/local implementation overlay: FX24-S01 trên PR #4 chỉ triển khai Tag
+catalog owner-scoped cho các namespace `projects`, `documents`, `bookmarks` và
+`snippets`. Assignment, Collections, Templates và sharing vẫn phải đi qua
+slice/contract riêng; overlay này không thay đổi các business rule bên dưới.
+
 ## Phạm vi và tham chiếu
 
 Các building blocks phân loại và mẫu tạo resource.

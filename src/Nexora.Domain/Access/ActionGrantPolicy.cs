@@ -128,7 +128,11 @@ public static class ActionGrantPolicy
         "reading.item.remove",
         "reading.item.read",
         "reading.item.unread",
-        "reading.item.position"
+        "reading.item.position",
+        "organization.tag.read",
+        "organization.tag.create",
+        "organization.tag.rename",
+        "organization.tag.remove"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

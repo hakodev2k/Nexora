@@ -109,7 +109,7 @@
 | FX23-S01 | Reading queue | `/read-later` | Local Bookmark-reference slice / per-action gate |
 | FX23-S02 | Reader | `/read-later/:itemId` | Contract-gated; body reader not implemented |
 | FX23-S03 | Unavailable reading sources | `/read-later?availability=unavailable` | Local safe snapshot projection / per-action gate |
-| FX24-S01 | Tag management | `/organize/tags?namespace=:namespace` | Current / per-action gate |
+| FX24-S01 | Tag management | `/organize/tags?namespace=:namespace` | Local Tag catalog slice / per-action gate |
 | FX24-S02 | Collections | `/organize/collections` | Current / per-action gate |
 | FX24-S03 | Collection detail | `/organize/collections/:collectionId` | Current / per-action gate |
 | FX24-S04 | Templates | `/organize/templates` | Current / per-action gate |
