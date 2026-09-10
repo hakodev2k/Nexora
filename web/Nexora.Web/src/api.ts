@@ -233,6 +233,25 @@ export type FinanceRecordPage = {
   nextCursor: string | null;
 };
 
+export type BookmarkRecord = {
+  id: string;
+  url: string;
+  canonicalUrl: string;
+  title: string;
+  description: string | null;
+  health: string;
+  lastCheckedAt: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type BookmarkPage = {
+  items: BookmarkRecord[];
+  nextCursor: string | null;
+};
+
 export type FinanceRecordInput = {
   categoryId: string;
   amount: string;
@@ -882,6 +901,36 @@ export function updateFinanceRecord(id: string, etag: string, input: FinanceReco
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify(input)
+  });
+}
+
+export function listBookmarks(includeArchived = false, query = '', limit = 100) {
+  const params = new URLSearchParams({ includeArchived: String(includeArchived), limit: String(limit) });
+  if (query.trim()) params.set('query', query.trim());
+  return apiFetch<BookmarkPage>(`/api/v1/bookmarks?${params.toString()}`);
+}
+
+export function createBookmark(url: string, title: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<BookmarkRecord>('/api/v1/bookmarks', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ url, title, description })
+  });
+}
+
+export function updateBookmark(id: string, etag: string, url: string, title: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ url, title, description })
+  });
+}
+
+export function transitionBookmark(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status })
   });
 }
 

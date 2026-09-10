@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
+  BookmarkRecord,
   CalendarEventRecord,
   DocumentRecord,
   DocumentSummary,
@@ -19,6 +20,7 @@ import {
   TaskRecord,
   clearProfileRevision,
   confirmPasswordReset,
+  createBookmark,
   createCalendarEvent,
   createDocument,
   createFinanceCategory,
@@ -42,6 +44,7 @@ import {
   listNotifications,
   listPreferences,
   listAdminUsers,
+  listBookmarks,
   listProjects,
   listSessions,
   listTasks,
@@ -70,12 +73,14 @@ import {
   verifyEmail,
   transitionProject,
   transitionCalendarEvent,
+  transitionBookmark,
   removeFinanceCategory,
   updateFinanceCategory,
-  updateFinanceRecord
+  updateFinanceRecord,
+  updateBookmark
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'module';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -106,6 +111,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'admin' };
     case '/finance':
       return { screen: 'finance' };
+    case '/bookmarks':
+      return { screen: 'bookmarks' };
     case '/login':
       return { screen: 'login' };
     case '/':
@@ -140,6 +147,8 @@ function pathForLocation(location: LocationState): string {
       return '/admin/access';
     case 'finance':
       return '/finance';
+    case 'bookmarks':
+      return '/bookmarks';
     case 'login':
       return '/login';
     case 'module':
@@ -713,7 +722,8 @@ function Shell({
   const [logoutBusy, setLogoutBusy] = useState(false);
   const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
   const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => module.code.toUpperCase() !== 'FX27');
+  const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -731,6 +741,7 @@ function Shell({
         <nav className="primary-nav" aria-label="Điều hướng chính">
           <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>Home</span></button>
           {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>Finance</span></button>}
+          {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -773,6 +784,7 @@ function Shell({
           {location.screen === 'trash' && <TrashScreen onAuthLost={onAuthLost} />}
           {location.screen === 'admin' && <AdminAccessScreen onAuthLost={onAuthLost} />}
           {location.screen === 'finance' && <FinanceScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
         </main>
@@ -1584,6 +1596,163 @@ function todayDateInput(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
+type BookmarkDraft = {
+  url: string;
+  title: string;
+  description: string;
+};
+
+function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<BookmarkRecord[]>([]);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [query, setQuery] = useState('');
+  const [queryDraft, setQueryDraft] = useState('');
+  const [draft, setDraft] = useState<BookmarkDraft>({ url: '', title: '', description: '' });
+  const [editing, setEditing] = useState<BookmarkRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived) {
+    setLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const page = await listBookmarks(nextIncludeArchived, nextQuery, 100);
+      setItems(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [query, includeArchived]);
+
+  function resetEditor() {
+    setEditing(null);
+    setDraft({ url: '', title: '', description: '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function beginEdit(item: BookmarkRecord) {
+    setEditing(item);
+    setDraft({ url: item.url, title: item.title, description: item.description ?? '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const url = draft.url.trim();
+    const title = draft.title.trim();
+    const description = draft.description.trim() || null;
+    if (!url || !/^https?:\/\//i.test(url)) {
+      setError(new NexoraApiError('URL phải là địa chỉ HTTP(S) đầy đủ.', 422, 'ValidationFailed', null, { url: ['URL phải là địa chỉ HTTP(S) đầy đủ.'] }));
+      return;
+    }
+    if (!title || title.length > 200) {
+      setError(new NexoraApiError('Tiêu đề là bắt buộc và tối đa 200 ký tự.', 422, 'ValidationFailed', null, { title: ['Tiêu đề là bắt buộc và tối đa 200 ký tự.'] }));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      if (editing) {
+        await updateBookmark(editing.id, editing.etag, url, title, description, requestKey.current);
+      } else {
+        await createBookmark(url, title, description, requestKey.current);
+      }
+      requestKey.current = null;
+      resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(item: BookmarkRecord) {
+    const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
+    if (!window.confirm(`${nextStatus === 'Archived' ? 'Archive' : 'Unarchive'} bookmark “${item.title}”?`)) return;
+    const key = createIdempotencyKey();
+    setBusy(`transition:${item.id}`);
+    setError(null);
+    try {
+      await transitionBookmark(item.id, item.etag, nextStatus, key);
+      await load();
+      if (editing?.id === item.id) resetEditor();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applySearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setQuery(queryDraft.trim());
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="bookmarks-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX21 / KNOWLEDGE</p>
+          <h1 id="bookmarks-title">Bookmarks</h1>
+          <p className="lead">Lưu URL và metadata thủ công trong PersonalSpace hiện tại. URL chỉ là dữ liệu bất hoạt; Nexora không tự fetch, nhúng hoặc mở provider bên ngoài.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={save} noValidate>
+            <div className="section-heading"><h2>{editing ? 'Sửa bookmark' : 'Bookmark mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="bookmark-url">URL</label><input id="bookmark-url" type="url" value={draft.url} maxLength={2048} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, url: event.target.value }); setError(null); }} placeholder="https://example.test/path" required aria-describedby="bookmark-url-error" /><FieldError id="bookmark-url-error" message={error ? firstFieldError(error, 'url') : undefined} /></div>
+            <div className="field-group"><label htmlFor="bookmark-title">Tiêu đề</label><input id="bookmark-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="bookmark-title-error" /><FieldError id="bookmark-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
+            <div className="field-group"><label htmlFor="bookmark-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="bookmark-description" value={draft.description} maxLength={20000} rows={4} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
+          </form>
+          <div className="security-policy"><strong>Provider boundary</strong><span>Health chỉ là trạng thái metadata hiện tại; refresh, external navigation, sharing, tags và collections chưa nằm trong slice này.</span></div>
+        </div>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={applySearch} noValidate>
+            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="bookmark-query">Tìm theo tiêu đề, URL hoặc mô tả</label><input id="bookmark-query" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị bookmark đã archive</span></label>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+          </form>
+          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null}>Sửa</button><button className={item.status === 'Archived' ? 'secondary-button' : 'danger-button'} type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : item.status === 'Archived' ? 'Unarchive' : 'Archive'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -1831,6 +2000,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX27') {
     return <FinanceScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX21') {
+    return <BookmarksScreen onAuthLost={onAuthLost} />;
   }
 
   return (

@@ -48,7 +48,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-18 | [Time Tracking](../features/18-time-tracking.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-19 | [Pomodoro và Focus](../features/19-pomodoro.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-20 | [Documents, Note và Knowledge Pages](../features/20-documents.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-21 | [Bookmarks](../features/21-bookmarks.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
+| FX-21 | [Bookmarks](../features/21-bookmarks.md) | Manual URL/title/description slice implemented locally on PR #4; advanced lifecycle/organization/provider gates apply | Not in M01 |
 | FX-22 | [Code Snippets](../features/22-snippets.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-23 | [Read Later](../features/23-read-later.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-24 | [Tags, Collections và Templates](../features/24-organization-and-templates.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |

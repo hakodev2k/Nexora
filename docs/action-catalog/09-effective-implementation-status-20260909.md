@@ -80,6 +80,14 @@ in `docs/implementation/finance-manual-records-slice.md`; advanced ledger,
 account, transfer, bill, budget, report, CSV and sensitive share/support rows
 remain gated below.
 
+The current PR #4 Bookmarks overlay permits only the manual metadata subset:
+`bookmarks.bookmark.read`, `bookmarks.bookmark.create`,
+`bookmarks.bookmark.update`, `bookmarks.bookmark.archive` and
+`bookmarks.bookmark.unarchive`. The owner-scoped SQL schema, inert URL boundary,
+API and React flow are labelled `SLICE_IMPLEMENTED` in
+`docs/implementation/bookmarks-manual-slice.md`; refresh, external navigation,
+tags, collections, Trash, sharing/support and provider rows remain gated.
+
 The local implementation evaluates the current `platform.Module`,
 `platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
 rows for each protected SELF request. Admin SELF access is default-deny and
@@ -203,7 +211,7 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 
 All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings and Finance-manual keys are governed by their slice evidence documents rather than this default.
+This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual and Bookmarks-manual keys are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 

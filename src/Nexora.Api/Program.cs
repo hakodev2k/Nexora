@@ -6,6 +6,7 @@ using Nexora.Api.Features.Modules;
 using Nexora.Api.Features.Notifications;
 using Nexora.Api.Features.Documents;
 using Nexora.Api.Features.Finance;
+using Nexora.Api.Features.Bookmarks;
 using Nexora.Api.Features.Productivity;
 using Nexora.Api.Features.Settings;
 using Nexora.Api.Features.Trash;
@@ -18,6 +19,7 @@ using Nexora.Application.Documents;
 using Nexora.Application.Settings;
 using Nexora.Application.Trash;
 using Nexora.Application.Finance;
+using Nexora.Application.Bookmarks;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Access;
 using Nexora.Infrastructure.Local;
@@ -29,6 +31,7 @@ using Nexora.Infrastructure.Documents;
 using Nexora.Infrastructure.Settings;
 using Nexora.Infrastructure.Trash;
 using Nexora.Infrastructure.Finance;
+using Nexora.Infrastructure.Bookmarks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -98,6 +101,8 @@ builder.Services.AddSingleton<IDocumentService>(services =>
     new SqlDocumentService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IFinanceService>(services =>
     new SqlFinanceService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IBookmarkService>(services =>
+    new SqlBookmarkService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;
@@ -123,6 +128,7 @@ app.MapSettingsEndpoints();
 app.MapDocumentEndpoints();
 app.MapProductivityEndpoints();
 app.MapFinanceEndpoints();
+app.MapBookmarkEndpoints();
 
 app.MapFallback(() => Results.Problem(
     title: "Resource unavailable",

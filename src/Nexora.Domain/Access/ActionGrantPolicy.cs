@@ -112,7 +112,12 @@ public static class ActionGrantPolicy
         "finance.manual_record.read",
         "finance.manual_record.create",
         "finance.manual_record.update",
-        "finance.manual_summary.read"
+        "finance.manual_summary.read",
+        "bookmarks.bookmark.read",
+        "bookmarks.bookmark.create",
+        "bookmarks.bookmark.update",
+        "bookmarks.bookmark.archive",
+        "bookmarks.bookmark.unarchive"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

@@ -178,6 +178,17 @@ code {
   gap: 0.42rem;
 }
 
+.check-row {
+  align-items: center;
+  color: #52627b;
+  display: flex;
+  gap: 0.55rem;
+}
+
+.bookmark-url {
+  overflow-wrap: anywhere;
+}
+
 .field-group label {
   color: #23314c;
   font-size: 0.9rem;
