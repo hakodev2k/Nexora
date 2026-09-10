@@ -11,6 +11,7 @@ import {
   GoalRecord,
   GoalTargetRecord,
   DashboardSnapshot,
+  SearchPage,
   AdminUserAccess,
   AdminUserRecord,
   NotificationRecord,
@@ -45,6 +46,7 @@ import {
   getCsrf,
   getMe,
   getDashboard,
+  searchResources,
   getDocument,
   getGoal,
   getAdminUserAccess,
@@ -110,7 +112,7 @@ import {
   transitionGoal
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'module';
+type Screen = 'home' | 'search' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -133,6 +135,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'profile' };
     case '/settings/security':
       return { screen: 'security' };
+    case '/search':
+      return { screen: 'search' };
     case '/notifications':
       return { screen: 'notifications' };
     case '/trash':
@@ -179,6 +183,8 @@ function pathForLocation(location: LocationState): string {
       return '/settings/profile';
     case 'security':
       return '/settings/security';
+    case 'search':
+      return '/search';
     case 'notifications':
       return '/notifications';
     case 'trash':
@@ -778,7 +784,8 @@ function Shell({
   const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
   const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
   const canGoals = profile.modules.some((module) => module.code.toUpperCase() === 'FX16' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX16', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
+  const canSearch = profile.modules.some((module) => module.code.toUpperCase() === 'FX25' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX16', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -795,6 +802,7 @@ function Shell({
         <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
         <nav className="primary-nav" aria-label="Điều hướng chính">
           <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>Home</span></button>
+          {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>Search</span></button>}
           {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>Finance</span></button>}
           {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
@@ -838,6 +846,7 @@ function Shell({
         </header>
         <main className="shell-main">
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
+          {location.screen === 'search' && <SearchScreen onAuthLost={onAuthLost} />}
           {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} />}
           {location.screen === 'security' && <SecurityScreen onAuthLost={onAuthLost} />}
           {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
@@ -1272,6 +1281,63 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {loading ? <div className="loading-state" role="status">Đang tải users…</div> : users.length === 0 ? <div className="empty-state"><h2>Chưa có account</h2><p>SQL chưa trả operational user projection.</p></div> : <div className="admin-layout"><div className="admin-user-list"><h2>Users</h2>{users.map((user) => <button key={user.id} type="button" className={selectedId === user.id ? 'admin-user-row active' : 'admin-user-row'} onClick={() => void selectUser(user)} disabled={busy !== null}><strong>{user.displayName}</strong><span>{user.email}</span><span>{user.role} · {user.state}</span></button>)}</div><div className="admin-detail">{!access ? <div className="empty-state"><h2>Chọn user</h2></div> : <><div className="section-heading"><div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div><button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>Disable user</button></div><form className="form-panel" onSubmit={saveRole}><div className="field-group"><label htmlFor="admin-role">Role</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div><button className="primary-button" type="submit" disabled={busy !== null}>Lưu role</button></form><form className="form-panel" onSubmit={saveGrant}><div className="section-heading"><h3>Action grant</h3><span className="muted">Allow chỉ cho action đã có policy</span></div><div className="form-grid"><div className="field-group"><label htmlFor="admin-action">Action key</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">Effect</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div><button className="secondary-button" type="submit" disabled={busy !== null}>Cập nhật grant</button></form><div className="form-panel"><div className="section-heading"><h3>Module grants</h3><span className="muted">Server rechecks state/dependency</span></div><div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ' · system disabled'}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div></div><div className="form-panel"><h3>Current action grants</h3>{access.actionGrants.length === 0 ? <p className="muted">No explicit grants.</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div></>}
       </div></div>}
+    </section>
+  );
+}
+
+function SearchScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [query, setQuery] = useState('');
+  const [resourceType, setResourceType] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [page, setPage] = useState<SearchPage | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function run(event?: FormEvent) {
+    event?.preventDefault();
+    if (!query.trim()) {
+      setPage(null);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setPage(await searchResources(query, resourceType, from, to, includeArchived));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="search-title">
+      <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="search-title">Global Search</h1><p className="lead">Tìm trong các nguồn đã được cấp quyền. Search không tạo authority mới và không trả Vault/secret payload.</p></div></div>
+      <form className="form-panel" onSubmit={(event) => void run(event)}>
+        <div className="form-grid">
+          <div className="field-group"><label htmlFor="global-search-query">Query</label><input id="global-search-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={500} placeholder="Tiêu đề, mô tả hoặc nội dung…" autoComplete="off" /></div>
+          <div className="field-group"><label htmlFor="global-search-type">Resource type</label><select id="global-search-type" value={resourceType} onChange={(event) => setResourceType(event.target.value)}><option value="">All enabled sources</option><option value="Project">Projects</option><option value="Task">Tasks</option><option value="Event">Calendar events</option><option value="Document">Documents</option><option value="Bookmark">Bookmarks</option><option value="Snippet">Snippets</option><option value="Goal">Goals</option></select></div>
+          <div className="field-group"><label htmlFor="global-search-from">Updated from</label><input id="global-search-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></div>
+          <div className="field-group"><label htmlFor="global-search-to">Updated to</label><input id="global-search-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} /></div>
+        </div>
+        <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} /> Include archived source records</label>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={loading || !query.trim()}>{loading ? 'Đang tìm…' : 'Tìm kiếm'}</button></div>
+      </form>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {page && <>
+        {page.providers.some((provider) => provider.state === 'Degraded' || provider.state === 'Unavailable') && <Notice kind="info">Một số nguồn không khả dụng; kết quả hiện tại là partial và không đại diện cho toàn bộ dữ liệu.</Notice>}
+        <div className="section-heading"><h2>Kết quả cho “{page.query}”</h2><span className="muted">{page.items.length} kết quả hiển thị</span></div>
+        <div className="module-grid">
+          {page.items.length === 0 ? <div className="empty-state"><h3>Không có kết quả</h3><p>Thử từ khóa khác hoặc xóa bộ lọc.</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {new Date(item.updatedAt).toLocaleString()}</p><button className="secondary-button" type="button" onClick={() => window.location.assign(item.route)}>Mở nguồn</button></article>)}
+        </div>
+        <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
+      </>}
+      {!page && !loading && <div className="empty-state"><h3>Bắt đầu tìm kiếm</h3><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
     </section>
   );
 }

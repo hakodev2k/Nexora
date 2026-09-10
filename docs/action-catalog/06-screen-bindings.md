@@ -114,7 +114,7 @@
 | FX24-S03 — Collection detail | `/organize/collections/:collectionId` | Current / per-action gate | `organization.collection.add`, `organization.collection.remove`, `organization.collection.reorder`, `organization.collection.share` |
 | FX24-S04 — Templates | `/organize/templates` | Current / per-action gate | `organization.template.read`, `organization.template.create`, `organization.template.update`, `organization.template.archive`, `organization.template.unarchive`, `organization.template.trash`, `organization.template.restore`, `organization.template.purge` |
 | FX24-S05 — Template preview / apply | `/organize/templates/:templateId` | Current / per-action gate | `organization.template.instantiate` |
-| FX25-S01 — Global Search | `/search` | Current / per-action gate | `discovery.search.query` |
+| FX25-S01 — Global Search | `/search` | Local source-query search / per-action gate | `discovery.search.query` (implemented) |
 | FX25-S02 — Command palette | `/command-palette` | Current / per-action gate | `discovery.command.read`, `discovery.command.execute` |
 | FX25-S03 — Favorites / recents | `/favorites; /recent` | Current / per-action gate | `discovery.favorite.read`, `discovery.favorite.add`, `discovery.favorite.remove`, `discovery.favorite.reorder`, `discovery.recent.read`, `discovery.recent.clear` |
 | FX25-S04 — Saved searches | `/search/saved` | Current / per-action gate | `discovery.saved_search.read`, `discovery.saved_search.create`, `discovery.saved_search.update`, `discovery.saved_search.delete`, `discovery.saved_search.run` |

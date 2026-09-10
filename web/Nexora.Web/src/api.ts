@@ -53,6 +53,34 @@ export type DashboardSnapshot = {
   widgets: DashboardWidget[];
 };
 
+export type SearchResultRecord = {
+  id: string;
+  resourceType: string;
+  sourceModule: string;
+  title: string;
+  snippet: string | null;
+  status: string | null;
+  updatedAt: string;
+  route: string;
+};
+
+export type SearchProviderStatus = {
+  resourceType: string;
+  sourceModule: string;
+  state: string;
+  message: string | null;
+  count: number;
+};
+
+export type SearchPage = {
+  query: string;
+  resourceType: string | null;
+  includeArchived: boolean;
+  items: SearchResultRecord[];
+  providers: SearchProviderStatus[];
+  nextCursor: string | null;
+};
+
 export type LoginResponse = {
   profile: ProfileResponse;
   expiresAt: string;
@@ -699,6 +727,24 @@ export function getMe() {
 
 export function getDashboard() {
   return apiFetch<DashboardSnapshot>('/api/v1/dashboard');
+}
+
+export function searchResources(
+  query = '',
+  resourceType = '',
+  from = '',
+  to = '',
+  includeArchived = false,
+  limit = 25
+) {
+  const params = new URLSearchParams();
+  if (query.trim()) params.set('q', query.trim());
+  if (resourceType) params.set('resourceType', resourceType);
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  if (includeArchived) params.set('includeArchived', 'true');
+  params.set('limit', String(limit));
+  return apiFetch<SearchPage>(`/api/v1/search?${params.toString()}`);
 }
 
 export function updateMe(patch: ProfilePatch, idempotencyKey = createIdempotencyKey()) {

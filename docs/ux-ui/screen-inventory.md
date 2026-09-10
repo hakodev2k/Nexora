@@ -114,7 +114,7 @@
 | FX24-S03 | Collection detail | `/organize/collections/:collectionId` | Current / per-action gate |
 | FX24-S04 | Templates | `/organize/templates` | Current / per-action gate |
 | FX24-S05 | Template preview / apply | `/organize/templates/:templateId` | Current / per-action gate |
-| FX25-S01 | Global Search | `/search` | Current / per-action gate |
+| FX25-S01 | Global Search | `/search` | Local source-query search / per-action gate |
 | FX25-S02 | Command palette | `/command-palette` | Current / per-action gate |
 | FX25-S03 | Favorites / recents | `/favorites; /recent` | Current / per-action gate |
 | FX25-S04 | Saved searches | `/search/saved` | Current / per-action gate |

@@ -2,7 +2,13 @@
 
 Product phase: **P03** · Delivery: **RM11** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-25 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** FX25-S01 bounded source-query search slice implemented locally on PR #4; saved search/favorite/recent/command-palette actions remain gated and runtime is not run. Goals có điều kiện không là quyền code. FX-25 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+
+## Current implementation overlay
+
+The local slice implements `NXG-FX25-G01` and the access/failure boundary in
+`NXG-FX25-G02` through `search`. It does not claim `NXG-FX25-G03` or any
+persisted index, saved query, favorite, recent or command execution behavior.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

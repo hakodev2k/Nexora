@@ -44,7 +44,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-22 | [Code Snippets](22-snippets.md) | GitHub Gists, DevToys | Not in M01; common gates apply |
 | FX-23 | [Read Later](23-read-later.md) | Instapaper | Bookmark-reference slice implemented locally; News/body reader and common gates remain |
 | FX-24 | [Tags, Collections và Templates](24-organization-and-templates.md) | Notion Templates, Raindrop.io | FX24-S01 Tag catalog implemented locally; assignment/collections/templates remain gated |
-| FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Notion Search, Raindrop.io Search, Notion Sidebar | Not in M01; common gates apply |
+| FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Notion Search, Raindrop.io Search, Notion Sidebar | Local FX25-S01 source-query search on PR #4; saved/favorite/command gates apply |
 | FX-26 | [Dashboard và Widgets](26-dashboard.md) | ClickUp Dashboards | Local FX26-S01 attention slice on PR #4; layout/quick-create gates apply |
 | FX-27 | [Personal Finance](27-finance.md) | Actual Budget | Initial basic manual records approved; advanced Finance gated; sensitive projection policy applies |
 | FX-28 | [Vault](28-vault.md) | Bitwarden | Hybrid/no-operator-plaintext policy approved; crypto/recovery implementation gated |

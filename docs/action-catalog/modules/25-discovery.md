@@ -15,7 +15,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 
 | Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="discovery-search-query"></a>`discovery.search.query` — Search across enabled providers | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S01 |
+| <a id="discovery-search-query"></a>`discovery.search.query` — Search across enabled providers | QUERY / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — bounded owner-scoped source query; runtime not run | FX25-S01 |
 | <a id="discovery-command-read"></a>`discovery.command.read` — Liệt kê commands khả dụng | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S02 |
 | <a id="discovery-command-execute"></a>`discovery.command.execute` — Thực thi command đã chọn | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S02 |
 | <a id="discovery-favorite-read"></a>`discovery.favorite.read` — Xem favorites | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |

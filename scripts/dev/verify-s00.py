@@ -52,6 +52,8 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Goals/GoalsContracts.cs",
     "src/Nexora.Api/Features/Dashboard/DashboardEndpoints.cs",
     "src/Nexora.Api/Features/Dashboard/DashboardContracts.cs",
+    "src/Nexora.Api/Features/Discovery/SearchEndpoints.cs",
+    "src/Nexora.Api/Features/Discovery/SearchContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -74,6 +76,7 @@ REQUIRED_FILES = [
     "src/Nexora.Application/DeveloperTools/ToolboxServiceContracts.cs",
     "src/Nexora.Application/Goals/GoalServiceContracts.cs",
     "src/Nexora.Application/Dashboard/DashboardServiceContracts.cs",
+    "src/Nexora.Application/Discovery/SearchServiceContracts.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -91,6 +94,7 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.cs",
     "src/Nexora.Infrastructure/Goals/SqlGoalService.cs",
     "src/Nexora.Infrastructure/Dashboard/SqlDashboardService.cs",
+    "src/Nexora.Infrastructure/Discovery/SqlSearchService.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
     "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
@@ -107,6 +111,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0013_developer_toolbox_pure.sql",
     "database/migrations/20260910_0014_goals_numeric.sql",
     "database/migrations/20260910_0015_dashboard_attention.sql",
+    "database/migrations/20260910_0016_global_search_source_query.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -190,7 +195,7 @@ def main() -> int:
             fail(f"Nexora.Api must reference {project}")
 
     program = read("src/Nexora.Api/Program.cs")
-    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "MapGoalsEndpoints", "MapDashboardEndpoints", "IGoalService", "SqlGoalService", "IDashboardService", "SqlDashboardService", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
+    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "MapGoalsEndpoints", "MapDashboardEndpoints", "MapSearchEndpoints", "IGoalService", "SqlGoalService", "IDashboardService", "SqlDashboardService", "ISearchService", "SqlSearchService", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
         if marker not in program:
             fail(f"Program.cs marker missing: {marker}")
     if "DevelopmentIdentityStore" in program or "DevelopmentModuleStore" in program:
@@ -262,6 +267,16 @@ def main() -> int:
     for marker in ("/goals", "/targets/", "listGoals", "createGoal", "updateGoal", "recordGoalProgress", "transitionGoal", "IGoalService"):
         if marker not in goals_endpoints:
             fail(f"goals route marker missing: {marker}")
+
+    dashboard_endpoints = read("src/Nexora.Api/Features/Dashboard/DashboardEndpoints.cs")
+    for marker in ("/dashboard", "getDashboard", "IDashboardService"):
+        if marker not in dashboard_endpoints:
+            fail(f"dashboard route marker missing: {marker}")
+
+    search_endpoints = read("src/Nexora.Api/Features/Discovery/SearchEndpoints.cs")
+    for marker in ("/search", "search", "ISearchService"):
+        if marker not in search_endpoints:
+            fail(f"search route marker missing: {marker}")
 
     filters = read("src/Nexora.Api/Security/EndpointSecurityFilters.cs")
     if "RequireCsrfForUnsafeMethods" not in filters or "X-CSRF-Token" not in filters:
@@ -339,6 +354,9 @@ def main() -> int:
     migration15 = read("database/migrations/20260910_0015_dashboard_attention.sql")
     if "dashboard.dashboard.read" not in migration15:
         fail("dashboard migration marker missing: dashboard.dashboard.read")
+    migration16 = read("database/migrations/20260910_0016_global_search_source_query.sql")
+    if "discovery.search.query" not in migration16:
+        fail("search migration marker missing: discovery.search.query")
 
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):

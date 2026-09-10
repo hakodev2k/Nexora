@@ -2,7 +2,16 @@
 
 FX-25 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Current PR #4 implements the bounded FX25-S01 source-query search slice; saved searches, favorites/recents and command palette remain gated.
+
+## Current PR #4 implementation overlay
+
+`FX25-S01` is implemented locally as `GET /api/v1/search` (`search`). It
+queries owner-scoped Projects, Tasks, Calendar Events, Documents, Bookmarks,
+Snippets and Goals with bounded query/type/date/archive filters, safe previews,
+deterministic ranking and per-source availability states. No persisted search
+index or cross-user/share/support projection is introduced. `FX25-S02` through
+`FX25-S04` remain gated.
 
 ## Phạm vi và tham chiếu
 
