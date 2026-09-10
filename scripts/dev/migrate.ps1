@@ -3,7 +3,7 @@ $ErrorActionPreference = 'Stop'
 $SqlServer = if ($env:NEXORA_SQL_SERVER) { $env:NEXORA_SQL_SERVER } else { 'localhost,14333' }
 $SqlUser = if ($env:NEXORA_SQL_USER) { $env:NEXORA_SQL_USER } else { 'sa' }
 $SqlPassword = $env:NEXORA_SQL_PASSWORD
-$SqlDatabase = if ($env:NEXORA_SQL_DATABASE) { $env:NEXORA_SQL_DATABASE } else { 'NexoraLocal' }
+$SqlDatabase = if ($env:NEXORA_SQL_DATABASE) { $env:NEXORA_SQL_DATABASE } else { 'Nexora_Dev' }
 $MigrationsDir = if ($env:NEXORA_MIGRATIONS_DIR) { $env:NEXORA_MIGRATIONS_DIR } else { 'database/migrations' }
 
 if (-not (Get-Command sqlcmd -ErrorAction SilentlyContinue)) {

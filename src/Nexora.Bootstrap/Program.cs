@@ -1,6 +1,6 @@
 using Nexora.Application.Identity;
 using Nexora.Infrastructure.Identity;
-using Nexora.Infrastructure.Persistence;
+using Nexora.Infrastructure.Local;
 using Microsoft.Data.SqlClient;
 
 var connectionString = Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING");
@@ -16,13 +16,25 @@ if (string.IsNullOrWhiteSpace(connectionString))
     var connectionBuilder = new SqlConnectionStringBuilder
     {
         DataSource = Environment.GetEnvironmentVariable("NEXORA_SQL_SERVER") ?? "localhost,14333",
-        InitialCatalog = Environment.GetEnvironmentVariable("NEXORA_SQL_DATABASE") ?? "NexoraLocal",
+        InitialCatalog = Environment.GetEnvironmentVariable("NEXORA_SQL_DATABASE") ?? "Nexora_Dev",
         UserID = Environment.GetEnvironmentVariable("NEXORA_SQL_USER") ?? "sa",
         Password = sqlPassword,
         TrustServerCertificate = true,
         Encrypt = true
     };
     connectionString = connectionBuilder.ConnectionString;
+}
+
+try
+{
+    // The bootstrap executable is local-only. Reject non-loopback servers and
+    // non-development database names even when a caller supplies a connection string.
+    connectionString = LocalSqlTarget.Validate(connectionString, "Development");
+}
+catch (Exception error) when (error is ArgumentException or InvalidOperationException)
+{
+    Console.Error.WriteLine("Only a loopback SQL Server development target is allowed for bootstrap.");
+    return 2;
 }
 
 var email = Environment.GetEnvironmentVariable("NEXORA_BOOTSTRAP_EMAIL");

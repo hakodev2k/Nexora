@@ -8,7 +8,7 @@ if [[ -z "${NEXORA_SQL_PASSWORD:-}" ]]; then
   exit 1
 fi
 SQL_PASSWORD="${NEXORA_SQL_PASSWORD:-}"
-SQL_DATABASE="${NEXORA_SQL_DATABASE:-NexoraLocal}"
+SQL_DATABASE="${NEXORA_SQL_DATABASE:-Nexora_Dev}"
 MIGRATIONS_DIR="${NEXORA_MIGRATIONS_DIR:-database/migrations}"
 
 if ! command -v sqlcmd >/dev/null 2>&1; then

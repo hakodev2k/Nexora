@@ -34,9 +34,11 @@ try
     await using var sql = new SqlConnection(connection);
     await sql.OpenAsync();
     var migrations = new SqlMigrationRunner();
-    await migrations.ApplyAsync(connection, Path.Combine(AppContext.BaseDirectory, "migrations"));
-    await migrations.ApplyAsync(connection, Path.Combine(AppContext.BaseDirectory, "migrations"));
-    Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration") == 2, "Migrations journal once on replay");
+    var migrationDirectory = Path.Combine(AppContext.BaseDirectory, "migrations");
+    var expectedMigrationCount = Directory.GetFiles(migrationDirectory, "*.sql").Length;
+    await migrations.ApplyAsync(connection, migrationDirectory);
+    await migrations.ApplyAsync(connection, migrationDirectory);
+    Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration") == expectedMigrationCount, "Migrations journal once on replay");
     Console.WriteLine("PASS: empty database migration and journal replay.");
 
     var bootstrap = new SqlBootstrapSuperAdmin(connection);
