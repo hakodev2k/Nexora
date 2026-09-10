@@ -151,7 +151,8 @@ public static class ActionGrantPolicy
         "goals.goal.reopen",
         "goals.target.read",
         "goals.target.create",
-        "goals.target.record_progress"
+        "goals.target.record_progress",
+        "dashboard.dashboard.read"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

@@ -50,6 +50,8 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/DeveloperTools/DeveloperToolsContracts.cs",
     "src/Nexora.Api/Features/Goals/GoalsEndpoints.cs",
     "src/Nexora.Api/Features/Goals/GoalsContracts.cs",
+    "src/Nexora.Api/Features/Dashboard/DashboardEndpoints.cs",
+    "src/Nexora.Api/Features/Dashboard/DashboardContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -71,6 +73,7 @@ REQUIRED_FILES = [
     "src/Nexora.Application/Organization/TagServiceContracts.cs",
     "src/Nexora.Application/DeveloperTools/ToolboxServiceContracts.cs",
     "src/Nexora.Application/Goals/GoalServiceContracts.cs",
+    "src/Nexora.Application/Dashboard/DashboardServiceContracts.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -87,6 +90,7 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Organization/SqlTagService.cs",
     "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.cs",
     "src/Nexora.Infrastructure/Goals/SqlGoalService.cs",
+    "src/Nexora.Infrastructure/Dashboard/SqlDashboardService.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
     "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
@@ -102,6 +106,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0012_organization_tags.sql",
     "database/migrations/20260910_0013_developer_toolbox_pure.sql",
     "database/migrations/20260910_0014_goals_numeric.sql",
+    "database/migrations/20260910_0015_dashboard_attention.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -185,7 +190,7 @@ def main() -> int:
             fail(f"Nexora.Api must reference {project}")
 
     program = read("src/Nexora.Api/Program.cs")
-    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "MapGoalsEndpoints", "IGoalService", "SqlGoalService", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
+    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "MapGoalsEndpoints", "MapDashboardEndpoints", "IGoalService", "SqlGoalService", "IDashboardService", "SqlDashboardService", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
         if marker not in program:
             fail(f"Program.cs marker missing: {marker}")
     if "DevelopmentIdentityStore" in program or "DevelopmentModuleStore" in program:
@@ -331,6 +336,9 @@ def main() -> int:
     for marker in ("[productivity].[Goal]", "[productivity].[GoalTarget]", "[productivity].[GoalProgress]", "goals.goal.create", "goals.target.record_progress"):
         if marker not in migration14:
             fail(f"goals migration marker missing: {marker}")
+    migration15 = read("database/migrations/20260910_0015_dashboard_attention.sql")
+    if "dashboard.dashboard.read" not in migration15:
+        fail("dashboard migration marker missing: dashboard.dashboard.read")
 
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):
@@ -344,7 +352,7 @@ def main() -> int:
             if re.search(forbidden, text):
                 fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags/goals plus local developer-toolbox runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
+    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags/goals/dashboard plus local developer-toolbox runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
     return 0
 
 

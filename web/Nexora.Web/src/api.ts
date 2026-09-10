@@ -27,6 +27,32 @@ export type ProfileResponse = {
   modules: ModuleProjection[];
 };
 
+export type DashboardItem = {
+  id: string;
+  kind: string;
+  title: string;
+  status: string | null;
+  at: string | null;
+  detail: string | null;
+};
+
+export type DashboardWidget = {
+  id: string;
+  title: string;
+  sourceModule: string;
+  state: 'Ready' | 'Empty' | 'Unavailable' | 'Degraded' | string;
+  message: string | null;
+  refreshedAt: string;
+  count: number;
+  items: DashboardItem[];
+};
+
+export type DashboardSnapshot = {
+  timeZoneId: string;
+  generatedAt: string;
+  widgets: DashboardWidget[];
+};
+
 export type LoginResponse = {
   profile: ProfileResponse;
   expiresAt: string;
@@ -669,6 +695,10 @@ export function confirmPasswordReset(token: string, newPassword: string, idempot
 
 export function getMe() {
   return apiFetch<ProfileResponse>('/api/v1/me');
+}
+
+export function getDashboard() {
+  return apiFetch<DashboardSnapshot>('/api/v1/dashboard');
 }
 
 export function updateMe(patch: ProfilePatch, idempotencyKey = createIdempotencyKey()) {

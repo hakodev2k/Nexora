@@ -10,6 +10,7 @@ import {
   GoalDetail,
   GoalRecord,
   GoalTargetRecord,
+  DashboardSnapshot,
   AdminUserAccess,
   AdminUserRecord,
   NotificationRecord,
@@ -43,6 +44,7 @@ import {
   disableAdminUser,
   getCsrf,
   getMe,
+  getDashboard,
   getDocument,
   getGoal,
   getAdminUserAccess,
@@ -849,7 +851,7 @@ function Shell({
           {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'goals' && <GoalsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
-          {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
+          {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
         </main>
       </div>
     </div>
@@ -1274,8 +1276,29 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
   );
 }
 
-function HomeScreen({ profile, navigate }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string) => void }) {
+function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string) => void; onAuthLost: () => Promise<void> }) {
   const enabledModules = profile.modules.filter((module) => module.enabled);
+  const [dashboard, setDashboard] = useState<DashboardSnapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getDashboard().then((result) => {
+      if (!cancelled) setDashboard(result);
+    }).catch((requestError) => {
+      if (cancelled) return;
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) void onAuthLost();
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [profile.id, onAuthLost]);
+
   return (
     <section className="content-section" aria-labelledby="home-title">
       <div className="content-heading">
@@ -1286,6 +1309,19 @@ function HomeScreen({ profile, navigate }: { profile: ProfileResponse; navigate:
         </div>
         <span className="state-pill state-active">{profile.state}</span>
       </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải các widget…</div> : dashboard && <section className="module-section" aria-labelledby="dashboard-attention-title">
+        <div className="section-heading"><div><h2 id="dashboard-attention-title">Attention</h2><p className="muted">Nguồn dữ liệu giữ nguyên owner và timezone của PersonalSpace.</p></div><span className="muted">{new Date(dashboard.generatedAt).toLocaleString()}</span></div>
+        <div className="module-grid">
+          {dashboard.widgets.map((widget) => (
+            <article key={widget.id} className={widget.state === 'Unavailable' ? 'module-card unavailable' : 'module-card'}>
+              <div className="module-card-heading"><h3>{widget.title}</h3><span className={widget.state === 'Ready' ? 'state-pill state-active' : 'state-pill'}>{widget.state}</span></div>
+              <p>{widget.message ?? `${widget.count} item${widget.count === 1 ? '' : 's'}`}</p>
+              {widget.items.length === 0 ? <p className="muted">Không có mục cần chú ý.</p> : <ul className="grant-list">{widget.items.map((item) => <li key={item.id}><span><strong>{item.title}</strong><small>{item.status ?? item.kind}{item.at ? ` · ${new Date(item.at).toLocaleString()}` : ''}</small></span></li>)}</ul>}
+            </article>
+          ))}
+        </div>
+      </section>}
       <div className="info-grid">
         <article className="info-card">
           <p className="card-label">Locale</p>

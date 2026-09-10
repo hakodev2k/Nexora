@@ -118,7 +118,7 @@
 | FX25-S02 | Command palette | `/command-palette` | Current / per-action gate |
 | FX25-S03 | Favorites / recents | `/favorites; /recent` | Current / per-action gate |
 | FX25-S04 | Saved searches | `/search/saved` | Current / per-action gate |
-| FX26-S01 | Home dashboard | `/` | Current / per-action gate |
+| FX26-S01 | Home dashboard | `/` | Local attention projection / per-action gate |
 | FX26-S02 | Dashboard configuration | `/settings/dashboard` | Current / per-action gate |
 | FX27-S01 | Finance overview | `/finance` | Historical advanced scope / Blocked |
 | FX27-S02 | Accounts | `/finance/accounts` | Historical advanced scope / Blocked |

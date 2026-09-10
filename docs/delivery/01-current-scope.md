@@ -53,7 +53,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-23 | [Read Later](../features/23-read-later.md) | Bookmark-reference queue slice implemented locally on PR #4; News/body reader, search, sharing and advanced lifecycle gates apply | Not in M01 |
 | FX-24 | [Tags, Collections và Templates](../features/24-organization-and-templates.md) | FX24-S01 owner-scoped Tag catalog implemented locally; assignment/Collections/Templates remain gated | Not in M01 |
 | FX-25 | [Search, Saved Search, Favorites và Command Palette](../features/25-search-favorites-and-command-palette.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-26 | [Dashboard và Widgets](../features/26-dashboard.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
+| FX-26 | [Dashboard và Widgets](../features/26-dashboard.md) | FX26-S01 owner-only attention projection implemented locally; layout/quick-create gates apply | Not in M01 |
 | FX-27 | [Finance — current basic manual records](../features/27-finance.md) | Initial Finance scope = manual category/amount/explicit currency/date/optional note; advanced ledger/budget/debt/interest/FX/transfers gated | Not in M01 |
 | FX-28 | [Vault](../features/28-vault.md) | Hybrid recoverable Vault policy approved; no operator plaintext; portability/key design/security evidence still required | Not in M01 |
 | FX-29 | [News, RSS và Topic Watch](../features/29-news-and-feeds.md) | Internal stored reader; read-only public outbound allowed only after slice contract and SSRF/provider guards | Not in M01 |
