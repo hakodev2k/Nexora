@@ -51,8 +51,8 @@ Notes:
 
 - M01 also includes operator/developer work that has no user action key: S00 toolchain/runbook, S01 bootstrap SuperAdmin, S10 audit/outbox/jobs foundation and S11 evidence/restore rehearsal.
 - M01 API operationIds `getCsrf` and `reauth` are approved M01 control endpoints even though catalog v1.1 has no standalone action keys for them. `getCsrf` grants no user authority; `reauth` refreshes recent-auth proof under the identity/session control boundary.
-- M01 does not approve full Notification Center UI, full module settings, Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations.
-- `identity.account.soft_delete`, `identity.profile.change_email`, `identity.profile.change_password`, `access.user.disable`, `access.user.enable`, `access.user.revoke_sessions`, `modules.policy.sharing`, `modules.policy.settings`, `modules.runtime.register`, `modules.runtime.migrate`, `modules.runtime.health`, `settings.module.read`, `settings.module.update`, and `notifications.inbox.*` remain `DESIGN_RESOLVED_NOT_APPROVED_NOW` unless a later slice approves them.
+- M01 did not approve full Notification Center UI, full module settings, Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations. This is the historical M01 baseline; DEC-014 and the current PR #4 slice overlays below supersede it for local code when a concrete contract is present.
+- `identity.account.soft_delete`, `identity.profile.change_email`, `identity.profile.change_password`, `access.user.enable`, `access.user.revoke_sessions`, `modules.policy.sharing`, `modules.policy.settings`, `modules.runtime.register`, `modules.runtime.migrate`, `modules.runtime.health` and `settings.module.read`/`settings.module.update` remain contract-gated. `access.user.disable`, `notifications.inbox.*` and the implemented Projects/Tasks/Calendar/Documents/Finance-manual action subsets are permitted only within their documented local slices.
 
 Implementation amendment: DEC-20260909-014 now permits the local-safe
 `access.user.disable` operation and the initial owner-scoped Projects/Tasks/
@@ -69,6 +69,16 @@ implemented document action subset is `documents.library.read`,
 `documents.page.archive` and `documents.page.unarchive`. This overlay records
 implementation authority only; each slice remains separately labelled
 `SLICE_IMPLEMENTED` or `SLICE_VERIFIED_LOCALLY` by its evidence document.
+
+The current PR #4 Finance overlay permits only the contracted manual-record
+subset: `finance.manual_category.read`, `finance.manual_category.create`,
+`finance.manual_category.update`, `finance.manual_category.remove`,
+`finance.manual_record.read`, `finance.manual_record.create`,
+`finance.manual_record.update` and `finance.manual_summary.read`. The
+owner-scoped SQL schema, API and React flow are labelled `SLICE_IMPLEMENTED`
+in `docs/implementation/finance-manual-records-slice.md`; advanced ledger,
+account, transfer, bill, budget, report, CSV and sensitive share/support rows
+remain gated below.
 
 The local implementation evaluates the current `platform.Module`,
 `platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
@@ -193,7 +203,7 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 
 All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Projects, Tasks, Calendar, Reminders, Planner, Goals, Habits, Time Tracking, Focus, Documents, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, Finance manual records, Career, Learning and other non-M01 actions.
+This includes but is not limited to Reminders, Planner, Goals, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings and Finance-manual keys are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 

@@ -104,7 +104,15 @@ public static class ActionGrantPolicy
         "notifications.inbox.delete",
         "lifecycle.trash.read",
         "lifecycle.resource.restore",
-        "lifecycle.resource.purge"
+        "lifecycle.resource.purge",
+        "finance.manual_category.read",
+        "finance.manual_category.create",
+        "finance.manual_category.update",
+        "finance.manual_category.remove",
+        "finance.manual_record.read",
+        "finance.manual_record.create",
+        "finance.manual_record.update",
+        "finance.manual_summary.read"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)

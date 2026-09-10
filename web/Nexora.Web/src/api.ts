@@ -195,6 +195,52 @@ export type PreferencePage = {
   nextCursor: string | null;
 };
 
+export type FinanceCategoryRecord = {
+  id: string;
+  title: string;
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type FinanceCategoryPage = {
+  items: FinanceCategoryRecord[];
+  nextCursor: string | null;
+};
+
+export type FinanceManualRecord = {
+  id: string;
+  categoryId: string;
+  categoryTitle: string;
+  amount: string;
+  currencyCode: string;
+  occurredOn: string;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type FinanceSummary = {
+  currencyCode: string;
+  amount: string;
+};
+
+export type FinanceRecordPage = {
+  items: FinanceManualRecord[];
+  summaries: FinanceSummary[];
+  nextCursor: string | null;
+};
+
+export type FinanceRecordInput = {
+  categoryId: string;
+  amount: string;
+  currencyCode: string;
+  occurredOn: string;
+  note: string | null;
+};
+
 export type AdminUserRecord = {
   id: string;
   email: string;
@@ -774,6 +820,68 @@ export function updatePreference(key: string, etag: string | '*', value: unknown
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ schemaVersion: 1, valueJson: JSON.stringify(value) })
+  });
+}
+
+export function listFinanceCategories(query = '', limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (query.trim()) params.set('query', query.trim());
+  return apiFetch<FinanceCategoryPage>(`/api/v1/finance/categories?${params.toString()}`);
+}
+
+export function createFinanceCategory(title: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FinanceCategoryRecord>('/api/v1/finance/categories', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ title, ifMatch: '*' })
+  });
+}
+
+export function updateFinanceCategory(id: string, etag: string, title: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FinanceCategoryRecord>(`/api/v1/finance/categories/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ title, ifMatch: etag })
+  });
+}
+
+export function removeFinanceCategory(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/finance/categories/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function listFinanceRecords(filters: {
+  categoryId?: string;
+  currencyCode?: string;
+  from?: string;
+  to?: string;
+  query?: string;
+  limit?: number;
+} = {}) {
+  const params = new URLSearchParams({ limit: String(filters.limit ?? 100) });
+  if (filters.categoryId) params.set('categoryId', filters.categoryId);
+  if (filters.currencyCode?.trim()) params.set('currencyCode', filters.currencyCode.trim());
+  if (filters.from) params.set('from', filters.from);
+  if (filters.to) params.set('to', filters.to);
+  if (filters.query?.trim()) params.set('query', filters.query.trim());
+  return apiFetch<FinanceRecordPage>(`/api/v1/finance/records?${params.toString()}`);
+}
+
+export function createFinanceRecord(input: FinanceRecordInput, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FinanceManualRecord>('/api/v1/finance/records', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify(input)
+  });
+}
+
+export function updateFinanceRecord(id: string, etag: string, input: FinanceRecordInput, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FinanceManualRecord>(`/api/v1/finance/records/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify(input)
   });
 }
 
