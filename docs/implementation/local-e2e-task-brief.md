@@ -1,8 +1,8 @@
 # Full local E2E implementation task
 
 Owner: implementation agent `/root`. Source branch: `impl/m01-s00-scaffold`.
-Starting revision: `b17537263e2d478d8a9b14258891a3c1658534e1`; this continuation
-contains the uncommitted PR #4 remediation working tree.
+Starting revision: `b17537263e2d478d8a9b14258891a3c1658534e1`.
+Remediation implementation commit: `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`.
 Delivery target: existing PR #4 to `main`; commit/push/update authorized; no merge.
 Authorization: current PO prompt, recorded as DEC-20260909-014.
 
@@ -66,7 +66,8 @@ The selected Nexora engineering skill and routed baseline/architecture/backend/
 frontend/security/database/verification/owner-isolation rules were loaded from
 `.agents/skills/nexora-engineering/SKILL.md`, `.ai/profiles/`, `.ai/roles/`
 and `.ai/routing.json`. Remaining gates at handoff are exact restore-based CI
-verification and the workflow's GitHub status, SQL runtime/migration
+verification and the workflow's GitHub status (run `34500989938` is currently
+in progress), SQL runtime/migration
 verification, the documented owner-run manual QA script, and independent review.
 The local API/Bootstrap Release builds, existing unit checks and frontend build
 have now run successfully; Bash verification was blocked before execution by

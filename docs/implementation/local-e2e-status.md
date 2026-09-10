@@ -1,6 +1,6 @@
 # Local Release 1 implementation status
 
-Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. This is not a merge, production or runtime-verification claim.
+Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Implementation commit: `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`. This is not a merge, production or runtime-verification claim.
 
 ## Implemented in this revision
 
@@ -56,7 +56,7 @@ Production deployment, public launch, real secrets/provider calls, real OAuth/pa
 
 The current instruction remains code-only: no new tests, fixtures, demo records
 or provider/runtime data were added. The following commands were actually run
-on the remediation working tree:
+on implementation commit `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`:
 
 - `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (restore required elevated local NuGet-config access).
 - `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors.
@@ -67,8 +67,8 @@ on the remediation working tree:
 - `bash scripts/dev/verify.sh` — **Not run**: the Windows environment denied WSL/Bash instance creation (`E_ACCESSDENIED`) before the script executed.
 
 The workflow now includes the existing unit-check command after the API/
-Bootstrap build. GitHub Actions status was not queried in this environment and
-is **Not run/Pending** until the branch is pushed/CI executes. SQL integration
-was **Not run** because `NEXORA_TEST_SQL_CONNECTION` is absent; no SQL migration,
+Bootstrap build. GitHub Actions workflow run `34500989938` / run `142` is
+currently **in progress** after the branch update; its final result is pending.
+SQL integration was **Not run** because `NEXORA_TEST_SQL_CONNECTION` is absent; no SQL migration,
 health endpoint, browser/E2E or manual QA runtime evidence is claimed. The
 manual flow is documented in `pr4-review-qa-script.md` for the human owner.
