@@ -65,8 +65,8 @@ stale M01 naming/comments.
 The selected Nexora engineering skill and routed baseline/architecture/backend/
 frontend/security/database/verification/owner-isolation rules were loaded from
 `.agents/skills/nexora-engineering/SKILL.md`, `.ai/profiles/`, `.ai/roles/`
-and `.ai/routing.json`. Exact restore-based CI verification now passes on
-workflow run `34501160127` / run `143`; remaining gates are SQL runtime/migration
+and `.ai/routing.json`. Exact restore-based CI verification passes on workflow
+runs `34501160127` / `143` and `34501462229` / `144`; remaining gates are SQL runtime/migration
 verification, the documented owner-run manual QA script, and independent review.
 The local API/Bootstrap Release builds, existing unit checks and frontend build
 have now run successfully; Bash verification was blocked before execution by
