@@ -1,7 +1,7 @@
 # Release 1 requirement traceability matrix
 
-> Source implementation revision: `e42516e2360ad2afd7d8a0144412a15086770983`; current evidence/head:
-> `impl/m01-s00-scaffold`.
+> Source implementation revision: `e42516e2360ad2afd7d8a0144412a15086770983`; current evidence/head: `77abe7a56ea035162970969d4e1bed4743a8349a`.
+> Branch: `impl/m01-s00-scaffold`.
 >
 > Authority: current approved requirements and Product Owner decision
 > `DEC-20260909-014`. This matrix does not turn a documented capability into
@@ -9,7 +9,7 @@
 > automated test suite, fixture, browser run, SQL runtime run or manual QA was
 > added by this run. `Implemented` below means source/contract coverage exists;
 > runtime evidence remains `Not run` unless an exact result is linked. CI run
-> `34508111597` / `147` passed the existing boundary, build, unit-check and
+> `34508111597` / `149` passed the existing boundary, build, unit-check and
 > frontend-build steps; it does not substitute for SQL/browser/runtime evidence.
 
 ## Status vocabulary

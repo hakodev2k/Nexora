@@ -71,7 +71,7 @@ runs `34501160127` / `143` and `34501462229` / `144`; remaining gates are SQL ru
 verification, the documented owner-run manual QA script, and independent review.
 The local API/Bootstrap Release builds and frontend build have now run
 successfully; the existing unit-check step and `verify.sh` also passed in CI
-run `34508111597` / `147`. The local Bash invocation was blocked before
+run `34508111597` / `149`. The local Bash invocation was blocked before
 execution by the host's WSL access policy, and SQL/runtime/owner QA plus
 independent review remain `Not run` or `Pending`.
 
