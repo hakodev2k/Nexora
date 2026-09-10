@@ -1048,6 +1048,20 @@ SELECT [Id] FROM [platform].[SecurityInvariant] WITH (UPDLOCK, HOLDLOCK) WHERE [
                 }
             }
 
+            // Bootstrap is a one-way local operation. The additive closure
+            // migration persists the marker independently of the role rows so
+            // deleting/altering a later account can never reopen the gate.
+            using (var closure = CreateCommand(connection, transaction, @"
+SELECT [BootstrapCompletedAt] FROM [platform].[SecurityInvariant] WHERE [Id] = 1;"))
+            {
+                var completedAt = closure.ExecuteScalar();
+                if (completedAt is DateTime)
+                {
+                    RollbackQuietly(transaction);
+                    return Failure<BootstrapSuperAdminResult>("BootstrapAlreadyCompleted", 409, "SuperAdmin bootstrap has already completed.");
+                }
+            }
+
             using (var existing = CreateCommand(connection, transaction, @"
 SELECT COUNT_BIG(1)
 FROM [identity].[UserRole] ur
@@ -1093,6 +1107,11 @@ SELECT @userId, [Id] FROM [identity].[Role] WHERE [Code] = 'SuperAdmin';",
                 ("@userId", SqlDbType.UniqueIdentifier, (object)userId));
             GrantReadyModules(connection, transaction, userId, now);
             InsertAudit(connection, transaction, userId, spaceId, "identity.superadmin.bootstrap", "User", userId, "Succeeded", null, traceId, now);
+            ExecuteNonQuery(connection, transaction, @"
+UPDATE [platform].[SecurityInvariant]
+SET [BootstrapCompletedAt] = @now, [UpdatedAt] = @now
+WHERE [Id] = 1 AND [BootstrapCompletedAt] IS NULL;",
+                ("@now", SqlDbType.DateTime2, (object)now));
             transaction.Commit();
             return IdentityOperationResult<BootstrapSuperAdminResult>.Success(new BootstrapSuperAdminResult(userId, spaceId), 201, "Created");
         }
