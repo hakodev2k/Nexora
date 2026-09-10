@@ -26,7 +26,7 @@ Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext
 | FX-20 | [Documents, Note và Knowledge Pages](20-documents.md) | P03 | RM09 | Current action/story gates |
 | FX-21 | [Bookmarks](21-bookmarks.md) | P03 | RM09 | Manual metadata slice implemented; advanced gates remain |
 | FX-22 | [Code Snippets](22-snippets.md) | P03 | RM09 | Text/version slice implemented; advanced gates remain |
-| FX-23 | [Read Later](23-read-later.md) | P03 | RM09 | Xem file: partial gates |
+| FX-23 | [Read Later](23-read-later.md) | P03 | RM09 | Bookmark-reference slice implemented; News/body reader and advanced gates remain |
 | FX-24 | [Tags, Collections và Templates](24-organization-and-templates.md) | P03 | RM09 | Xem file: partial gates |
 | FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | P03 | RM11 | Current action/story gates |
 | FX-26 | [Dashboard và Widgets](26-dashboard.md) | P03 | RM11 | Current action/story gates |

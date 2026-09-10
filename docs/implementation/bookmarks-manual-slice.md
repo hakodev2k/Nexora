@@ -23,7 +23,7 @@ Migration `database/migrations/20260910_0009_bookmarks_manual.sql` adds `[knowle
 
 ## Explicitly deferred
 
-Metadata refresh, network health checks, external navigation, collections, tags, sharing/support projections, Trash/restore/purge, Read Later integration and provider adapters remain separate contracts. They must not be inferred from this slice or enabled by a grant alone.
+Metadata refresh, network health checks, external navigation, collections, tags, sharing/support projections and Trash/restore/purge remain separate contracts. The local Read Later integration is limited to queueing an owner-readable Bookmark reference with safe title/URL snapshots; it does not copy body, open/fetch the URL or change Bookmark state. Other provider adapters remain separate contracts and must not be inferred from this slice or enabled by a grant alone.
 
 ## Verification boundary
 

@@ -11,6 +11,7 @@ import {
   AdminUserRecord,
   NotificationRecord,
   PreferenceRecord,
+  ReadingItemRecord,
   TrashItemRecord,
   NexoraApiError,
   ProjectRecord,
@@ -46,6 +47,7 @@ import {
   listPreferences,
   listAdminUsers,
   listBookmarks,
+  listReadingQueue,
   listProjects,
   listSessions,
   listSnippets,
@@ -82,10 +84,13 @@ import {
   updateFinanceCategory,
   updateFinanceRecord,
   updateBookmark,
-  createSnippet
+  createSnippet,
+  saveReadingItem,
+  removeReadingItem,
+  updateReadingItem
 } from './api';
 
-type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'module';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -120,6 +125,8 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'bookmarks' };
     case '/snippets':
       return { screen: 'snippets' };
+    case '/read-later':
+      return { screen: 'readLater' };
     case '/login':
       return { screen: 'login' };
     case '/':
@@ -158,6 +165,8 @@ function pathForLocation(location: LocationState): string {
       return '/bookmarks';
     case 'snippets':
       return '/snippets';
+    case 'readLater':
+      return '/read-later';
     case 'login':
       return '/login';
     case 'module':
@@ -733,7 +742,8 @@ function Shell({
   const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
   const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
   const canSnippets = profile.modules.some((module) => module.code.toUpperCase() === 'FX22' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22'].includes(module.code.toUpperCase()));
+  const canReadLater = profile.modules.some((module) => module.code.toUpperCase() === 'FX23' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX27', 'FX21', 'FX22', 'FX23'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -753,6 +763,7 @@ function Shell({
           {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>Finance</span></button>}
           {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
+          {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>Read Later</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -797,6 +808,7 @@ function Shell({
           {location.screen === 'finance' && <FinanceScreen onAuthLost={onAuthLost} />}
           {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
           {location.screen === 'snippets' && <SnippetsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'readLater' && <ReadLaterScreen onAuthLost={onAuthLost} />}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
         </main>
@@ -1944,6 +1956,174 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   );
 }
 
+type ReadingState = 'Unread' | 'Reading' | 'Read' | 'Archived';
+
+function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<ReadingItemRecord[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkRecord[]>([]);
+  const [stateFilter, setStateFilter] = useState('');
+  const [selectedBookmarkId, setSelectedBookmarkId] = useState('');
+  const [positionDraft, setPositionDraft] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [sourceError, setSourceError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextState = stateFilter) {
+    setLoading(true);
+    setError(null);
+    setSourceError(null);
+    setConflict(false);
+    try {
+      const page = await listReadingQueue(nextState, 100);
+      const nextItems = Array.isArray(page.items) ? page.items : [];
+      setItems(nextItems);
+      setPositionDraft((current) => {
+        const next = { ...current };
+        nextItems.forEach((item) => { next[item.id] ??= String(item.progress); });
+        return next;
+      });
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    }
+    try {
+      const page = await listBookmarks(true, '', 100);
+      setBookmarks(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setSourceError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [stateFilter]);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    if (!selectedBookmarkId) {
+      setError(new NexoraApiError('Chọn một bookmark trước khi lưu vào Read Later.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      await saveReadingItem('Bookmark', selectedBookmarkId, requestKey.current);
+      requestKey.current = null;
+      setSelectedBookmarkId('');
+      await load();
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function changeState(item: ReadingItemRecord, state: Exclude<ReadingState, 'Archived'>, progress?: number) {
+    if (!item.sourceAvailable) return;
+    const key = createIdempotencyKey();
+    setBusy(`state:${item.id}`);
+    setError(null);
+    setConflict(false);
+    try {
+      await updateReadingItem(item.id, item.etag, state, progress, key);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function savePosition(item: ReadingItemRecord) {
+    const raw = positionDraft[item.id] ?? String(item.progress);
+    const progress = Number(raw);
+    if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
+      setError(new NexoraApiError('Position phải là số từ 0 đến 1.', 422, 'ValidationFailed'));
+      return;
+    }
+    await changeState(item, 'Reading', progress);
+  }
+
+  async function remove(item: ReadingItemRecord) {
+    if (!window.confirm(`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later? Bookmark nguồn sẽ không bị xóa.`)) return;
+    setBusy(`remove:${item.id}`);
+    setError(null);
+    setConflict(false);
+    try {
+      await removeReadingItem(item.id, item.etag, createIdempotencyKey());
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const selectableBookmarks = bookmarks.filter((bookmark) => bookmark.status === 'Active' || bookmark.status === 'Archived');
+  return (
+    <section className="content-section" aria-labelledby="read-later-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX23 / KNOWLEDGE</p>
+          <h1 id="read-later-title">Read Later</h1>
+          <p className="lead">Queue chỉ lưu tham chiếu Bookmark và snapshot title/URL an toàn. Không copy body, không tự fetch hoặc mở provider bên ngoài.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Reading item đã thay đổi ở nơi khác. Hãy tải revision mới rồi thực hiện lại thao tác.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {sourceError && <Notice kind="info">Không tải được danh sách Bookmark nguồn; queue hiện có vẫn được hiển thị, nhưng không thể lưu nguồn mới. {sourceError.message}</Notice>}
+      <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={save} noValidate>
+            <div className="section-heading"><h2>Lưu source</h2></div>
+            <div className="field-group">
+              <label htmlFor="read-later-source">Bookmark nguồn</label>
+              <select id="read-later-source" value={selectedBookmarkId} onChange={(event) => { requestKey.current = null; setSelectedBookmarkId(event.target.value); setError(null); }} disabled={loading || busy !== null || selectableBookmarks.length === 0}>
+                <option value="">{selectableBookmarks.length === 0 ? 'Không có bookmark khả dụng' : 'Chọn bookmark'}</option>
+                {selectableBookmarks.map((bookmark) => <option key={bookmark.id} value={bookmark.id}>{bookmark.title} · {bookmark.url}</option>)}
+              </select>
+              <p className="field-help">Save retry cùng source chỉ giữ một queue entry theo owner; source Archived vẫn chỉ là metadata được phép đọc.</p>
+            </div>
+            <div className="form-actions"><SubmitButton busy={busy === 'save'}>Lưu vào Read Later</SubmitButton></div>
+          </form>
+          <div className="security-policy"><strong>Source boundary</strong><span>Xóa queue không xóa Bookmark. Khi source bị xóa, disabled hoặc không còn quyền đọc, UI chỉ giữ snapshot an toàn và không hiển thị body cache.</span></div>
+        </div>
+        <div className="content-section">
+          <div className="form-panel">
+            <div className="section-heading"><h2>Queue của bạn</h2><span className="muted">{items.length} mục</span></div>
+            <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} disabled={loading || busy !== null}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
+          </div>
+          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <div className="reading-position"><label htmlFor={`reading-position-${item.id}`}>Position metadata (0–1)</label><input id={`reading-position-${item.id}`} type="number" min="0" max="1" step="0.01" value={positionDraft[item.id] ?? String(item.progress)} onChange={(event) => setPositionDraft({ ...positionDraft, [item.id]: event.target.value })} disabled={busy !== null} /><button className="secondary-button" type="button" onClick={() => void savePosition(item)} disabled={busy !== null}>{busy === `state:${item.id}` ? 'Đang lưu…' : 'Lưu vị trí'}</button></div> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || busy !== null || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || busy !== null}>Đang đọc</button>}<button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -2197,6 +2377,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX22') {
     return <SnippetsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX23') {
+    return <ReadLaterScreen onAuthLost={onAuthLost} />;
   }
 
   return (

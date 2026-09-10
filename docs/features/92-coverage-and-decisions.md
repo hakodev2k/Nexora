@@ -4,7 +4,7 @@
 
 ## Catalog coverage
 
-Đối chiếu26 dòng catalog tại baseline d0d8418: **25 dòng Committed có feature spec;1 dòng Future vẫn Deferred**. Đây là coverage tài liệu, không là chứng nhận mọi capability/AC đã được implement hoặc mọi proposal đã Approved. Sau 2026-09-09, chỉ M01 + scaffold có implementation approval; các feature khác vẫn cần slice approval riêng.
+Đối chiếu26 dòng catalog tại baseline d0d8418: **25 dòng Committed có feature spec;1 dòng Future vẫn Deferred**. Đây là coverage tài liệu, không là chứng nhận mọi capability/AC đã được implement hoặc mọi proposal đã Approved. `DEC-20260909-014` hiện cho phép local code khi slice contract đủ; từng slice vẫn phải có evidence riêng.
 
 | Catalog row | Feature specs | Current disposition |
 |---|---|---|
@@ -16,7 +16,7 @@
 | Tasks/Projects/Calendar/Events/Reminders | [Projects](11-projects.md), [Tasks, Kanban và Table](12-tasks.md), [Calendar, Personal Events và ICS](13-calendar.md), [Reminders và Due Scheduling](14-reminders-and-scheduling.md) | Core flat Productivity scope retained; extensions gated; not in M01 |
 | Planner/Goals/Habits/TimeTracking/Pomodoro | [Daily và Weekly Planner](15-planner.md), [Goals và Targets](16-goals.md), [Habit Tracker](17-habits.md), [Time Tracking](18-time-tracking.md), [Pomodoro và Focus](19-pomodoro.md) | Feature specs exist; later slice approval required |
 | Documents types/Files/Bookmarks/Snippets/Folders/Page hierarchy/Collections/Tags | [Files, Uploads và Attachments](07-files-and-attachments.md), [Documents, Note và Knowledge Pages](20-documents.md), [Bookmarks](21-bookmarks.md), [Code Snippets](22-snippets.md), [Tags, Collections và Templates](24-organization-and-templates.md) | Feature specs exist; later slice approval required |
-| Templates/Versioning/Archive/ReadLater | [Trash, Activity và Audit](08-trash-activity-and-audit.md), [Documents, Note và Knowledge Pages](20-documents.md), [Read Later](23-read-later.md), [Tags, Collections và Templates](24-organization-and-templates.md) | Feature specs exist; later slice approval required |
+| Templates/Versioning/Archive/ReadLater | [Trash, Activity và Audit](08-trash-activity-and-audit.md), [Documents, Note và Knowledge Pages](20-documents.md), [Read Later](23-read-later.md), [Tags, Collections và Templates](24-organization-and-templates.md) | Read Later Bookmark-reference slice implemented locally; News/body reader and organization remain contract-gated |
 | Global Search | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Feature specs exist; later slice approval required; owner projection gates apply |
 | Advanced/SavedSearch/Favorites/Recent/History/CommandPalette | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Feature specs exist; later slice approval required |
 | Dashboard/Home/Widgets/QuickActions | [Dashboard và Widgets](26-dashboard.md) | Feature specs exist; later slice approval required |

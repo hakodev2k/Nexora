@@ -106,9 +106,9 @@
 | FX22-S01 — Snippet list | `/snippets` | Current / per-action gate | `snippets.snippet.read`, `snippets.snippet.create`, `snippets.snippet.archive`, `snippets.snippet.unarchive`, `snippets.snippet.trash`, `snippets.snippet.restore`, `snippets.snippet.purge` |
 | FX22-S02 — Snippet editor | `/snippets/new; /snippets/:snippetId/edit` | Current / per-action gate | `snippets.snippet.create`, `snippets.snippet.save` |
 | FX22-S03 — Snippet detail / history | `/snippets/:snippetId; /snippets/:snippetId/history` | Current / per-action gate | `snippets.snippet.read`, `snippets.snippet.history`, `snippets.snippet.restore_version`, `snippets.snippet.share`, `snippets.snippet.copy`, `snippets.snippet.export` |
-| FX23-S01 — Reading queue | `/read-later` | Current / per-action gate | `reading.queue.read`, `reading.item.save`, `reading.item.remove`, `reading.item.read`, `reading.item.unread` |
-| FX23-S02 — Reader | `/read-later/:itemId` | Current / per-action gate | `reading.queue.read`, `reading.item.read`, `reading.item.unread`, `reading.item.position` |
-| FX23-S03 — Unavailable reading sources | `/read-later?availability=unavailable` | Current / per-action gate | `reading.queue.read`, `reading.item.remove` |
+| FX23-S01 — Reading queue | `/read-later` | Local slice / per-action gate | `reading.queue.read`, `reading.item.save`, `reading.item.remove`, `reading.item.read`, `reading.item.unread`, `reading.item.position` |
+| FX23-S02 — Reader | `/read-later/:itemId` | Contract-gated; no body reader in local slice | `reading.queue.read`, `reading.item.read`, `reading.item.unread`, `reading.item.position` |
+| FX23-S03 — Unavailable reading sources | `/read-later?availability=unavailable` | Local queue projection / per-action gate | `reading.queue.read`, `reading.item.remove` |
 | FX24-S01 — Tag management | `/organize/tags?namespace=:namespace` | Current / per-action gate | `organization.tag.read`, `organization.tag.create`, `organization.tag.rename`, `organization.tag.remove`, `organization.tag.assign` |
 | FX24-S02 — Collections | `/organize/collections` | Current / per-action gate | `organization.collection.read`, `organization.collection.create`, `organization.collection.update`, `organization.collection.delete` |
 | FX24-S03 — Collection detail | `/organize/collections/:collectionId` | Current / per-action gate | `organization.collection.add`, `organization.collection.remove`, `organization.collection.reorder`, `organization.collection.share` |

@@ -42,7 +42,7 @@ Yêu cầu User đã chốt được giữ nguyên. PM/Technical tự giải quy
 | FX-20 | [Documents, Note và Knowledge Pages](20-documents.md) | Google Docs, Notion | Q11 resolved DOCX/MD; not in M01 |
 | FX-21 | [Bookmarks](21-bookmarks.md) | Raindrop.io | Not in M01; common gates apply |
 | FX-22 | [Code Snippets](22-snippets.md) | GitHub Gists, DevToys | Not in M01; common gates apply |
-| FX-23 | [Read Later](23-read-later.md) | Instapaper | Not in M01; common gates apply |
+| FX-23 | [Read Later](23-read-later.md) | Instapaper | Bookmark-reference slice implemented locally; News/body reader and common gates remain |
 | FX-24 | [Tags, Collections và Templates](24-organization-and-templates.md) | Notion Templates, Raindrop.io | Not in M01; common gates apply |
 | FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | Notion Search, Raindrop.io Search, Notion Sidebar | Not in M01; common gates apply |
 | FX-26 | [Dashboard và Widgets](26-dashboard.md) | ClickUp Dashboards | Not in M01; common gates apply |

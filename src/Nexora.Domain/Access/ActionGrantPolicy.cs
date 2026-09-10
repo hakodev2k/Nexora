@@ -122,7 +122,13 @@ public static class ActionGrantPolicy
         "snippets.snippet.create",
         "snippets.snippet.save",
         "snippets.snippet.archive",
-        "snippets.snippet.unarchive"
+        "snippets.snippet.unarchive",
+        "reading.queue.read",
+        "reading.item.save",
+        "reading.item.remove",
+        "reading.item.read",
+        "reading.item.unread",
+        "reading.item.position"
     };
 
     private static readonly HashSet<string> PausedPrefixes = new(StringComparer.Ordinal)
@@ -157,10 +163,10 @@ public static class ActionGrantPolicy
 
         if (!ApprovedForM01.Contains(actionKey))
         {
-            return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 slice.");
+            return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current local Release 1 scope.");
         }
 
-        return PolicyDecision.Allow("GrantAllowed", "Action is approved for M01 grant mutation.");
+        return PolicyDecision.Allow("GrantAllowed", "Action is approved for local Release 1 grant mutation.");
     }
 
     public static bool IsApprovedForM01(string actionKey) => ApprovedForM01.Contains(actionKey);

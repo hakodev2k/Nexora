@@ -199,6 +199,54 @@ code {
   min-width: 0;
 }
 
+.reading-card {
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.reading-card > div:first-child {
+  min-width: 0;
+}
+
+.reading-url {
+  overflow-wrap: anywhere;
+}
+
+.reading-url code {
+  background: #f1f4f8;
+  color: #52627b;
+  font-size: 0.82rem;
+}
+
+.reading-position {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.reading-position label {
+  color: #52627b;
+  font-size: 0.82rem;
+  width: 100%;
+}
+
+.reading-position input {
+  max-width: 8rem;
+}
+
+.source-unavailable {
+  border-color: #e3c9b2;
+  background: #fffaf5;
+}
+
+.source-unavailable-message {
+  color: #885c3c !important;
+  font-size: 0.86rem;
+}
+
 .snippet-code {
   background: #182338;
   border-radius: 0.6rem;
@@ -1143,6 +1191,10 @@ td .muted {
   }
 
   .snippet-card {
+    grid-template-columns: 1fr;
+  }
+
+  .reading-card {
     grid-template-columns: 1fr;
   }
 

@@ -106,9 +106,9 @@
 | FX22-S01 | Snippet list | `/snippets` | Current / per-action gate |
 | FX22-S02 | Snippet editor | `/snippets/new; /snippets/:snippetId/edit` | Current / per-action gate |
 | FX22-S03 | Snippet detail / history | `/snippets/:snippetId; /snippets/:snippetId/history` | Current / per-action gate |
-| FX23-S01 | Reading queue | `/read-later` | Current / per-action gate |
-| FX23-S02 | Reader | `/read-later/:itemId` | Current / per-action gate |
-| FX23-S03 | Unavailable reading sources | `/read-later?availability=unavailable` | Current / per-action gate |
+| FX23-S01 | Reading queue | `/read-later` | Local Bookmark-reference slice / per-action gate |
+| FX23-S02 | Reader | `/read-later/:itemId` | Contract-gated; body reader not implemented |
+| FX23-S03 | Unavailable reading sources | `/read-later?availability=unavailable` | Local safe snapshot projection / per-action gate |
 | FX24-S01 | Tag management | `/organize/tags?namespace=:namespace` | Current / per-action gate |
 | FX24-S02 | Collections | `/organize/collections` | Current / per-action gate |
 | FX24-S03 | Collection detail | `/organize/collections/:collectionId` | Current / per-action gate |

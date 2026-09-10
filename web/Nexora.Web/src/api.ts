@@ -270,6 +270,26 @@ export type SnippetPage = {
   nextCursor: string | null;
 };
 
+export type ReadingItemRecord = {
+  id: string;
+  sourceType: string;
+  sourceId: string;
+  state: string;
+  progress: number;
+  savedAt: string;
+  readAt: string | null;
+  safeTitleSnapshot: string;
+  safeUrlSnapshot: string;
+  sourceAvailable: boolean;
+  updatedAt: string;
+  etag: string;
+};
+
+export type ReadingPage = {
+  items: ReadingItemRecord[];
+  nextCursor: string | null;
+};
+
 export type FinanceRecordInput = {
   categoryId: string;
   amount: string;
@@ -979,6 +999,35 @@ export function transitionSnippet(id: string, etag: string, status: string, idem
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })
+  });
+}
+
+export function listReadingQueue(state = '', limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (state.trim()) params.set('state', state.trim());
+  return apiFetch<ReadingPage>(`/api/v1/read-later?${params.toString()}`);
+}
+
+export function saveReadingItem(sourceType: string, sourceId: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ReadingItemRecord>('/api/v1/read-later', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ sourceType, sourceId })
+  });
+}
+
+export function removeReadingItem(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/read-later/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function updateReadingItem(id: string, etag: string, state: string, progress?: number, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ReadingItemRecord>(`/api/v1/read-later/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify(progress === undefined ? { state } : { state, progress })
   });
 }
 

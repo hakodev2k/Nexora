@@ -50,7 +50,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-20 | [Documents, Note và Knowledge Pages](../features/20-documents.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-21 | [Bookmarks](../features/21-bookmarks.md) | Manual URL/title/description slice implemented locally on PR #4; advanced lifecycle/organization/provider gates apply | Not in M01 |
 | FX-22 | [Code Snippets](../features/22-snippets.md) | Text/version slice implemented locally on PR #4; history/export/share/advanced lifecycle gates apply | Not in M01 |
-| FX-23 | [Read Later](../features/23-read-later.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
+| FX-23 | [Read Later](../features/23-read-later.md) | Bookmark-reference queue slice implemented locally on PR #4; News/body reader, search, sharing and advanced lifecycle gates apply | Not in M01 |
 | FX-24 | [Tags, Collections và Templates](../features/24-organization-and-templates.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-25 | [Search, Saved Search, Favorites và Command Palette](../features/25-search-favorites-and-command-palette.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-26 | [Dashboard và Widgets](../features/26-dashboard.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
