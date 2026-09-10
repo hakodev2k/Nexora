@@ -67,8 +67,8 @@ on implementation commit `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`:
 - `bash scripts/dev/verify.sh` — **Not run**: the Windows environment denied WSL/Bash instance creation (`E_ACCESSDENIED`) before the script executed.
 
 The workflow now includes the existing unit-check command after the API/
-Bootstrap build. GitHub Actions workflow run `34500989938` / run `142` is
-currently **in progress** after the branch update; its final result is pending.
-SQL integration was **Not run** because `NEXORA_TEST_SQL_CONNECTION` is absent; no SQL migration,
+Bootstrap build. GitHub Actions workflow run `34501160127` / run `143` is
+**Pass** (`success`) on the current PR head. SQL integration
+was **Not run** because `NEXORA_TEST_SQL_CONNECTION` is absent; no SQL migration,
 health endpoint, browser/E2E or manual QA runtime evidence is claimed. The
 manual flow is documented in `pr4-review-qa-script.md` for the human owner.
