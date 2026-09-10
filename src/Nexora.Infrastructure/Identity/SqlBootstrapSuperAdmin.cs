@@ -8,7 +8,7 @@ namespace Nexora.Infrastructure.Identity;
 
 public sealed class SqlBootstrapSuperAdmin(string connectionString) : IBootstrapSuperAdmin
 {
-    public async Task<BootstrapOutcome> ExecuteAsync(BootstrapSuperAdminCommand command, CancellationToken cancellationToken = default)
+    public async Task<BootstrapOutcome> ExecuteAsync(SqlBootstrapSuperAdminCommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);
         ArgumentException.ThrowIfNullOrWhiteSpace(command.PasswordHash);

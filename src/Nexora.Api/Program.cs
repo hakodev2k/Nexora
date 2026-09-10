@@ -1,7 +1,30 @@
 using System.Text.Json.Serialization;
+using Microsoft.Data.SqlClient;
+using Nexora.Api.Features.Access;
 using Nexora.Api.Features.Identity;
 using Nexora.Api.Features.Modules;
+using Nexora.Api.Features.Notifications;
+using Nexora.Api.Features.Documents;
+using Nexora.Api.Features.Productivity;
+using Nexora.Api.Features.Settings;
+using Nexora.Api.Features.Trash;
 using Nexora.Api.Security;
+using Nexora.Application.Identity;
+using Nexora.Application.Modules;
+using Nexora.Application.Productivity;
+using Nexora.Application.Notifications;
+using Nexora.Application.Documents;
+using Nexora.Application.Settings;
+using Nexora.Application.Trash;
+using Nexora.Infrastructure.Identity;
+using Nexora.Infrastructure.Access;
+using Nexora.Infrastructure.Modules;
+using Nexora.Infrastructure.Persistence;
+using Nexora.Infrastructure.Productivity;
+using Nexora.Infrastructure.Notifications;
+using Nexora.Infrastructure.Documents;
+using Nexora.Infrastructure.Settings;
+using Nexora.Infrastructure.Trash;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,10 +34,48 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddSingleton<CsrfTokenService>();
-builder.Services.AddSingleton<PasswordHashService>();
 builder.Services.AddSingleton<SessionCookieService>();
-builder.Services.AddSingleton<DevelopmentIdentityStore>();
-builder.Services.AddSingleton<DevelopmentModuleStore>();
+var configuredSqlConnectionString = builder.Configuration.GetConnectionString("NexoraSql")
+    ?? throw new InvalidOperationException("ConnectionStrings:NexoraSql is required.");
+var sqlConnectionString = Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING");
+if (string.IsNullOrWhiteSpace(sqlConnectionString))
+{
+    var sqlPassword = Environment.GetEnvironmentVariable("NEXORA_SQL_PASSWORD");
+    if (string.IsNullOrEmpty(sqlPassword))
+    {
+        throw new InvalidOperationException("NEXORA_SQL_PASSWORD or NEXORA_SQL_CONNECTION_STRING must be supplied; no default database credential is permitted.");
+    }
+
+    var connectionBuilder = new SqlConnectionStringBuilder(configuredSqlConnectionString)
+    {
+        Password = sqlPassword
+    };
+    sqlConnectionString = connectionBuilder.ConnectionString;
+}
+var resolvedSqlConnectionString = sqlConnectionString ?? throw new InvalidOperationException("SQL connection string could not be resolved.");
+var idempotencySecret = Environment.GetEnvironmentVariable("NEXORA_IDEMPOTENCY_SECRET") ?? resolvedSqlConnectionString;
+builder.Services.AddSingleton(new SqlConnectionFactory(resolvedSqlConnectionString));
+builder.Services.AddSingleton<IAccountMessageSink, LocalAccountMessageSink>();
+builder.Services.AddSingleton<IIdentityService>(services =>
+    new SqlIdentityService(services.GetRequiredService<SqlConnectionFactory>(),
+        services.GetRequiredService<IAccountMessageSink>(), idempotencySecret));
+builder.Services.AddSingleton<IModulePolicyService>(services =>
+    new SqlModulePolicyService(
+        services.GetRequiredService<SqlConnectionFactory>(),
+        builder.Configuration["Nexora:ModulePreviewSecret"] ?? Environment.GetEnvironmentVariable("NEXORA_MODULE_PREVIEW_SECRET"),
+        idempotencySecret));
+builder.Services.AddSingleton<IProductivityService>(services =>
+    new SqlProductivityService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IAdminAccessService>(services =>
+    new SqlAdminAccessService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<INotificationService>(services =>
+    new SqlNotificationService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ITrashService>(services =>
+    new SqlTrashService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISettingsService>(services =>
+    new SqlSettingsService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IDocumentService>(services =>
+    new SqlDocumentService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;
@@ -28,11 +89,17 @@ app.UseSecurityHeaders();
 app.MapGet("/health/live", () => Results.Ok(new HealthEnvelope("Live", "Nexora.Api")))
     .WithName("liveHealth");
 
-app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForIdentityAndModuleMinimalApiSurface", "Nexora.Api")))
+app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForSqlBackedLocalFeatureSurface", "Nexora.Api")))
     .WithName("readyHealth");
 
 app.MapIdentityEndpoints();
 app.MapModuleEndpoints();
+app.MapAdminAccessEndpoints();
+app.MapNotificationEndpoints();
+app.MapTrashEndpoints();
+app.MapSettingsEndpoints();
+app.MapDocumentEndpoints();
+app.MapProductivityEndpoints();
 
 app.MapFallback(() => Results.Problem(
     title: "Resource unavailable",

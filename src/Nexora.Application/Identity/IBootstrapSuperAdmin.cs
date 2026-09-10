@@ -2,8 +2,11 @@ namespace Nexora.Application.Identity;
 
 public enum BootstrapOutcome { Created, AlreadyBootstrapped }
 
+// The application identity contract uses BootstrapSuperAdminCommand for its
+// interactive raw-password flow. Keep the low-level SQL adapter on a distinct
+// command so both local entry points can coexist safely.
 // PasswordHash is derived before entering the transaction; never serialize this command.
-public sealed class BootstrapSuperAdminCommand
+public sealed class SqlBootstrapSuperAdminCommand
 {
     public required string Email { get; init; }
     public required string DisplayName { get; init; }
@@ -13,5 +16,5 @@ public sealed class BootstrapSuperAdminCommand
 
 public interface IBootstrapSuperAdmin
 {
-    Task<BootstrapOutcome> ExecuteAsync(BootstrapSuperAdminCommand command, CancellationToken cancellationToken = default);
+    Task<BootstrapOutcome> ExecuteAsync(SqlBootstrapSuperAdminCommand command, CancellationToken cancellationToken = default);
 }

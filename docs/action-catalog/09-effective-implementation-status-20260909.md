@@ -1,26 +1,11 @@
 # Effective action implementation status — 2026-09-09
 
-## Current authority: DEC-20260909-014
+> **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
 
-[Full local E2E approval](../requirements/12-owner-decisions-20260909-local-e2e.md)
-approves documented R1 implementation in contract-complete vertical slices.
-Former DESIGN_RESOLVED_NOT_APPROVED_NOW actions are locally approved; formerly
-PO_PAUSED R1 actions may use local simulated adapters. Real external execution
-remains unapproved. Missing contracts, sensitive projections, cryptography,
-owner isolation, independent review and runtime evidence remain required.
-SUPERSEDED actions remain retired. Local synthetic backup/restore is approved;
-production operations are not.
 
-## Pre-014 record (superseded approval restrictions)
+Current implementation-status overlay for the action catalog. `DEC-20260909-014` supersedes the old M01-only/future-slice approval for local code; it does not authorize production/provider execution.
 
-The classifications and inventories below preserve the earlier decision record.
-Their M01-only, repeated-slice-approval and no-local-code-for-paused restrictions
-are superseded by DEC-20260909-014 and are not current implementation instructions.
-Apply the current amendment's effective-status table before reading the old gates.
-
-Docs-only normalization layer. This file is the current implementation-status overlay for the action catalog after the Product Owner delegated the recommended action decisions on 2026-09-09.
-
-It authorizes no application code, migration, runtime test, provider call, production deployment, production data access or secret access by itself.
+It authorizes no production/provider call, production deployment, production data access or secret access by itself. Local implementation still requires a sufficient API/DB/UX/acceptance/security/evidence contract. The current run is code-only and does not add test/mock/demo data.
 
 ## Authority
 
@@ -28,8 +13,7 @@ This file applies these current decisions:
 
 - `DEC-20260909-001`: M01 S00-S11 + backend scaffold + React frontend scaffold + local scripts are approved for implementation.
 - `DEC-20260909-002` through `DEC-20260909-010`: account deletion, TOTP recovery-code policy, Vault hybrid policy, sensitive projection policy, Finance initial scope, Task extension policy, outbound policy, paused modules and production sequencing.
-- `DEC-20260909-011`: after M01, implementation approval is by small vertical slice, not by full R1 or whole module batch.
-- `DEC-20260909-012`: a future slice is implementable only when PO approval plus API, DB, UX, acceptance, security/privacy and evidence contracts exist.
+- `DEC-20260909-011`/`012`: historical contract-first sequencing remains applicable; DEC-014 removes the need for repeated PO approval once the exact contract is sufficient.
 - `DEC-20260909-013`: do not use “Full R1 implementation-ready” as a Go state. Use exact `SLICE_READY_TO_IMPLEMENT`, `SLICE_APPROVED_TO_IMPLEMENT`, `SLICE_IMPLEMENTED`, `SLICE_VERIFIED_LOCALLY` and later production Go/No-Go states.
 
 If a module table row still says `Resolved delegated`, `Blocked Q-*`, `DEP-EXT-01`, `Paused`, or `Docs-only; no implementation approved`, the effective implementation status is determined by this file plus `docs/delivery/04-paused-blocked-gate-register.md`.
@@ -41,12 +25,12 @@ Every action row falls into exactly one effective implementation state:
 | State | How to apply |
 | --- | --- |
 | `APPROVED_FOR_M01` | Exact action is listed in the M01 approved set below. It may be implemented now only inside the M01 package and must still produce runtime evidence. |
-| `DESIGN_RESOLVED_NOT_APPROVED_NOW` | The action design exists, but current approval does not include implementation. This is the default for all non-M01 resolved rows not listed under another state. |
+| `DESIGN_RESOLVED_NOT_APPROVED_NOW` | The design exists but its exact contract is insufficient for local implementation. Complete API/DB/UX/acceptance/security/evidence inputs first; DEC-014 then permits local code without another slice approval. |
 | `POLICY_APPROVED_IMPLEMENTATION_GATED` | Product policy is decided, but implementation still needs a future slice/ADR/API/DB/UX/security/evidence contract. |
 | `SENSITIVE_PROJECTION_GATED` | Sensitive share/support policy is approved, but field-level projection allowlists and tests do not exist yet for that resource. |
 | `NETWORK_GUARD_GATED` | Named read-only outbound behavior is allowed only after a future slice defines network guards and evidence. |
 | `PRODUCTION_OPS_GATED` | The row depends on provider/capacity/backup/restore/RPO/RTO/SLA or production Go/No-Go. |
-| `PO_PAUSED` | Product Owner intentionally paused the capability. No UI, handler, worker, provider call or default enablement. |
+| `PO_PAUSED` | Product Owner paused real/provider execution. Local/simulated/integration-safe code may exist under DEC-014, but no real provider call or default enablement is allowed. |
 | `SUPERSEDED` | Historical key retained for traceability only. Do not create UI, handler, migration target or tests for the old key except denial/absence checks. |
 
 Rows not named in this file inherit `DESIGN_RESOLVED_NOT_APPROVED_NOW`, unless they are part of the exact M01 approved action set.
@@ -69,6 +53,22 @@ Notes:
 - M01 API operationIds `getCsrf` and `reauth` are approved M01 control endpoints even though catalog v1.1 has no standalone action keys for them. `getCsrf` grants no user authority; `reauth` refreshes recent-auth proof under the identity/session control boundary.
 - M01 does not approve full Notification Center UI, full module settings, Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations.
 - `identity.account.soft_delete`, `identity.profile.change_email`, `identity.profile.change_password`, `access.user.disable`, `access.user.enable`, `access.user.revoke_sessions`, `modules.policy.sharing`, `modules.policy.settings`, `modules.runtime.register`, `modules.runtime.migrate`, `modules.runtime.health`, `settings.module.read`, `settings.module.update`, and `notifications.inbox.*` remain `DESIGN_RESOLVED_NOT_APPROVED_NOW` unless a later slice approves them.
+
+Implementation amendment: DEC-20260909-014 now permits the local-safe
+`access.user.disable` operation and the initial owner-scoped Projects/Tasks/
+Calendar slice when their concrete contracts are present. The runtime status is
+still slice-scoped; this does not make the remaining advanced lifecycle,
+history, ICS, sharing or provider actions implemented.
+
+Current PR #4 implementation overlay: the same decision also permits the
+owner-scoped Notification inbox, Trash lifecycle, Settings preferences and the
+Documents/Notes/Knowledge page core when their contracts are present. The
+implemented document action subset is `documents.library.read`,
+`documents.page.read`, `documents.page.create`, `documents.page.save`,
+`documents.page.publish`, `documents.page.unpublish`,
+`documents.page.archive` and `documents.page.unarchive`. This overlay records
+implementation authority only; each slice remains separately labelled
+`SLICE_IMPLEMENTED` or `SLICE_VERIFIED_LOCALLY` by its evidence document.
 
 ## `PO_PAUSED` rows
 
@@ -180,9 +180,9 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 | FX28 Vault owner restore/purge/version restore | `vault.item.restore`, `vault.item.purge`, `vault.item.restore_version` | Replaced by SuperAdmin-authorized Vault recovery model; no owner purge/restore path. |
 | FX39 Standalone interview actions | `career.interview.read`, `career.interview.create`, `career.interview.update`, `career.interview.complete`, `career.interview.cancel`, `career.interview.link_calendar` | Replaced by `career.appointment.*` linked to internal Calendar Personal Event. |
 
-## Default for all remaining non-M01 action rows
+## Default for all remaining action rows
 
-All other action rows, including rows whose module table says `Resolved delegated`, are `DESIGN_RESOLVED_NOT_APPROVED_NOW` until a future vertical slice explicitly approves them.
+All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
 This includes but is not limited to Projects, Tasks, Calendar, Reminders, Planner, Goals, Habits, Time Tracking, Focus, Documents, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, Finance manual records, Career, Learning and other non-M01 actions.
 
@@ -199,4 +199,4 @@ Valid states are slice-scoped:
 5. `SLICE_VERIFIED_LOCALLY` — runtime evidence actually passes for that slice.
 6. `PRODUCTION_GO_APPROVED` — later provider/capacity/security/ops Go/No-Go approves public release.
 
-A future slice may be approved only when it names exact modules/actions/stories and includes API, DB, UX, acceptance, security/privacy and evidence contracts. Agents must not self-select the next slice or infer approval from R1 catalog membership.
+A slice may be implemented only when it names exact modules/actions/stories and includes API, DB, UX, acceptance, security/privacy and evidence contracts. Agents must not invent missing business decisions or infer real provider permission from R1 catalog membership.

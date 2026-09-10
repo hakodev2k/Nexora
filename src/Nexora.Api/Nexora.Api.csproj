@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nexora.Application\Nexora.Application.csproj" />
     <ProjectReference Include="..\Nexora.Domain\Nexora.Domain.csproj" />
+    <ProjectReference Include="..\Nexora.Infrastructure\Nexora.Infrastructure.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>

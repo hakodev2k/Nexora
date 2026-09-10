@@ -1,6 +1,9 @@
 # Product Owner decisions — implementation readiness 2026-09-09
 
-> Interview decision record. [DEC-20260909-014](12-owner-decisions-20260909-local-e2e.md) supersedes the earlier M01-only approval, separate slice reapproval and prohibition on local implementation of paused R1 modules. The earlier decisions below retain their business/security policies except where explicitly amended; their former approval restrictions are historical, not current implementation instructions.
+> **Current local implementation approval:** [DEC-20260909-014](12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
+
+
+> Current specification amendment. This document records Product Owner choices made during the 2026-09-09 implementation-readiness interviews. It supersedes conflicting older proposal language only for the named capabilities below. Historical snapshots remain evidence, not implementation input.
 
 ## Source and authority
 
@@ -10,7 +13,9 @@ Product Owner response batch 2: selected `Q1:D`, `Q2:A`, `Q3:A`, `Q4:A`, `Q5:A`,
 
 These decisions are Product Owner decisions or Product Owner-delegated implementation-readiness decisions. They do not prove implementation, tests, runtime readiness, production suitability or security certification.
 
-## Original implementation boundary — superseded by DEC-20260909-014
+**Superseded boundary:** DEC-20260909-014 is the current implementation authority. The M01-only/future-slice approval text below is retained as historical traceability. Local Release 1 code may proceed slice-by-slice when contracts are sufficient; production/provider execution remains unapproved. The current code-only run adds no test/mock/demo fixtures; functional QA and runtime verification belong to the owner.
+
+## Approved implementation boundary
 
 `DEC-20260909-001` approves implementation of **M01 + backend/frontend scaffold + local development scripts** only.
 
@@ -49,7 +54,7 @@ Not allowed by this approval:
 | DEC-20260909-012 | Approved | A future slice is implementable only when PO approval plus API, DB, UX, acceptance, security/privacy and evidence contracts exist for the exact actions/stories. | Feature specs and action catalog rows alone are not enough to start code. Agents must not self-select or infer approval from R1 catalog membership. |
 | DEC-20260909-013 | Approved | Do not use “Full R1 implementation-ready” as a Go state. Use slice-scoped readiness states. | Valid states are `SLICE_SPECIFIED`, `SLICE_READY_TO_APPROVE`, `SLICE_APPROVED_TO_IMPLEMENT`, `SLICE_IMPLEMENTED`, `SLICE_VERIFIED_LOCALLY` and later production Go/No-Go. |
 
-## Interview gate effects — apply DEC-20260909-014 for current local approval
+## Updated gate effects
 
 | Previous gate/proposal | Current effect after 2026-09-09 decision |
 | --- | --- |
@@ -68,10 +73,10 @@ Not allowed by this approval:
 
 Implementation agents must bind every change to:
 
-`DEC-20260909-014` (retaining M01 approval from 001) → exact story/action/acceptance → code path → test/evidence → PR revision.
+`DEC-20260909-001` → exact M01 story/action/acceptance → code path → test/evidence → PR revision.
 
 For any future slice, agents must bind every change to:
 
-`DEC-20260909-014` → exact story/action/acceptance/API/DB/UX/security contract → code path → test/evidence → PR revision. Separate PO approval is required only for unresolved business decisions or excluded external/production execution.
+explicit slice approval → exact story/action/acceptance/API/DB/UX contract → code path → test/evidence → PR revision.
 
 Do not describe work as done unless code exists and the required tests/evidence actually ran on the reported revision. Missing application runtime remains `Not run`, not `Pass`.

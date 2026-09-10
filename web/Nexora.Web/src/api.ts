@@ -23,6 +23,7 @@ export type ProfileResponse = {
   locale: 'vi' | 'en';
   state: string;
   personalSpaceId: string | null;
+  role: string;
   modules: ModuleProjection[];
 };
 
@@ -31,13 +32,10 @@ export type LoginResponse = {
   expiresAt: string;
 };
 
-export type DevAccountMessage = {
-  id: string;
-  purpose: string;
-  email: string;
-  token: string;
-  createdAt: string;
-  expiresAt: string;
+export type VerificationResponse = {
+  status: string;
+  messageCode: string;
+  profile?: ProfileResponse;
 };
 
 export type SessionProjection = {
@@ -54,70 +52,242 @@ export type SessionPage = {
   nextCursor: string | null;
 };
 
-export type AdminModuleResponse = {
+export type ProjectRecord = {
   id: string;
-  code: string;
   name: string;
-  state: string;
-  systemEnabled: boolean;
-  registrationEnabled: boolean;
-  policyRevision: string;
-  eTag: string;
-  requiredDependencies: string[];
-  requiredBy: string[];
-  unavailableReason: string | null;
+  description: string | null;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+  startAt: string;
+  endAt: string;
+  priority: string;
+  tagsJson: string;
+  notes: string | null;
 };
 
-export type AdminModulePageResponse = {
-  items: AdminModuleResponse[];
+export type ProjectPage = {
+  items: ProjectRecord[];
   nextCursor: string | null;
 };
 
-export type ModulePolicyChangeRequest = {
-  systemEnabled?: boolean;
-  registrationEnabled?: boolean;
+export type TaskRecord = {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  dueAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+  startAt: string;
+  endAt: string;
+  priority: string;
+  tagsJson: string;
+  acceptanceCriteriaJson: string;
+  rank: number;
+  reminderAt: string | null;
 };
 
-export type ModulePolicyCommitRequest = ModulePolicyChangeRequest & {
-  previewToken: string;
+export type TaskPage = {
+  items: TaskRecord[];
+  nextCursor: string | null;
 };
 
-export type ModuleChangeDiff = {
-  field: string;
-  before: string;
-  after: string;
+export type CalendarEventRecord = {
+  id: string;
+  title: string;
+  description: string | null;
+  startAt: string;
+  endAt: string;
+  timeZoneId: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+  isAllDay: boolean;
+  sourceUid: string | null;
 };
 
-export type ModulePolicyBlocker = {
-  code: string;
-  message: string;
-  field: string | null;
+export type CalendarEventPage = {
+  items: CalendarEventRecord[];
+  nextCursor: string | null;
 };
 
-export type ModulePolicyPreviewResponse = {
-  previewToken: string;
-  expiresAt: string;
-  eTag: string;
-  changes: ModuleChangeDiff[];
-  blockers: ModulePolicyBlocker[];
+export type DocumentSummary = {
+  id: string;
+  title: string;
+  documentType: string;
+  editorMode: string;
+  status: string;
+  preArchiveStatus: string | null;
+  versionNumber: number;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
 };
 
+export type DocumentRecord = DocumentSummary & {
+  body: string;
+};
+
+export type DocumentPage = {
+  items: DocumentSummary[];
+  nextCursor: string | null;
+};
+
+export type NotificationDeliveryRecord = {
+  channel: string;
+  state: string;
+  attempts: number;
+  lastErrorCode: string | null;
+  updatedAt: string;
+};
+
+export type NotificationRecord = {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  sourceRef: string | null;
+  createdAt: string;
+  readAt: string | null;
+  etag: string;
+  deliveries: NotificationDeliveryRecord[];
+};
+
+export type NotificationPage = {
+  items: NotificationRecord[];
+  nextCursor: string | null;
+  unreadCount: number;
+};
+
+export type TrashItemRecord = {
+  id: string;
+  resourceType: string;
+  resourceId: string;
+  deletionBatchId: string;
+  priorStatus: string;
+  deletedAt: string;
+  restoredAt: string | null;
+  purgedAt: string | null;
+};
+
+export type TrashPage = {
+  items: TrashItemRecord[];
+  nextCursor: string | null;
+};
+
+export type PreferenceRecord = {
+  id: string;
+  preferenceKey: string;
+  schemaVersion: number;
+  valueJson: string;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type PreferencePage = {
+  items: PreferenceRecord[];
+  nextCursor: string | null;
+};
+
+export type AdminUserRecord = {
+  id: string;
+  email: string;
+  displayName: string;
+  state: string;
+  emailConfirmed: boolean;
+  role: string;
+  personalSpaceId: string | null;
+  personalSpaceState: string | null;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type AdminUserPage = {
+  items: AdminUserRecord[];
+  nextCursor: string | null;
+};
+
+export type AdminUserAccess = {
+  user: AdminUserRecord;
+  actionGrants: { actionKey: string; effect: string; status: string; updatedAt: string }[];
+  moduleGrants: { code: string; enabled: boolean; state: string; systemEnabled: boolean }[];
+};
+
+export type ProfilePatch = Partial<Pick<ProfileResponse, 'displayName' | 'timeZoneId' | 'locale'>>;
+
+export type FieldErrors = Record<string, string[]>;
+
+type ProblemPayload = {
+  title?: unknown;
+  detail?: unknown;
+  code?: unknown;
+  traceId?: unknown;
+  errors?: unknown;
+};
+
+export class NexoraApiError extends Error {
+  readonly status: number;
+  readonly code: string | null;
+  readonly traceId: string | null;
+  readonly fieldErrors: FieldErrors;
+
+  constructor(message: string, status: number, code: string | null = null, traceId: string | null = null, fieldErrors: FieldErrors = {}) {
+    super(message);
+    this.name = 'NexoraApiError';
+    this.status = status;
+    this.code = code;
+    this.traceId = traceId;
+    this.fieldErrors = fieldErrors;
+  }
+}
+
+// These values intentionally live only for the lifetime of this page. Authentication
+// authority remains the server's Secure/HttpOnly cookie and the SQL-backed session.
 let csrfToken: string | null = null;
 let currentProfileETag: string | null = null;
 
+export function createIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export async function getCsrf(): Promise<CsrfEnvelope> {
-  const response = await fetch('/api/v1/auth/csrf', {
-    method: 'GET',
-    credentials: 'same-origin',
-    headers: { Accept: 'application/json' },
-    cache: 'no-store'
-  });
+  let response: Response;
+  try {
+    response = await fetch('/api/v1/auth/csrf', {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store'
+    });
+  } catch {
+    throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
+  }
 
   if (!response.ok) {
-    throw new Error('CSRF endpoint unavailable');
+    throw await toApiError(response);
+  }
+
+  const rotatedCsrf = response.headers.get('X-CSRF-Token');
+  if (rotatedCsrf) {
+    csrfToken = rotatedCsrf;
   }
 
   const body = (await response.json()) as CsrfEnvelope;
+  if (!body.requestToken || body.tokenType !== 'csrf') {
+    throw new NexoraApiError('CSRF endpoint trả về dữ liệu không hợp lệ.', response.status, 'CsrfInvalid');
+  }
+
   csrfToken = body.requestToken;
   return body;
 }
@@ -128,6 +298,10 @@ export function getCsrfTokenFromMemory(): string | null {
 
 export function getCurrentProfileETag(): string | null {
   return currentProfileETag;
+}
+
+export function clearProfileRevision(): void {
+  currentProfileETag = null;
 }
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -146,76 +320,172 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
   }
 
-  const response = await fetch(path, {
-    ...init,
-    method,
-    credentials: 'same-origin',
-    cache: 'no-store',
-    headers
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `${response.status} ${response.statusText}`);
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...init,
+      method,
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers
+    });
+  } catch {
+    throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
   }
 
-  if (response.status === 204) {
-    return undefined as T;
+  if (!response.ok) {
+    if (response.status === 401) {
+      currentProfileETag = null;
+    }
+    throw await toApiError(response);
   }
 
   if (path === '/api/v1/me') {
     currentProfileETag = response.headers.get('ETag');
   }
 
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get('Content-Type') ?? '';
+  if (!contentType.includes('json')) {
+    return undefined as T;
+  }
+
   return (await response.json()) as T;
 }
 
-function devAdminHeaders(additional?: Record<string, string>): HeadersInit {
-  return {
-    'X-Nexora-Dev-SuperAdmin': 'true',
-    ...additional
-  };
+async function toApiError(response: Response): Promise<NexoraApiError> {
+  const fallback = messageForStatus(response.status);
+  const contentType = response.headers.get('Content-Type') ?? '';
+  let payload: ProblemPayload = {};
+
+  if (contentType.includes('json')) {
+    try {
+      payload = (await response.json()) as ProblemPayload;
+    } catch {
+      payload = {};
+    }
+  }
+
+  const detail = typeof payload.detail === 'string' ? payload.detail : undefined;
+  const title = typeof payload.title === 'string' ? payload.title : undefined;
+  const code = typeof payload.code === 'string' ? payload.code : null;
+  const traceId = typeof payload.traceId === 'string' ? payload.traceId : null;
+  const fieldErrors = parseFieldErrors(payload.errors);
+
+  return new NexoraApiError(detail || title || fallback, response.status, code, traceId, fieldErrors);
 }
 
-export function registerDemoUser(email: string, password: string, timeZoneId = 'Asia/Ho_Chi_Minh') {
+function parseFieldErrors(value: unknown): FieldErrors {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {};
+  }
+
+  const result: FieldErrors = {};
+  for (const [key, messages] of Object.entries(value)) {
+    if (Array.isArray(messages)) {
+      const safe = messages.filter((message): message is string => typeof message === 'string');
+      if (safe.length > 0) {
+        result[key] = safe;
+      }
+    } else if (typeof messages === 'string') {
+      result[key] = [messages];
+    }
+  }
+
+  return result;
+}
+
+function messageForStatus(status: number): string {
+  switch (status) {
+    case 401:
+      return 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.';
+    case 403:
+      return 'Thao tác không được phép trong phiên hoặc quyền hiện tại.';
+    case 404:
+      return 'Tài nguyên không tồn tại hoặc không khả dụng trong phiên này.';
+    case 409:
+      return 'Thao tác xung đột với thay đổi hiện tại. Hãy tải lại và thử lại.';
+    case 410:
+      return 'Mã đã hết hạn hoặc đã được sử dụng.';
+    case 412:
+      return 'Dữ liệu đã thay đổi ở nơi khác. Hãy tải lại trước khi lưu.';
+    case 422:
+      return 'Dữ liệu gửi lên chưa hợp lệ.';
+    case 429:
+      return 'Có quá nhiều yêu cầu. Vui lòng thử lại sau.';
+    default:
+      return status >= 500 ? 'Nexora API đang gặp lỗi. Vui lòng thử lại.' : 'Yêu cầu không thành công.';
+  }
+}
+
+function jsonMutationHeaders(idempotencyKey?: string, extra?: HeadersInit): HeadersInit {
+  const headers = new Headers(extra);
+  if (idempotencyKey) {
+    headers.set('Idempotency-Key', idempotencyKey);
+  }
+  return headers;
+}
+
+export function registerUser(
+  email: string,
+  password: string,
+  timeZoneId: string,
+  displayName: string,
+  idempotencyKey = createIdempotencyKey()
+) {
   return apiFetch<AcceptedResponse>('/api/v1/auth/registrations', {
     method: 'POST',
-    body: JSON.stringify({ email, password, timeZoneId })
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ email, password, timeZoneId, displayName: displayName || null })
   });
 }
 
-export function listDevAccountMessages() {
-  return apiFetch<DevAccountMessage[]>('/api/v1/dev/account-messages');
-}
-
-export function verifyEmail(token: string) {
-  return apiFetch<{ status: string; messageCode: string; profile: ProfileResponse }>('/api/v1/auth/verifications', {
+export function verifyEmail(token: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<VerificationResponse>('/api/v1/auth/verifications', {
     method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ token })
   });
 }
 
-export function login(email: string, password: string) {
-  return apiFetch<LoginResponse>('/api/v1/auth/login', {
+export function resendVerification(email: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AcceptedResponse>('/api/v1/auth/verifications/resend', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
-  });
-}
-
-export function logout() {
-  return apiFetch<void>('/api/v1/auth/logout', { method: 'POST' });
-}
-
-export function requestPasswordReset(email: string) {
-  return apiFetch<AcceptedResponse>('/api/v1/auth/password-resets', {
-    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ email })
   });
 }
 
-export function confirmPasswordReset(token: string, newPassword: string) {
+export function login(email: string, password: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<LoginResponse>('/api/v1/auth/login', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ email, password })
+  });
+}
+
+export function logout(idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>('/api/v1/auth/logout', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey)
+  });
+}
+
+export function requestPasswordReset(email: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AcceptedResponse>('/api/v1/auth/password-resets', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ email })
+  });
+}
+
+export function confirmPasswordReset(token: string, newPassword: string, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<void>('/api/v1/auth/password-resets/confirm', {
     method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ token, newPassword })
   });
 }
@@ -224,14 +494,14 @@ export function getMe() {
   return apiFetch<ProfileResponse>('/api/v1/me');
 }
 
-export function updateMe(patch: Partial<Pick<ProfileResponse, 'displayName' | 'timeZoneId' | 'locale'>>) {
+export function updateMe(patch: ProfilePatch, idempotencyKey = createIdempotencyKey()) {
   if (currentProfileETag === null) {
-    throw new Error('Profile ETag missing. Call getMe before updateMe.');
+    throw new NexoraApiError('Profile chưa có revision. Hãy tải lại trước khi lưu.', 428, 'PreconditionRequired');
   }
 
   return apiFetch<ProfileResponse>('/api/v1/me', {
     method: 'PATCH',
-    headers: { 'If-Match': currentProfileETag },
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': currentProfileETag }),
     body: JSON.stringify(patch)
   });
 }
@@ -240,28 +510,302 @@ export function listSessions() {
   return apiFetch<SessionPage>('/api/v1/me/sessions');
 }
 
-export function revokeAllSessions() {
-  return apiFetch<void>('/api/v1/me/sessions/revoke-all', { method: 'POST' });
-}
-
-export function listAdminModulesDev() {
-  return apiFetch<AdminModulePageResponse>('/api/v1/admin/modules', {
-    headers: devAdminHeaders()
+export function revokeSession(sessionId: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/me/sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey)
   });
 }
 
-export function previewAdminModulePolicyDev(moduleId: string, change: ModulePolicyChangeRequest) {
-  return apiFetch<ModulePolicyPreviewResponse>(`/api/v1/admin/modules/${moduleId}/preview`, {
+export function revokeAllSessions(idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>('/api/v1/me/sessions/revoke-all', {
     method: 'POST',
-    headers: devAdminHeaders(),
-    body: JSON.stringify(change)
+    headers: jsonMutationHeaders(idempotencyKey)
   });
 }
 
-export function setAdminModulePolicyDev(moduleId: string, eTag: string, request: ModulePolicyCommitRequest) {
-  return apiFetch<AdminModuleResponse>(`/api/v1/admin/modules/${moduleId}/policy`, {
+export function listProjects(limit = 50) {
+  return apiFetch<ProjectPage>(`/api/v1/projects?limit=${encodeURIComponent(limit)}`);
+}
+
+export function createProject(name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ProjectRecord>('/api/v1/projects', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes })
+  });
+}
+
+export function updateProject(id: string, etag: string, name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}`, {
     method: 'PUT',
-    headers: devAdminHeaders({ 'If-Match': eTag }),
-    body: JSON.stringify(request)
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes })
+  });
+}
+
+export function deleteProject(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/projects/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function transitionProject(id: string, etag: string, status: string, reason: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status, reason })
+  });
+}
+
+export function listTasks(projectId?: string, limit = 100) {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (projectId) query.set('projectId', projectId);
+  return apiFetch<TaskPage>(`/api/v1/tasks?${query.toString()}`);
+}
+
+export function createTask(
+  projectId: string,
+  title: string,
+  description: string | null,
+  status: string,
+  dueAt: string | null,
+  startAt: string,
+  endAt: string,
+  priority = 'P3',
+  tagsJson: string | null = null,
+  acceptanceCriteriaJson: string | null = null,
+  rank = 0,
+  reminderAt: string | null = null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<TaskRecord>('/api/v1/tasks', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt })
+  });
+}
+
+export function updateTask(
+  id: string,
+  etag: string,
+  projectId: string,
+  title: string,
+  description: string | null,
+  status: string,
+  dueAt: string | null,
+  startAt: string,
+  endAt: string,
+  priority = 'P3',
+  tagsJson: string | null = null,
+  acceptanceCriteriaJson: string | null = null,
+  rank = 0,
+  reminderAt: string | null = null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt })
+  });
+}
+
+export function deleteTask(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/tasks/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function transitionTask(id: string, etag: string, status: string, reason: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status, reason })
+  });
+}
+
+export function listCalendarEvents(from?: string, to?: string, limit = 100) {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (from) query.set('from', from);
+  if (to) query.set('to', to);
+  return apiFetch<CalendarEventPage>(`/api/v1/calendar/events?${query.toString()}`);
+}
+
+export function createCalendarEvent(
+  title: string,
+  description: string | null,
+  startAt: string,
+  endAt: string,
+  timeZoneId: string,
+  isAllDay = false,
+  sourceUid: string | null = null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<CalendarEventRecord>('/api/v1/calendar/events', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid })
+  });
+}
+
+export function updateCalendarEvent(
+  id: string,
+  etag: string,
+  title: string,
+  description: string | null,
+  startAt: string,
+  endAt: string,
+  timeZoneId: string,
+  isAllDay = false,
+  sourceUid: string | null = null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid })
+  });
+}
+
+export function deleteCalendarEvent(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/calendar/events/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function transitionCalendarEvent(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status })
+  });
+}
+
+export function listDocuments(status?: string, limit = 100) {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (status) query.set('status', status);
+  return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`);
+}
+
+export function getDocument(id: string) {
+  return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}`);
+}
+
+export function createDocument(title: string, documentType: string, editorMode: string, body: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<DocumentRecord>('/api/v1/documents', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ title, documentType, editorMode, body })
+  });
+}
+
+export function saveDocument(id: string, etag: string, title: string, body: string, changeNote: string | null = null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ title, body, changeNote })
+  });
+}
+
+export function transitionDocument(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}/transition`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ status })
+  });
+}
+
+export function listNotifications(unreadOnly = false, limit = 50) {
+  const query = new URLSearchParams({ unreadOnly: String(unreadOnly), limit: String(limit) });
+  return apiFetch<NotificationPage>(`/api/v1/notifications?${query.toString()}`);
+}
+
+export function markNotificationRead(id: string, etag: string, read: boolean, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<NotificationRecord>(`/api/v1/notifications/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ read })
+  });
+}
+
+export function markAllNotificationsRead(idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<{ watermark: string; updatedCount: number }>('/api/v1/notifications/mark-all-read', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey)
+  });
+}
+
+export function deleteNotifications(notificationIds: string[], idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>('/api/v1/notifications/delete', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ notificationIds })
+  });
+}
+
+export function listTrash(limit = 100) {
+  return apiFetch<TrashPage>(`/api/v1/trash?limit=${encodeURIComponent(limit)}`);
+}
+
+export function restoreTrashBatch(batchId: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<{ deletionBatchId: string; restoredCount: number; remainingCount: number }>(`/api/v1/trash/batches/${encodeURIComponent(batchId)}/restore`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey)
+  });
+}
+
+export function purgeTrashBatch(batchId: string, confirmation: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/trash/batches/${encodeURIComponent(batchId)}/purge`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ deletionBatchId: batchId, confirmation })
+  });
+}
+
+export function listPreferences() {
+  return apiFetch<PreferencePage>('/api/v1/settings/preferences');
+}
+
+export function updatePreference(key: string, etag: string | '*', value: unknown, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<PreferenceRecord>(`/api/v1/settings/preferences/${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ schemaVersion: 1, valueJson: JSON.stringify(value) })
+  });
+}
+
+export function listAdminUsers(query = '') {
+  const suffix = query.trim() ? `?q=${encodeURIComponent(query.trim())}` : '';
+  return apiFetch<AdminUserPage>(`/api/v1/admin/users${suffix}`);
+}
+
+export function getAdminUserAccess(userId: string) {
+  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/access`);
+}
+
+export function setAdminUserRole(userId: string, etag: string, role: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/role`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ role, ifMatch: etag })
+  });
+}
+
+export function setAdminActionGrant(userId: string, etag: string, actionKey: string, effect: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/permissions`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ actionKey, effect, ifMatch: etag })
+  });
+}
+
+export function setAdminModuleGrant(userId: string, etag: string, moduleCode: string, enabled: boolean, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/modules/${encodeURIComponent(moduleCode)}`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ enabled, ifMatch: etag })
+  });
+}
+
+export function disableAdminUser(userId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/admin/users/${encodeURIComponent(userId)}/disable`, {
+    method: 'POST', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ confirmation: 'DISABLE', ifMatch: etag })
   });
 }

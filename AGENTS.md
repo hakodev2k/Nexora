@@ -21,14 +21,16 @@ exact story/action/AC and test evidence using `docs/goals/05-task-and-evidence-t
 Goals summarize approved sources; they never override current PO decisions, unblock
 paused capabilities or grant implementation/deployment approval.
 
-Current Product Owner approval is `DEC-20260909-014`, recorded in
-`docs/requirements/12-owner-decisions-20260909-local-e2e.md`: full documented R1
-local E2E implementation may proceed slice-by-slice, including previously paused
-modules as local/simulated/integration-safe code. Do not ask again for this approval.
-Complete missing API/DB/UX/AC/security/evidence contracts before affected code.
-Production deployment, real provider execution, real secrets/data, paid services,
-public launch and external destructive actions remain unapproved. Resolve routine
-technical choices without inventing unspecified business behavior.
+Current Product Owner approval is `DEC-20260909-014` in
+`docs/requirements/12-owner-decisions-local-e2e-implementation.md`: full local E2E
+implementation may continue beyond M01, slice-by-slice with sufficient contracts.
+Do not request repeated approval for this local scope. Previously paused modules
+may have local/simulated code; real provider execution, production, real secrets/data,
+paid services and external destructive actions remain unapproved. Complete missing
+API/DB/UX/AC/security/evidence contracts before code; do not invent business decisions.
+Keep work on existing PR #4, branch `impl/m01-s00-scaffold`; do not merge.
+
+Current execution amendment: this is a code-only run. Do not add new unit/integration/E2E/browser tests, mock/demo records or artificial fixtures; the human owner handles functional testing, QA, test-data design and runtime verification. Compile/build/typecheck/lint may be run only for implementation-error detection and must be reported exactly.
 
 ## Authority and source precedence
 
@@ -52,9 +54,8 @@ Load `.ai/roles/technical-lead/README.md` as the primary operating role. The Tec
 
 ## Nexora invariants
 
-- Consult current delivery scope each time: M01 is an internal foundation slice.
-  FX30/34/35 may use explicitly configured local simulation under DEC-20260909-014;
-  real provider wiring remains disabled by default.
+- Consult current delivery scope each time: M01 is an internal foundation slice,
+  not all Phase1/R1. FX30/34/35 permit local simulation under DEC-20260909-014; real-provider workers remain disabled.
 - Nexora is personal-only. `OwnerId` identifies PersonalSpace, not `UserId`.
   The generic tenant gate maps to owner isolation; it does not introduce team tenancy.
 

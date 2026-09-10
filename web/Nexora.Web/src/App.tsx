@@ -1,169 +1,1958 @@
-import { useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
-  AdminModuleResponse,
-  DevAccountMessage,
+  CalendarEventRecord,
+  DocumentRecord,
+  DocumentSummary,
+  AdminUserAccess,
+  AdminUserRecord,
+  NotificationRecord,
+  PreferenceRecord,
+  TrashItemRecord,
+  NexoraApiError,
+  ProjectRecord,
+  ProfilePatch,
   ProfileResponse,
+  SessionProjection,
+  TaskRecord,
+  clearProfileRevision,
+  confirmPasswordReset,
+  createCalendarEvent,
+  createDocument,
+  createIdempotencyKey,
+  createProject,
+  createTask,
+  deleteCalendarEvent,
+  deleteProject,
+  deleteTask,
+  deleteNotifications,
+  disableAdminUser,
   getCsrf,
   getMe,
-  listAdminModulesDev,
-  listDevAccountMessages,
+  getDocument,
+  getAdminUserAccess,
+  listCalendarEvents,
+  listDocuments,
+  listNotifications,
+  listPreferences,
+  listAdminUsers,
+  listProjects,
   listSessions,
+  listTasks,
   login,
+  markAllNotificationsRead,
+  markNotificationRead,
+  listTrash,
+  purgeTrashBatch,
+  restoreTrashBatch,
+  setAdminModuleGrant,
+  setAdminActionGrant,
+  setAdminUserRole,
+  saveDocument,
+  transitionDocument,
+  updatePreference,
   logout,
-  registerDemoUser,
+  registerUser,
+  requestPasswordReset,
+  resendVerification,
+  revokeAllSessions,
+  revokeSession,
+  updateCalendarEvent,
   updateMe,
-  verifyEmail
+  updateProject,
+  updateTask,
+  verifyEmail,
+  transitionProject,
+  transitionCalendarEvent
 } from './api';
 
-const demoPassword = 'correct-horse-phrase';
+type Screen = 'home' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'module';
+type LocationState = { screen: Screen; moduleCode?: string };
+type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
+type NoticeKind = 'info' | 'success' | 'error';
 
-export function App() {
-  const [status, setStatus] = useState<'checking' | 'ready' | 'unavailable'>('checking');
-  const [message, setMessage] = useState('Đang kiểm tra Nexora local API...');
-  const [log, setLog] = useState<string[]>([]);
-  const [messages, setMessages] = useState<DevAccountMessage[]>([]);
-  const [profile, setProfile] = useState<ProfileResponse | null>(null);
-  const [modules, setModules] = useState<AdminModuleResponse[]>([]);
-  const demoEmail = useMemo(() => `demo-${Date.now()}@example.test`, []);
+const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset']);
+const DEFAULT_TIME_ZONE = 'UTC';
 
-  useEffect(() => {
-    let cancelled = false;
-    getCsrf()
-      .then((token) => {
-        if (!cancelled) {
-          setStatus('ready');
-          setMessage(`M01 API surface sẵn sàng. CSRF token đang giữ trong memory (${token.tokenType}).`);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setStatus('unavailable');
-          setMessage('Backend local chưa chạy hoặc endpoint M01 chưa sẵn sàng.');
-        }
-      });
+function routeFromPath(pathname: string): LocationState {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  switch (path) {
+    case '/register':
+      return { screen: 'register' };
+    case '/verify-email':
+      return { screen: 'verify' };
+    case '/password/forgot':
+      return { screen: 'forgot' };
+    case '/password/reset':
+      return { screen: 'reset' };
+    case '/settings/profile':
+      return { screen: 'profile' };
+    case '/settings/security':
+      return { screen: 'security' };
+    case '/notifications':
+      return { screen: 'notifications' };
+    case '/trash':
+      return { screen: 'trash' };
+    case '/admin/access':
+      return { screen: 'admin' };
+    case '/login':
+      return { screen: 'login' };
+    case '/':
+      return { screen: 'home' };
+    default:
+      if (path.startsWith('/modules/')) {
+        return { screen: 'module', moduleCode: decodeURIComponent(path.slice('/modules/'.length)).toUpperCase() };
+      }
+      return { screen: 'home' };
+  }
+}
 
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+function pathForLocation(location: LocationState): string {
+  switch (location.screen) {
+    case 'register':
+      return '/register';
+    case 'verify':
+      return '/verify-email';
+    case 'forgot':
+      return '/password/forgot';
+    case 'reset':
+      return '/password/reset';
+    case 'profile':
+      return '/settings/profile';
+    case 'security':
+      return '/settings/security';
+    case 'notifications':
+      return '/notifications';
+    case 'trash':
+      return '/trash';
+    case 'admin':
+      return '/admin/access';
+    case 'login':
+      return '/login';
+    case 'module':
+      return `/modules/${encodeURIComponent(location.moduleCode ?? '')}`;
+    default:
+      return '/';
+  }
+}
 
-  async function run(label: string, action: () => Promise<unknown>) {
+function normalizeProfile(profile: ProfileResponse): ProfileResponse {
+  return {
+    ...profile,
+    role: profile.role || 'User',
+    modules: Array.isArray(profile.modules) ? profile.modules : []
+  };
+}
+
+function currentTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIME_ZONE;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+function asApiError(error: unknown): NexoraApiError {
+  if (error instanceof NexoraApiError) {
+    return error;
+  }
+  if (error instanceof Error) {
+    return new NexoraApiError(error.message, 0, 'ClientError');
+  }
+  return new NexoraApiError('Yêu cầu không thành công.', 0, 'UnknownError');
+}
+
+function firstFieldError(error: NexoraApiError, field: string): string | undefined {
+  const match = Object.entries(error.fieldErrors).find(([key]) => key.toLowerCase() === field.toLowerCase());
+  return match?.[1][0];
+}
+
+function passwordError(password: string): string | undefined {
+  const length = Array.from(password).length;
+  if (length < 15) {
+    return 'Mật khẩu cần ít nhất 15 ký tự Unicode.';
+  }
+  if (length > 128) {
+    return 'Mật khẩu không được vượt quá 128 ký tự Unicode.';
+  }
+  return undefined;
+}
+
+function dateTime(value: string): string {
+  try {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  } catch {
+    return 'Không xác định';
+  }
+}
+
+function Notice({ kind, children, onDismiss }: { kind: NoticeKind; children: React.ReactNode; onDismiss?: () => void }) {
+  return (
+    <div className={`notice notice-${kind}`} role={kind === 'error' ? 'alert' : 'status'} aria-live="polite">
+      <span>{children}</span>
+      {onDismiss && (
+        <button className="icon-button" type="button" aria-label="Đóng thông báo" onClick={onDismiss}>
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) {
+    return null;
+  }
+  return (
+    <p className="field-error" id={id}>
+      {message}
+    </p>
+  );
+}
+
+function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) {
+  return (
+    <button className="primary-button" type="submit" disabled={busy}>
+      {busy ? 'Đang xử lý…' : children}
+    </button>
+  );
+}
+
+function PublicFrame({
+  children,
+  navigate,
+  notice,
+  onDismissNotice
+}: {
+  children: React.ReactNode;
+  navigate: (screen: Screen) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  return (
+    <div className="public-layout">
+      <header className="public-header">
+        <button className="brand" type="button" onClick={() => navigate('login')} aria-label="Nexora — tới trang đăng nhập">
+          <span className="brand-mark" aria-hidden="true">N</span>
+          <span>Nexora</span>
+        </button>
+        <span className="environment-label">Local application</span>
+      </header>
+      <main className="public-main">
+        {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
+        {children}
+      </main>
+      <footer className="public-footer">Phiên xác thực do server quản lý bằng cookie HttpOnly; trình duyệt không lưu token đăng nhập.</footer>
+    </div>
+  );
+}
+
+function AuthLinks({ navigate, current }: { navigate: (screen: Screen) => void; current: Screen }) {
+  return (
+    <nav className="auth-links" aria-label="Điều hướng tài khoản">
+      {current !== 'login' && <button className="link-button" type="button" onClick={() => navigate('login')}>Đăng nhập</button>}
+      {current !== 'register' && <button className="link-button" type="button" onClick={() => navigate('register')}>Tạo tài khoản</button>}
+      {current !== 'forgot' && current !== 'reset' && <button className="link-button" type="button" onClick={() => navigate('forgot')}>Quên mật khẩu?</button>}
+    </nav>
+  );
+}
+
+function FormCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  return (
+    <section className="form-card" aria-labelledby="form-title">
+      <p className="eyebrow">NEXORA ACCOUNT</p>
+      <h1 id="form-title">{title}</h1>
+      <p className="lead">{description}</p>
+      {children}
+    </section>
+  );
+}
+
+function RegisterScreen({
+  navigate,
+  onRegistered,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  onRegistered: (email: string) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [timeZoneId, setTimeZoneId] = useState(currentTimeZone);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [clientError, setClientError] = useState<string>();
+  const requestKey = useRef<string | null>(null);
+
+  function resetRequestKey() {
+    requestKey.current = null;
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setClientError(undefined);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setClientError('Nhập một địa chỉ email hợp lệ.');
+      return;
+    }
+    const passwordIssue = passwordError(password);
+    if (passwordIssue) {
+      setClientError(passwordIssue);
+      return;
+    }
+    if (!timeZoneId.trim()) {
+      setClientError('Timezone IANA là bắt buộc.');
+      return;
+    }
+    if (displayName.trim().length > 100) {
+      setClientError('Tên hiển thị không được vượt quá 100 ký tự.');
+      return;
+    }
+
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
     try {
-      const result = await action();
-      setLog((items) => [`[ok] ${label}: ${JSON.stringify(result, null, 2)}`, ...items]);
-    } catch (error) {
-      setLog((items) => [`[error] ${label}: ${error instanceof Error ? error.message : String(error)}`, ...items]);
+      await registerUser(trimmedEmail, password, timeZoneId.trim(), displayName.trim(), requestKey.current);
+      requestKey.current = null;
+      onRegistered(trimmedEmail);
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
     }
-  }
-
-  async function refreshMessages() {
-    const result = await listDevAccountMessages();
-    setMessages(result);
-    return result;
-  }
-
-  async function verifyLatestMessage() {
-    const currentMessages = messages.length > 0 ? messages : await listDevAccountMessages();
-    const verification = currentMessages.find((item) => item.purpose === 'EmailVerification');
-    if (!verification) {
-      throw new Error('No captured EmailVerification message found. Register first.');
-    }
-
-    const result = await verifyEmail(verification.token);
-    setProfile(result.profile);
-    return result;
-  }
-
-  async function loginDemoUser() {
-    const result = await login(demoEmail, demoPassword);
-    setProfile(result.profile);
-    return result;
-  }
-
-  async function loadProfile() {
-    const result = await getMe();
-    setProfile(result);
-    return result;
-  }
-
-  async function updateDisplayName() {
-    const result = await updateMe({ displayName: 'Nexora Demo User' });
-    setProfile(result);
-    return result;
-  }
-
-  async function loadModules() {
-    const result = await listAdminModulesDev();
-    setModules(result.items);
-    return result;
   }
 
   return (
-    <main className="shell" aria-labelledby="page-title">
-      <section className="card">
-        <p className="eyebrow">Nexora</p>
-        <h1 id="page-title">M01 minimal API implementation shell</h1>
-        <p>{message}</p>
-        <dl>
-          <dt>Approved decision</dt>
-          <dd>DEC-20260909-001</dd>
-          <dt>Current runtime surface</dt>
-          <dd>S02–S06 identity APIs and S07/S09 module catalog smoke APIs, all development-only until SQL-backed.</dd>
-          <dt>Status</dt>
-          <dd>{status}</dd>
-          <dt>Demo email</dt>
-          <dd>{demoEmail}</dd>
-        </dl>
-      </section>
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title="Tạo tài khoản" description="Đăng ký tài khoản cá nhân. Bạn cần xác minh email trước khi dùng dữ liệu và module riêng của mình.">
+        <form className="stack-form" onSubmit={submit} noValidate>
+          <div className="field-group">
+            <label htmlFor="register-email">Email</label>
+            <input id="register-email" type="email" autoComplete="email" value={email} onChange={(event) => { resetRequestKey(); setEmail(event.target.value); }} required aria-describedby="register-email-help register-email-error" />
+            <p className="field-help" id="register-email-help">Địa chỉ này được dùng để gửi hướng dẫn xác minh.</p>
+            <FieldError id="register-email-error" message={error ? firstFieldError(error, 'email') : undefined} />
+          </div>
+          <div className="field-group">
+            <label htmlFor="register-display-name">Tên hiển thị <span className="optional">(tùy chọn)</span></label>
+            <input id="register-display-name" type="text" autoComplete="name" maxLength={100} value={displayName} onChange={(event) => { resetRequestKey(); setDisplayName(event.target.value); }} aria-describedby="register-display-name-error" />
+            <FieldError id="register-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} />
+          </div>
+          <div className="field-group">
+            <label htmlFor="register-password">Mật khẩu</label>
+            <input id="register-password" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={password} onChange={(event) => { resetRequestKey(); setPassword(event.target.value); }} aria-describedby="register-password-help register-password-error" required />
+            <p className="field-help" id="register-password-help">Từ 15 đến 128 ký tự Unicode. Không dùng mật khẩu phổ biến.</p>
+            <FieldError id="register-password-error" message={error ? firstFieldError(error, 'password') : undefined} />
+          </div>
+          <div className="field-group">
+            <label htmlFor="register-timezone">Timezone IANA</label>
+            <input id="register-timezone" type="text" autoComplete="off" value={timeZoneId} onChange={(event) => { resetRequestKey(); setTimeZoneId(event.target.value); }} aria-describedby="register-timezone-help register-timezone-error" required />
+            <p className="field-help" id="register-timezone-help">Phát hiện từ trình duyệt; bạn có thể sửa, ví dụ <code>Asia/Ho_Chi_Minh</code>.</p>
+            <FieldError id="register-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} />
+          </div>
+          {(clientError || error) && <Notice kind="error">{clientError ?? error?.message ?? 'Không thể tạo tài khoản.'}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>Tạo tài khoản</SubmitButton>
+        </form>
+        <AuthLinks navigate={navigate} current="register" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
 
-      <section className="card" aria-labelledby="demo-title">
-        <h2 id="demo-title">Local identity flow</h2>
-        <p className="hint">
-          This screen drives the real local API routes. The dev mailbox endpoint is available only in Development so the email verification token can be copied without sending real email.
-        </p>
-        <div className="actions">
-          <button onClick={() => run('register', () => registerDemoUser(demoEmail, demoPassword))}>Register</button>
-          <button onClick={() => run('dev mailbox', refreshMessages)}>Load dev mailbox</button>
-          <button onClick={() => run('verify latest email', verifyLatestMessage)}>Verify latest email</button>
-          <button onClick={() => run('login', loginDemoUser)}>Login</button>
-          <button onClick={() => run('get me', loadProfile)}>Get me</button>
-          <button onClick={() => run('update display name', updateDisplayName)}>Update display name</button>
-          <button onClick={() => run('list sessions', listSessions)}>List sessions</button>
-          <button onClick={() => run('logout', logout)}>Logout</button>
-        </div>
-      </section>
+function VerifyScreen({
+  email,
+  setEmail,
+  navigate,
+  onVerified,
+  notice,
+  onDismissNotice
+}: {
+  email: string;
+  setEmail: (email: string) => void;
+  navigate: (screen: Screen) => void;
+  onVerified: () => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const [token, setToken] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [resendUntil, setResendUntil] = useState(0);
+  const [clock, setClock] = useState(() => Date.now());
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [resendError, setResendError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+  const resendKey = useRef<string | null>(null);
+  const secondsRemaining = Math.max(0, Math.ceil((resendUntil - clock) / 1000));
 
-      <section className="card" aria-labelledby="module-title">
-        <h2 id="module-title">Local module catalog smoke flow</h2>
-        <p className="hint">
-          Uses an explicit development-only SuperAdmin proof header. This is not the final authorization model; the SQL-backed access layer must replace it before M01 is verified.
-        </p>
-        <div className="actions">
-          <button onClick={() => run('list admin modules', loadModules)}>List admin modules</button>
+  useEffect(() => {
+    if (resendUntil <= Date.now()) {
+      return undefined;
+    }
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendUntil]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!token.trim()) {
+      setError(new NexoraApiError('Mã xác minh là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await verifyEmail(token.trim(), requestKey.current);
+      requestKey.current = null;
+      setVerified(true);
+      onVerified();
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend() {
+    setResendError(null);
+    if (!email.trim()) {
+      setResendError(new NexoraApiError('Email là bắt buộc để gửi lại mã.', 422, 'ValidationFailed'));
+      return;
+    }
+    resendKey.current ??= createIdempotencyKey();
+    setResendBusy(true);
+    try {
+      await resendVerification(email.trim(), resendKey.current);
+      resendKey.current = null;
+      setResendUntil(Date.now() + 60_000);
+      setClock(Date.now());
+    } catch (requestError) {
+      setResendError(asApiError(requestError));
+    } finally {
+      setResendBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title="Xác minh email" description="Nhập mã từ kênh email/transport đã cấu hình. Nexora không hiển thị mailbox không được bảo vệ trong trình duyệt.">
+        {verified ? (
+          <div className="success-panel">
+            <h2>Email đã được xác minh</h2>
+            <p>PersonalSpace sẽ được tạo theo transaction xác minh. Hãy đăng nhập để tiếp tục.</p>
+            <button className="primary-button" type="button" onClick={() => navigate('login')}>Tới đăng nhập</button>
+          </div>
+        ) : (
+          <>
+            <form className="stack-form" onSubmit={submit} noValidate>
+              <div className="field-group">
+                <label htmlFor="verify-email">Email</label>
+                <input id="verify-email" type="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); requestKey.current = null; }} required />
+              </div>
+              <div className="field-group">
+                <label htmlFor="verify-token">Mã xác minh</label>
+                <input id="verify-token" type="text" inputMode="text" autoComplete="one-time-code" value={token} onChange={(event) => { setToken(event.target.value); requestKey.current = null; }} required aria-describedby="verify-token-help" />
+                <p className="field-help" id="verify-token-help">Chỉ dán mã vào trường này; mã không được lưu vào storage của trình duyệt.</p>
+              </div>
+              {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+              <SubmitButton busy={busy}>Xác minh email</SubmitButton>
+            </form>
+            <div className="secondary-action">
+              <button className="secondary-button" type="button" disabled={resendBusy || secondsRemaining > 0} onClick={resend}>
+                {resendBusy ? 'Đang gửi…' : secondsRemaining > 0 ? `Gửi lại sau ${secondsRemaining}s` : 'Gửi lại email xác minh'}
+              </button>
+              {resendError && <Notice kind="error">{resendError.message}</Notice>}
+            </div>
+          </>
+        )}
+        <div className="auth-links">
+          <button className="link-button" type="button" onClick={() => navigate('register')}>Quay lại đăng ký</button>
+          <button className="link-button" type="button" onClick={() => navigate('login')}>Đăng nhập</button>
         </div>
-        {modules.length > 0 && (
-          <ul className="module-list" aria-label="Module catalog">
-            {modules.map((module) => (
-              <li key={module.id}>
-                <strong>{module.code}</strong> — {module.name}: {module.state}, system={String(module.systemEnabled)}, registration={String(module.registrationEnabled)}
-                {module.unavailableReason ? ` (${module.unavailableReason})` : ''}
-              </li>
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function LoginScreen({
+  navigate,
+  onAuthenticated,
+  onPendingVerification,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  onAuthenticated: (profile: ProfileResponse) => void;
+  onPendingVerification: (email: string) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!email.trim() || !password) {
+      setError(new NexoraApiError('Email và mật khẩu là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      const response = await login(email.trim(), password, requestKey.current);
+      requestKey.current = null;
+      onAuthenticated(normalizeProfile(response.profile));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.code?.toLowerCase().includes('verification')) {
+        onPendingVerification(email.trim());
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title="Đăng nhập" description="Đăng nhập vào PersonalSpace của bạn. Quyền và module luôn được server kiểm tra lại.">
+        <form className="stack-form" onSubmit={submit} noValidate>
+          <div className="field-group">
+            <label htmlFor="login-email">Email</label>
+            <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => { requestKey.current = null; setEmail(event.target.value); }} required />
+          </div>
+          <div className="field-group">
+            <label htmlFor="login-password">Mật khẩu</label>
+            <input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => { requestKey.current = null; setPassword(event.target.value); }} required />
+          </div>
+          {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>Đăng nhập</SubmitButton>
+        </form>
+        <AuthLinks navigate={navigate} current="login" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function ForgotPasswordScreen({
+  navigate,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!email.trim() || !email.includes('@')) {
+      setError(new NexoraApiError('Nhập một địa chỉ email hợp lệ.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await requestPasswordReset(email.trim(), requestKey.current);
+      requestKey.current = null;
+      setAccepted(true);
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title="Đặt lại mật khẩu" description="Nhập email để nhận hướng dẫn nếu tài khoản đủ điều kiện. Phản hồi luôn giống nhau để không tiết lộ account tồn tại.">
+        {accepted ? (
+          <div className="success-panel">
+            <h2>Đã tiếp nhận yêu cầu</h2>
+            <p>Nếu email đủ điều kiện, hãy dùng mã reset từ kênh được cấu hình. Không nhập mã vào URL hoặc lưu mã trong trình duyệt.</p>
+            <button className="primary-button" type="button" onClick={() => navigate('reset')}>Nhập mã reset</button>
+          </div>
+        ) : (
+          <form className="stack-form" onSubmit={submit} noValidate>
+            <div className="field-group">
+              <label htmlFor="forgot-email">Email</label>
+              <input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(event) => { requestKey.current = null; setEmail(event.target.value); }} required />
+            </div>
+            {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+            <SubmitButton busy={busy}>Gửi yêu cầu reset</SubmitButton>
+          </form>
+        )}
+        <AuthLinks navigate={navigate} current="forgot" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function ResetPasswordScreen({
+  navigate,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const [token, setToken] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [clientError, setClientError] = useState<string>();
+  const requestKey = useRef<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setClientError(undefined);
+    const passwordIssue = passwordError(password);
+    if (!token.trim()) {
+      setClientError('Mã reset là bắt buộc.');
+      return;
+    }
+    if (passwordIssue) {
+      setClientError(passwordIssue);
+      return;
+    }
+    if (password !== confirmation) {
+      setClientError('Hai mật khẩu không khớp.');
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await confirmPasswordReset(token.trim(), password, requestKey.current);
+      requestKey.current = null;
+      navigate('login');
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title="Xác nhận mật khẩu mới" description="Mã reset chỉ dùng một lần và không tự đăng nhập. Sau khi thành công, các session cũ bị thu hồi theo policy.">
+        <form className="stack-form" onSubmit={submit} noValidate>
+          <div className="field-group">
+            <label htmlFor="reset-token">Mã reset</label>
+            <input id="reset-token" type="text" autoComplete="one-time-code" value={token} onChange={(event) => { requestKey.current = null; setToken(event.target.value); }} required />
+          </div>
+          <div className="field-group">
+            <label htmlFor="reset-password">Mật khẩu mới</label>
+            <input id="reset-password" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={password} onChange={(event) => { requestKey.current = null; setPassword(event.target.value); }} required />
+            <p className="field-help">Từ 15 đến 128 ký tự Unicode.</p>
+          </div>
+          <div className="field-group">
+            <label htmlFor="reset-confirmation">Nhập lại mật khẩu mới</label>
+            <input id="reset-confirmation" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={confirmation} onChange={(event) => { requestKey.current = null; setConfirmation(event.target.value); }} required />
+          </div>
+          {(clientError || error) && <Notice kind="error">{clientError ?? error?.message ?? 'Không thể reset mật khẩu.'}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>Đặt mật khẩu mới</SubmitButton>
+        </form>
+        <AuthLinks navigate={navigate} current="reset" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function Shell({
+  profile,
+  location,
+  navigate,
+  onLogout,
+  onProfileUpdated,
+  onAuthLost,
+  notice,
+  onDismissNotice
+}: {
+  profile: ProfileResponse;
+  location: LocationState;
+  navigate: (screen: Screen, moduleCode?: string) => void;
+  onLogout: () => Promise<void>;
+  onProfileUpdated: (profile: ProfileResponse) => void;
+  onAuthLost: () => Promise<void>;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const [logoutBusy, setLogoutBusy] = useState(false);
+  const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
+
+  async function signOut() {
+    setLogoutBusy(true);
+    try {
+      await onLogout();
+    } finally {
+      setLogoutBusy(false);
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar" aria-label="Nexora navigation">
+        <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
+        <nav className="primary-nav" aria-label="Điều hướng chính">
+          <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>Home</span></button>
+          <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
+          <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
+          {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
+          <p className="nav-section-label">Modules</p>
+          {profile.modules.length === 0 ? (
+            <p className="nav-empty">Server chưa cấp module cho phiên này.</p>
+          ) : (
+            profile.modules.map((module) => {
+              const enabled = module.enabled;
+              const active = location.screen === 'module' && location.moduleCode === module.code.toUpperCase();
+              return (
+                <button key={module.code} className={active ? 'nav-item active' : 'nav-item'} type="button" aria-current={active ? 'page' : undefined} disabled={!enabled} title={enabled ? undefined : module.unavailableReason ?? 'Module chưa khả dụng'} onClick={() => navigate('module', module.code.toUpperCase())}>
+                  <span className="module-dot" aria-hidden="true">{enabled ? '●' : '○'}</span><span>{module.code}</span>
+                </button>
+              );
+            })
+          )}
+        </nav>
+        <nav className="utility-nav" aria-label="Cài đặt tài khoản">
+          <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}>⚙ <span>Profile</span></button>
+          <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}>▣ <span>Security & sessions</span></button>
+          <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}>↪ <span>{logoutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}</span></button>
+        </nav>
+      </aside>
+      <div className="shell-content">
+        <header className="shell-header">
+          <div>
+            <p className="eyebrow">PERSONAL SPACE</p>
+            <p className="signed-in">{profile.email}</p>
+          </div>
+          <button className="mobile-logout" type="button" onClick={signOut} disabled={logoutBusy}>{logoutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+        </header>
+        <main className="shell-main">
+          {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
+          {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} />}
+          {location.screen === 'security' && <SecurityScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'trash' && <TrashScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'admin' && <AdminAccessScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
+          {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<NotificationRecord[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listNotifications(unreadOnly, 100);
+      setItems(page.items);
+      setUnreadCount(page.unreadCount);
+      setSelected(new Set());
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [unreadOnly]);
+
+  async function toggleRead(item: NotificationRecord) {
+    setBusy(item.id);
+    setError(null);
+    try {
+      const updated = await markNotificationRead(item.id, item.etag, item.readAt === null);
+      setItems((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
+      setUnreadCount((current) => Math.max(0, current + (item.readAt === null ? -1 : 1)));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function markAll() {
+    setBusy('all');
+    setError(null);
+    try {
+      await markAllNotificationsRead();
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeSelected() {
+    if (selected.size === 0) return;
+    setBusy('delete');
+    setError(null);
+    try {
+      await deleteNotifications(Array.from(selected));
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function select(id: string, checked: boolean) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="notifications-title">
+      <div className="content-heading"><div><p className="eyebrow">FX06 / INBOX</p><h1 id="notifications-title">Notifications</h1><p className="lead">Thông báo thuộc PersonalSpace hiện tại; delivery state được hiển thị đúng theo SQL projection.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
+      <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={busy !== null || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><button className="danger-button" type="button" onClick={() => void removeSelected()} disabled={busy !== null || selected.size === 0}>Xóa mục đã chọn</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải thông báo…</div> : items.length === 0 ? <div className="empty-state"><h2>Inbox trống</h2><p>Không có thông báo phù hợp trong projection hiện tại.</p></div> : <div className="notification-list">{items.map((item) => <article className={item.readAt ? 'notification-card read' : 'notification-card'} key={item.id}><label className="notification-select"><input type="checkbox" checked={selected.has(item.id)} onChange={(event) => select(item.id, event.target.checked)} aria-label={`Chọn ${item.title}`} /></label><div className="notification-content"><div className="notification-heading"><h2>{item.title}</h2><span className="state-pill">{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span></div><p>{item.body}</p><span className="muted">{item.kind} · {dateTime(item.createdAt)}</span><div className="delivery-summary">{item.deliveries.map((delivery) => <span key={delivery.channel} title={delivery.lastErrorCode ?? undefined}>{delivery.channel}: {delivery.state}</span>)}</div></div><button className="secondary-button" type="button" onClick={() => void toggleRead(item)} disabled={busy !== null}>{item.readAt ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></article>)}</div>}
+    </section>
+  );
+}
+
+function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<TrashItemRecord[]>([]);
+  const [confirmation, setConfirmation] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      setItems((await listTrash(200)).items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function restore(batchId: string) {
+    setBusy(batchId);
+    setError(null);
+    try {
+      await restoreTrashBatch(batchId);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function purge(batchId: string) {
+    if (confirmation[batchId] !== 'PURGE') return;
+    setBusy(batchId);
+    setError(null);
+    try {
+      await purgeTrashBatch(batchId, confirmation[batchId]);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const batches = Array.from(items.reduce((groups, item) => {
+    const group = groups.get(item.deletionBatchId) ?? [];
+    group.push(item);
+    groups.set(item.deletionBatchId, group);
+    return groups;
+  }, new Map<string, TrashItemRecord[]>()).entries());
+
+  return (
+    <section className="content-section" aria-labelledby="trash-title">
+      <div className="content-heading"><div><p className="eyebrow">FX08 / LIFECYCLE</p><h1 id="trash-title">Trash</h1><p className="lead">Restore theo deletion batch đã ghi trong SQL. Calendar event không vào Trash; thao tác xóa Calendar là Cancel.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải Trash…</div> : batches.length === 0 ? <div className="empty-state"><h2>Trash trống</h2><p>Không có Project hoặc Task đang chờ restore/purge.</p></div> : <div className="notification-list">{batches.map(([batchId, batch]) => <article className="resource-card" key={batchId}><div><h2>Batch {batchId.slice(0, 8)}</h2><p>{batch.length} item · xóa lúc {dateTime(batch[0].deletedAt)}</p><ul className="trash-members">{batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void restore(batchId)} disabled={busy !== null}>Restore batch</button><label className="purge-confirm"><span className="sr-only">Nhập PURGE để xóa vĩnh viễn batch</span><input value={confirmation[batchId] ?? ''} onChange={(event) => setConfirmation((current) => ({ ...current, [batchId]: event.target.value }))} placeholder="Nhập PURGE" autoComplete="off" /><button className="danger-button" type="button" onClick={() => void purge(batchId)} disabled={busy !== null || confirmation[batchId] !== 'PURGE'}>Purge</button></label></div></article>)}</div>}
+    </section>
+  );
+}
+
+function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<DocumentSummary[]>([]);
+  const [selected, setSelected] = useState<DocumentRecord | null>(null);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [documentType, setDocumentType] = useState('Document');
+  const [editorMode, setEditorMode] = useState('Markdown');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      setItems((await listDocuments(undefined, 100)).items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function startNew() {
+    setSelected(null);
+    setTitle('');
+    setBody('');
+    setDocumentType('Document');
+    setEditorMode('Markdown');
+    setError(null);
+  }
+
+  async function openDocument(item: DocumentSummary) {
+    setBusy(`open:${item.id}`);
+    setError(null);
+    try {
+      const document = await getDocument(item.id);
+      setSelected(document);
+      setTitle(document.title);
+      setBody(document.body);
+      setDocumentType(document.documentType);
+      setEditorMode(document.editorMode);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!title.trim()) {
+      setError(new NexoraApiError('Tiêu đề là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('save');
+    setError(null);
+    try {
+      const saved = selected
+        ? await saveDocument(selected.id, selected.etag, title.trim(), body)
+        : await createDocument(title.trim(), documentType, editorMode, body);
+      setSelected(saved);
+      setTitle(saved.title);
+      setBody(saved.body);
+      setItems((current) => selected
+        ? current.map((candidate) => candidate.id === saved.id ? saved : candidate)
+        : [saved, ...current]);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412 && selected) await openDocument(selected);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(status: string) {
+    if (!selected) return;
+    setBusy('transition');
+    setError(null);
+    try {
+      const saved = await transitionDocument(selected.id, selected.etag, status);
+      setSelected(saved);
+      setItems((current) => current.map((candidate) => candidate.id === saved.id ? saved : candidate));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await openDocument(selected);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="documents-title">
+      <div className="content-heading"><div><p className="eyebrow">FX20 / KNOWLEDGE</p><h1 id="documents-title">Documents</h1><p className="lead">Page thuộc PersonalSpace hiện tại; Save tạo version SQL mới và body chỉ xuất hiện ở detail của owner.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew}>Tạo mới</button>}</div>
+          <div className="field-group"><label htmlFor="document-title">Tiêu đề</label><input id="document-title" value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} required /></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={selected !== null}><option>Document</option><option>Note</option><option>Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={selected !== null}><option>Markdown</option><option>Block</option></select></div></div>
+          <div className="field-group"><label htmlFor="document-body">Body <span className="optional">(tối đa 1 MiB)</span></label><textarea id="document-body" value={body} onChange={(event) => setBody(event.target.value)} rows={12} maxLength={1048576} disabled={selected?.status === 'Archived'} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={startNew} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{selected ? 'Save version' : 'Tạo page'}</SubmitButton></div>
+          {selected && <div className="form-actions"><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : selected.status === 'Published' ? 'Archived' : selected.preArchiveStatus ?? 'Draft')} disabled={busy !== null}>{selected.status === 'Draft' ? 'Publish' : selected.status === 'Published' ? 'Archive' : 'Unarchive'}</button><span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
+        </form>
+        <div className="resource-list"><div className="section-heading"><h2>Page của bạn</h2><span className="muted">{items.length} bản ghi</span></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : items.length === 0 ? <div className="empty-state"><h3>Chưa có page</h3><p>Tạo Document, Note hoặc Knowledge page đầu tiên.</p></div> : <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></article>)}</div>}</div>
+      </div>
+    </section>
+  );
+}
+
+function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [users, setUsers] = useState<AdminUserRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [access, setAccess] = useState<AdminUserAccess | null>(null);
+  const [role, setRole] = useState('User');
+  const [actionKey, setActionKey] = useState('');
+  const [effect, setEffect] = useState('Allow');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function loadUsers() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listAdminUsers();
+      setUsers(page.items);
+      if (selectedId && page.items.some((user) => user.id === selectedId)) return;
+      if (page.items[0]) {
+        setSelectedId(page.items[0].id);
+        await selectUser(page.items[0]);
+      } else {
+        setSelectedId('');
+        setAccess(null);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function selectUser(user: AdminUserRecord) {
+    setSelectedId(user.id);
+    setBusy(`load:${user.id}`);
+    setError(null);
+    try {
+      const loaded = await getAdminUserAccess(user.id);
+      setAccess(loaded);
+      setRole(loaded.user.role);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  useEffect(() => { void loadUsers(); }, []);
+
+  async function saveRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!access) return;
+    setBusy('role');
+    setError(null);
+    try {
+      const updated = await setAdminUserRole(access.user.id, access.user.etag, role);
+      setAccess(updated);
+      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await selectUser(access.user);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveGrant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!access || !actionKey.trim()) return;
+    setBusy('permission');
+    setError(null);
+    try {
+      const updated = await setAdminActionGrant(access.user.id, access.user.etag, actionKey.trim(), effect);
+      setAccess(updated);
+      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+      setActionKey('');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleModule(code: string, enabled: boolean) {
+    if (!access) return;
+    setBusy(`module:${code}`);
+    setError(null);
+    try {
+      const updated = await setAdminModuleGrant(access.user.id, access.user.etag, code, enabled);
+      setAccess(updated);
+      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function disable() {
+    if (!access || access.user.state === 'Disabled') return;
+    setBusy('disable');
+    setError(null);
+    try {
+      await disableAdminUser(access.user.id, access.user.etag);
+      await loadUsers();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="admin-access-title">
+      <div className="content-heading"><div><p className="eyebrow">FX02 / SUPERADMIN</p><h1 id="admin-access-title">Admin access</h1><p className="lead">Operational account metadata, roles, action grants and module enablement. Business-resource payloads không xuất hiện trong projection này.</p></div><button className="secondary-button" type="button" onClick={loadUsers} disabled={loading}>Tải lại users</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải users…</div> : users.length === 0 ? <div className="empty-state"><h2>Chưa có account</h2><p>SQL chưa trả operational user projection.</p></div> : <div className="admin-layout"><div className="admin-user-list"><h2>Users</h2>{users.map((user) => <button key={user.id} type="button" className={selectedId === user.id ? 'admin-user-row active' : 'admin-user-row'} onClick={() => void selectUser(user)} disabled={busy !== null}><strong>{user.displayName}</strong><span>{user.email}</span><span>{user.role} · {user.state}</span></button>)}</div><div className="admin-detail">{!access ? <div className="empty-state"><h2>Chọn user</h2></div> : <><div className="section-heading"><div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div><button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>Disable user</button></div><form className="form-panel" onSubmit={saveRole}><div className="field-group"><label htmlFor="admin-role">Role</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div><button className="primary-button" type="submit" disabled={busy !== null}>Lưu role</button></form><form className="form-panel" onSubmit={saveGrant}><div className="section-heading"><h3>Action grant</h3><span className="muted">Allow chỉ cho action đã có policy</span></div><div className="form-grid"><div className="field-group"><label htmlFor="admin-action">Action key</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">Effect</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div><button className="secondary-button" type="submit" disabled={busy !== null}>Cập nhật grant</button></form><div className="form-panel"><div className="section-heading"><h3>Module grants</h3><span className="muted">Server rechecks state/dependency</span></div><div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ' · system disabled'}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div></div><div className="form-panel"><h3>Current action grants</h3>{access.actionGrants.length === 0 ? <p className="muted">No explicit grants.</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div></>}
+      </div></div>}
+    </section>
+  );
+}
+
+function HomeScreen({ profile, navigate }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string) => void }) {
+  const enabledModules = profile.modules.filter((module) => module.enabled);
+  return (
+    <section className="content-section" aria-labelledby="home-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">HOME</p>
+          <h1 id="home-title">Xin chào, {profile.displayName}</h1>
+          <p className="lead">Đây là PersonalSpace riêng của bạn. Shell chỉ hiển thị các capability server đã cấp.</p>
+        </div>
+        <span className="state-pill state-active">{profile.state}</span>
+      </div>
+      <div className="info-grid">
+        <article className="info-card">
+          <p className="card-label">Locale</p>
+          <strong>{profile.locale === 'vi' ? 'Tiếng Việt' : 'English'}</strong>
+          <span>{profile.timeZoneId}</span>
+        </article>
+        <article className="info-card">
+          <p className="card-label">Module availability</p>
+          <strong>{enabledModules.length} enabled</strong>
+          <span>{profile.modules.length} server projections</span>
+        </article>
+      </div>
+      <section className="module-section" aria-labelledby="available-modules-title">
+        <div className="section-heading"><h2 id="available-modules-title">Module catalog</h2><span className="muted">No client-side authority</span></div>
+        {profile.modules.length === 0 ? (
+          <div className="empty-state"><h3>Chưa có module được cấp</h3><p>Server chưa trả projection module cho PersonalSpace này.</p></div>
+        ) : (
+          <div className="module-grid">
+            {profile.modules.map((module) => (
+              <article key={module.code} className={module.enabled ? 'module-card' : 'module-card unavailable'}>
+                <div className="module-card-heading"><h3>{module.code}</h3><span className="state-pill">{module.enabled ? 'Available' : 'Unavailable'}</span></div>
+                <p>{module.enabled ? 'Module đã được server bật cho phiên này.' : module.unavailableReason ?? 'Module chưa khả dụng trong policy hiện tại.'}</p>
+                {module.enabled && <button className="secondary-button" type="button" onClick={() => navigate('module', module.code)}>Mở module</button>}
+              </article>
             ))}
-          </ul>
+          </div>
         )}
       </section>
+    </section>
+  );
+}
 
-      {profile && (
-        <section className="card" aria-labelledby="profile-title">
-          <h2 id="profile-title">Current profile</h2>
-          <pre>{JSON.stringify(profile, null, 2)}</pre>
-        </section>
+type ProductivityModuleCode = 'FX11' | 'FX12' | 'FX13';
+type ProjectDraft = { name: string; description: string; startAt: string; endAt: string; priority: string; tagsJson: string; notes: string };
+type TaskDraft = { projectId: string; title: string; description: string; status: string; dueAt: string; startAt: string; endAt: string; priority: string; tagsJson: string; acceptanceCriteriaJson: string; reminderAt: string };
+type EventDraft = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string };
+
+function localInputToIso(value: string): string | null {
+  if (!value.trim()) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.valueOf()) ? null : parsed.toISOString();
+}
+
+function isoToLocalInput(value: string | null): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return '';
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+}
+
+function ProductivityScreen({
+  profile,
+  moduleCode,
+  navigate,
+  onAuthLost
+}: {
+  profile: ProfileResponse;
+  moduleCode: ProductivityModuleCode;
+  navigate: (screen: Screen, moduleCode?: string) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [events, setEvents] = useState<CalendarEventRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectRecord | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
+  const [editingEvent, setEditingEvent] = useState<CalendarEventRecord | null>(null);
+  const [projectDraft, setProjectDraft] = useState<ProjectDraft>({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
+  const [taskDraft, setTaskDraft] = useState<TaskDraft>({ projectId: '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+  const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId });
+
+  const canProjects = profile.modules.some((module) => module.code.toUpperCase() === 'FX11' && module.enabled);
+  const canTasks = profile.modules.some((module) => module.code.toUpperCase() === 'FX12' && module.enabled);
+  const canCalendar = profile.modules.some((module) => module.code.toUpperCase() === 'FX13' && module.enabled);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const [projectPage, taskPage, eventPage] = await Promise.all([
+        canProjects || canTasks ? listProjects() : Promise.resolve(null),
+        canTasks ? listTasks() : Promise.resolve(null),
+        canCalendar ? listCalendarEvents() : Promise.resolve(null)
+      ]);
+      if (projectPage) setProjects(Array.isArray(projectPage.items) ? projectPage.items : []);
+      if (taskPage) setTasks(Array.isArray(taskPage.items) ? taskPage.items : []);
+      if (eventPage) setEvents(Array.isArray(eventPage.items) ? eventPage.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [moduleCode]);
+
+  function resetProject() {
+    setEditingProject(null);
+    setProjectDraft({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
+  }
+
+  function resetTask() {
+    setEditingTask(null);
+    setTaskDraft({ projectId: projects[0]?.id ?? '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+  }
+
+  function resetEvent() {
+    setEditingEvent(null);
+    setEventDraft({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId });
+  }
+
+  function beginProjectEdit(project: ProjectRecord) {
+    setEditingProject(project);
+    setProjectDraft({ name: project.name, description: project.description ?? '', startAt: isoToLocalInput(project.startAt), endAt: isoToLocalInput(project.endAt), priority: project.priority, tagsJson: project.tagsJson, notes: project.notes ?? '' });
+  }
+
+  function beginTaskEdit(task: TaskRecord) {
+    setEditingTask(task);
+    setTaskDraft({ projectId: task.projectId, title: task.title, description: task.description ?? '', status: task.status, dueAt: isoToLocalInput(task.dueAt), startAt: isoToLocalInput(task.startAt), endAt: isoToLocalInput(task.endAt), priority: task.priority, tagsJson: task.tagsJson, acceptanceCriteriaJson: task.acceptanceCriteriaJson, reminderAt: isoToLocalInput(task.reminderAt) });
+  }
+
+  function beginEventEdit(event: CalendarEventRecord) {
+    setEditingEvent(event);
+    setEventDraft({ title: event.title, description: event.description ?? '', startAt: isoToLocalInput(event.startAt), endAt: isoToLocalInput(event.endAt), timeZoneId: event.timeZoneId });
+  }
+
+  async function saveProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const startAt = localInputToIso(projectDraft.startAt);
+    const endAt = localInputToIso(projectDraft.endAt);
+    if (!projectDraft.name.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Tên Project là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('project');
+    setError(null);
+    try {
+      const saved = editingProject
+        ? await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), projectDraft.description.trim() || null, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null)
+        : await createProject(projectDraft.name.trim(), projectDraft.description.trim() || null, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null);
+      setProjects((current) => editingProject ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+      resetProject();
+      if (!editingProject && !taskDraft.projectId) setTaskDraft((current) => ({ ...current, projectId: saved.id }));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeProject(project: ProjectRecord) {
+    if (!window.confirm(`Đưa Project “${project.name}” và các Task vào Trash?`)) return;
+    setBusy(`project:${project.id}`);
+    setError(null);
+    try {
+      await deleteProject(project.id, project.etag);
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+      setTasks((current) => current.filter((item) => item.projectId !== project.id));
+      if (editingProject?.id === project.id) resetProject();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function closeProject(project: ProjectRecord, status: 'Completed' | 'Skipped') {
+    const reason = window.prompt(`Lý do chuyển Project sang ${status}:`, 'Hoàn tất theo kế hoạch');
+    if (reason === null) return;
+    setBusy(`project:${project.id}`);
+    setError(null);
+    try {
+      const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null);
+      setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const dueAt = taskDraft.dueAt ? localInputToIso(taskDraft.dueAt) : null;
+    const startAt = localInputToIso(taskDraft.startAt);
+    const endAt = localInputToIso(taskDraft.endAt);
+    const reminderAt = taskDraft.reminderAt ? localInputToIso(taskDraft.reminderAt) : null;
+    if (!taskDraft.projectId || !taskDraft.title.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Project và tiêu đề Task là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    if ((taskDraft.dueAt && !dueAt) || (taskDraft.reminderAt && !reminderAt)) {
+      setError(new NexoraApiError('Due date không hợp lệ.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('task');
+    setError(null);
+    try {
+      const saved = editingTask
+        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt)
+        : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt);
+      setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+      resetTask();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeTask(task: TaskRecord) {
+    if (!window.confirm(`Xóa Task “${task.title}”?`)) return;
+    setBusy(`task:${task.id}`);
+    setError(null);
+    try {
+      await deleteTask(task.id, task.etag);
+      setTasks((current) => current.filter((item) => item.id !== task.id));
+      if (editingTask?.id === task.id) resetTask();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const startAt = localInputToIso(eventDraft.startAt);
+    const endAt = localInputToIso(eventDraft.endAt);
+    if (!eventDraft.title.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Tiêu đề, thời gian bắt đầu và kết thúc là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('event');
+    setError(null);
+    try {
+      const saved = editingEvent
+        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim() || null, startAt, endAt, eventDraft.timeZoneId.trim())
+        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim() || null, startAt, endAt, eventDraft.timeZoneId.trim());
+      setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+      resetEvent();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeEvent(item: CalendarEventRecord) {
+    if (!window.confirm(`Xóa lịch “${item.title}”?`)) return;
+    setBusy(`event:${item.id}`);
+    setError(null);
+    try {
+      await deleteCalendarEvent(item.id, item.etag);
+      setEvents((current) => current.filter((eventItem) => eventItem.id !== item.id));
+      if (editingEvent?.id === item.id) resetEvent();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const title = moduleCode === 'FX11' ? 'Projects' : moduleCode === 'FX12' ? 'Tasks' : 'Calendar';
+  if (loading) {
+    return <section className="content-section"><div className="loading-state" role="status">Đang tải {title}…</div></section>;
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="productivity-title">
+      <div className="content-heading">
+        <div><p className="eyebrow">{moduleCode} / PERSONAL PRODUCTIVITY</p><h1 id="productivity-title">{title}</h1><p className="lead">Dữ liệu được lọc theo PersonalSpace hiện tại; server giữ quyền sở hữu, lifecycle và revision.</p></div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={busy !== null}>Tải lại</button>
+      </div>
+      <div className="module-tabs" role="tablist" aria-label="Productivity modules">
+        {canProjects && <button className={moduleCode === 'FX11' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX11'} onClick={() => navigate('module', 'FX11')}>Projects</button>}
+        {canTasks && <button className={moduleCode === 'FX12' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX12'} onClick={() => navigate('module', 'FX12')}>Tasks</button>}
+        {canCalendar && <button className={moduleCode === 'FX13' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX13'} onClick={() => navigate('module', 'FX13')}>Calendar</button>}
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}{error.status === 412 && ' Hãy tải lại revision rồi áp dụng lại thay đổi.'}</Notice>}
+
+      {moduleCode === 'FX11' && canProjects && (
+        <div className="resource-layout">
+          <form className="form-panel resource-form" onSubmit={saveProject} noValidate>
+            <div className="section-heading"><h2>{editingProject ? 'Sửa Project' : 'Tạo Project'}</h2>{editingProject && <button className="link-button" type="button" onClick={resetProject}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="project-name">Tên Project</label><input id="project-name" value={projectDraft.name} maxLength={160} onChange={(event) => setProjectDraft({ ...projectDraft, name: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="project-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="project-description" value={projectDraft.description} maxLength={2000} onChange={(event) => setProjectDraft({ ...projectDraft, description: event.target.value })} rows={4} /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="project-start">Bắt đầu</label><input id="project-start" type="datetime-local" value={projectDraft.startAt} onChange={(event) => setProjectDraft({ ...projectDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="project-end">Kết thúc</label><input id="project-end" type="datetime-local" value={projectDraft.endAt} onChange={(event) => setProjectDraft({ ...projectDraft, endAt: event.target.value })} required /></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="project-priority">Ưu tiên</label><select id="project-priority" value={projectDraft.priority} onChange={(event) => setProjectDraft({ ...projectDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div><div className="field-group"><label htmlFor="project-tags">Tags JSON <span className="optional">(mảng)</span></label><input id="project-tags" value={projectDraft.tagsJson} onChange={(event) => setProjectDraft({ ...projectDraft, tagsJson: event.target.value })} /></div></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetProject} disabled={busy === 'project'}>Làm mới</button><SubmitButton busy={busy === 'project'}>{editingProject ? 'Lưu Project' : 'Tạo Project'}</SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Projects của bạn</h2><span className="muted">{projects.length} bản ghi</span></div>{projects.length === 0 ? <div className="empty-state"><h3>Chưa có Project</h3><p>Tạo Project đầu tiên để bắt đầu gom Task.</p></div> : <div className="resource-cards">{projects.map((project) => <article className="resource-card" key={project.id}><div><h3>{project.name}</h3><p>{project.description || 'Không có mô tả.'}</p><span className="muted">{dateTime(project.startAt)} — {dateTime(project.endAt)} · {project.priority} · {project.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginProjectEdit(project)} disabled={busy !== null || project.status === 'Completed' || project.status === 'Skipped'}>Sửa</button>{(project.status === 'NotStarted' || project.status === 'InProgress') && <><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Completed')} disabled={busy !== null}>Hoàn tất</button><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Skipped')} disabled={busy !== null}>Bỏ qua</button></>}<button className="danger-button" type="button" onClick={() => void removeProject(project)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}</div>
+        </div>
       )}
 
-      <section className="card" aria-labelledby="log-title">
-        <h2 id="log-title">Runtime log</h2>
-        <pre>{log.join('\n\n') || 'No API calls yet.'}</pre>
-      </section>
-    </main>
+      {moduleCode === 'FX12' && canTasks && (
+        <div className="resource-layout">
+          <form className="form-panel resource-form" onSubmit={saveTask} noValidate>
+            <div className="section-heading"><h2>{editingTask ? 'Sửa Task' : 'Tạo Task'}</h2>{editingTask && <button className="link-button" type="button" onClick={resetTask}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>
+            <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={240} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="task-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="task-description" value={taskDraft.description} maxLength={4000} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} rows={3} /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên</label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-start">Bắt đầu</label><input id="task-start" type="datetime-local" value={taskDraft.startAt} onChange={(event) => setTaskDraft({ ...taskDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="task-end">Kết thúc</label><input id="task-end" type="datetime-local" value={taskDraft.endAt} onChange={(event) => setTaskDraft({ ...taskDraft, endAt: event.target.value })} required /></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => setTaskDraft({ ...taskDraft, reminderAt: event.target.value })} /></div></div>
+            {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}</div>
+        </div>
+      )}
+
+      {moduleCode === 'FX13' && canCalendar && (
+        <div className="resource-layout">
+          <form className="form-panel resource-form" onSubmit={saveEvent} noValidate>
+            <div className="section-heading"><h2>{editingEvent ? 'Sửa sự kiện' : 'Tạo sự kiện'}</h2>{editingEvent && <button className="link-button" type="button" onClick={resetEvent}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="event-title">Tiêu đề</label><input id="event-title" value={eventDraft.title} maxLength={240} onChange={(event) => setEventDraft({ ...eventDraft, title: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="event-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="event-description" value={eventDraft.description} maxLength={4000} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows={3} /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="event-start">Bắt đầu</label><input id="event-start" type="datetime-local" value={eventDraft.startAt} onChange={(event) => setEventDraft({ ...eventDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="event-end">Kết thúc</label><input id="event-end" type="datetime-local" value={eventDraft.endAt} onChange={(event) => setEventDraft({ ...eventDraft, endAt: event.target.value })} required /></div></div>
+            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft({ ...eventDraft, timeZoneId: event.target.value })} required /><p className="field-help">Server lưu instant UTC và giữ timezone hiển thị theo contract.</p></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEvent} disabled={busy === 'event'}>Làm mới</button><SubmitButton busy={busy === 'event'}>{editingEvent ? 'Lưu sự kiện' : 'Tạo sự kiện'}</SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Lịch của bạn</h2><span className="muted">{events.length} bản ghi</span></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : <div className="resource-cards">{events.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{dateTime(item.startAt)} — {dateTime(item.endAt)}</p><span className="muted">{item.timeZoneId} · {item.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled'}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void transitionCalendarEvent(item.id, item.etag, 'Completed').then((saved) => setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem))).catch((requestError) => setError(asApiError(requestError)))} disabled={busy !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled'}>Hủy</button></div></article>)}</div>}</div>
+        </div>
+      )}
+    </section>
   );
+}
+
+function ModuleScreen({
+  profile,
+  module,
+  navigate,
+  onAuthLost
+}: {
+  profile: ProfileResponse;
+  module?: ProfileResponse['modules'][number];
+  navigate: (screen: Screen, moduleCode?: string) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  if (!module) {
+    return (
+      <section className="content-section" aria-labelledby="module-missing-title">
+        <p className="eyebrow">MODULE</p>
+        <h1 id="module-missing-title">Module không khả dụng</h1>
+        <p className="lead">Module này không có trong projection của server cho PersonalSpace hiện tại.</p>
+        <button className="secondary-button" type="button" onClick={() => navigate('home')}>Về Home</button>
+      </section>
+    );
+  }
+
+  const normalizedCode = module.code.toUpperCase();
+  if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
+    return <ProductivityScreen profile={profile} moduleCode={normalizedCode} navigate={navigate} onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX20') {
+    return <DocumentsScreen onAuthLost={onAuthLost} />;
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="module-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">{module.code}</p>
+          <h1 id="module-title">Module entry</h1>
+          <p className="lead">Server đã cấp module này cho {profile.displayName}; UI feature CRUD của module này chưa nằm trong slice frontend hiện tại.</p>
+        </div>
+        <span className="state-pill state-active">{module.enabled ? 'Available' : 'Unavailable'}</span>
+      </div>
+      <div className="empty-state honest-placeholder">
+        <h2>Chưa có dữ liệu hiển thị</h2>
+        <p>Không dùng demo data hoặc client-side mock. Module này sẽ được nối vào API owner-scoped sau khi backend contract tương ứng được triển khai.</p>
+        <button className="secondary-button" type="button" onClick={() => navigate('home')}>Về Home</button>
+      </div>
+    </section>
+  );
+}
+
+function ProfileScreen({
+  profile,
+  onProfileUpdated,
+  onAuthLost
+}: {
+  profile: ProfileResponse;
+  onProfileUpdated: (profile: ProfileResponse) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  const [draft, setDraft] = useState<ProfilePatch>({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  useEffect(() => {
+    setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
+    setConflict(false);
+  }, [profile]);
+
+  function changeDraft(patch: ProfilePatch) {
+    requestKey.current = null;
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  async function reload() {
+    setLoading(true);
+    setError(null);
+    try {
+      const latest = normalizeProfile(await getMe());
+      onProfileUpdated(latest);
+      setDraft({ displayName: latest.displayName, timeZoneId: latest.timeZoneId, locale: latest.locale });
+      setConflict(false);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const displayName = (draft.displayName ?? '').trim();
+    const timeZoneId = (draft.timeZoneId ?? '').trim();
+    if (!displayName || displayName.length > 100) {
+      setError(new NexoraApiError('Tên hiển thị phải từ 1 đến 100 ký tự.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (!timeZoneId) {
+      setError(new NexoraApiError('Timezone IANA là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      const updated = normalizeProfile(await updateMe({ displayName, timeZoneId, locale: draft.locale }, requestKey.current));
+      requestKey.current = null;
+      onProfileUpdated(updated);
+      setDraft({ displayName: updated.displayName, timeZoneId: updated.timeZoneId, locale: updated.locale });
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412) {
+        setConflict(true);
+      } else if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const changed = draft.displayName !== profile.displayName || draft.timeZoneId !== profile.timeZoneId || draft.locale !== profile.locale;
+  return (
+    <section className="content-section" aria-labelledby="profile-title">
+      <div className="content-heading"><div><p className="eyebrow">SETTINGS / PROFILE</p><h1 id="profile-title">Profile</h1><p className="lead">Chỉ các trường profile được phép mới có thể cập nhật; UserId, OwnerId, role và state luôn do server quản lý.</p></div><span className="state-pill state-active">{profile.state}</span></div>
+      {conflict && (
+        <Notice kind="error">
+          <span>Dữ liệu profile đã thay đổi ở tab hoặc session khác. Draft hiện tại vẫn được giữ trong memory.</span>
+          <button className="inline-button" type="button" onClick={reload} disabled={loading}>{loading ? 'Đang tải…' : 'Reload revision'}</button>
+        </Notice>
+      )}
+      <form className="profile-form" onSubmit={submit} noValidate>
+        <div className="form-panel">
+          <div className="field-group"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={profile.email} readOnly aria-describedby="profile-email-help" /><p className="field-help" id="profile-email-help">Đổi email là flow xác minh riêng và không có trong màn hình này.</p></div>
+          <div className="field-group"><label htmlFor="profile-display-name">Tên hiển thị</label><input id="profile-display-name" type="text" maxLength={100} value={draft.displayName ?? ''} onChange={(event) => changeDraft({ displayName: event.target.value })} required aria-describedby="profile-display-name-error" /><FieldError id="profile-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} /></div>
+          <div className="field-group"><label htmlFor="profile-timezone">Timezone IANA</label><input id="profile-timezone" type="text" value={draft.timeZoneId ?? ''} onChange={(event) => changeDraft({ timeZoneId: event.target.value })} required aria-describedby="profile-timezone-error" /><FieldError id="profile-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} /></div>
+          <div className="field-group"><label htmlFor="profile-locale">Ngôn ngữ giao diện</label><select id="profile-locale" value={draft.locale ?? profile.locale} onChange={(event) => changeDraft({ locale: event.target.value as 'vi' | 'en' })}><option value="vi">Tiếng Việt</option><option value="en">English</option></select><FieldError id="profile-locale-error" message={error ? firstFieldError(error, 'locale') : undefined} /></div>
+          {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale })} disabled={!changed || busy}>Hủy thay đổi</button><SubmitButton busy={busy}>Lưu profile</SubmitButton></div>
+        </div>
+      </form>
+      <PreferencesPanel onAuthLost={onAuthLost} />
+    </section>
+  );
+}
+
+function PreferencesPanel({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [preference, setPreference] = useState<PreferenceRecord | null>(null);
+  const [mode, setMode] = useState<'System' | 'Light' | 'Dark'>('System');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listPreferences();
+      const theme = page.items.find((item) => item.preferenceKey === 'theme') ?? null;
+      setPreference(theme);
+      if (theme) {
+        try {
+          const value = JSON.parse(theme.valueJson) as { mode?: string };
+          if (value.mode === 'System' || value.mode === 'Light' || value.mode === 'Dark') setMode(value.mode);
+        } catch {
+          setError(new NexoraApiError('Theme preference không hợp lệ.', 422, 'ValidationFailed'));
+        }
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function save() {
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await updatePreference('theme', preference?.etag ?? '*', { mode });
+      setPreference(saved);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">Preferences</h2><p className="muted">Schema-validated, non-secret settings; không có mute/quiet-hours/channel suppression.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">Theme</label><select id="theme-mode" value={mode} onChange={(event) => setMode(event.target.value as 'System' | 'Light' | 'Dark')} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? 'Đang lưu…' : 'Lưu preferences'}</button></div></section>;
+}
+
+function SecurityScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [sessions, setSessions] = useState<SessionProjection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const actionKeys = useRef<Record<string, string>>({});
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listSessions();
+      setSessions(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function revoke(session: SessionProjection) {
+    setBusyId(session.id);
+    setError(null);
+    actionKeys.current[session.id] ??= createIdempotencyKey();
+    try {
+      await revokeSession(session.id, actionKeys.current[session.id]);
+      delete actionKeys.current[session.id];
+      setConfirmingId(null);
+      if (session.isCurrent) {
+        await onAuthLost();
+        return;
+      }
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function revokeEverywhere() {
+    setBusyId('all');
+    setError(null);
+    actionKeys.current.all ??= createIdempotencyKey();
+    try {
+      await revokeAllSessions(actionKeys.current.all);
+      delete actionKeys.current.all;
+      await onAuthLost();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="security-title">
+      <div className="content-heading"><div><p className="eyebrow">SETTINGS / SECURITY</p><h1 id="security-title">Security & sessions</h1><p className="lead">Session metadata được server projection an toàn; raw cookie/token không được render.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      <div className="security-policy"><strong>MFA và recovery</strong><span>Chính sách có thể yêu cầu flow riêng; màn hình này không giả lập hoặc bỏ qua step-up.</span></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải session…</div> : sessions.length === 0 ? <div className="empty-state"><h2>Không có session hiển thị</h2><p>Server không trả session active nào cho account hiện tại.</p></div> : <div className="table-wrap"><table><caption>Danh sách session của account hiện tại</caption><thead><tr><th scope="col">Thiết bị</th><th scope="col">Hoạt động gần nhất</th><th scope="col">Hết hạn</th><th scope="col"><span className="sr-only">Thao tác</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">Session hiện tại</span>}<span className="muted">Tạo {dateTime(session.createdAt)}</span></td><td>{dateTime(session.lastSeenAt)}</td><td>{dateTime(session.expiresAt)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>Thu hồi session này?</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? 'Đang thu hồi…' : 'Xác nhận'}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>Hủy</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>Thu hồi</button>}</td></tr>)}</tbody></table></div>}
+      <div className="danger-zone"><div><h2>Thu hồi tất cả session</h2><p>Thao tác này bao gồm session hiện tại và sẽ đưa bạn về màn hình đăng nhập.</p></div>{confirmAll ? <div className="confirm-actions"><span>Thu hồi tất cả?</span><button className="danger-button" type="button" onClick={revokeEverywhere} disabled={busyId === 'all'}>{busyId === 'all' ? 'Đang thu hồi…' : 'Xác nhận'}</button><button className="link-button" type="button" onClick={() => setConfirmAll(false)} disabled={busyId === 'all'}>Hủy</button></div> : <button className="danger-button" type="button" onClick={() => setConfirmAll(true)} disabled={busyId !== null || loading}>Thu hồi tất cả</button>}</div>
+    </section>
+  );
+}
+
+export function App() {
+  const [location, setLocation] = useState<LocationState>(() => routeFromPath(window.location.pathname));
+  const [sessionState, setSessionState] = useState<SessionState>('checking');
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [notice, setNotice] = useState<{ kind: NoticeKind; text: string }>();
+
+  function navigate(screen: Screen, moduleCode?: string, replace = false) {
+    const next: LocationState = { screen, moduleCode };
+    const nextPath = pathForLocation(next);
+    if (window.location.pathname !== nextPath) {
+      if (replace) {
+        window.history.replaceState({}, '', nextPath);
+      } else {
+        window.history.pushState({}, '', nextPath);
+      }
+    }
+    setLocation(next);
+    setNotice(undefined);
+  }
+
+  useEffect(() => {
+    const onPopState = () => setLocation(routeFromPath(window.location.pathname));
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function bootstrap() {
+      try {
+        await getCsrf();
+        const current = normalizeProfile(await getMe());
+        if (!cancelled) {
+          setProfile(current);
+          setSessionState('authenticated');
+        }
+      } catch (requestError) {
+        if (cancelled) {
+          return;
+        }
+        const apiError = asApiError(requestError);
+        if (apiError.status === 401) {
+          setProfile(null);
+          setSessionState('anonymous');
+        } else {
+          setSessionState('unavailable');
+          setNotice({ kind: 'error', text: apiError.message });
+        }
+      }
+    }
+    void bootstrap();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (sessionState === 'anonymous' && !PUBLIC_SCREENS.has(location.screen)) {
+      navigate('login', undefined, true);
+    }
+    if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen)) {
+      navigate('home', undefined, true);
+    }
+  }, [sessionState, location.screen]);
+
+  function authenticate(nextProfile: ProfileResponse) {
+    setProfile(nextProfile);
+    setSessionState('authenticated');
+    navigate('home', undefined, true);
+  }
+
+  async function clearSession(message?: string) {
+    clearProfileRevision();
+    setProfile(null);
+    setSessionState('anonymous');
+    navigate('login', undefined, true);
+    if (message) {
+      setNotice({ kind: 'info', text: message });
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await logout();
+      await clearSession();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (apiError.status === 401) {
+        await clearSession('Phiên đã hết hạn và đã được xóa khỏi trình duyệt.');
+      } else {
+        setNotice({ kind: 'error', text: apiError.message });
+      }
+    }
+  }
+
+  if (sessionState === 'checking') {
+    return <div className="full-page-state" role="status"><div className="loading-mark" aria-hidden="true">N</div><h1>Đang kiểm tra phiên</h1><p>Không hiển thị dữ liệu private trước khi server xác nhận session.</p></div>;
+  }
+
+  if (sessionState === 'unavailable') {
+    return <div className="full-page-state"><div className="loading-mark" aria-hidden="true">!</div><h1>Local API chưa sẵn sàng</h1><p>{notice?.text ?? 'Không thể kết nối Nexora API.'}</p><button className="primary-button" type="button" onClick={() => window.location.reload()}>Thử lại</button></div>;
+  }
+
+  if (sessionState === 'authenticated' && profile) {
+    return <Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} />;
+  }
+
+  const publicProps = { navigate, notice, onDismissNotice: () => setNotice(undefined) };
+  switch (location.screen) {
+    case 'register':
+      return <RegisterScreen {...publicProps} onRegistered={(email) => { setVerificationEmail(email); setNotice({ kind: 'success', text: 'Đã tiếp nhận đăng ký. Nhập mã từ kênh transport đã cấu hình để xác minh.' }); navigate('verify'); }} />;
+    case 'verify':
+      return <VerifyScreen {...publicProps} email={verificationEmail} setEmail={setVerificationEmail} onVerified={() => setNotice({ kind: 'success', text: 'Email đã được xác minh. Đăng nhập để tiếp tục.' })} />;
+    case 'forgot':
+      return <ForgotPasswordScreen {...publicProps} />;
+    case 'reset':
+      return <ResetPasswordScreen {...publicProps} />;
+    case 'home':
+    case 'profile':
+    case 'security':
+    case 'module':
+    case 'login':
+    default:
+      return <LoginScreen {...publicProps} onAuthenticated={authenticate} onPendingVerification={(email) => { setVerificationEmail(email); navigate('verify'); }} />;
+  }
 }

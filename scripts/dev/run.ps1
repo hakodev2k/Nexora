@@ -1,3 +1,3 @@
 $ErrorActionPreference = 'Stop'
-Write-Host "Starting Nexora.Api. Start SQL/Redis with docker compose when later M01 stories require persistence."
+Write-Host "Starting Nexora.Api. Apply database migrations and start SQL/Redis with docker compose first."
 dotnet run --project src/Nexora.Api/Nexora.Api.csproj

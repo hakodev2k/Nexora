@@ -15,6 +15,19 @@ public sealed class CsrfTokenService
         return new IssuedCsrfToken(cookieSecret, WebEncoders.Base64UrlEncode(digest));
     }
 
+    public void AppendCookie(HttpResponse response, IssuedCsrfToken issued)
+    {
+        response.Cookies.Append("__Host-NexoraCsrf", issued.CookieSecret, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/",
+            MaxAge = TimeSpan.FromMinutes(30)
+        });
+        response.Headers["X-CSRF-Token"] = issued.RequestToken;
+    }
+
     public bool Validate(string? cookieSecret, string? requestToken)
     {
         if (string.IsNullOrWhiteSpace(cookieSecret) || string.IsNullOrWhiteSpace(requestToken))

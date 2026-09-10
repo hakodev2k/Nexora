@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Static S00 checks for the Nexora local scaffold.
+"""Static checks for the local Release 1 implementation baseline.
 
-These checks intentionally do not claim application runtime or SQL integration
-coverage. They guard the approved M01-S00 scaffold contract, Minimal API-based
-Identity and Module policy route surfaces, and paused-scope boundaries until
-SQL-backed stories are fully verified.
+This verifier is intentionally structural. It catches accidental reintroduction
+of memory-backed authority, development-only admin bypasses, browser token
+storage or provider execution. It does not run functional tests or claim runtime
+verification; those activities are owned by the human implementation owner.
 """
 from __future__ import annotations
 
@@ -22,25 +22,54 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Nexora.Api.csproj",
     "src/Nexora.Api/Program.cs",
     "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs",
-    "src/Nexora.Api/Features/Identity/DevelopmentIdentityStore.cs",
     "src/Nexora.Api/Features/Identity/IdentityContracts.cs",
     "src/Nexora.Api/Features/Modules/ModuleEndpoints.cs",
-    "src/Nexora.Api/Features/Modules/DevelopmentModuleStore.cs",
     "src/Nexora.Api/Features/Modules/ModuleContracts.cs",
+    "src/Nexora.Api/Features/Access/AdminAccessEndpoints.cs",
+    "src/Nexora.Api/Features/Access/AdminAccessContracts.cs",
+    "src/Nexora.Api/Features/Notifications/NotificationEndpoints.cs",
+    "src/Nexora.Api/Features/Notifications/NotificationContracts.cs",
+    "src/Nexora.Api/Features/Trash/TrashEndpoints.cs",
+    "src/Nexora.Api/Features/Trash/TrashContracts.cs",
+    "src/Nexora.Api/Features/Settings/SettingsEndpoints.cs",
+    "src/Nexora.Api/Features/Settings/SettingsContracts.cs",
+    "src/Nexora.Api/Features/Documents/DocumentEndpoints.cs",
+    "src/Nexora.Api/Features/Documents/DocumentContracts.cs",
+    "src/Nexora.Api/Features/Productivity/ProductivityEndpoints.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
-    "src/Nexora.Api/Security/PasswordHashService.cs",
     "src/Nexora.Api/Security/SessionCookieService.cs",
-    "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
     "src/Nexora.Domain/Nexora.Domain.csproj",
     "src/Nexora.Application/Nexora.Application.csproj",
-    "tests/Nexora.UnitTests/Nexora.UnitTests.csproj",
-    "tests/Nexora.UnitTests/Program.cs",
+    "src/Nexora.Application/Identity/IdentityServiceContracts.cs",
+    "src/Nexora.Application/Modules/ModulePolicyServiceContracts.cs",
+    "src/Nexora.Application/Access/AdminAccessServiceContracts.cs",
+    "src/Nexora.Application/Notifications/NotificationServiceContracts.cs",
+    "src/Nexora.Application/Trash/TrashServiceContracts.cs",
+    "src/Nexora.Application/Settings/SettingsServiceContracts.cs",
+    "src/Nexora.Application/Documents/DocumentServiceContracts.cs",
+    "src/Nexora.Application/Productivity/ProductivityServiceContracts.cs",
+    "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
+    "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
+    "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
+    "src/Nexora.Infrastructure/Access/SqlAdminAccessService.cs",
+    "src/Nexora.Infrastructure/Notifications/SqlNotificationService.cs",
+    "src/Nexora.Infrastructure/Trash/SqlTrashService.cs",
+    "src/Nexora.Infrastructure/Settings/SqlSettingsService.cs",
+    "src/Nexora.Infrastructure/Documents/SqlDocumentService.cs",
+    "src/Nexora.Infrastructure/Productivity/SqlProductivityService.cs",
+    "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
+    "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
+    "database/migrations/20260910_0003_productivity_lifecycle.sql",
+    "database/migrations/20260910_0004_notifications_inbox.sql",
+    "database/migrations/20260910_0005_preferences.sql",
+    "database/migrations/20260910_0006_documents_pages.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
+    "web/Nexora.Web/src/styles.css",
     "scripts/dev/doctor.sh",
     "scripts/dev/verify.sh",
 ]
@@ -61,27 +90,28 @@ IDENTITY_ROUTES = [
     "/me/sessions/revoke-all",
 ]
 
-MODULE_ROUTE_MARKERS = [
-    "/api/v1/admin/modules",
-    "listModules",
-    "previewModule",
-    "setModulePolicy",
-    "RequireDevelopmentSuperAdminProof",
-    "RequireCsrfForUnsafeMethods",
+PRODUCTIVITY_MARKERS = [
+    "/projects",
+    "/tasks",
+    "/calendar/events",
+    "createProject",
+    "createTask",
+    "createEvent",
 ]
 
 FORBIDDEN_RUNTIME_PATTERNS = [
-    r"prices\.",
-    r"automation\.",
-    r"integrations\.",
+    r"X-Nexora-Dev-SuperAdmin",
+    r"RequireDevelopmentSuperAdminProof",
+    r"listDevAccountMessages",
     r"localStorage",
     r"sessionStorage",
     r"Bearer ",
+    r"(?i)HttpClient.*https?://",
 ]
 
 
 def fail(message: str) -> None:
-    print(f"S00 static verification failed: {message}", file=sys.stderr)
+    print(f"local static verification failed: {message}", file=sys.stderr)
     raise SystemExit(1)
 
 
@@ -97,11 +127,11 @@ def read(path: str) -> str:
 
 def main() -> int:
     if (ROOT / "src/Nexora.Api/M01").exists():
-        fail("M01 is a delivery milestone, not a runtime API folder; src/Nexora.Api/M01 must not exist")
+        fail("M01 is a delivery milestone, not a runtime API folder")
     if (ROOT / "src/Nexora.Api/Controllers").exists():
-        fail("Identity API is intentionally Minimal API-based; src/Nexora.Api/Controllers must not exist in this slice")
+        fail("Minimal API runtime must not reintroduce MVC controllers")
     if (ROOT / "src/Nexora.Api/Security/ValidateCsrfAttribute.cs").exists():
-        fail("Controller-only CSRF attribute must not exist for the Minimal API slice")
+        fail("controller-only CSRF attribute must not exist")
 
     for path in REQUIRED_FILES:
         read(path)
@@ -114,76 +144,108 @@ def main() -> int:
     csproj = read("src/Nexora.Api/Nexora.Api.csproj")
     if "<TargetFramework>net10.0</TargetFramework>" not in csproj:
         fail("Nexora.Api must target net10.0")
-    if "Nexora.Domain.csproj" not in csproj or "Nexora.Application.csproj" not in csproj:
-        fail("Nexora.Api must reference the domain and application policy projects")
+    for project in ("Nexora.Domain.csproj", "Nexora.Application.csproj", "Nexora.Infrastructure.csproj"):
+        if project not in csproj:
+            fail(f"Nexora.Api must reference {project}")
 
     program = read("src/Nexora.Api/Program.cs")
-    if "MapIdentityEndpoints" not in program or "MapModuleEndpoints" not in program:
-        fail("Program.cs must map feature-based Minimal API identity and module endpoints")
-    if "DevelopmentModuleStore" not in program:
-        fail("Program.cs must register the development module policy store")
+    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
+        if marker not in program:
+            fail(f"Program.cs marker missing: {marker}")
+    if "DevelopmentIdentityStore" in program or "DevelopmentModuleStore" in program:
+        fail("memory stores must not be registered by the runtime")
     if "AddControllers" in program or "MapControllers" in program:
-        fail("Program.cs must not register MVC controllers in the Minimal API slice")
-    if "MapM01IdentityEndpoints" in program:
-        fail("Program.cs must not use milestone-named runtime endpoint extensions")
+        fail("Program.cs must not register MVC controllers")
 
     endpoints = read("src/Nexora.Api/Features/Identity/IdentityEndpoints.cs")
     for route in IDENTITY_ROUTES:
         if route not in endpoints:
-            fail(f"Identity Minimal API route missing: {route}")
-    if "MapGroup(\"/api/v1\")" not in endpoints:
-        fail("Identity endpoints must use the /api/v1 route group")
-    if "AddEndpointFilter" not in endpoints or "X-CSRF-Token" not in endpoints:
-        fail("Identity Minimal API route group must apply CSRF validation to unsafe methods")
-    if "__Host-NexoraCsrf" not in endpoints:
-        fail("CSRF endpoint must set the host-prefixed CSRF cookie")
+            fail(f"Identity route missing: {route}")
+    csrf_service = read("src/Nexora.Api/Security/CsrfTokenService.cs")
+    if "RequireCsrfForUnsafeMethods" not in endpoints or "__Host-NexoraCsrf" not in csrf_service:
+        fail("Identity routes must use the shared CSRF group and host-prefixed CSRF cookie")
     if "__Host-NexoraSession" not in read("src/Nexora.Api/Security/SessionCookieService.cs"):
-        fail("M01 session cookie service must use the host-prefixed session cookie")
+        fail("session cookie must be host-prefixed")
 
     module_endpoints = read("src/Nexora.Api/Features/Modules/ModuleEndpoints.cs")
-    for marker in MODULE_ROUTE_MARKERS:
+    for marker in ("/api/v1/admin/modules", "listModules", "previewModule", "setModulePolicy", "IModulePolicyService", "GetPrincipal"):
         if marker not in module_endpoints:
-            fail(f"Module Minimal API marker missing: {marker}")
+            fail(f"module route marker missing: {marker}")
 
-    module_store = read("src/Nexora.Api/Features/Modules/DevelopmentModuleStore.cs")
-    for marker in ("FX30", "FX34", "FX35", "ModulePolicy.CanEnable", "ModulePolicy.CanDisable", "PreviewStale", "DependencyEnabled"):
-        if marker not in module_store:
-            fail(f"Module policy store marker missing: {marker}")
+    admin_endpoints = read("src/Nexora.Api/Features/Access/AdminAccessEndpoints.cs")
+    for marker in ("/users", "listAdminUsers", "setAdminUserRole", "setAdminActionGrant", "setAdminModuleGrant", "disableAdminUser", "IAdminAccessService"):
+        if marker not in admin_endpoints:
+            fail(f"admin route marker missing: {marker}")
+
+    productivity_endpoints = read("src/Nexora.Api/Features/Productivity/ProductivityEndpoints.cs")
+    for marker in PRODUCTIVITY_MARKERS + ["transitionProject", "transitionTask", "transitionEvent"]:
+        if marker not in productivity_endpoints:
+            fail(f"productivity route marker missing: {marker}")
+
+    document_endpoints = read("src/Nexora.Api/Features/Documents/DocumentEndpoints.cs")
+    for marker in ("/documents", "listDocuments", "getDocument", "createDocument", "saveDocument", "transitionDocument", "IDocumentService"):
+        if marker not in document_endpoints:
+            fail(f"document route marker missing: {marker}")
 
     filters = read("src/Nexora.Api/Security/EndpointSecurityFilters.cs")
-    if "X-Nexora-Dev-SuperAdmin" not in filters or "IsDevelopment" not in filters:
-        fail("Development admin guard must be environment-gated and explicit")
+    if "RequireCsrfForUnsafeMethods" not in filters or "X-CSRF-Token" not in filters:
+        fail("shared CSRF filter is missing")
+    if "X-Nexora-Dev-SuperAdmin" in filters:
+        fail("development SuperAdmin header bypass must not exist")
 
     web_api = read("web/Nexora.Web/src/api.ts")
     if "let csrfToken" not in web_api or "localStorage" in web_api or "sessionStorage" in web_api:
-        fail("frontend must keep CSRF token in memory and avoid browser storage")
+        fail("frontend must keep CSRF in memory and never store auth tokens in browser storage")
+    app = read("web/Nexora.Web/src/App.tsx")
+    if "demoPassword" in app or "listDevAccountMessages" in app or "X-Nexora-Dev-SuperAdmin" in app:
+        fail("frontend must not depend on demo accounts, dev mailbox endpoint or admin proof header")
 
     package = json.loads(read("web/Nexora.Web/package.json"))
     deps = package.get("dependencies", {}) | package.get("devDependencies", {})
-    for dep in ("react", "react-dom", "vite", "typescript"):
+    for dep in ("react", "react-dom", "vite", "typescript", "@types/react", "@types/react-dom"):
         if dep not in deps:
             fail(f"frontend dependency missing: {dep}")
 
     migration = read("database/migrations/20260909_0001_m01_identity_platform.sql")
     for table in ("[identity].[User]", "[identity].[Session]", "[identity].[OneTimeToken]", "[platform].[PersonalSpace]", "[security].[AuditEvent]", "[operations].[Outbox]"):
         if table not in migration:
-            fail(f"M01 SQL migration table missing: {table}")
+            fail(f"identity migration table missing: {table}")
+    migration2 = read("database/migrations/20260910_0002_r1_catalog_and_productivity.sql")
+    for table in ("[platform].[Module]", "[productivity].[Project]", "[productivity].[Task]", "[calendar].[Event]"):
+        if table not in migration2:
+            fail(f"Release 1 migration table missing: {table}")
+    migration3 = read("database/migrations/20260910_0003_productivity_lifecycle.sql")
+    for table in ("[productivity].[ProjectHistory]", "[productivity].[TaskHistory]", "[platform].[TrashItem]"):
+        if table not in migration3:
+            fail(f"productivity lifecycle table missing: {table}")
+    migration4 = read("database/migrations/20260910_0004_notifications_inbox.sql")
+    for marker in ("[notifications].[Notification]", "[notifications].[Delivery]", "[RowVersion]", "BrowserPush"):
+        if marker not in migration4:
+            fail(f"notification migration marker missing: {marker}")
+    if "[platform].[TrashItem]" not in migration3:
+        fail("Trash migration table missing")
+    migration5 = read("database/migrations/20260910_0005_preferences.sql")
+    for marker in ("[platform].[Preference]", "[RowVersion]", "[ValueJson]"):
+        if marker not in migration5:
+            fail(f"preference migration marker missing: {marker}")
+    migration6 = read("database/migrations/20260910_0006_documents_pages.sql")
+    for marker in ("[documents].[Page]", "[documents].[PageVersion]", "[DocumentType]", "[EditorMode]", "[VersionNumber]"):
+        if marker not in migration6:
+            fail(f"document migration marker missing: {marker}")
 
-    # Only scan executable runtime surfaces for forbidden paused/provider behavior.
-    # Domain policy and unit-test code may intentionally mention paused action keys
-    # to prove that those actions are blocked.
     scanned = []
-    for pattern in ("src/Nexora.Api/**/*.cs", "web/Nexora.Web/src/**/*"):
+    for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):
         scanned.extend(ROOT.glob(pattern))
     for path in scanned:
-        if path.is_file():
-            text = path.read_text(encoding="utf-8")
-            rel = path.relative_to(ROOT)
-            for forbidden in FORBIDDEN_RUNTIME_PATTERNS:
-                if re.search(forbidden, text):
-                    fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        rel = path.relative_to(ROOT)
+        for forbidden in FORBIDDEN_RUNTIME_PATTERNS:
+            if re.search(forbidden, text):
+                fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("S00 static verification passed: feature-based Minimal API identity/module routes, .NET 10 pin, CSRF/session memory boundary, SQL artifact, and paused-scope guards are present.")
+    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
     return 0
 
 

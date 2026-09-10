@@ -22,6 +22,8 @@ public sealed record ResetProofRequest(string Token, string NewPassword);
 
 public sealed record ProfilePatchRequest(string? DisplayName, string? TimeZoneId, string? Locale);
 
+public sealed record DeleteAccountRequest(string Confirmation, string Password);
+
 public sealed record VerificationResponse(string Status, string MessageCode, ProfileResponse Profile);
 
 public sealed record LoginResponse(ProfileResponse Profile, DateTimeOffset ExpiresAt);
@@ -34,7 +36,8 @@ public sealed record ProfileResponse(
     string Locale,
     string State,
     Guid? PersonalSpaceId,
-    IReadOnlyList<ModuleProjection> Modules);
+    IReadOnlyList<ModuleProjection> Modules,
+    string Role = "User");
 
 public sealed record ModuleProjection(string Code, bool Enabled, string? UnavailableReason);
 

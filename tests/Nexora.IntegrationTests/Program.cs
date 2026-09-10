@@ -40,7 +40,7 @@ try
     Console.WriteLine("PASS: empty database migration and journal replay.");
 
     var bootstrap = new SqlBootstrapSuperAdmin(connection);
-    var command = new BootstrapSuperAdminCommand
+    var command = new SqlBootstrapSuperAdminCommand
     {
         Email = "bootstrap@example.invalid", DisplayName = "Synthetic operator", TimeZoneId = "Etc/UTC",
         PasswordHash = "synthetic-noncredential-hash-only"

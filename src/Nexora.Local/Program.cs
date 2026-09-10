@@ -34,7 +34,7 @@ try
     if (password != ReadPassword()) throw new InvalidOperationException("Password confirmation does not match.");
     var policy = PasswordPolicy.Validate(password);
     if (!policy.Allowed) throw new InvalidOperationException(policy.Message);
-    var outcome = await new SqlBootstrapSuperAdmin(connection).ExecuteAsync(new BootstrapSuperAdminCommand
+    var outcome = await new SqlBootstrapSuperAdmin(connection).ExecuteAsync(new SqlBootstrapSuperAdminCommand
     {
         Email = email, DisplayName = name, TimeZoneId = zone,
         PasswordHash = new PasswordHashService().Hash(password)

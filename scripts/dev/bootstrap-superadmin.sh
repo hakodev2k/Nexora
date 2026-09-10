@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-project="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/src/Nexora.Local/Nexora.Local.csproj"
-dotnet run --project "$project" --configuration Release -- bootstrap-superadmin
+read -r -p "Bootstrap SuperAdmin email: " NEXORA_BOOTSTRAP_EMAIL
+read -r -s -p "Bootstrap SuperAdmin password (not echoed): " NEXORA_BOOTSTRAP_PASSWORD
+printf '\n'
+export NEXORA_BOOTSTRAP_EMAIL NEXORA_BOOTSTRAP_PASSWORD
+export NEXORA_BOOTSTRAP_TIMEZONE="${NEXORA_BOOTSTRAP_TIMEZONE:-UTC}"
+
+dotnet run --project src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release

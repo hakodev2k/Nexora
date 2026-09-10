@@ -18,6 +18,7 @@ TestResults/
 node_modules/
 web/**/node_modules/
 web/**/dist/
+*.tsbuildinfo
 
 # Secrets / local config
 .env
