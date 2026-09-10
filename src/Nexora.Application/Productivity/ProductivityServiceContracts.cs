@@ -3,6 +3,7 @@ using Nexora.Application.Identity;
 namespace Nexora.Application.Productivity;
 
 public sealed record ProjectCommand(
+    // The wire/API compatibility name is `name`; product semantics are Project Title.
     string Name,
     string? Description,
     DateTimeOffset? StartAt = null,
@@ -10,7 +11,8 @@ public sealed record ProjectCommand(
     string Priority = "P3",
     string? TagsJson = null,
     string? Notes = null,
-    string? TransitionReason = null);
+    string? TransitionReason = null,
+    bool ConfirmTaskBounds = false);
 
 public sealed record ProjectRecord(
     Guid Id,
@@ -41,7 +43,8 @@ public sealed record TaskCommand(
     string? AcceptanceCriteriaJson = null,
     int Rank = 0,
     DateTimeOffset? ReminderAt = null,
-    string? TransitionReason = null);
+    string? TransitionReason = null,
+    bool ConfirmProjectTimeBounds = false);
 
 public sealed record TaskRecord(
     Guid Id,
@@ -59,7 +62,8 @@ public sealed record TaskRecord(
     string? TagsJson = null,
     string? AcceptanceCriteriaJson = null,
     int Rank = 0,
-    DateTimeOffset? ReminderAt = null);
+    DateTimeOffset? ReminderAt = null,
+    bool IsOverdue = false);
 
 public sealed record TaskPage(IReadOnlyList<TaskRecord> Items, string? NextCursor);
 
@@ -85,7 +89,9 @@ public sealed record EventRecord(
     DateTimeOffset UpdatedAt,
     string ETag,
     bool IsAllDay = false,
-    string? SourceUid = null);
+    string? SourceUid = null,
+    string SourceKind = "Manual",
+    Guid? TaskId = null);
 
 public sealed record EventPage(IReadOnlyList<EventRecord> Items, string? NextCursor);
 
@@ -94,7 +100,7 @@ public interface IProductivityService
     IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null);
     IdentityOperationResult<ProjectRecord> CreateProject(IdentityPrincipal actor, ProjectCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<ProjectRecord> UpdateProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, ProjectCommand command, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null);
+    IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null, bool confirmed = false);
     IdentityOperationResult<object?> DeleteProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string? idempotencyKey = null, string? traceId = null);
 
     IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null);
@@ -109,3 +115,4 @@ public interface IProductivityService
     IdentityOperationResult<EventRecord> TransitionEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string status, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<object?> DeleteEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string? idempotencyKey = null, string? traceId = null);
 }
+

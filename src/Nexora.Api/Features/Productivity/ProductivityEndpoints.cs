@@ -25,12 +25,12 @@ public static class ProductivityEndpoints
 
         api.MapPut("/projects/{projectId:guid}", (HttpContext context, Guid projectId, ProjectRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.UpdateProject(principal, projectId, context.Request.Headers.IfMatch.ToString(), new ProjectCommand(request.Name, request.Description, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.Notes), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.UpdateProject(principal, projectId, context.Request.Headers.IfMatch.ToString(), new ProjectCommand(request.Name, request.Description, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.Notes, ConfirmTaskBounds: request.ConfirmTaskBounds), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("updateProject");
 
         api.MapPost("/projects/{projectId:guid}/transition", (HttpContext context, Guid projectId, ProductivityTransitionRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.TransitionProject(principal, projectId, context.Request.Headers.IfMatch.ToString(), request.Status, request.Reason, IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.TransitionProject(principal, projectId, context.Request.Headers.IfMatch.ToString(), request.Status, request.Reason, IdempotencyKey(context), context.TraceIdentifier, request.Confirm), ToResponse))
             .WithName("transitionProject");
 
         api.MapDelete("/projects/{projectId:guid}", (HttpContext context, Guid projectId, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
@@ -45,12 +45,12 @@ public static class ProductivityEndpoints
 
         api.MapPost("/tasks", (HttpContext context, TaskRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.CreateTask(principal, new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.CreateTask(principal, new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("createTask");
 
         api.MapPut("/tasks/{taskId:guid}", (HttpContext context, Guid taskId, TaskRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.UpdateTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.UpdateTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("updateTask");
 
         api.MapPost("/tasks/{taskId:guid}/transition", (HttpContext context, Guid taskId, ProductivityTransitionRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
@@ -144,6 +144,7 @@ public static class ProductivityEndpoints
     }
 
     private static ProjectResponse ToResponse(ProjectRecord value) => new(value.Id, value.Name, value.Description, value.Status, value.CreatedAt, value.UpdatedAt, value.ETag, value.StartAt, value.EndAt, value.Priority, value.TagsJson, value.Notes);
-    private static TaskResponse ToResponse(TaskRecord value) => new(value.Id, value.ProjectId, value.Title, value.Description, value.Status, value.DueAt, value.CreatedAt, value.UpdatedAt, value.ETag, value.StartAt, value.EndAt, value.Priority, value.TagsJson, value.AcceptanceCriteriaJson, value.Rank, value.ReminderAt);
-    private static EventResponse ToResponse(EventRecord value) => new(value.Id, value.Title, value.Description, value.StartAt, value.EndAt, value.TimeZoneId, value.Status, value.CreatedAt, value.UpdatedAt, value.ETag, value.IsAllDay, value.SourceUid);
+    private static TaskResponse ToResponse(TaskRecord value) => new(value.Id, value.ProjectId, value.Title, value.Description, value.Status, value.DueAt, value.CreatedAt, value.UpdatedAt, value.ETag, value.StartAt, value.EndAt, value.Priority, value.TagsJson, value.AcceptanceCriteriaJson, value.Rank, value.ReminderAt, value.IsOverdue);
+    private static EventResponse ToResponse(EventRecord value) => new(value.Id, value.Title, value.Description, value.StartAt, value.EndAt, value.TimeZoneId, value.Status, value.CreatedAt, value.UpdatedAt, value.ETag, value.IsAllDay, value.SourceUid, value.SourceKind, value.TaskId);
 }
+

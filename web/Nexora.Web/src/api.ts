@@ -163,6 +163,7 @@ export type TaskRecord = {
   acceptanceCriteriaJson: string;
   rank: number;
   reminderAt: string | null;
+  isOverdue: boolean;
 };
 
 export type TaskPage = {
@@ -183,6 +184,8 @@ export type CalendarEventRecord = {
   etag: string;
   isAllDay: boolean;
   sourceUid: string | null;
+  sourceKind: string;
+  taskId: string | null;
 };
 
 export type CalendarEventPage = {
@@ -837,19 +840,19 @@ export function listProjects(limit = 50) {
   return apiFetch<ProjectPage>(`/api/v1/projects?limit=${encodeURIComponent(limit)}`);
 }
 
-export function createProject(name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey()) {
+export function createProject(name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey(), confirmTaskBounds = false) {
   return apiFetch<ProjectRecord>('/api/v1/projects', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
-    body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes })
+    body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes, confirmTaskBounds })
   });
 }
 
-export function updateProject(id: string, etag: string, name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey()) {
+export function updateProject(id: string, etag: string, name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey(), confirmTaskBounds = false) {
   return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes })
+    body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes, confirmTaskBounds })
   });
 }
 
@@ -860,11 +863,11 @@ export function deleteProject(id: string, etag: string, idempotencyKey = createI
   });
 }
 
-export function transitionProject(id: string, etag: string, status: string, reason: string | null, idempotencyKey = createIdempotencyKey()) {
+export function transitionProject(id: string, etag: string, status: string, reason: string | null, idempotencyKey = createIdempotencyKey(), confirm = false) {
   return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ status, reason })
+    body: JSON.stringify({ status, reason, confirm })
   });
 }
 
@@ -887,12 +890,13 @@ export function createTask(
   acceptanceCriteriaJson: string | null = null,
   rank = 0,
   reminderAt: string | null = null,
-  idempotencyKey = createIdempotencyKey()
+  idempotencyKey = createIdempotencyKey(),
+  confirmProjectTimeBounds = false
 ) {
   return apiFetch<TaskRecord>('/api/v1/tasks', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
-    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt })
+    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds })
   });
 }
 
@@ -911,12 +915,13 @@ export function updateTask(
   acceptanceCriteriaJson: string | null = null,
   rank = 0,
   reminderAt: string | null = null,
-  idempotencyKey = createIdempotencyKey()
+  idempotencyKey = createIdempotencyKey(),
+  confirmProjectTimeBounds = false
 ) {
   return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt })
+    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds })
   });
 }
 
@@ -1381,3 +1386,4 @@ export function disableAdminUser(userId: string, etag: string, idempotencyKey = 
     method: 'POST', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ confirmation: 'DISABLE', ifMatch: etag })
   });
 }
+

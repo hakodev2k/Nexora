@@ -1047,8 +1047,9 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [selected, setSelected] = useState<DocumentRecord | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
-  const [documentType, setDocumentType] = useState('Document');
-  const [editorMode, setEditorMode] = useState('Markdown');
+  const [documentType, setDocumentType] = useState('');
+  const [editorMode, setEditorMode] = useState('');
+  const [documentView, setDocumentView] = useState<'grid' | 'table'>('grid');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -1073,8 +1074,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     setSelected(null);
     setTitle('');
     setBody('');
-    setDocumentType('Document');
-    setEditorMode('Markdown');
+    setDocumentType('');
+    setEditorMode('');
     setError(null);
   }
 
@@ -1099,8 +1100,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!title.trim()) {
-      setError(new NexoraApiError('Tiêu đề là bắt buộc.', 422, 'ValidationFailed'));
+    if (!title.trim() || !documentType || !editorMode) {
+      setError(new NexoraApiError('Tiêu đề, Document type và Editor mode là bắt buộc khi tạo page.', 422, 'ValidationFailed'));
       return;
     }
     setBusy('save');
@@ -1151,12 +1152,12 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew}>Tạo mới</button>}</div>
           <div className="field-group"><label htmlFor="document-title">Tiêu đề</label><input id="document-title" value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} required /></div>
-          <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={selected !== null}><option>Document</option><option>Note</option><option>Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={selected !== null}><option>Markdown</option><option>Block</option></select></div></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={selected !== null} required><option value="">Chọn Document type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={selected !== null} required><option value="">Chọn Editor mode</option><option value="Markdown">Markdown</option><option value="Block">Block</option></select></div></div>
           <div className="field-group"><label htmlFor="document-body">Body <span className="optional">(tối đa 1 MiB)</span></label><textarea id="document-body" value={body} onChange={(event) => setBody(event.target.value)} rows={12} maxLength={1048576} disabled={selected?.status === 'Archived'} /></div>
           <div className="form-actions"><button className="secondary-button" type="button" onClick={startNew} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{selected ? 'Save version' : 'Tạo page'}</SubmitButton></div>
           {selected && <div className="form-actions"><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : selected.status === 'Published' ? 'Archived' : selected.preArchiveStatus ?? 'Draft')} disabled={busy !== null}>{selected.status === 'Draft' ? 'Publish' : selected.status === 'Published' ? 'Archive' : 'Unarchive'}</button><span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
         </form>
-        <div className="resource-list"><div className="section-heading"><h2>Page của bạn</h2><span className="muted">{items.length} bản ghi</span></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : items.length === 0 ? <div className="empty-state"><h3>Chưa có page</h3><p>Tạo Document, Note hoặc Knowledge page đầu tiên.</p></div> : <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></article>)}</div>}</div>
+        <div className="resource-list"><div className="section-heading"><div><h2>Page của bạn</h2><span className="muted">{items.length} bản ghi</span></div><div className="module-tabs" role="tablist" aria-label="Document views"><button className={documentView === 'grid' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'grid'} onClick={() => setDocumentView('grid')}>Grid</button><button className={documentView === 'table' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'table'} onClick={() => setDocumentView('table')}>Table</button></div></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : items.length === 0 ? <div className="empty-state"><h3>Chưa có page</h3><p>Tạo Document, Note hoặc Knowledge page đầu tiên.</p></div> : documentView === 'grid' ? <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></article>)}</div> : <div className="table-wrapper"><table><caption>Document pages</caption><thead><tr><th>Title</th><th>Type / editor</th><th>Status</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.title}</strong><span className="muted">Version {item.versionNumber}</span></td><td>{item.documentType} · {item.editorMode}</td><td>{item.status}</td><td>{dateTime(item.updatedAt)}</td><td><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></td></tr>)}</tbody></table></div>}</div>
       </div>
     </section>
   );
@@ -1558,7 +1559,7 @@ function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileRespons
 type ProductivityModuleCode = 'FX11' | 'FX12' | 'FX13';
 type ProjectDraft = { name: string; description: string; startAt: string; endAt: string; priority: string; tagsJson: string; notes: string };
 type TaskDraft = { projectId: string; title: string; description: string; status: string; dueAt: string; startAt: string; endAt: string; priority: string; tagsJson: string; acceptanceCriteriaJson: string; reminderAt: string };
-type EventDraft = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string };
+type EventDraft = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string; isAllDay: boolean };
 
 function localInputToIso(value: string): string | null {
   if (!value.trim()) return null;
@@ -1596,11 +1597,26 @@ function ProductivityScreen({
   const [editingEvent, setEditingEvent] = useState<CalendarEventRecord | null>(null);
   const [projectDraft, setProjectDraft] = useState<ProjectDraft>({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
   const [taskDraft, setTaskDraft] = useState<TaskDraft>({ projectId: '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
-  const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId });
+  const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
+  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
 
   const canProjects = profile.modules.some((module) => module.code.toUpperCase() === 'FX11' && module.enabled);
   const canTasks = profile.modules.some((module) => module.code.toUpperCase() === 'FX12' && module.enabled);
   const canCalendar = profile.modules.some((module) => module.code.toUpperCase() === 'FX13' && module.enabled);
+
+  const calendarToday = new Date();
+  const calendarEventsForView = events.filter((item) => {
+    if (calendarView === 'agenda') return true;
+    const start = new Date(item.startAt);
+    if (calendarView === 'day') {
+      return start.toDateString() === calendarToday.toDateString();
+    }
+    if (calendarView === 'month') {
+      return start.getFullYear() === calendarToday.getFullYear() && start.getMonth() === calendarToday.getMonth();
+    }
+    const dayDifference = Math.floor((start.getTime() - calendarToday.getTime()) / 86_400_000);
+    return dayDifference >= -calendarToday.getDay() && dayDifference < 7 - calendarToday.getDay();
+  });
 
   async function load() {
     setLoading(true);
@@ -1639,7 +1655,7 @@ function ProductivityScreen({
 
   function resetEvent() {
     setEditingEvent(null);
-    setEventDraft({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId });
+    setEventDraft({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
   }
 
   function beginProjectEdit(project: ProjectRecord) {
@@ -1654,28 +1670,43 @@ function ProductivityScreen({
 
   function beginEventEdit(event: CalendarEventRecord) {
     setEditingEvent(event);
-    setEventDraft({ title: event.title, description: event.description ?? '', startAt: isoToLocalInput(event.startAt), endAt: isoToLocalInput(event.endAt), timeZoneId: event.timeZoneId });
+    setEventDraft({ title: event.title, description: event.description ?? '', startAt: isoToLocalInput(event.startAt), endAt: isoToLocalInput(event.endAt), timeZoneId: event.timeZoneId, isAllDay: event.isAllDay });
   }
 
   async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const startAt = localInputToIso(projectDraft.startAt);
     const endAt = localInputToIso(projectDraft.endAt);
-    if (!projectDraft.name.trim() || !startAt || !endAt) {
-      setError(new NexoraApiError('Tên Project là bắt buộc.', 422, 'ValidationFailed'));
+    const description = projectDraft.description.trim();
+    if (!projectDraft.name.trim() || !description || !startAt || !endAt) {
+      setError(new NexoraApiError('Project cần Title, Description, Start và End.', 422, 'ValidationFailed'));
       return;
     }
     setBusy('project');
     setError(null);
+    const requestKey = createIdempotencyKey();
     try {
-      const saved = editingProject
-        ? await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), projectDraft.description.trim() || null, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null)
-        : await createProject(projectDraft.name.trim(), projectDraft.description.trim() || null, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null);
+      let saved = editingProject
+        ? await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey)
+        : await createProject(projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey);
       setProjects((current) => editingProject ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetProject();
       if (!editingProject && !taskDraft.projectId) setTaskDraft((current) => ({ ...current, projectId: saved.id }));
     } catch (requestError) {
       const apiError = asApiError(requestError);
+      if (editingProject && apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Một hoặc nhiều Task nằm ngoài khung thời gian mới. Lưu Project mà không tự dời Task?')) {
+        try {
+          const saved = await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, createIdempotencyKey(), true);
+          setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
+          resetProject();
+          return;
+        } catch (retryError) {
+          const retryApiError = asApiError(retryError);
+          setError(retryApiError);
+          if (retryApiError.status === 401) await onAuthLost();
+          return;
+        }
+      }
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -1704,10 +1735,11 @@ function ProductivityScreen({
   async function closeProject(project: ProjectRecord, status: 'Completed' | 'Skipped') {
     const reason = window.prompt(`Lý do chuyển Project sang ${status}:`, 'Hoàn tất theo kế hoạch');
     if (reason === null) return;
+    if (!window.confirm(`Xác nhận ${status} Project? Sau thao tác này Project sẽ chỉ-đọc vĩnh viễn.`)) return;
     setBusy(`project:${project.id}`);
     setError(null);
     try {
-      const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null);
+      const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null, createIdempotencyKey(), true);
       setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1734,14 +1766,30 @@ function ProductivityScreen({
     }
     setBusy('task');
     setError(null);
+    const requestKey = createIdempotencyKey();
     try {
       const saved = editingTask
-        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt)
-        : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt);
+        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey)
+        : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey);
       setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetTask();
     } catch (requestError) {
       const apiError = asApiError(requestError);
+      if (apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Task nằm ngoài khung thời gian Project. Lưu Task mà không thay đổi Project?')) {
+        try {
+          const saved = editingTask
+             ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true)
+             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true);
+          setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+          resetTask();
+          return;
+        } catch (retryError) {
+          const retryApiError = asApiError(retryError);
+          setError(retryApiError);
+          if (retryApiError.status === 401) await onAuthLost();
+          return;
+        }
+      }
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -1770,16 +1818,16 @@ function ProductivityScreen({
     event.preventDefault();
     const startAt = localInputToIso(eventDraft.startAt);
     const endAt = localInputToIso(eventDraft.endAt);
-    if (!eventDraft.title.trim() || !startAt || !endAt) {
-      setError(new NexoraApiError('Tiêu đề, thời gian bắt đầu và kết thúc là bắt buộc.', 422, 'ValidationFailed'));
+    if (!eventDraft.title.trim() || !eventDraft.description.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Event cần Title, Description, Start và End.', 422, 'ValidationFailed'));
       return;
     }
     setBusy('event');
     setError(null);
     try {
       const saved = editingEvent
-        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim() || null, startAt, endAt, eventDraft.timeZoneId.trim())
-        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim() || null, startAt, endAt, eventDraft.timeZoneId.trim());
+        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay)
+        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay);
       setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetEvent();
     } catch (requestError) {
@@ -1830,8 +1878,8 @@ function ProductivityScreen({
         <div className="resource-layout">
           <form className="form-panel resource-form" onSubmit={saveProject} noValidate>
             <div className="section-heading"><h2>{editingProject ? 'Sửa Project' : 'Tạo Project'}</h2>{editingProject && <button className="link-button" type="button" onClick={resetProject}>Hủy sửa</button>}</div>
-            <div className="field-group"><label htmlFor="project-name">Tên Project</label><input id="project-name" value={projectDraft.name} maxLength={160} onChange={(event) => setProjectDraft({ ...projectDraft, name: event.target.value })} required /></div>
-            <div className="field-group"><label htmlFor="project-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="project-description" value={projectDraft.description} maxLength={2000} onChange={(event) => setProjectDraft({ ...projectDraft, description: event.target.value })} rows={4} /></div>
+            <div className="field-group"><label htmlFor="project-name">Title</label><input id="project-name" value={projectDraft.name} maxLength={200} onChange={(event) => setProjectDraft({ ...projectDraft, name: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="project-description">Description</label><textarea id="project-description" value={projectDraft.description} maxLength={20000} onChange={(event) => setProjectDraft({ ...projectDraft, description: event.target.value })} rows={4} required /></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="project-start">Bắt đầu</label><input id="project-start" type="datetime-local" value={projectDraft.startAt} onChange={(event) => setProjectDraft({ ...projectDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="project-end">Kết thúc</label><input id="project-end" type="datetime-local" value={projectDraft.endAt} onChange={(event) => setProjectDraft({ ...projectDraft, endAt: event.target.value })} required /></div></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="project-priority">Ưu tiên</label><select id="project-priority" value={projectDraft.priority} onChange={(event) => setProjectDraft({ ...projectDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div><div className="field-group"><label htmlFor="project-tags">Tags JSON <span className="optional">(mảng)</span></label><input id="project-tags" value={projectDraft.tagsJson} onChange={(event) => setProjectDraft({ ...projectDraft, tagsJson: event.target.value })} /></div></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetProject} disabled={busy === 'project'}>Làm mới</button><SubmitButton busy={busy === 'project'}>{editingProject ? 'Lưu Project' : 'Tạo Project'}</SubmitButton></div>
@@ -1845,7 +1893,7 @@ function ProductivityScreen({
           <form className="form-panel resource-form" onSubmit={saveTask} noValidate>
             <div className="section-heading"><h2>{editingTask ? 'Sửa Task' : 'Tạo Task'}</h2>{editingTask && <button className="link-button" type="button" onClick={resetTask}>Hủy sửa</button>}</div>
             <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>
-            <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={240} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={200} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
             <div className="field-group"><label htmlFor="task-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="task-description" value={taskDraft.description} maxLength={4000} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} rows={3} /></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên</label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-start">Bắt đầu</label><input id="task-start" type="datetime-local" value={taskDraft.startAt} onChange={(event) => setTaskDraft({ ...taskDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="task-end">Kết thúc</label><input id="task-end" type="datetime-local" value={taskDraft.endAt} onChange={(event) => setTaskDraft({ ...taskDraft, endAt: event.target.value })} required /></div></div>
@@ -1853,7 +1901,7 @@ function ProductivityScreen({
             {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}</div>
         </div>
       )}
 
@@ -1861,13 +1909,13 @@ function ProductivityScreen({
         <div className="resource-layout">
           <form className="form-panel resource-form" onSubmit={saveEvent} noValidate>
             <div className="section-heading"><h2>{editingEvent ? 'Sửa sự kiện' : 'Tạo sự kiện'}</h2>{editingEvent && <button className="link-button" type="button" onClick={resetEvent}>Hủy sửa</button>}</div>
-            <div className="field-group"><label htmlFor="event-title">Tiêu đề</label><input id="event-title" value={eventDraft.title} maxLength={240} onChange={(event) => setEventDraft({ ...eventDraft, title: event.target.value })} required /></div>
-            <div className="field-group"><label htmlFor="event-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="event-description" value={eventDraft.description} maxLength={4000} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows={3} /></div>
+            <div className="field-group"><label htmlFor="event-title">Title</label><input id="event-title" value={eventDraft.title} maxLength={200} onChange={(event) => setEventDraft({ ...eventDraft, title: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="event-description">Description</label><textarea id="event-description" value={eventDraft.description} maxLength={20000} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows={3} required /></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="event-start">Bắt đầu</label><input id="event-start" type="datetime-local" value={eventDraft.startAt} onChange={(event) => setEventDraft({ ...eventDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="event-end">Kết thúc</label><input id="event-end" type="datetime-local" value={eventDraft.endAt} onChange={(event) => setEventDraft({ ...eventDraft, endAt: event.target.value })} required /></div></div>
-            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft({ ...eventDraft, timeZoneId: event.target.value })} required /><p className="field-help">Server lưu instant UTC và giữ timezone hiển thị theo contract.</p></div>
+            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft({ ...eventDraft, timeZoneId: event.target.value })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft({ ...eventDraft, isAllDay: event.target.checked })} /> All-day</label><p className="field-help">Timed values preserve the instant; all-day values use the owner timezone.</p></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEvent} disabled={busy === 'event'}>Làm mới</button><SubmitButton busy={busy === 'event'}>{editingEvent ? 'Lưu sự kiện' : 'Tạo sự kiện'}</SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Lịch của bạn</h2><span className="muted">{events.length} bản ghi</span></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : <div className="resource-cards">{events.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{dateTime(item.startAt)} — {dateTime(item.endAt)}</p><span className="muted">{item.timeZoneId} · {item.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled'}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void transitionCalendarEvent(item.id, item.etag, 'Completed').then((saved) => setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem))).catch((requestError) => setError(asApiError(requestError)))} disabled={busy !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled'}>Hủy</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{dateTime(item.startAt)} — {dateTime(item.endAt)}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void transitionCalendarEvent(item.id, item.etag, 'Completed').then((saved) => setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem))).catch((requestError) => setError(asApiError(requestError)))} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Hủy</button></div></article>)}</div>}</div>
         </div>
       )}
     </section>
@@ -3567,3 +3615,4 @@ export function App() {
       return <LoginScreen {...publicProps} onAuthenticated={authenticate} onPendingVerification={(email) => { setVerificationEmail(email); navigate('verify'); }} />;
   }
 }
+

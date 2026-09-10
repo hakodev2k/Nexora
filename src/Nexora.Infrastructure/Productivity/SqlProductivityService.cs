@@ -39,7 +39,7 @@ public sealed class SqlProductivityService : IProductivityService
             SELECT TOP (@Limit) [Id], [Name], [Description], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [Notes]
             FROM [productivity].[Project]
             WHERE [OwnerId] = @OwnerId AND [Status] <> 'Deleted'
-            ORDER BY [UpdatedAt] DESC, [Id];
+            ORDER BY [Name] ASC, [Id];
             """;
         Add(command, "@Limit", SqlDbType.Int, take);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
@@ -76,8 +76,8 @@ public sealed class SqlProductivityService : IProductivityService
             """;
         Add(insert, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(insert, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        Add(insert, "@Name", SqlDbType.NVarChar, command.Name.Trim(), 160);
-        Add(insert, "@Description", SqlDbType.NVarChar, (object?)TrimOrNull(command.Description, 2000) ?? DBNull.Value, 2000);
+        Add(insert, "@Name", SqlDbType.NVarChar, command.Name.Trim(), 200);
+        Add(insert, "@Description", SqlDbType.NVarChar, command.Description!.Trim(), 20000);
         Add(insert, "@StartAt", SqlDbType.DateTime2, command.StartAt!.Value.UtcDateTime);
         Add(insert, "@EndAt", SqlDbType.DateTime2, command.EndAt!.Value.UtcDateTime);
         Add(insert, "@Priority", SqlDbType.VarChar, command.Priority.Trim(), 2);
@@ -119,10 +119,20 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<ProjectRecord>.Failure("ResourceUnavailable", 404, "Project unavailable.");
         }
+        if (current.Status is "Completed" or "Skipped")
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<ProjectRecord>.Failure("ProjectTerminal", 409, "Completed or skipped Projects are permanently read-only.");
+        }
         if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(current.ETag)))
         {
             transaction.Rollback();
             return IdentityOperationResult<ProjectRecord>.Failure("RevisionConflict", 412, "Project revision changed.");
+        }
+        if (!command.ConfirmTaskBounds && HasTasksOutsideProjectBounds(connection, transaction, actor.OwnerId, projectId, command.StartAt!.Value, command.EndAt!.Value))
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<ProjectRecord>.Failure("ProjectTaskTimeWarning", 409, "One or more Tasks fall outside the new Project time bounds. Confirm to save without moving them.");
         }
         using var update = connection.CreateCommand();
         update.Transaction = transaction;
@@ -132,8 +142,8 @@ public sealed class SqlProductivityService : IProductivityService
                 [Priority] = @Priority, [TagsJson] = @TagsJson, [Notes] = @Notes, [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [Status] <> 'Deleted';
             """;
-        Add(update, "@Name", SqlDbType.NVarChar, command.Name.Trim(), 160);
-        Add(update, "@Description", SqlDbType.NVarChar, (object?)TrimOrNull(command.Description, 2000) ?? DBNull.Value, 2000);
+        Add(update, "@Name", SqlDbType.NVarChar, command.Name.Trim(), 200);
+        Add(update, "@Description", SqlDbType.NVarChar, command.Description!.Trim(), 20000);
         Add(update, "@StartAt", SqlDbType.DateTime2, command.StartAt!.Value.UtcDateTime);
         Add(update, "@EndAt", SqlDbType.DateTime2, command.EndAt!.Value.UtcDateTime);
         Add(update, "@Priority", SqlDbType.VarChar, command.Priority.Trim(), 2);
@@ -157,7 +167,7 @@ public sealed class SqlProductivityService : IProductivityService
             : IdentityOperationResult<ProjectRecord>.Success(result);
     }
 
-    public IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null, bool confirmed = false)
     {
         if (!ModuleAvailable(actor, "FX11", ProjectTransitionAction(status))) return ModuleUnavailable<ProjectRecord>();
         if (status is not ("NotStarted" or "InProgress" or "Completed" or "Skipped"))
@@ -169,7 +179,7 @@ public sealed class SqlProductivityService : IProductivityService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor, "productivity.project.transition",
-            idempotencyKey, $"project:{projectId:N}|etag:{ifMatch}|status:{status}|reason:{reason?.Trim()}", out var receipt);
+            idempotencyKey, $"project:{projectId:N}|etag:{ifMatch}|status:{status}|reason:{reason?.Trim()}|confirmed:{confirmed}", out var receipt);
         if (receiptFailure is not null)
         {
             transaction.Rollback();
@@ -195,7 +205,18 @@ public sealed class SqlProductivityService : IProductivityService
             return IdentityOperationResult<ProjectRecord>.Failure("ProjectStateTransitionInvalid", 409, "The requested Project status transition is not supported.");
         }
 
-        if (status is "Completed" or "Skipped" && string.IsNullOrWhiteSpace(reason) && HasOpenTasks(connection, transaction, actor.OwnerId, projectId))
+        var hasOpenTasks = HasOpenTasks(connection, transaction, actor.OwnerId, projectId);
+        var hasTasks = HasTasks(connection, transaction, actor.OwnerId, projectId);
+        if (status is "Completed" or "Skipped" && !confirmed)
+        {
+            transaction.Rollback();
+            var code = status == "Completed" && hasTasks && !hasOpenTasks
+                ? "ProjectCompletionConfirmationRequired"
+                : "ProjectConfirmationRequired";
+            return IdentityOperationResult<ProjectRecord>.Failure(code, 409, "Confirm that the Project will become permanently read-only.");
+        }
+
+        if (status == "Completed" && string.IsNullOrWhiteSpace(reason) && hasOpenTasks)
         {
             transaction.Rollback();
             return IdentityOperationResult<ProjectRecord>.Failure("TransitionReasonRequired", 422, "A reason is required when closing a Project with unfinished Tasks.");
@@ -320,6 +341,11 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<TaskRecord>.Failure("ProjectUnavailable", 422, "Task must belong to an active Project owned by the current user.");
         }
+        if (!command.ConfirmProjectTimeBounds && TaskOutsideProjectBounds(connection, transaction, actor.OwnerId, command.ProjectId, command.StartAt!.Value, command.EndAt!.Value))
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<TaskRecord>.Failure("ProjectTaskTimeWarning", 409, "The Task falls outside the Project time bounds. Confirm to save without changing the Project.");
+        }
         var id = Guid.NewGuid();
         using var insert = connection.CreateCommand();
         insert.Transaction = transaction;
@@ -330,7 +356,7 @@ public sealed class SqlProductivityService : IProductivityService
         Add(insert, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(insert, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(insert, "@ProjectId", SqlDbType.UniqueIdentifier, command.ProjectId);
-        Add(insert, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 240);
+        Add(insert, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 200);
         Add(insert, "@Description", SqlDbType.NVarChar, (object?)TrimOrNull(command.Description, 4000) ?? DBNull.Value, 4000);
         Add(insert, "@Status", SqlDbType.VarChar, command.Status);
         Add(insert, "@DueAt", SqlDbType.DateTime2, (object?)command.DueAt?.UtcDateTime ?? DBNull.Value);
@@ -343,7 +369,12 @@ public sealed class SqlProductivityService : IProductivityService
         Add(insert, "@ReminderAt", SqlDbType.DateTime2, (object?)command.ReminderAt?.UtcDateTime ?? DBNull.Value);
         insert.ExecuteNonQuery();
         var result = ReadTask(connection, transaction, actor.OwnerId, id, forUpdate: false);
-        if (result is not null) InsertTaskHistory(connection, transaction, actor.OwnerId, result, null);
+        if (result is not null)
+        {
+            InsertTaskHistory(connection, transaction, actor.OwnerId, result, null);
+            if (_capabilities.IsAllowed(actor, "FX13", "calendar.event.read", "calendar.view"))
+                UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
+        }
         WriteAudit(connection, transaction, actor, id, "productivity.task.create", traceId);
         CompleteReceipt(connection, transaction, receipt, "TaskCreated");
         transaction.Commit();
@@ -392,6 +423,11 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<TaskRecord>.Failure("ProjectTerminal", 409, "Tasks in a completed or skipped Project are read-only.");
         }
+        if (!command.ConfirmProjectTimeBounds && TaskOutsideProjectBounds(connection, transaction, actor.OwnerId, current.ProjectId, command.StartAt!.Value, command.EndAt!.Value))
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<TaskRecord>.Failure("ProjectTaskTimeWarning", 409, "The Task falls outside the Project time bounds. Confirm to save without changing the Project.");
+        }
         if (!IsAllowedStatusTransition(current.Status, command.Status, command.TransitionReason))
         {
             transaction.Rollback();
@@ -408,7 +444,7 @@ public sealed class SqlProductivityService : IProductivityService
                 [ReminderAt] = @ReminderAt, [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [Status] <> 'Deleted';
             """;
-        Add(update, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 240);
+        Add(update, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 200);
         Add(update, "@Description", SqlDbType.NVarChar, (object?)TrimOrNull(command.Description, 4000) ?? DBNull.Value, 4000);
         Add(update, "@Status", SqlDbType.VarChar, command.Status);
         Add(update, "@DueAt", SqlDbType.DateTime2, (object?)command.DueAt?.UtcDateTime ?? DBNull.Value);
@@ -428,7 +464,12 @@ public sealed class SqlProductivityService : IProductivityService
             return IdentityOperationResult<TaskRecord>.Failure("RevisionConflict", 412, "Task revision changed.");
         }
         var result = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: false);
-        if (result is not null) InsertTaskHistory(connection, transaction, actor.OwnerId, result, command.TransitionReason);
+        if (result is not null)
+        {
+            InsertTaskHistory(connection, transaction, actor.OwnerId, result, command.TransitionReason);
+            if (_capabilities.IsAllowed(actor, "FX13", "calendar.event.read", "calendar.view"))
+                UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
+        }
         WriteAudit(connection, transaction, actor, taskId, "productivity.task.update", traceId);
         CompleteReceipt(connection, transaction, receipt, "TaskUpdated");
         transaction.Commit();
@@ -505,6 +546,8 @@ public sealed class SqlProductivityService : IProductivityService
             ("@ResourceId", SqlDbType.UniqueIdentifier, (object)taskId),
             ("@Batch", SqlDbType.UniqueIdentifier, (object)Guid.NewGuid()),
             ("@PriorStatus", SqlDbType.VarChar, (object)current.Status));
+        if (_capabilities.IsAllowed(actor, "FX13", "calendar.event.read", "calendar.view"))
+            CancelTaskCalendarProjection(connection, transaction, actor.OwnerId, taskId);
         InsertTaskHistory(connection, transaction, actor.OwnerId, current with { Status = "Deleted" }, "Trash");
         WriteAudit(connection, transaction, actor, taskId, "productivity.task.delete", traceId);
         CompleteReceipt(connection, transaction, receipt, "NoContent");
@@ -520,7 +563,7 @@ public sealed class SqlProductivityService : IProductivityService
         connection.Open();
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT TOP (@Limit) [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid]
+            SELECT TOP (@Limit) [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId]
             FROM [calendar].[Event]
             WHERE [OwnerId] = @OwnerId AND [Status] <> 'Deleted'
               AND (@From IS NULL OR [EndAt] > @From)
@@ -564,8 +607,8 @@ public sealed class SqlProductivityService : IProductivityService
             """;
         Add(insert, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(insert, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        Add(insert, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 240);
-        Add(insert, "@Description", SqlDbType.NVarChar, (object?)TrimOrNull(command.Description, 4000) ?? DBNull.Value, 4000);
+        Add(insert, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 200);
+        Add(insert, "@Description", SqlDbType.NVarChar, command.Description!.Trim(), 20000);
         Add(insert, "@StartAt", SqlDbType.DateTime2, command.StartAt.UtcDateTime);
         Add(insert, "@EndAt", SqlDbType.DateTime2, command.EndAt.UtcDateTime);
         Add(insert, "@TimeZoneId", SqlDbType.NVarChar, command.TimeZoneId.Trim(), 128);
@@ -606,6 +649,11 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<EventRecord>.Failure("ResourceUnavailable", 404, "Event unavailable.");
         }
+        if (current.TaskId is not null)
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<EventRecord>.Failure("TaskCalendarProjectionReadOnly", 409, "Task Calendar projections are controlled by the Task and cannot be edited here.");
+        }
         if (current.Status is "Completed" or "Canceled")
         {
             transaction.Rollback();
@@ -625,8 +673,8 @@ public sealed class SqlProductivityService : IProductivityService
                 [SourceUid] = @SourceUid, [Status] = COALESCE(@Status, [Status]), [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [Status] <> 'Deleted';
             """;
-        Add(update, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 240);
-        Add(update, "@Description", SqlDbType.NVarChar, (object?)TrimOrNull(command.Description, 4000) ?? DBNull.Value, 4000);
+        Add(update, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 200);
+        Add(update, "@Description", SqlDbType.NVarChar, command.Description!.Trim(), 20000);
         Add(update, "@StartAt", SqlDbType.DateTime2, command.StartAt.UtcDateTime);
         Add(update, "@EndAt", SqlDbType.DateTime2, command.EndAt.UtcDateTime);
         Add(update, "@TimeZoneId", SqlDbType.NVarChar, command.TimeZoneId.Trim(), 128);
@@ -661,6 +709,7 @@ public sealed class SqlProductivityService : IProductivityService
         connection.Open();
         var current = ReadEvent(connection, null, actor.OwnerId, eventId, forUpdate: false);
         if (current is null) return IdentityOperationResult<EventRecord>.Failure("ResourceUnavailable", 404, "Event unavailable.");
+        if (current.TaskId is not null) return IdentityOperationResult<EventRecord>.Failure("TaskCalendarProjectionReadOnly", 409, "Task Calendar projections are controlled by the Task and cannot be edited here.");
         if (current.Status is "Completed" or "Canceled")
             return IdentityOperationResult<EventRecord>.Failure("EventTerminal", 409, "Completed or canceled events are read-only.");
         return UpdateEvent(actor, eventId, ifMatch,
@@ -690,6 +739,11 @@ public sealed class SqlProductivityService : IProductivityService
         {
             transaction.Rollback();
             return IdentityOperationResult<object?>.Failure("ResourceUnavailable", 404, "Event unavailable.");
+        }
+        if (current.TaskId is not null)
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<object?>.Failure("TaskCalendarProjectionReadOnly", 409, "Task Calendar projections are controlled by the Task and cannot be edited here.");
         }
         if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(current.ETag)))
         {
@@ -721,10 +775,10 @@ public sealed class SqlProductivityService : IProductivityService
     private static IdentityOperationResult<ProjectRecord>? ValidateProject(ProjectCommand command)
     {
         var name = command.Name?.Trim();
-        if (string.IsNullOrWhiteSpace(name) || name.Length > 160)
-            return IdentityOperationResult<ProjectRecord>.Failure("ValidationFailed", 422, "Project name is required and must be at most 160 characters.");
-        if (command.Description is { Length: > 2000 })
-            return IdentityOperationResult<ProjectRecord>.Failure("ValidationFailed", 422, "Project description is too long.");
+        if (string.IsNullOrWhiteSpace(name) || name.Length > 200)
+            return IdentityOperationResult<ProjectRecord>.Failure("ValidationFailed", 422, "Project Title is required and must be at most 200 characters.");
+        if (string.IsNullOrWhiteSpace(command.Description) || command.Description.Trim().Length > 20000)
+            return IdentityOperationResult<ProjectRecord>.Failure("ValidationFailed", 422, "Project Description is required and must be at most 20,000 characters.");
         if (command.StartAt is null || command.EndAt is null || command.EndAt <= command.StartAt)
             return IdentityOperationResult<ProjectRecord>.Failure("ValidationFailed", 422, "Project start and end are required and end must be after start.");
         if (!IsPriority(command.Priority))
@@ -736,8 +790,8 @@ public sealed class SqlProductivityService : IProductivityService
 
     private static IdentityOperationResult<TaskRecord>? ValidateTask(TaskCommand command)
     {
-        if (command.ProjectId == Guid.Empty || string.IsNullOrWhiteSpace(command.Title) || command.Title.Trim().Length > 240)
-            return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task project and title are required; title must be at most 240 characters.");
+        if (command.ProjectId == Guid.Empty || string.IsNullOrWhiteSpace(command.Title) || command.Title.Trim().Length > 200)
+            return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task project and title are required; title must be at most 200 characters.");
         if (command.Description is { Length: > 4000 })
             return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task description is too long.");
         if (command.Status is not ("NotStarted" or "InProgress" or "Completed" or "Skipped"))
@@ -753,10 +807,10 @@ public sealed class SqlProductivityService : IProductivityService
 
     private static IdentityOperationResult<EventRecord>? ValidateEvent(EventCommand command)
     {
-        if (string.IsNullOrWhiteSpace(command.Title) || command.Title.Trim().Length > 240)
-            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event title is required and must be at most 240 characters.");
-        if (command.Description is { Length: > 4000 })
-            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event description is too long.");
+        if (string.IsNullOrWhiteSpace(command.Title) || command.Title.Trim().Length > 200)
+            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event title is required and must be at most 200 characters.");
+        if (string.IsNullOrWhiteSpace(command.Description) || command.Description.Trim().Length > 20000)
+            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event Description is required and must be at most 20,000 characters.");
         if (command.SourceUid is { Length: > 255 })
             return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event source UID is too long.");
         if (command.Status is not null && command.Status is not ("Scheduled" or "Completed" or "Canceled"))
@@ -781,7 +835,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     private static string NormalizeJson(string? value) => string.IsNullOrWhiteSpace(value) ? "[]" : value.Trim();
     private static string CanonicalProject(ProjectCommand command, Guid? id = null, string? etag = null) =>
-        $"project:{id?.ToString("N")}|etag:{etag}|name:{command.Name.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|notes:{command.Notes?.Trim()}";
+        $"project:{id?.ToString("N")}|etag:{etag}|name:{command.Name.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|notes:{command.Notes?.Trim()}|confirmTaskBounds:{command.ConfirmTaskBounds}";
 
     private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
         _capabilities.IsAllowed(actor, moduleCode, actionKeys);
@@ -831,6 +885,40 @@ public sealed class SqlProductivityService : IProductivityService
         return Convert.ToInt64(command.ExecuteScalar() ?? 0) > 0;
     }
 
+    private static bool HasTasks(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid projectId)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT COUNT_BIG(1) FROM [productivity].[Task] WHERE [OwnerId] = @OwnerId AND [ProjectId] = @ProjectId AND [Status] <> 'Deleted';";
+        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(command, "@ProjectId", SqlDbType.UniqueIdentifier, projectId);
+        return Convert.ToInt64(command.ExecuteScalar() ?? 0) > 0;
+    }
+
+    private static bool HasTasksOutsideProjectBounds(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid projectId, DateTimeOffset startAt, DateTimeOffset endAt)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT CASE WHEN EXISTS (SELECT 1 FROM [productivity].[Task] WHERE [OwnerId] = @OwnerId AND [ProjectId] = @ProjectId AND [Status] <> 'Deleted' AND ([StartAt] < @StartAt OR [EndAt] > @EndAt)) THEN 1 ELSE 0 END;";
+        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(command, "@ProjectId", SqlDbType.UniqueIdentifier, projectId);
+        Add(command, "@StartAt", SqlDbType.DateTime2, startAt.UtcDateTime);
+        Add(command, "@EndAt", SqlDbType.DateTime2, endAt.UtcDateTime);
+        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
+    }
+
+    private static bool TaskOutsideProjectBounds(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid projectId, DateTimeOffset startAt, DateTimeOffset endAt)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT CASE WHEN [StartAt] > @StartAt OR [EndAt] < @EndAt THEN 1 ELSE 0 END FROM [productivity].[Project] WHERE [Id] = @ProjectId AND [OwnerId] = @OwnerId AND [Status] NOT IN ('Completed','Skipped','Deleted');";
+        Add(command, "@ProjectId", SqlDbType.UniqueIdentifier, projectId);
+        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(command, "@StartAt", SqlDbType.DateTime2, startAt.UtcDateTime);
+        Add(command, "@EndAt", SqlDbType.DateTime2, endAt.UtcDateTime);
+        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
+    }
+
     private static bool ProjectAllowsTask(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid projectId)
     {
         using var command = connection.CreateCommand();
@@ -848,7 +936,7 @@ public sealed class SqlProductivityService : IProductivityService
         IdentityOperationResult<T>.Failure("RevisionConflict", 412, $"{resource} revision changed.");
 
     private static string CanonicalTask(TaskCommand command, Guid? id = null, string? etag = null) =>
-        $"task:{id?.ToString("N")}|etag:{etag}|project:{command.ProjectId:N}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|status:{command.Status}|due:{command.DueAt?.UtcDateTime:o}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|acceptance:{NormalizeJson(command.AcceptanceCriteriaJson)}|rank:{command.Rank}|reminder:{command.ReminderAt?.UtcDateTime:o}";
+        $"task:{id?.ToString("N")}|etag:{etag}|project:{command.ProjectId:N}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|status:{command.Status}|due:{command.DueAt?.UtcDateTime:o}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|acceptance:{NormalizeJson(command.AcceptanceCriteriaJson)}|rank:{command.Rank}|reminder:{command.ReminderAt?.UtcDateTime:o}|confirmProjectTimeBounds:{command.ConfirmProjectTimeBounds}";
 
     private static void InsertProjectHistory(SqlConnection connection, SqlTransaction transaction, Guid ownerId, ProjectRecord project, string? reason)
     {
@@ -887,6 +975,58 @@ public sealed class SqlProductivityService : IProductivityService
             ("@Reason", SqlDbType.NVarChar, (object?)reason ?? DBNull.Value));
     }
 
+    private static void UpsertTaskCalendarProjection(SqlConnection connection, SqlTransaction transaction, Guid ownerId, TaskRecord task)
+    {
+        var projectedStatus = task.Status switch
+        {
+            "Completed" => "Completed",
+            "Skipped" or "Deleted" => "Canceled",
+            _ => "Scheduled"
+        };
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            UPDATE [calendar].[Event]
+            SET [Title] = @Title, [Description] = @Description, [StartAt] = @StartAt,
+                [EndAt] = @EndAt, [TimeZoneId] = @TimeZoneId, [Status] = @Status,
+                [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [OwnerId] = @OwnerId AND [TaskId] = @TaskId;
+            IF @@ROWCOUNT = 0
+            BEGIN
+                INSERT INTO [calendar].[Event]
+                    ([OwnerId], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [SourceUid], [SourceKind], [TaskId])
+                VALUES
+                    (@OwnerId, @Title, @Description, @StartAt, @EndAt, @TimeZoneId, @Status, NULL, 'Task', @TaskId);
+            END;
+            """;
+        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(command, "@TaskId", SqlDbType.UniqueIdentifier, task.Id);
+        Add(command, "@Title", SqlDbType.NVarChar, task.Title, 200);
+        Add(command, "@Description", SqlDbType.NVarChar, (object?)task.Description ?? DBNull.Value, 20000);
+        Add(command, "@StartAt", SqlDbType.DateTime2, task.StartAt!.Value.UtcDateTime);
+        Add(command, "@EndAt", SqlDbType.DateTime2, task.EndAt!.Value.UtcDateTime);
+        Add(command, "@TimeZoneId", SqlDbType.NVarChar, ReadOwnerTimeZone(connection, transaction, ownerId), 128);
+        Add(command, "@Status", SqlDbType.VarChar, projectedStatus, 16);
+        command.ExecuteNonQuery();
+    }
+
+    private static void CancelTaskCalendarProjection(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid taskId)
+    {
+        Execute(connection, transaction,
+            "UPDATE [calendar].[Event] SET [Status] = 'Canceled', [UpdatedAt] = SYSUTCDATETIME() WHERE [OwnerId] = @OwnerId AND [TaskId] = @TaskId AND [Status] <> 'Canceled';",
+            ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId),
+            ("@TaskId", SqlDbType.UniqueIdentifier, (object)taskId));
+    }
+
+    private static string ReadOwnerTimeZone(SqlConnection connection, SqlTransaction transaction, Guid ownerId)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT u.[TimeZoneId] FROM [platform].[PersonalSpace] ps INNER JOIN [identity].[User] u ON u.[Id] = ps.[UserId] WHERE ps.[Id] = @OwnerId;";
+        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        return Convert.ToString(command.ExecuteScalar()) ?? "UTC";
+    }
+
     private static bool IsAllowedStatusTransition(string current, string next, string? reason = null) => current == next || current switch
     {
         "NotStarted" => next is "InProgress" or "Completed" or "Skipped",
@@ -921,7 +1061,7 @@ public sealed class SqlProductivityService : IProductivityService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid] FROM [calendar].[Event] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId] FROM [calendar].[Event] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -931,11 +1071,15 @@ public sealed class SqlProductivityService : IProductivityService
     private static ProjectRecord ReadProject(SqlDataReader reader) =>
         new(reader.GetGuid(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), reader.GetString(3), ToOffset(reader.GetDateTime(4)), ToOffset(reader.GetDateTime(5)), EncodeETag((byte[])reader[6]), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), reader.GetString(9), reader.GetString(10), reader.IsDBNull(11) ? null : reader.GetString(11));
 
-    private static TaskRecord ReadTask(SqlDataReader reader) =>
-        new(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3), reader.GetString(4), reader.IsDBNull(5) ? null : ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), ToOffset(reader.GetDateTime(7)), EncodeETag((byte[])reader[8]), ToOffset(reader.GetDateTime(9)), ToOffset(reader.GetDateTime(10)), reader.GetString(11), reader.GetString(12), reader.GetString(13), reader.GetInt32(14), reader.IsDBNull(15) ? null : ToOffset(reader.GetDateTime(15)));
+    private static TaskRecord ReadTask(SqlDataReader reader)
+    {
+        var status = reader.GetString(4);
+        var endAt = ToOffset(reader.GetDateTime(10));
+        return new TaskRecord(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3), status, reader.IsDBNull(5) ? null : ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), ToOffset(reader.GetDateTime(7)), EncodeETag((byte[])reader[8]), ToOffset(reader.GetDateTime(9)), endAt, reader.GetString(11), reader.GetString(12), reader.GetString(13), reader.GetInt32(14), reader.IsDBNull(15) ? null : ToOffset(reader.GetDateTime(15)), endAt < DateTimeOffset.UtcNow && status is not ("Completed" or "Skipped" or "Deleted"));
+    }
 
     private static EventRecord ReadEvent(SqlDataReader reader) =>
-        new(reader.GetGuid(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), ToOffset(reader.GetDateTime(3)), ToOffset(reader.GetDateTime(4)), reader.GetString(5), reader.GetString(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.GetBoolean(10), reader.IsDBNull(11) ? null : reader.GetString(11));
+        new(reader.GetGuid(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), ToOffset(reader.GetDateTime(3)), ToOffset(reader.GetDateTime(4)), reader.GetString(5), reader.GetString(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.GetBoolean(10), reader.IsDBNull(11) ? null : reader.GetString(11), reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetGuid(13));
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string action, string? traceId)
     {
@@ -1008,3 +1152,4 @@ public sealed class SqlProductivityService : IProductivityService
         catch (FormatException) { return false; }
     }
 }
+
