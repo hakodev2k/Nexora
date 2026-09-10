@@ -370,7 +370,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             payload = JsonSerializer.Deserialize<PreviewPayload>(FromBase64Url(parts[0]))!;
             return payload is not null && payload.ActorUserId == actorUserId;
         }
-        catch (Exception) when (true)
+        catch (Exception)
         {
             return false;
         }

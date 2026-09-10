@@ -298,13 +298,15 @@ public sealed class SqlAdminAccessService : IAdminAccessService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
+        var lockHint = forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty;
         command.CommandText = $"""
             SELECT u.[Id], u.[Email], u.[DisplayName], u.[State], u.[EmailConfirmed],
                 COALESCE((SELECT TOP (1) r.[Code] FROM [identity].[UserRole] ur INNER JOIN [identity].[Role] r ON r.[Id] = ur.[RoleId] WHERE ur.[UserId] = u.[Id] ORDER BY CASE r.[Code] WHEN 'SuperAdmin' THEN 3 WHEN 'Admin' THEN 2 ELSE 1 END DESC), 'User'),
                 ps.[Id], ps.[State], u.[CreatedAt], u.[UpdatedAt], u.[RowVersion]
-            FROM [identity].[User] u {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (NOLOCK)")}
+            FROM [identity].[User] u {lockHint}
             LEFT JOIN [platform].[PersonalSpace] ps ON ps.[UserId] = u.[Id]
-            WHERE u.[Id] = @UserId;""";
+            WHERE u.[Id] = @UserId;
+            """;
         Add(command, "@UserId", SqlDbType.UniqueIdentifier, userId);
         using var reader = command.ExecuteReader();
         return reader.Read() ? ReadUser(reader) : null;

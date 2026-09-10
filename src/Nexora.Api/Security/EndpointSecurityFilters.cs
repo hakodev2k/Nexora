@@ -9,6 +9,10 @@ public static class EndpointSecurityFilters
 
     public static RouteGroupBuilder RequireCsrfForUnsafeMethods(this RouteGroupBuilder group)
     {
+        // Attach a server-enforced limit so chunked requests cannot bypass the
+        // Content-Length check below. The filter remains responsible for the
+        // safe problem response when the hosting server exposes the length.
+        group.WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(MaxMutationBodyBytes));
         group.AddEndpointFilter(async (invocationContext, next) =>
         {
             var http = invocationContext.HttpContext;

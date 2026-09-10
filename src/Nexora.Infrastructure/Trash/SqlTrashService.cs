@@ -217,6 +217,9 @@ public sealed class SqlTrashService : ITrashService
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
+        _receipts.Complete(connection, transaction, claim, resultCode);
+
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid? targetId, string action, string? traceId) => Execute(connection, transaction,
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'platform.TrashItem', @Target, 'Succeeded', @TraceId);",
         ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.OwnerId), ("@Action", SqlDbType.NVarChar, (object)action), ("@Target", SqlDbType.UniqueIdentifier, (object?)targetId ?? DBNull.Value), ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));

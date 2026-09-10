@@ -1,8 +1,8 @@
 # Local SQL migration and bootstrap
 
-Use only synthetic local data. API identity persistence is still transitional;
-creating a SQL SuperAdmin does not yet make it available to the in-memory API.
-The next slice replaces that API store. No public bootstrap endpoint exists.
+Use only synthetic local data. API identity and module state are SQL-backed in
+this local implementation slice; creating a SQL SuperAdmin still requires the
+normal local login/verification flow. No public bootstrap endpoint exists.
 
 Create an empty local `Nexora_Dev` database using your local SQL administrator.
 Set `DOTNET_ENVIRONMENT=Development` and supply `NEXORA_SQL_CONNECTION` externally.
@@ -10,6 +10,21 @@ The scripts accept only loopback SQL and `Nexora_Dev` or a GUID-suffixed
 `Nexora_Test_` target. There is no embedded database password, automatic remote
 target or database creation in the operator commands. Migration credentials need
 DDL permission; runtime credentials must later use least privilege.
+
+The API requires `NEXORA_IDEMPOTENCY_SECRET` as a separate local secret source;
+it must never be the SQL connection string or database password. For a local
+shell, generate an ephemeral 32-byte value and keep it only in the process
+environment:
+
+```powershell
+$idempotencyBytes = [byte[]]::new(32)
+[Security.Cryptography.RandomNumberGenerator]::Fill($idempotencyBytes)
+$env:NEXORA_IDEMPOTENCY_SECRET = [Convert]::ToBase64String($idempotencyBytes)
+```
+
+Restarting the API with a new value invalidates outstanding idempotency receipts;
+use a stable local-only value for the lifetime of a disposable database, without
+copying it into source, logs or the SQL connection configuration.
 
 Run from a terminal:
 

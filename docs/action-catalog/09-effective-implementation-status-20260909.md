@@ -138,8 +138,10 @@ grants access or ownership.
 
 The local implementation evaluates the current `platform.Module`,
 `platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
-rows for each protected SELF request. Admin SELF access is default-deny and
-requires an explicit resolved `Allow`; a matching `Deny` wins. Canonical
+rows for each protected request. Users, Admins and SuperAdmins retain the
+approved own-resource SELF baseline when the module is enabled. AdminPermission
+is reserved for administrative/cross-user/support operations; matching `Deny`
+semantics remain enforced there. Canonical
 resource-qualified keys for the implemented Projects, Tasks, Calendar,
 Notifications and Trash operations are registered by migration `0007`.
 Legacy compact keys remain accepted only as a compatibility bridge for existing

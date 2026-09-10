@@ -6,12 +6,12 @@ using Nexora.Infrastructure.Persistence;
 namespace Nexora.Infrastructure.Authorization;
 
 /// <summary>
-/// Resolves the current SELF capability from SQL on every request. User and
-/// SuperAdmin principals have the approved own-resource baseline; an Admin
-/// principal must have an explicit Allow for the exact action. A matching
-/// Deny always wins, and every hard module dependency must be ready, system
-/// enabled and enabled for the same user. No decision is cached in Redis or
-/// in the process.
+/// Resolves the current SELF capability from SQL on every request. User,
+/// Admin and SuperAdmin principals have the approved own-resource
+/// baseline. AdminPermission rows are reserved for administrative,
+/// cross-user and support paths; they must not remove an Admin's own-resource
+/// baseline. Every hard module dependency must be ready, system enabled and
+/// enabled for the same user. No decision is cached in Redis or in the process.
 /// </summary>
 internal sealed class SqlSelfCapability
 {
@@ -44,15 +44,8 @@ internal sealed class SqlSelfCapability
 
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        var keyNames = new List<string>(actionKeys.Length);
-        for (var index = 0; index < actionKeys.Length; index++)
-        {
-            var name = "@Action" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            keyNames.Add(name);
-            command.Parameters.Add(name, SqlDbType.NVarChar, 160).Value = actionKeys[index];
-        }
 
-        command.CommandText = $"""
+        command.CommandText = """
             WITH dependency_chain AS
             (
                 SELECT d.[ModuleId] AS [RootModuleId], d.[DependsOnModuleId] AS [DependencyModuleId], d.[DependencyKind]
@@ -83,27 +76,7 @@ internal sealed class SqlSelfCapability
                                        OR dependencyModule.[SystemEnabled] <> 1
                                        OR COALESCE(dependencyGrant.[Enabled], 0) <> 1)
                             ) THEN 0
-                       WHEN @Role IN ('User', 'SuperAdmin') THEN 1
-                       WHEN @Role = 'Admin'
-                            AND EXISTS
-                            (
-                                SELECT 1
-                                FROM [platform].[AdminPermission] ap
-                                INNER JOIN [platform].[Permission] p ON p.[Id] = ap.[PermissionId]
-                                WHERE ap.[UserId] = @UserId
-                                  AND ap.[Effect] = 'Allow'
-                                  AND p.[EffectiveStatus] = 'Resolved'
-                                  AND p.[ActionKey] IN ({string.Join(',', keyNames)})
-                            )
-                            AND NOT EXISTS
-                            (
-                                SELECT 1
-                                FROM [platform].[AdminPermission] ap
-                                INNER JOIN [platform].[Permission] p ON p.[Id] = ap.[PermissionId]
-                                WHERE ap.[UserId] = @UserId
-                                  AND ap.[Effect] = 'Deny'
-                                  AND p.[ActionKey] IN ({string.Join(',', keyNames)})
-                            ) THEN 1
+                       WHEN @Role IN ('User', 'Admin', 'SuperAdmin') THEN 1
                        ELSE 2
                    END
             FROM [platform].[Module] m

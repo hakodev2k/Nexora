@@ -593,7 +593,7 @@ public sealed class SqlGoalService : IGoalService
             : $"{value}|target:{target.Title.Trim()}|initial:{target.InitialValue.ToString(CultureInfo.InvariantCulture)}|current:{target.CurrentValue.ToString(CultureInfo.InvariantCulture)}|targetValue:{target.TargetValue.ToString(CultureInfo.InvariantCulture)}";
     }
 
-    private static object ToDbDate(DateOnly? date) => date?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value;
+    private static object ToDbDate(DateOnly? date) => date is null ? DBNull.Value : date.Value.ToDateTime(TimeOnly.MinValue);
     private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,

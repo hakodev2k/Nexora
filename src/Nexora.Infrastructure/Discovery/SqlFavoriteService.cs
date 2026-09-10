@@ -470,7 +470,7 @@ public sealed class SqlFavoriteService : IFavoriteService
 
         var title = reader.IsDBNull(0) ? null : reader.GetString(0);
         var status = reader.IsDBNull(1) ? null : reader.GetString(1);
-        var updatedAt = reader.IsDBNull(2) ? null : ToOffset(reader.GetDateTime(2));
+        DateTimeOffset? updatedAt = reader.IsDBNull(2) ? null : ToOffset(reader.GetDateTime(2));
         reader.Close();
         // Re-read the source capability before returning a projection. When a
         // mutation is in flight, the transactional lock prevents a revoke or

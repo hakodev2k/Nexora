@@ -509,7 +509,7 @@ export function createIdempotencyKey(): string {
     return crypto.randomUUID();
   }
 
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  throw new NexoraApiError('Trình duyệt không hỗ trợ tạo UUID an toàn cho mutation.', 0, 'IdempotencyKeyUnavailable');
 }
 
 export async function getCsrf(): Promise<CsrfEnvelope> {
@@ -589,6 +589,11 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
       currentProfileETag = null;
     }
     throw await toApiError(response);
+  }
+
+  const rotatedCsrf = response.headers.get('X-CSRF-Token');
+  if (rotatedCsrf) {
+    csrfToken = rotatedCsrf;
   }
 
   if (path === '/api/v1/me') {
@@ -1266,9 +1271,15 @@ export function listDeveloperTools() {
   return apiFetch<ToolboxCatalog>('/api/v1/developer/tools');
 }
 
-export function runDeveloperTool(toolCode: string, input: string, options: Record<string, string> = {}) {
+export function runDeveloperTool(
+  toolCode: string,
+  input: string,
+  options: Record<string, string> = {},
+  idempotencyKey = createIdempotencyKey()
+) {
   return apiFetch<ToolboxRunResult>('/api/v1/developer/tools/run', {
     method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ toolCode, input, options })
   });
 }

@@ -950,6 +950,7 @@ public sealed class SqlProductivityService : IProductivityService
     }
 
     private static IdentityOperationResult<T> ModuleUnavailable<T>() => IdentityOperationResult<T>.Failure("ModuleUnavailable", 409, "The requested module is disabled or unavailable for this user.");
+    private static IdentityOperationResult<T> Failure<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
     private static IdentityOperationResult<T> Precondition<T>(string? ifMatch) => string.IsNullOrWhiteSpace(ifMatch)
         ? IdentityOperationResult<T>.Failure("PreconditionRequired", 428, "If-Match is required.")
         : IdentityOperationResult<T>.Failure("RevisionConflict", 412, "If-Match is invalid.");
@@ -970,6 +971,20 @@ public sealed class SqlProductivityService : IProductivityService
 
     private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
         _receipts.Complete(connection, transaction, claim, resultCode);
+
+    private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql,
+        params (string Name, SqlDbType Type, object Value)[] parameters)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        foreach (var parameter in parameters)
+        {
+            Add(command, parameter.Name, parameter.Type, parameter.Value);
+        }
+
+        command.ExecuteNonQuery();
+    }
 
     private static void Add(SqlCommand command, string name, SqlDbType type, object value, int size = 0)
     {

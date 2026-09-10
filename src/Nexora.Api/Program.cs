@@ -19,6 +19,7 @@ using Nexora.Api.Features.Settings;
 using Nexora.Api.Features.Trash;
 using Nexora.Api.Security;
 using Nexora.Application.Identity;
+using Nexora.Application.Access;
 using Nexora.Application.Modules;
 using Nexora.Application.Productivity;
 using Nexora.Application.Notifications;
@@ -97,8 +98,13 @@ catch (InvalidOperationException)
 {
     throw new InvalidOperationException("Only a loopback SQL Server development target is allowed.");
 }
-var idempotencySecret = Environment.GetEnvironmentVariable("NEXORA_IDEMPOTENCY_SECRET") ?? resolvedSqlConnectionString;
+var idempotencySecret = Environment.GetEnvironmentVariable("NEXORA_IDEMPOTENCY_SECRET");
+if (string.IsNullOrWhiteSpace(idempotencySecret))
+{
+    throw new InvalidOperationException("NEXORA_IDEMPOTENCY_SECRET is required; it must not be derived from the SQL connection string.");
+}
 builder.Services.AddSingleton(new SqlConnectionFactory(resolvedSqlConnectionString));
+builder.Services.AddSingleton<SqlReadinessProbe>();
 builder.Services.AddSingleton<IAccountMessageSink, LocalAccountMessageSink>();
 builder.Services.AddSingleton<IIdentityService>(services =>
     new SqlIdentityService(services.GetRequiredService<SqlConnectionFactory>(),
@@ -153,7 +159,12 @@ app.UseSecurityHeaders();
 app.MapGet("/health/live", () => Results.Ok(new HealthEnvelope("Live", "Nexora.Api")))
     .WithName("liveHealth");
 
-app.MapGet("/health/ready", () => Results.Ok(new HealthEnvelope("ReadyForSqlBackedLocalFeatureSurface", "Nexora.Api")))
+app.MapGet("/health/ready", async (SqlReadinessProbe readiness, CancellationToken cancellationToken) =>
+{
+    var result = await readiness.CheckAsync(cancellationToken);
+    var status = result.Ready ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable;
+    return Results.Json(new ReadinessEnvelope(result.Status, "Nexora.Api", result.Dependencies), statusCode: status);
+})
     .WithName("readyHealth");
 
 app.MapIdentityEndpoints();
@@ -187,3 +198,8 @@ app.Run();
 public partial class Program;
 
 internal sealed record HealthEnvelope(string Status, string Service);
+
+internal sealed record ReadinessEnvelope(
+    string Status,
+    string Service,
+    IReadOnlyDictionary<string, string> Dependencies);

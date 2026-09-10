@@ -149,7 +149,7 @@ public sealed class LocalToolboxService : IToolboxService
         string input, IReadOnlyDictionary<string, string>? options)
     {
         var algorithm = Option(options, "algorithm", "SHA-256").ToUpperInvariant();
-        using var hash = algorithm switch
+        using HashAlgorithm hash = algorithm switch
         {
             "SHA-256" or "SHA256" => SHA256.Create(),
             "SHA-384" or "SHA384" => SHA384.Create(),
@@ -219,7 +219,7 @@ public sealed class LocalToolboxService : IToolboxService
     private static int ParseInt(IReadOnlyDictionary<string, string>? options, string key, int min, int max)
     {
         var value = Option(options, key, min.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        return int.TryParse(value, out var parsed) && parsed is >= min and <= max
+        return int.TryParse(value, out var parsed) && parsed >= min && parsed <= max
             ? parsed
             : throw new ToolFailureException("ValidationFailed", $"{key} must be between {min} and {max}.");
     }
