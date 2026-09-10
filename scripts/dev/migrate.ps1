@@ -6,6 +6,14 @@ $SqlPassword = $env:NEXORA_SQL_PASSWORD
 $SqlDatabase = if ($env:NEXORA_SQL_DATABASE) { $env:NEXORA_SQL_DATABASE } else { 'Nexora_Dev' }
 $MigrationsDir = if ($env:NEXORA_MIGRATIONS_DIR) { $env:NEXORA_MIGRATIONS_DIR } else { 'database/migrations' }
 
+$serverHost = ($SqlServer -replace '^tcp:', '') -split '[,\\]' | Select-Object -First 1
+if ($serverHost -notin @('localhost', '127.0.0.1', '.', '(local)', '(localdb)')) {
+    throw "Migration target must be loopback; got $serverHost"
+}
+if ($SqlDatabase -notmatch '^(Nexora_Dev|Nexora_Test_[0-9A-Fa-f]{32})$') {
+    throw 'Migration database must be Nexora_Dev or Nexora_Test_<32 hex chars>.'
+}
+
 if (-not (Get-Command sqlcmd -ErrorAction SilentlyContinue)) {
     throw 'sqlcmd is required to run SQL Server migrations. Install sqlcmd or run inside the SQL Server tools container.'
 }

@@ -18,6 +18,7 @@ using Nexora.Application.Settings;
 using Nexora.Application.Trash;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Access;
+using Nexora.Infrastructure.Local;
 using Nexora.Infrastructure.Modules;
 using Nexora.Infrastructure.Persistence;
 using Nexora.Infrastructure.Productivity;
@@ -53,6 +54,22 @@ if (string.IsNullOrWhiteSpace(sqlConnectionString))
     sqlConnectionString = connectionBuilder.ConnectionString;
 }
 var resolvedSqlConnectionString = sqlConnectionString ?? throw new InvalidOperationException("SQL connection string could not be resolved.");
+try
+{
+    // The current executable is a local-only surface. Never let a caller point
+    // this build at a non-loopback or non-development database by overriding env.
+    resolvedSqlConnectionString = LocalSqlTarget.Validate(
+        resolvedSqlConnectionString,
+        Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development");
+}
+catch (ArgumentException)
+{
+    throw new InvalidOperationException("Only a loopback SQL Server development target is allowed.");
+}
+catch (InvalidOperationException)
+{
+    throw new InvalidOperationException("Only a loopback SQL Server development target is allowed.");
+}
 var idempotencySecret = Environment.GetEnvironmentVariable("NEXORA_IDEMPOTENCY_SECRET") ?? resolvedSqlConnectionString;
 builder.Services.AddSingleton(new SqlConnectionFactory(resolvedSqlConnectionString));
 builder.Services.AddSingleton<IAccountMessageSink, LocalAccountMessageSink>();
