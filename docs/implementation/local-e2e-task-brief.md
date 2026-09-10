@@ -3,6 +3,7 @@
 Owner: implementation agent `/root`. Source branch: `impl/m01-s00-scaffold`.
 Starting revision: `b17537263e2d478d8a9b14258891a3c1658534e1`.
 Remediation implementation commit: `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`.
+Current productivity-contract alignment commit: `e42516e2360ad2afd7d8a0144412a15086770983`.
 Delivery target: existing PR #4 to `main`; commit/push/update authorized; no merge.
 Authorization: current PO prompt, recorded as DEC-20260909-014.
 
@@ -68,7 +69,27 @@ frontend/security/database/verification/owner-isolation rules were loaded from
 and `.ai/routing.json`. Exact restore-based CI verification passes on workflow
 runs `34501160127` / `143` and `34501462229` / `144`; remaining gates are SQL runtime/migration
 verification, the documented owner-run manual QA script, and independent review.
-The local API/Bootstrap Release builds, existing unit checks and frontend build
-have now run successfully; Bash verification was blocked before execution by
-the host's WSL access policy, and SQL/runtime/owner QA plus independent review
-remain `Not run` or `Pending`.
+The local API/Bootstrap Release builds and frontend build have now run
+successfully; the existing unit-check step and `verify.sh` also passed in CI
+run `34507159651` / `147`. The local Bash invocation was blocked before
+execution by the host's WSL access policy, and SQL/runtime/owner QA plus
+independent review remain `Not run` or `Pending`.
+
+## Productivity contract-alignment continuation
+
+The current slice binds `NXG-FX11-G01..G03`, `NXG-FX12-G01..G03` and
+`NXG-FX13-G01..G03` to the source requirements in
+`docs/features/11-projects.md`, `docs/features/12-tasks.md` and
+`docs/features/13-calendar.md`. It adds the forward migrations
+`20260910_0019_productivity_contract_alignment.sql` and
+`20260910_0020_task_calendar_projection.sql`, Project/Task contract validation
+and confirmation gates, server-derived Overdue, a one-way Task → Calendar
+projection with direct-edit denial, and the Calendar Day/Week/Month/Agenda
+selectors. Documents creation now requires an explicit type/editor choice and
+the UI exposes Grid (default) and Table views.
+
+The complete trace is in `docs/implementation/r1-requirement-traceability-matrix.md`.
+SQL migration/application, SQL API integration, health failure-mode, browser
+and manual QA evidence remain `Not run`; no new tests, fixtures or runtime data
+were added under the current code-only amendment.
+

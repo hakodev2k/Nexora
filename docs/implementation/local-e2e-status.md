@@ -1,6 +1,6 @@
 # Local Release 1 implementation status
 
-Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Implementation commit: `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`. This is not a merge, production or runtime-verification claim.
+Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. Current head: `e42516e2360ad2afd7d8a0144412a15086770983`; `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d` is the earlier blocker-remediation commit. This is not a merge, production or runtime-verification claim.
 
 ## Implemented in this revision
 
@@ -20,6 +20,7 @@ Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under
 - SQL-backed FX24 tag catalog slice: owner-scoped namespace tags (`projects`, `documents`, `bookmarks`, `snippets`) with bounded search, optional validated color, usage-count projection, ETag/If-Match rename, idempotent create/rename/remove and delete protection when a future `ResourceTag` reference exists. The React shell exposes `/organize/tags`; assignment, Collections, Templates, sharing and provider behavior remain gated.
 - Local FX32 Developer Toolbox pure slice: SQL-gated catalog plus bounded in-memory Base64, URL, HTML entity, hash, UUID, password, JSON and regex operations. The React shell exposes `/developer/tools`; no input/output persistence, code execution, clipboard auto-read, network calls, history or provider behavior is enabled.
 - SQL-backed FX16 numeric Goals slice: owner-scoped Goal/GoalTarget/GoalProgress tables, bounded Goal CRUD, numeric progress events and explicit Draft/Active/Completed/Abandoned transitions. The React shell exposes `/goals`; task-linked/boolean targets, archive/trash/history, reminders and provider behavior remain gated.
+- Productivity contract-alignment continuation: Projects enforce the Title compatibility mapping, required bounded Description, A–Z list order, bounds confirmation and terminal read-only rules; Tasks enforce Title/Project/lifecycle bounds, expose server-derived Overdue, and maintain a one-way Task → Calendar projection keyed by owner/task; Calendar exposes Day default plus Week/Month/Agenda selectors and rejects direct mutation of Task projections. Migrations `20260910_0019_productivity_contract_alignment.sql` and `20260910_0020_task_calendar_projection.sql` are required for this source slice.
 - SQL-backed FX26-S01 Dashboard attention slice: owner-scoped due/overdue Tasks, today's Calendar Events, recent Draft/Published Documents and unread Notifications are projected through independent Ready/Empty/Unavailable/Degraded widgets. The React Home dashboard consumes `GET /api/v1/dashboard`; layout persistence, widget mutation, quick-create and provider widgets remain gated.
 - SQL-backed FX25-S01 Global Search slice: bounded owner-scoped source queries across Projects, Tasks, Calendar Events, Documents, Bookmarks, Snippets and Goals with type/date/archive filters, deterministic ranking, safe previews and per-source capability/degraded states. The React shell exposes `/search`; saved searches, Recents, Command Palette and persisted index remain gated.
 - SQL-backed FX25-S03 Favorites slice: owner-scoped typed Project/Task/Event/Document/Bookmark/Snippet/Goal references with source capability/lifecycle/Trash recheck, safe unavailable projection, cursor pagination, bounded rank, ETag/If-Match, durable safe-response idempotency and audit. The React shell exposes `/favorites`; no source payload snapshot or authority is copied.
@@ -41,14 +42,14 @@ and a source implementation is not SQL/runtime verification.
 
 `/health/live` checks only process liveness. `/health/ready` returns `503`
 unless SQL opens, the migration journal exists, every required migration through
-`0018` is applied, and the bootstrap/security invariant is valid. Its response
+`0020` is applied, and the bootstrap/security invariant is valid. Its response
 contains only coarse dependency states. The API also fails fast unless
 `NEXORA_IDEMPOTENCY_SECRET` is supplied separately from the SQL connection
 string/password.
 
 ## Deliberately not claimed
 
-The remaining Release 1 modules (sharing/support/emergency, notification delivery workers/push subscriptions, files/import-export, Trash advanced retention, reminders/planner/habits/time tracking/Pomodoro, advanced Goals targets/archive/trash/history, document folders/tags/history/share/import-export, bookmark tags/collections/refresh/sharing, snippet history/diff/restore/export/tags, Read Later News/body reader/organization/search, FX24 Collections/Templates, dashboard layout/widget mutation and quick-create, Search saved/recent/command/persisted-index actions, advanced Finance/Vault, News/shopping, Developer Toolbox advanced/history/network tools, GitHub/monitoring, assets/career/learning and local-safe automation/integrations) still require their own contracted vertical slices and code. Productivity history and aggregate deletion are persisted; task-calendar projection and ICS import/export are not yet implemented. No placeholder or demo data is reported as complete.
+The remaining Release 1 modules (sharing/support/emergency, notification delivery workers/push subscriptions, files/import-export, Trash advanced retention, reminders/planner/habits/time tracking/Pomodoro, advanced Goals targets/archive/trash/history, document folders/tags/history/share/import-export, bookmark tags/collections/refresh/sharing, snippet history/diff/restore/export/tags, Read Later News/body reader/organization/search, FX24 Collections/Templates, dashboard layout/widget mutation and quick-create, Search saved/recent/command/persisted-index actions, advanced Finance/Vault, News/shopping, Developer Toolbox advanced/history/network tools, GitHub/monitoring, assets/career/learning and local-safe automation/integrations) still require their own contracted vertical slices and code. Productivity history and aggregate deletion are persisted; Task → Calendar source projection is source-covered but SQL/runtime evidence is `Not run`; ICS import/export remains unimplemented. No placeholder or demo data is reported as complete.
 
 Production deployment, public launch, real secrets/provider calls, real OAuth/payments, real-user imports and external destructive actions remain unapproved.
 
@@ -56,21 +57,23 @@ Production deployment, public launch, real secrets/provider calls, real OAuth/pa
 
 The current instruction remains code-only: no new tests, fixtures, demo records
 or provider/runtime data were added. The following commands were actually run
-on implementation commit `d2c7c5e00c05714b9d7a54a09a38b64f0e20e33d`:
+on the current source; the matching CI workflow ran on
+`e42516e2360ad2afd7d8a0144412a15086770983`:
 
-- `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (restore required elevated local NuGet-config access).
-- `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors.
-- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Pass**, 24 passed, 0 failed. These are existing unit checks; they do not prove SQL behavior.
-- `npm ci --prefix web/Nexora.Web` — **Pass**, 69 packages audited, 0 vulnerabilities.
-- `npm run build --prefix web/Nexora.Web` — **Pass**, TypeScript and Vite production bundle completed.
+- `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (local run; restore required elevated local NuGet-config access; CI repeated it).
+- `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (local run; CI repeated it).
+- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Pass in CI run 147** as the existing unit-check step; no new tests were added and the suite does not prove SQL behavior.
+- `npm ci --prefix web/Nexora.Web` — **Pass in CI run 147**.
+- `npm run build --prefix web/Nexora.Web` — **Pass**, TypeScript and Vite production bundle completed locally and in CI run 147.
 - `git diff --check` — **Pass**.
 - `bash scripts/dev/verify.sh` — **Not run**: the Windows environment denied WSL/Bash instance creation (`E_ACCESSDENIED`) before the script executed.
 
-The workflow now includes the existing unit-check command after the API/
-Bootstrap build. Run `34501160127` / run `143` is **Pass** (`success`) for the
-implementation commit, and run `34501462229` / run `144` is **Pass**
-(`success`) for the docs-only follow-up head. No code changed between those
-heads. SQL integration was **Not run** because `NEXORA_TEST_SQL_CONNECTION` is
-absent; no SQL migration,
-health endpoint, browser/E2E or manual QA runtime evidence is claimed. The
-manual flow is documented in `pr4-review-qa-script.md` for the human owner.
+The current workflow `34507159651` / run `147` is **Pass** (`success`) for
+`Nexora local implementation checks`; Agent baseline `34507159640` / run `164`
+is also **Pass**. `bash scripts/dev/verify.sh` ran in CI and passed; the local
+Windows WSL invocation remains **Not run** because the host denied WSL/Bash
+creation (`E_ACCESSDENIED`). SQL integration was **Not run** because
+`NEXORA_TEST_SQL_CONNECTION` is absent; no SQL migration execution, health
+endpoint, browser/E2E or manual QA runtime evidence is claimed. The manual flow
+is documented in `pr4-review-qa-script.md` for the human owner.
+
