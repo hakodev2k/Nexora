@@ -51,10 +51,11 @@ public sealed class SqlFavoriteService : IFavoriteService
             using var connection = _connections.Create();
             connection.Open();
             using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.read"))
+            var capabilityFailure = CapabilityFailure<FavoritePage>(connection, transaction, actor, "discovery.favorite.read");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<FavoritePage>();
+                return capabilityFailure;
             }
 
             var rows = ReadRows(connection, transaction, actor.OwnerId, normalizedType, take + 1, cursorValue);
@@ -63,10 +64,11 @@ public sealed class SqlFavoriteService : IFavoriteService
                 rows = rows.Take(take).ToList();
             var items = rows.Select(row => ToRecord(connection, transaction, actor, row)).ToArray();
             var nextCursor = hasMore && rows.Count > 0 ? EncodeCursor(rows[^1]) : null;
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.read"))
+            capabilityFailure = CapabilityFailure<FavoritePage>(connection, transaction, actor, "discovery.favorite.read");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<FavoritePage>();
+                return capabilityFailure;
             }
             transaction.Commit();
             return IdentityOperationResult<FavoritePage>.Success(new FavoritePage(items, nextCursor));
@@ -92,10 +94,11 @@ public sealed class SqlFavoriteService : IFavoriteService
             using var connection = _connections.Create();
             connection.Open();
             using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.add"))
+            var capabilityFailure = CapabilityFailure<FavoriteRecord>(connection, transaction, actor, "discovery.favorite.add");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<FavoriteRecord>();
+                return capabilityFailure;
             }
 
             var receiptFailure = CheckReceipt<FavoriteRecord>(connection, transaction, actor, "discovery.favorite.add", idempotencyKey,
@@ -121,10 +124,11 @@ public sealed class SqlFavoriteService : IFavoriteService
             // Keep the capability decision in the same serializable transaction
             // immediately before the reference write. The capability query also
             // locks the module/grant rows until commit.
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.add"))
+            capabilityFailure = CapabilityFailure<FavoriteRecord>(connection, transaction, actor, "discovery.favorite.add");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<FavoriteRecord>();
+                return capabilityFailure;
             }
 
             var favoriteId = Guid.NewGuid();
@@ -179,10 +183,11 @@ public sealed class SqlFavoriteService : IFavoriteService
             using var connection = _connections.Create();
             connection.Open();
             using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.remove"))
+            var capabilityFailure = CapabilityFailure<object?>(connection, transaction, actor, "discovery.favorite.remove");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<object?>();
+                return capabilityFailure;
             }
 
             var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "discovery.favorite.remove", idempotencyKey,
@@ -210,10 +215,11 @@ public sealed class SqlFavoriteService : IFavoriteService
                 return Revision<object?>();
             }
 
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.remove"))
+            capabilityFailure = CapabilityFailure<object?>(connection, transaction, actor, "discovery.favorite.remove");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<object?>();
+                return capabilityFailure;
             }
             var affected = Execute(connection, transaction, """
                 DELETE FROM [discovery].[Favorite]
@@ -254,10 +260,11 @@ public sealed class SqlFavoriteService : IFavoriteService
             using var connection = _connections.Create();
             connection.Open();
             using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.reorder"))
+            var capabilityFailure = CapabilityFailure<FavoriteRecord>(connection, transaction, actor, "discovery.favorite.reorder");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<FavoriteRecord>();
+                return capabilityFailure;
             }
 
             var receiptFailure = CheckReceipt<FavoriteRecord>(connection, transaction, actor, "discovery.favorite.reorder", idempotencyKey,
@@ -326,10 +333,11 @@ public sealed class SqlFavoriteService : IFavoriteService
                 return Missing<FavoriteRecord>();
             }
             var record = ToRecord(source, updated);
-            if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.favorite.reorder"))
+            capabilityFailure = CapabilityFailure<FavoriteRecord>(connection, transaction, actor, "discovery.favorite.reorder");
+            if (capabilityFailure is not null)
             {
                 transaction.Rollback();
-                return ModuleUnavailable<FavoriteRecord>();
+                return capabilityFailure;
             }
             WriteAudit(connection, transaction, actor, favoriteId, "discovery.favorite.reorder", traceId);
             CompleteReceipt(connection, transaction, receipt, "FavoriteReordered", 200, JsonSerializer.Serialize(record));
@@ -342,12 +350,20 @@ public sealed class SqlFavoriteService : IFavoriteService
         }
     }
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
-        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
-
     private bool ModuleAvailable(SqlConnection connection, SqlTransaction? transaction, IdentityPrincipal actor,
         string moduleCode, params string[] actionKeys) =>
         _capabilities.IsAllowed(connection, transaction, actor, moduleCode, actionKeys);
+
+    private IdentityOperationResult<T>? CapabilityFailure<T>(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string actionKey)
+    {
+        return _capabilities.Evaluate(connection, transaction, actor, "FX25", actionKey) switch
+        {
+            SqlCapabilityStatus.Allowed => null,
+            SqlCapabilityStatus.PermissionDenied => Failure<T>("PermissionDenied", 403, "You are not permitted to use this Favorites operation."),
+            _ => ModuleUnavailable<T>()
+        };
+    }
 
     private FavoriteRecord ToRecord(SqlConnection connection, SqlTransaction? transaction,
         IdentityPrincipal actor, FavoriteRow row) => ToRecord(ResolveSource(connection, transaction, actor, row.ResourceType, row.ResourceId), row);

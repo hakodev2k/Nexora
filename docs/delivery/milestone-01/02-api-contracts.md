@@ -1,6 +1,6 @@
 # M01 API contract — version 1, design only
 
-**Resolved delegated technical specification.** [OpenAPI](openapi.json) là máy đọc được; chưa có API chạy. Khi schema và prose lệch nhau phải sửa trước implementation, không chọn tùy tiện. Mọi path bắt đầu `/api/v1`; route UI không là API.
+**Resolved delegated technical specification.** [OpenAPI](openapi.json) là máy đọc được cho bounded M01 scope; đây không phải catalog của các post-M01 slices. FX25-S03 Favorites được mô tả trong [local slice contract](../../implementation/favorites-reference-slice.md), là authority bổ sung cho các `/api/v1/favorites` paths trên PR #4. Khi schema và prose lệch nhau phải sửa trước implementation, không chọn tùy tiện. Mọi path bắt đầu `/api/v1`; route UI không là API.
 
 ## Transport, authentication và data representation
 

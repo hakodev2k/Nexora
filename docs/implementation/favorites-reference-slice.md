@@ -37,6 +37,10 @@ stale source projection is rendered.
   Goal; limit is clamped to 1–100. Response is `{ items, nextCursor }`. The
   owner-scoped list and source projections run in one serializable SQL
   transaction, with a final FX25 capability check before commit.
+- A missing/denied Favorites action returns `403 PermissionDenied`; an
+  unavailable module or hard dependency returns `409 ModuleUnavailable`. Source
+  read denial remains a redacted `Unavailable` projection so Favorites cannot
+  disclose source existence or metadata.
 - `POST /api/v1/favorites` — `{ resourceType, resourceId }`; the body cannot
   supply owner, title, status, route or rank. Returns `201` with the resolved
   safe projection. Duplicate owner/reference returns `409`.

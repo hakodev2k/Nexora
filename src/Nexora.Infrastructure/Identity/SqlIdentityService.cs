@@ -1154,17 +1154,58 @@ WHERE u.[Id] = @userId;"))
 
         var modules = new List<IdentityModuleProjection>();
         using (var command = CreateCommand(connection, transaction, @"
+WITH dependency_chain AS
+(
+    SELECT d.[ModuleId] AS [RootModuleId], d.[DependsOnModuleId] AS [DependencyModuleId], d.[DependencyKind]
+    FROM [platform].[ModuleDependency] d
+    UNION ALL
+    SELECT c.[RootModuleId], d.[DependsOnModuleId], d.[DependencyKind]
+    FROM dependency_chain c
+    INNER JOIN [platform].[ModuleDependency] d ON d.[ModuleId] = c.[DependencyModuleId]
+    WHERE c.[DependencyKind] = 'Hard'
+)
 SELECT m.[Code],
        CAST(CASE WHEN m.[SystemEnabled] = 1 AND m.[State] = 'Ready'
-                       AND ISNULL(g.[Enabled], 0) = 1 THEN 1 ELSE 0 END AS bit) AS [Enabled],
+                       AND ISNULL(g.[Enabled], 0) = 1
+                       AND NOT EXISTS
+                       (
+                           SELECT 1
+                           FROM dependency_chain c
+                           INNER JOIN [platform].[Module] dependencyModule
+                             ON dependencyModule.[Id] = c.[DependencyModuleId]
+                           LEFT JOIN [platform].[UserModuleGrant] dependencyGrant
+                             ON dependencyGrant.[ModuleId] = dependencyModule.[Id]
+                            AND dependencyGrant.[UserId] = @userId
+                           WHERE c.[RootModuleId] = m.[Id]
+                             AND c.[DependencyKind] = 'Hard'
+                             AND (dependencyModule.[SystemEnabled] <> 1
+                                  OR dependencyModule.[State] <> 'Ready'
+                                  OR ISNULL(dependencyGrant.[Enabled], 0) <> 1)
+                       ) THEN 1 ELSE 0 END AS bit) AS [Enabled],
        CASE WHEN m.[SystemEnabled] = 0 THEN 'SystemDisabled'
             WHEN m.[State] <> 'Ready' THEN m.[State]
             WHEN ISNULL(g.[Enabled], 0) = 0 THEN 'NotGranted'
+            WHEN EXISTS
+                 (
+                     SELECT 1
+                     FROM dependency_chain c
+                     INNER JOIN [platform].[Module] dependencyModule
+                       ON dependencyModule.[Id] = c.[DependencyModuleId]
+                     LEFT JOIN [platform].[UserModuleGrant] dependencyGrant
+                       ON dependencyGrant.[ModuleId] = dependencyModule.[Id]
+                      AND dependencyGrant.[UserId] = @userId
+                     WHERE c.[RootModuleId] = m.[Id]
+                       AND c.[DependencyKind] = 'Hard'
+                       AND (dependencyModule.[SystemEnabled] <> 1
+                            OR dependencyModule.[State] <> 'Ready'
+                            OR ISNULL(dependencyGrant.[Enabled], 0) <> 1)
+                 ) THEN 'DependencyUnavailable'
             ELSE NULL END AS [UnavailableReason]
 FROM [platform].[Module] m
 LEFT JOIN [platform].[UserModuleGrant] g
   ON g.[ModuleId] = m.[Id] AND g.[UserId] = @userId
-ORDER BY m.[Code];"))
+ORDER BY m.[Code]
+OPTION (MAXRECURSION 32);"))
         {
             Add(command, "@userId", SqlDbType.UniqueIdentifier, userId);
             using var reader = command.ExecuteReader();
