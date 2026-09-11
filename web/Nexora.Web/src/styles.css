@@ -435,6 +435,59 @@ code {
   max-width: 55ch;
 }
 
+.shared-resource-page {
+  align-items: stretch;
+  background: #f4f7fb;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: clamp(1.25rem, 5vw, 4rem);
+  text-align: left;
+}
+
+.shared-resource-card {
+  background: #fff;
+  border: 1px solid #dbe4f0;
+  border-radius: 1rem;
+  box-shadow: 0 12px 35px rgb(40 66 105 / 8%);
+  margin: 0 auto;
+  max-width: 960px;
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+  width: min(100%, 960px);
+}
+
+.shared-resource-card h1 {
+  margin-bottom: 0.7rem;
+}
+
+.shared-resource-card h2 {
+  margin-top: 1.8rem;
+}
+
+.shared-document-body {
+  background: #f7f9fc;
+  border: 1px solid #e0e7f0;
+  border-radius: 0.7rem;
+  margin-top: 1.25rem;
+  max-height: 65vh;
+  overflow: auto;
+  padding: 1rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.shared-resource-card td .muted {
+  display: block;
+  margin-top: 0.35rem;
+  white-space: pre-wrap;
+}
+
+.checkbox-row {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
 .loading-mark {
   align-items: center;
   background: #2f67d8;

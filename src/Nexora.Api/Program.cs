@@ -17,6 +17,9 @@ using Nexora.Api.Features.Discovery;
 using Nexora.Api.Features.Productivity;
 using Nexora.Api.Features.Settings;
 using Nexora.Api.Features.Trash;
+using Nexora.Api.Features.Sharing;
+using Nexora.Api.Features.Support;
+using Nexora.Api.Features.Files;
 using Nexora.Api.Security;
 using Nexora.Application.Identity;
 using Nexora.Application.Access;
@@ -26,6 +29,9 @@ using Nexora.Application.Notifications;
 using Nexora.Application.Documents;
 using Nexora.Application.Settings;
 using Nexora.Application.Trash;
+using Nexora.Application.Sharing;
+using Nexora.Application.Support;
+using Nexora.Application.Files;
 using Nexora.Application.Finance;
 using Nexora.Application.Bookmarks;
 using Nexora.Application.Snippets;
@@ -54,6 +60,9 @@ using Nexora.Infrastructure.DeveloperTools;
 using Nexora.Infrastructure.Goals;
 using Nexora.Infrastructure.Dashboard;
 using Nexora.Infrastructure.Discovery;
+using Nexora.Infrastructure.Sharing;
+using Nexora.Infrastructure.Support;
+using Nexora.Infrastructure.Files;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -146,6 +155,17 @@ builder.Services.AddSingleton<ISearchService>(services =>
     new SqlSearchService(services.GetRequiredService<SqlConnectionFactory>()));
 builder.Services.AddSingleton<IFavoriteService>(services =>
     new SqlFavoriteService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISharingService>(services =>
+    new SqlSharingService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISupportService>(services =>
+    new SqlSupportService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IFileService>(services =>
+    new SqlFileService(
+        services.GetRequiredService<SqlConnectionFactory>(),
+        builder.Configuration["Nexora:FileStorageRoot"]
+            ?? Environment.GetEnvironmentVariable("NEXORA_FILE_STORAGE_ROOT")
+            ?? Path.Combine(AppContext.BaseDirectory, "file-storage"),
+        idempotencySecret));
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;
@@ -185,6 +205,9 @@ app.MapGoalsEndpoints();
 app.MapDashboardEndpoints();
 app.MapSearchEndpoints();
 app.MapFavoriteEndpoints();
+app.MapSharingEndpoints();
+app.MapSupportEndpoints();
+app.MapFileEndpoints();
 
 app.MapFallback(() => Results.Problem(
     title: "Resource unavailable",

@@ -474,6 +474,108 @@ export type AdminUserAccess = {
   moduleGrants: { code: string; enabled: boolean; state: string; systemEnabled: boolean }[];
 };
 
+export type ShareLinkRecord = {
+  id: string;
+  resourceType: string;
+  resourceId: string;
+  mode: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  projectionVersion: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+  allowedUserIds: string[];
+  token: string | null;
+};
+
+export type ShareLinkPage = { items: ShareLinkRecord[]; nextCursor: string | null };
+
+export type SharedTask = {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  dueAt: string | null;
+  startAt: string;
+  endAt: string;
+  priority: string;
+  tagsJson: string;
+  isOverdue: boolean;
+};
+
+export type SharedResource = {
+  resourceType: string;
+  resourceId: string;
+  mode: string;
+  expiresAt: string | null;
+  projectionVersion: string;
+  project: { id: string; name: string; description: string | null; status: string; startAt: string; endAt: string; priority: string; tagsJson: string; tasks: SharedTask[] } | null;
+  document: { id: string; title: string; documentType: string; editorMode: string; body: string; status: string; versionNumber: number; updatedAt: string } | null;
+};
+
+export type SupportGrantRecord = {
+  id: string;
+  moduleCode: string;
+  durationMode: string;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type SupportGrantPage = { items: SupportGrantRecord[]; nextCursor: string | null };
+export type SupportSessionRecord = {
+  id: string;
+  targetUserId: string;
+  moduleCode: string;
+  mode: string;
+  expiresAt: string;
+  endedAt: string | null;
+  supportGrantId: string | null;
+  reason: string | null;
+  createdAt: string;
+  etag: string;
+};
+export type SupportSessionPage = { items: SupportSessionRecord[]; nextCursor: string | null };
+
+export type FileRecord = {
+  id: string;
+  originalName: string;
+  mediaType: string;
+  byteLength: number;
+  scanState: string;
+  lifecycle: string;
+  currentRevision: number;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+export type FilePage = { items: FileRecord[]; nextCursor: string | null };
+export type FileUploadSession = {
+  id: string;
+  expectedBytes: number;
+  receivedBytes: number;
+  state: string;
+  expiresAt: string;
+  uploadHandle: string;
+  etag: string;
+};
+export type FileReferenceRecord = {
+  id: string;
+  fileObjectId: string;
+  resourceType: string;
+  resourceId: string;
+  versionNumber: number | null;
+  purpose: string;
+  referenceKey: string;
+  createdAt: string;
+  etag: string;
+};
+
 export type ProfilePatch = Partial<Pick<ProfileResponse, 'displayName' | 'timeZoneId' | 'locale'>>;
 
 export type FieldErrors = Record<string, string[]>;
@@ -686,6 +788,27 @@ function jsonMutationHeaders(idempotencyKey?: string, extra?: HeadersInit): Head
     headers.set('Idempotency-Key', idempotencyKey);
   }
   return headers;
+}
+
+async function rawUploadFetch<T>(path: string, body: BodyInit, contentType: string, uploadHandle: string, idempotencyKey: string): Promise<T> {
+  if (csrfToken === null) await getCsrf();
+  const headers = new Headers({
+    Accept: 'application/json',
+    'Content-Type': contentType || 'application/octet-stream',
+    'X-Upload-Handle': uploadHandle,
+    'Idempotency-Key': idempotencyKey
+  });
+  if (csrfToken !== null) headers.set('X-CSRF-Token', csrfToken);
+  let response: Response;
+  try {
+    response = await fetch(path, { method: 'PUT', credentials: 'same-origin', cache: 'no-store', headers, body });
+  } catch {
+    throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
+  }
+  if (!response.ok) throw await toApiError(response);
+  const rotatedCsrf = response.headers.get('X-CSRF-Token');
+  if (rotatedCsrf) csrfToken = rotatedCsrf;
+  return (await response.json()) as T;
 }
 
 export function registerUser(
@@ -1384,6 +1507,156 @@ export function setAdminModuleGrant(userId: string, etag: string, moduleCode: st
 export function disableAdminUser(userId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<void>(`/api/v1/admin/users/${encodeURIComponent(userId)}/disable`, {
     method: 'POST', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ confirmation: 'DISABLE', ifMatch: etag })
+  });
+}
+
+export function listShareLinks(limit = 100) {
+  return apiFetch<ShareLinkPage>(`/api/v1/sharing/links?limit=${encodeURIComponent(limit)}`);
+}
+
+export function createShareLink(resourceType: string, resourceId: string, mode: string, expiresAt: string | null, allowedUserIds: string[] = [], noExpiry = false, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ShareLinkRecord>('/api/v1/sharing/links', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ resourceType, resourceId, mode, expiresAt, noExpiry, allowedUserIds: allowedUserIds.length ? allowedUserIds : null })
+  });
+}
+
+export function updateShareLink(id: string, etag: string, mode: string, expiresAt: string | null, allowedUserIds: string[] = [], noExpiry = false, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<ShareLinkRecord>(`/api/v1/sharing/links/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ mode, expiresAt, noExpiry, allowedUserIds: allowedUserIds.length ? allowedUserIds : null })
+  });
+}
+
+export function revokeShareLink(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/sharing/links/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function resolveShareLink(token: string) {
+  return apiFetch<SharedResource>(`/api/v1/sharing/resolve/${encodeURIComponent(token)}`);
+}
+
+export function listSupportGrants(limit = 100) {
+  return apiFetch<SupportGrantPage>(`/api/v1/support/grants?limit=${encodeURIComponent(limit)}`);
+}
+
+export function grantSupportConsent(moduleCode: string, durationMode: string, expiresAt: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<SupportGrantRecord>('/api/v1/support/grants', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ moduleCode, durationMode, expiresAt })
+  });
+}
+
+export function revokeSupportConsent(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/support/grants/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function listSupportSessions(limit = 100) {
+  return apiFetch<SupportSessionPage>(`/api/v1/support/sessions?limit=${encodeURIComponent(limit)}`);
+}
+
+export function openSupportSession(targetUserId: string, moduleCode: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<SupportSessionRecord>('/api/v1/support/sessions', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ targetUserId, moduleCode })
+  });
+}
+
+export function openEmergencySession(targetUserId: string, moduleCode: string, reason: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<SupportSessionRecord>('/api/v1/support/emergency', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ targetUserId, moduleCode, reason })
+  });
+}
+
+export function endSupportSession(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/support/sessions/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function listFiles(limit = 100) {
+  return apiFetch<FilePage>(`/api/v1/files?limit=${encodeURIComponent(limit)}`);
+}
+
+export function initiateFileUpload(originalName: string, mediaType: string, expectedBytes: number, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FileUploadSession>('/api/v1/files/upload-sessions', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ originalName, mediaType, expectedBytes })
+  });
+}
+
+export function completeFileUpload(session: FileUploadSession, file: File, idempotencyKey = createIdempotencyKey()) {
+  return rawUploadFetch<FileRecord>(`/api/v1/files/upload-sessions/${encodeURIComponent(session.id)}/content`, file,
+    file.type, session.uploadHandle, idempotencyKey);
+}
+
+export function cancelFileUpload(session: FileUploadSession, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/files/upload-sessions/${encodeURIComponent(session.id)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'X-Upload-Handle': session.uploadHandle })
+  });
+}
+
+export function renameFile(id: string, etag: string, originalName: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FileRecord>(`/api/v1/files/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ originalName })
+  });
+}
+
+export function fileContentUrl(id: string, inline = false) {
+  return `/api/v1/files/${encodeURIComponent(id)}/content?inline=${inline ? 'true' : 'false'}`;
+}
+
+export function attachFile(fileId: string, resourceType: string, resourceId: string, purpose: string, referenceKey: string, versionNumber: number | null = null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FileReferenceRecord>(`/api/v1/files/${encodeURIComponent(fileId)}/references`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ resourceType, resourceId, versionNumber, purpose, referenceKey })
+  });
+}
+
+export function detachFile(referenceId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/files/references/${encodeURIComponent(referenceId)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function trashFile(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/files/${encodeURIComponent(id)}/trash`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function restoreFile(id: string, etag: string, deletionBatchId: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<FileRecord>(`/api/v1/files/${encodeURIComponent(id)}/restore`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ deletionBatchId })
+  });
+}
+
+export function purgeFile(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/files/${encodeURIComponent(id)}/purge`, {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   });
 }
 

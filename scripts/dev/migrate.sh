@@ -27,18 +27,29 @@ if ! command -v sqlcmd >/dev/null 2>&1; then
   echo "[missing] sqlcmd is required to run SQL Server migrations. Install sqlcmd or run inside the SQL Server tools container."
   exit 1
 fi
+if ! command -v dotnet >/dev/null 2>&1; then
+  echo "[missing] dotnet is required to run the journaled migration runner. Install the .NET SDK 10 or run inside the SDK container."
+  exit 1
+fi
 
-sqlcmd -S "$SQL_SERVER" -U "$SQL_USER" -P "$SQL_PASSWORD" -C -Q "IF DB_ID(N'$SQL_DATABASE') IS NULL CREATE DATABASE [$SQL_DATABASE];"
-shopt -s nullglob
-migrations=("$MIGRATIONS_DIR"/*.sql)
-if [[ "${#migrations[@]}" == "0" ]]; then
+if [[ ! -d "$MIGRATIONS_DIR" ]] || ! compgen -G "$MIGRATIONS_DIR/*.sql" >/dev/null; then
   echo "[missing] no SQL migrations found in $MIGRATIONS_DIR"
   exit 1
 fi
 
-for migration in "${migrations[@]}"; do
-  echo "Applying $migration"
-  sqlcmd -S "$SQL_SERVER" -U "$SQL_USER" -P "$SQL_PASSWORD" -C -d "$SQL_DATABASE" -b -i "$migration"
-done
+sqlcmd -S "$SQL_SERVER" -U "$SQL_USER" -P "$SQL_PASSWORD" -C -Q "IF DB_ID(N'$SQL_DATABASE') IS NULL CREATE DATABASE [$SQL_DATABASE];"
 
-echo "Applied all local SQL migrations to $SQL_DATABASE on $SQL_SERVER."
+# Nexora.Local owns the deployment lock, normalized content hashes and
+# pending-migration journal. Pass discrete credentials so a password containing
+# connection-string punctuation is escaped by SqlConnectionStringBuilder.
+env \
+  DOTNET_ENVIRONMENT=Development \
+  NEXORA_SQL_CONNECTION= \
+  NEXORA_SQL_SERVER="$SQL_SERVER" \
+  NEXORA_SQL_USER="$SQL_USER" \
+  NEXORA_SQL_PASSWORD="$SQL_PASSWORD" \
+  NEXORA_SQL_DATABASE="$SQL_DATABASE" \
+  NEXORA_MIGRATIONS_DIR="$MIGRATIONS_DIR" \
+  dotnet run --project src/Nexora.Local/Nexora.Local.csproj --configuration Release -- migrate
+
+echo "Applied pending local SQL migrations to $SQL_DATABASE on $SQL_SERVER."

@@ -24,7 +24,7 @@ internal sealed class SqlSelfCapability
 
     public bool IsAllowed(IdentityPrincipal actor, string moduleCode, params string[] actionKeys)
     {
-        if (actor is null || string.IsNullOrWhiteSpace(moduleCode) || actionKeys.Length == 0)
+        if (actor is null || string.IsNullOrWhiteSpace(moduleCode) || actionKeys is null || actionKeys.Length == 0)
             return false;
 
         using var connection = _connections.Create();
@@ -39,13 +39,24 @@ internal sealed class SqlSelfCapability
     public SqlCapabilityStatus Evaluate(SqlConnection connection, SqlTransaction? transaction,
         IdentityPrincipal actor, string moduleCode, params string[] actionKeys)
     {
-        if (connection is null || actor is null || string.IsNullOrWhiteSpace(moduleCode) || actionKeys.Length == 0)
+        var actions = actionKeys?
+            .Where(action => !string.IsNullOrWhiteSpace(action))
+            .Select(action => action.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray() ?? Array.Empty<string>();
+        if (connection is null || actor is null || string.IsNullOrWhiteSpace(moduleCode) || actions.Length == 0)
             return SqlCapabilityStatus.ModuleUnavailable;
 
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
+        var actionParameters = new string[actions.Length];
+        for (var index = 0; index < actions.Length; index++)
+        {
+            actionParameters[index] = "@Action" + index;
+            command.Parameters.Add(actionParameters[index], SqlDbType.NVarChar, 160).Value = actions[index];
+        }
 
-        command.CommandText = """
+        command.CommandText = $"""
             WITH dependency_chain AS
             (
                 SELECT d.[ModuleId] AS [RootModuleId], d.[DependsOnModuleId] AS [DependencyModuleId], d.[DependencyKind]
@@ -61,7 +72,15 @@ internal sealed class SqlSelfCapability
             SELECT CASE
                        WHEN m.[State] <> 'Ready'
                             OR m.[SystemEnabled] <> 1
+                            OR m.[RegistrationEnabled] <> 1
                             OR COALESCE(g.[Enabled], 0) <> 1
+                            OR NOT EXISTS
+                            (
+                                SELECT 1
+                                FROM [platform].[Permission] requestedPermission
+                                WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
+                                  AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})
+                            )
                             OR EXISTS
                             (
                                 SELECT 1
@@ -74,6 +93,7 @@ internal sealed class SqlSelfCapability
                                 WHERE c.[DependencyKind] = 'Hard'
                                   AND (dependencyModule.[State] <> 'Ready'
                                        OR dependencyModule.[SystemEnabled] <> 1
+                                       OR dependencyModule.[RegistrationEnabled] <> 1
                                        OR COALESCE(dependencyGrant.[Enabled], 0) <> 1)
                             ) THEN 0
                        WHEN @Role IN ('User', 'Admin', 'SuperAdmin') THEN 1

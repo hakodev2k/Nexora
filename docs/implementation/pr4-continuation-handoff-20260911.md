@@ -23,13 +23,13 @@ The code commit addresses the known review blockers and local source-contract ga
 2. SQL Identity password reset reads `[identity].[MfaCredential]`; MFA-enabled reset fails closed as `MfaRecoveryRequired` before password, security-stamp or session mutation.
 3. Login CSRF rotation is captured from every successful response by frontend `apiFetch`.
 4. Developer Toolbox sends UUID `Idempotency-Key`; global CSRF/idempotency filters remain enabled.
-5. Module catalog migration `20260910_0018_local_runtime_catalog_gate.sql` keeps unimplemented modules disabled and leaves FX30/FX34/FX35 paused/provider-gated.
+5. Module catalog migration `20260910_0018_local_runtime_catalog_gate.sql` keeps incomplete modules disabled and leaves FX30/FX34/FX35 paused/provider-gated; the new FX04/05/07 source slices remain fail-closed until their open contracts and runtime evidence are complete.
 6. SELF authorization preserves User own-resource baseline for Admin/SuperAdmin while administrative/cross-user/support authorization remains separate.
-7. Readiness checks SQL, migration journal, required migrations through `0020`, and bootstrap/security invariant; liveness is process-only.
+7. Readiness checks SQL, migration journal, required migrations through `0021`, and bootstrap/security invariant; liveness is process-only.
 8. Idempotency fallback, request-size metadata, required separate `NEXORA_IDEMPOTENCY_SECRET`, account/security `NOLOCK` removal and stale catalog naming were hardened.
 9. FX11–FX13 source alignment adds project/task title/description bounds, A–Z project ordering, time-bound confirmations, terminal locks, Task Overdue, one-way Task → Calendar projection, Calendar Task projection edit denial and Calendar view selectors.
 10. Documents creation now requires explicit DocumentType/EditorMode and exposes Grid/Table selection.
-11. Migrations `20260910_0019_productivity_contract_alignment.sql` and `20260910_0020_task_calendar_projection.sql` are included.
+11. Migrations `20260910_0019_productivity_contract_alignment.sql`, `20260910_0020_task_calendar_projection.sql` and `20260911_0021_core_sharing_support_files.sql` are included. `scripts/dev/migrate.sh/.ps1` delegate to `Nexora.Local migrate`, which owns the deployment lock, checksum journal and pending-file replay.
 12. `docs/implementation/r1-requirement-traceability-matrix.md` records all FX rows and honest Partial/Not implemented/Blocked/Paused/Not run states.
 
 No new automated tests or synthetic fixtures were added because the repository amendment assigns functional QA/runtime verification to the human owner.
@@ -65,5 +65,64 @@ Not run:
 
 ## Known remaining status
 
-This is not “R1 complete”, “Accepted”, “Runtime verified” or production-ready. FX04/05/07/10/14/15/17/18/19/28/29/31/33/36/37/38/39/40 remain deliberately blocked/unimplemented in the local catalog; FX30/34/35 remain paused. FX11–FX13 are source-aligned but still Partial until SQL/browser evidence and remaining ICS, DST/all-day and aggregate restore requirements are handled. The full matrix is authoritative for the per-module gap list.
+This is not “R1 complete”, “Accepted”, “Runtime verified” or production-ready. FX04/05/07 now have bounded source slices but remain deliberately catalog-gated: FX05 Emergency is blocked by Q-02 and FX07 still lacks the approved cover/replacement/cleanup contract; all three also lack SQL/browser isolation evidence. FX10/14/15/17/18/19/28/29/31/33/36/37/38/39/40 remain blocked/unimplemented in the local catalog; FX30/34/35 remain paused. FX11–FX13 are source-aligned but still Partial until SQL/browser evidence and remaining ICS, DST/all-day and aggregate restore requirements are handled. The full matrix is authoritative for the per-module gap list.
 
+## Continuation update — 2026-09-11
+
+The current worktree continues on `impl/m01-s00-scaffold` and remains code-only
+under `DEC-20260909-014`. It adds the following bounded source slices; this
+section supersedes the earlier “FX04/05/07 absent” snapshot above:
+
+Source implementation commit: `6fb229ab7d56b6ee7091b7e85ea028c47c1a893b`.
+
+| Slice | Source delivered | Current limitation |
+| --- | --- | --- |
+| FX04 Sharing Engine | `security.ShareLink`/`ShareAllowedUser`, SHA-256 capability hashes, owner/source/viewer gates, expiry/revoke, sharing epoch invalidation, safe Project/Published Document projections, API routes and `/share/{token}` UI | Migration `0018` still keeps FX04 Blocked; SQL/browser/token-exposure/runtime evidence not run; no write-through sharing action. |
+| FX05 Support/Emergency | `security.SupportGrant`/`AccessSession`, owner consent duration modes, AdminPermission + exact module/read-action checks, durable opening audit, session end/revoke, API/UI shell | Migration `0018` still keeps FX05 Blocked; no support business-data read projection; Q-02 emergency returns explicit `DecisionBlocked` pending duration/recent-auth decision. |
+| FX07 Files/Attachments | Private generated storage keys, upload-handle hashes, bounded local staging/scan, MIME/extension/signature/text/Office archive checks, owner/source/reference/lifecycle guards, API/UI upload/list/download/rename/trash flow | Migration `0018` still keeps FX07 Blocked; cover 5 MiB/25MP, binary replacement revisions, persisted detected type, cleanup worker and external AV are not implemented; purge cleanup worker is still needed. |
+
+Additional security/runtime changes:
+
+- `SqlSelfCapability` now requires an existing `Permission` row with
+  `EffectiveStatus='Resolved'`, `RegistrationEnabled=1`, and the current
+  module/dependency grants; all decisions remain SQL-backed per request.
+- `/health/ready` now requires
+  `20260911_0021_core_sharing_support_files.sql` in the migration journal.
+- Unsafe JSON mutations retain the 64 KiB limit; raw file upload uses a
+  separate 25 MiB endpoint group and still requires CSRF plus UUID
+  `Idempotency-Key`.
+- Raw share tokens and upload handles are returned only from their initiating
+  response and are not written to SQL, browser storage, audit payloads or logs.
+
+### Current source evidence
+
+Actually run in this environment after the continuation changes:
+
+- `python3 .ai/scripts/verify-baseline.py` — **Pass**; 15 baseline gate tests,
+  application tests not run.
+- `python3 scripts/dev/verify-s00.py` — **Pass**; structural migration,
+  source-slice and no-bypass checks.
+- `npm ci --prefix web/Nexora.Web --ignore-scripts` — **Pass**.
+- `npm run build --prefix web/Nexora.Web` — **Pass**; TypeScript and Vite
+  production bundle completed.
+- `git diff --check` — **Pass**.
+- `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` —
+  **Blocked** because this environment has no `dotnet` executable
+  (`/bin/bash: dotnet: command not found`). The Bootstrap build and unit-test
+  command have the same missing-tool blocker.
+
+Not run: SQL migration execution/replay (including `scripts/dev/migrate.*`), SQL
+readiness, API/Bootstrap compile, application unit tests, browser/manual QA, E2E,
+owner-isolation journeys, storage/scan tests, independent security review and CI
+for this continuation. No tests, fixtures, demo data, provider calls, secrets or
+production changes were added. Do not merge PR #4.
+
+## Remote reconciliation update — 2026-09-11
+
+- Local HEAD before push: `2ba68f62fa14291cb701c60ebc3f076017e1d613`.
+- Remote `origin/impl/m01-s00-scaffold` before push: `1de199040bebc600cf75800a55b807dc63b5c1f2`.
+- The local handoff and implementation commits exist locally and are two commits
+  ahead after `git fetch origin`.
+- `git push origin HEAD:impl/m01-s00-scaffold` was attempted but blocked because
+  the environment has no GitHub HTTPS credential (`could not read Username for
+  'https://github.com'`). This handoff does not claim the commits are on GitHub.

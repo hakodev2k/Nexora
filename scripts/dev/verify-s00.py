@@ -56,6 +56,12 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Discovery/SearchContracts.cs",
     "src/Nexora.Api/Features/Discovery/FavoriteEndpoints.cs",
     "src/Nexora.Api/Features/Discovery/FavoriteContracts.cs",
+    "src/Nexora.Api/Features/Files/FileEndpoints.cs",
+    "src/Nexora.Api/Features/Files/FileContracts.cs",
+    "src/Nexora.Api/Features/Sharing/SharingEndpoints.cs",
+    "src/Nexora.Api/Features/Sharing/SharingContracts.cs",
+    "src/Nexora.Api/Features/Support/SupportEndpoints.cs",
+    "src/Nexora.Api/Features/Support/SupportContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -80,6 +86,9 @@ REQUIRED_FILES = [
     "src/Nexora.Application/Dashboard/DashboardServiceContracts.cs",
     "src/Nexora.Application/Discovery/SearchServiceContracts.cs",
     "src/Nexora.Application/Discovery/FavoriteServiceContracts.cs",
+    "src/Nexora.Application/Files/FileServiceContracts.cs",
+    "src/Nexora.Application/Sharing/SharingServiceContracts.cs",
+    "src/Nexora.Application/Support/SupportServiceContracts.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -99,7 +108,14 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Dashboard/SqlDashboardService.cs",
     "src/Nexora.Infrastructure/Discovery/SqlSearchService.cs",
     "src/Nexora.Infrastructure/Discovery/SqlFavoriteService.cs",
+    "src/Nexora.Infrastructure/Files/SqlFileService.cs",
+    "src/Nexora.Infrastructure/Sharing/SqlSharingService.cs",
+    "src/Nexora.Infrastructure/Support/SqlSupportService.cs",
+    "src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs",
+    "src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
+    "src/Nexora.Local/Nexora.Local.csproj",
+    "src/Nexora.Local/Program.cs",
     "database/migrations/20260909_0001_m01_identity_platform.sql",
     "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
     "database/migrations/20260910_0003_productivity_lifecycle.sql",
@@ -117,11 +133,14 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0015_dashboard_attention.sql",
     "database/migrations/20260910_0016_global_search_source_query.sql",
     "database/migrations/20260910_0017_favorites_refs.sql",
+    "database/migrations/20260911_0021_core_sharing_support_files.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
     "web/Nexora.Web/src/styles.css",
     "scripts/dev/doctor.sh",
+    "scripts/dev/migrate.sh",
+    "scripts/dev/migrate.ps1",
     "scripts/dev/verify.sh",
 ]
 
@@ -371,6 +390,24 @@ def main() -> int:
     for marker in ("[discovery].[Favorite]", "discovery.favorite.read", "discovery.favorite.add", "discovery.favorite.remove", "discovery.favorite.reorder", "ResultStatusCode", "ResultJson"):
         if marker not in migration17:
             fail(f"favorite migration marker missing: {marker}")
+    migration21 = read("database/migrations/20260911_0021_core_sharing_support_files.sql")
+    for marker in ("[security].[ShareLink]", "[security].[ShareAllowedUser]", "[security].[SupportGrant]", "[security].[AccessSession]", "[files].[FileObject]", "[files].[FileReference]", "[files].[UploadSession]", "sharing.link.create", "support.consent.grant", "files.file.upload"):
+        if marker not in migration21:
+            fail(f"core sharing/support/files migration marker missing: {marker}")
+
+    migration_runner = read("src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs")
+    for marker in ("NexoraMigration", "ContentHash", "sp_getapplock", 'Directory.GetFiles(directory, "*.sql")'):
+        if marker not in migration_runner:
+            fail(f"journaled migration runner marker missing: {marker}")
+    readiness = read("src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs")
+    if "20260911_0021_core_sharing_support_files.sql" not in readiness:
+        fail("readiness probe must require migration 0021")
+    for script_name in ("scripts/dev/migrate.sh", "scripts/dev/migrate.ps1"):
+        migration_script = read(script_name)
+        if "Nexora.Local" not in migration_script or "migrate" not in migration_script:
+            fail(f"migration script is not wired to Nexora.Local: {script_name}")
+        if "-i $Migration" in migration_script or "-i \"$migration\"" in migration_script:
+            fail(f"migration script bypasses the journaled runner: {script_name}")
 
     scanned = []
     for pattern in ("src/Nexora.Api/**/*.cs", "src/Nexora.Infrastructure/**/*.cs", "web/Nexora.Web/src/**/*"):
@@ -384,7 +421,7 @@ def main() -> int:
             if re.search(forbidden, text):
                 fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags/goals/dashboard/search/favorites plus local developer-toolbox runtime, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
+    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/finance/bookmarks/snippets/read-later/organization-tags/goals/dashboard/search/favorites/sharing/support/files plus local developer-toolbox runtime, journaled migrations, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
     return 0
 
 

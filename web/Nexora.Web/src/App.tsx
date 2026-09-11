@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 60527)
+Total output lines: 3954
+
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   BookmarkRecord,
@@ -29,6 +32,11 @@ import {
   SessionProjection,
   SnippetRecord,
   TaskRecord,
+  FileRecord,
+  ShareLinkRecord,
+  SharedResource,
+  SupportGrantRecord,
+  SupportSessionRecord,
   clearProfileRevision,
   confirmPasswordReset,
   createBookmark,
@@ -96,6 +104,21 @@ import {
   transitionCalendarEvent,
   transitionBookmark,
   transitionSnippet,
+  listShareLinks,
+  createShareLink,
+  revokeShareLink,
+  listSupportGrants,
+  grantSupportConsent,
+  revokeSupportConsent,
+  listSupportSessions,
+  endSupportSession,
+  listFiles,
+  initiateFileUpload,
+  completeFileUpload,
+  renameFile,
+  fileContentUrl,
+  trashFile,
+  resolveShareLink,
   removeFinanceCategory,
   updateFinanceCategory,
   updateFinanceRecord,
@@ -117,13 +140,21 @@ import {
   transitionGoal
 } from './api';
 
-type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'module';
-type LocationState = { screen: Screen; moduleCode?: string };
+type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'sharing' | 'support' | 'files' | 'shared' | 'module';
+type LocationState = { screen: Screen; moduleCode?: string; token?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
 
-const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset']);
+const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
 const DEFAULT_TIME_ZONE = 'UTC';
+
+function decodeRouteSegment(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
 
 function routeFromPath(pathname: string): LocationState {
   const path = pathname.replace(/\/+$/, '') || '/';
@@ -164,13 +195,22 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'tools' };
     case '/goals':
       return { screen: 'goals' };
+    case '/sharing':
+      return { screen: 'sharing' };
+    case '/support':
+      return { screen: 'support' };
+    case '/files':
+      return { screen: 'files' };
     case '/login':
       return { screen: 'login' };
     case '/':
       return { screen: 'home' };
     default:
+      if (path.startsWith('/share/')) {
+        return { screen: 'shared', token: decodeRouteSegment(path.slice('/share/'.length)) };
+      }
       if (path.startsWith('/modules/')) {
-        return { screen: 'module', moduleCode: decodeURIComponent(path.slice('/modules/'.length)).toUpperCase() };
+        return { screen: 'module', moduleCode: decodeRouteSegment(path.slice('/modules/'.length)).toUpperCase() };
       }
       return { screen: 'home' };
   }
@@ -214,6 +254,14 @@ function pathForLocation(location: LocationState): string {
       return '/developer/tools';
     case 'goals':
       return '/goals';
+    case 'sharing':
+      return '/sharing';
+    case 'support':
+      return '/support';
+    case 'files':
+      return '/files';
+    case 'shared':
+      return `/share/${encodeURIComponent(location.token ?? '')}`;
     case 'login':
       return '/login';
     case 'module':
@@ -794,7 +842,10 @@ function Shell({
   const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
   const canGoals = profile.modules.some((module) => module.code.toUpperCase() === 'FX16' && module.enabled);
   const canSearch = profile.modules.some((module) => module.code.toUpperCase() === 'FX25' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX16', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
+  const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
+  const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
+  const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => !['FX04', 'FX05', 'FX07', 'FX16', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -820,6 +871,9 @@ function Shell({
           {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>Tags</span></button>}
           {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>Developer tools</span></button>}
           {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>Goals</span></button>}
+          {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}>↗ <span>Sharing</span></button>}
+          {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}>◈ <span>Support access</span></button>}
+          {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}>▧ <span>Files</span></button>}
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
           {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
@@ -862,6 +916,9 @@ function Shell({
           {location.screen === 'security' && <SecurityScreen onAuthLost={onAuthLost} />}
           {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'trash' && <TrashScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'sharing' && (canSharing ? <SharingScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX04" />)}
+          {location.screen === 'support' && (canSupport ? <SupportScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX05" />)}
+          {location.screen === 'files' && (canFiles ? <FilesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX07" />)}
           {location.screen === 'admin' && <AdminAccessScreen onAuthLost={onAuthLost} />}
           {location.screen === 'finance' && <FinanceScreen onAuthLost={onAuthLost} />}
           {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
@@ -876,6 +933,272 @@ function Shell({
       </div>
     </div>
   );
+}
+
+function SharedResourceScreen({ token }: { token?: string }) {
+  const [resource, setResource] = useState<SharedResource | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      setResource(null);
+      if (!token) {
+        setError(new NexoraApiError('Shared resource unavailable.', 404, 'ResourceUnavailable'));
+        setLoading(false);
+        return;
+      }
+      try {
+        const value = await resolveShareLink(token);
+        if (!cancelled) setResource(value);
+      } catch (requestError) {
+        if (!cancelled) setError(asApiError(requestError));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [token]);
+
+  return (
+    <div className="full-page-state shared-resource-page">
+      <div className="loading-mark" aria-hidden="true">N</div>
+      {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p><a className="secondary-button" href="/login" rel="noreferrer">Đăng nhập</a></> : resource?.project ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / PROJECT</p><h1>{resource.project.name}</h1><p>{resource.project.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.project.status} · {dateTime(resource.project.startAt)} – {dateTime(resource.project.endAt)}</p><h2>Tasks</h2>{resource.project.tasks.length === 0 ? <p>Project chưa có Task.</p> : <div className="table-wrap"><table><caption>Task detail được phép chia sẻ</caption><thead><tr><th scope="col">Task</th><th scope="col">Trạng thái</th><th scope="col">Due</th></tr></thead><tbody>{resource.project.tasks.map((task) => <tr key={task.id}><td><strong>{task.title}</strong>{task.description && <span className="muted">{task.description}</span>}</td><td>{task.status}{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}</td><td>{task.dueAt ? dateTime(task.dueAt) : '—'}</td></tr>)}</tbody></table></div>}<p className="field-help">Chế độ read-only: không có history, reason, reminder, private notes hoặc thao tác chỉnh sửa.</p></article> : resource?.document ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / DOCUMENT</p><h1>{resource.document.title}</h1><p className="muted">{resource.document.status} · version {resource.document.versionNumber} · cập nhật {dateTime(resource.document.updatedAt)}</p><pre className="shared-document-body">{resource.document.body}</pre><p className="field-help">Nội dung được render như text, không diễn giải HTML/script.</p></article> : <><h1>Không có nội dung</h1><p>Server không trả projection được phép.</p></>}
+    </div>
+  );
+}
+
+function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [links, setLinks] = useState<ShareLinkRecord[]>([]);
+  const [resourceType, setResourceType] = useState<'Project' | 'Document'>('Project');
+  const [resourceId, setResourceId] = useState('');
+  const [mode, setMode] = useState('PublicLink');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [noExpiry, setNoExpiry] = useState(false);
+  const [audience, setAudience] = useState('');
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listShareLinks();
+      setLinks(page.items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    const id = resourceId.trim();
+    if (!id) {
+      setError(new NexoraApiError('Resource ID là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    const users = mode === 'RestrictedUsers' ? audience.split(',').map((value) => value.trim()).filter(Boolean) : [];
+    setBusy('create');
+    try {
+      const created = await createShareLink(resourceType, id, mode, expiresAt ? new Date(expiresAt).toISOString() : null, users, noExpiry);
+      setLinks((current) => [created, ...current]);
+      setCreatedToken(created.token);
+      setResourceId('');
+      setAudience('');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revoke(link: ShareLinkRecord) {
+    if (!window.confirm('Thu hồi link này? Link cũ sẽ không được hồi sinh khi bật lại sharing.')) return;
+    setBusy(link.id);
+    setError(null);
+    try {
+      await revokeShareLink(link.id, link.etag);
+      setLinks((current) => current.filter((candidate) => candidate.id !== link.id));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return <section className="content-section" aria-labelledby="sharing-title"><div className="content-heading"><div><p className="eyebrow">FX04 / SHARING</p><h1 id="sharing-title">Read-only sharing</h1><p className="lead">Chỉ Project và Published Document có projection cố định. Token chỉ hiển thị sau khi tạo và không được lưu vào browser storage.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}{createdToken && <div className="success-panel"><h2>Link đã được tạo</h2><p>Hãy lưu token/link này ngay; server chỉ lưu hash và giao diện không giữ nó sau khi tải lại.</p><code className="secret-output">{createdToken}</code><a href={`/share/${encodeURIComponent(createdToken)}`} rel="noreferrer" referrerPolicy="no-referrer">Mở projection read-only</a></div>}<form className="form-panel" onSubmit={create} noValidate><div className="section-heading"><h2>Tạo link</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="share-resource-type">Loại resource</label><select id="share-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value as 'Project' | 'Document')}><option value="Project">Project</option><option value="Document">Document</option></select></div><div className="field-group"><label htmlFor="share-resource-id">Resource ID</label><input id="share-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID từ server" required /></div></div><div className="form-grid"><div className="field-group"><label htmlFor="share-mode">Chế độ truy cập</label><select id="share-mode" value={mode} onChange={(event) => setMode(event.target.value)}><option value="PublicLink">Public link</option><option value="AuthenticatedLink">Authenticated account</option><option value="RestrictedUsers">Restricted users</option></select></div><div className="field-group"><label htmlFor="share-expiry">Hết hạn <span className="optional">(mặc định 7 ngày)</span></label><input id="share-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={noExpiry} /><label className="checkbox-row"><input type="checkbox" checked={noExpiry} onChange={(event) => { setNoExpiry(event.target.checked); if (event.target.checked) setExpiresAt(""); }} /> Không hết hạn</label></div></div>{mode === 'RestrictedUsers' && <div className="field-group"><label htmlFor="share-audience">Verified user IDs</label><input id="share-audience" value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="UUID, UUID" required /><p className="field-help">Server sẽ kiểm tra từng user là active và đã verified.</p></div>}<SubmitButton busy={busy === 'create'}>Tạo read-only link</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Link của PersonalSpace</h2><span className="muted">{links.length} link</span></div>{loading ? <div className="loading-state" role="status">Đang tải link…</div> : links.length === 0 ? <div className="empty-state"><h3>Chưa có link</h3><p>Tạo link từ resource ID đã được server cấp.</p></div> : <div className="resource-cards">{links.map((link) => <article className="resource-card" key={link.id}><div><h3>{link.resourceType}</h3><p className="muted">{link.resourceId} · {link.mode}</p><span className={link.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{link.isActive ? 'Active' : 'Expired / invalidated'}</span></div><button className="danger-button" type="button" onClick={() => void revoke(link)} disabled={busy !== null}>Thu hồi</button></article>)}</div>}</div></section>;
+}
+
+function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [grants, setGrants] = useState<SupportGrantRecord[]>([]);
+  const [sessions, setSessions] = useState<SupportSessionRecord[]>([]);
+  const [moduleCode, setModuleCode] = useState('FX11');
+  const [durationMode, setDurationMode] = useState('24Hours');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const [grantPage, sessionPage] = await Promise.all([listSupportGrants(), listSupportSessions()]);
+      setGrants(grantPage.items);
+      setSessions(sessionPage.items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function grant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy('grant');
+    setError(null);
+    try {
+      const created = await grantSupportConsent(moduleCode.trim().toUpperCase(), durationMode, durationMode === 'Custom' && expiresAt ? new Date(expiresAt).toISOString() : null);
+      setGrants((current) => [created, ...current]);
+      setExpiresAt('');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revoke(grantRecord: SupportGrantRecord) {
+    if (!window.confirm(`Thu hồi consent support cho ${grantRecord.moduleCode}?`)) return;
+    setBusy(grantRecord.id);
+    try {
+      await revokeSupportConsent(grantRecord.id, grantRecord.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  async function end(session: SupportSessionRecord) {
+    setBusy(session.id);
+    try {
+      await endSupportSession(session.id, session.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  return <section className="content-section" aria-labelledby="support-title"><div className="content-heading"><div><p className="eyebrow">FX05 / SUPPORT</p><h1 id="support-title">Support access</h1><p className="lead">Bạn cấp consent cho đúng một module và có thể revoke bất kỳ lúc nào. Admin chỉ nhận session read-only scoped; không có impersonation, export hay secret reveal.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={grant} noValidate><div className="section-heading"><h2>Cấp consent</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="support-module">Module code</label><input id="support-module" value={moduleCode} onChange={(event) => setModuleCode(event.target.value.toUpperCase())} maxLength={64} required /></div><div className="field-group"><label htmlFor="support-duration">Thời hạn</label><select id="support-duration" value={durationMode} onChange={(event) => setDurationMode(event.target.value)}><option value="24Hours">24 giờ</option><option value="Custom">Tùy chỉnh</option><option value="UntilRevoked">Cho đến khi revoke</option></select></div></div>{durationMode === 'Custom' && <div className="field-group"><label htmlFor="support-expires">Hết hạn</label><input id="support-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} required /></div>}<SubmitButton busy={busy === 'grant'}>Cấp support consent</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Consent hiện tại</h2><span className="muted">{grants.length} grant</span></div>{grants.map((grantRecord) => <article className="resource-card" key={grantRecord.id}><div><h3>{grantRecord.moduleCode}</h3><p className="muted">{grantRecord.durationMode} · {grantRecord.expiresAt ? `hết hạn ${dateTime(grantRecord.expiresAt)}` : 'không tự hết hạn'}</p><span className={grantRecord.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{grantRecord.isActive ? 'Active' : 'Inactive'}</span></div><button className="danger-button" type="button" onClick={() => void revoke(grantRecord)} disabled={busy !== null || !grantRecord.isActive}>Revoke</button></article>)}</div><div className="resource-list"><div className="section-heading"><h2>Sessions</h2></div>{sessions.length === 0 ? <div className="empty-state"><p>Chưa có support session nào hiển thị.</p></div> : sessions.map((session) => <article className="resource-card" key={session.id}><div><h3>{session.mode} · {session.moduleCode}</h3><p className="muted">Target {session.targetUserId} · hết hạn {dateTime(session.expiresAt)}</p></div><button className="secondary-button" type="button" onClick={() => void end(session)} disabled={busy !== null || session.endedAt !== null}>{session.endedAt ? 'Đã kết thúc' : 'Kết thúc'}</button></article>)}</div></section>;
+}
+
+function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [files, setFiles] = useState<FileRecord[]>([]);
+  const [selected, setSelected] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listFiles();
+      setFiles(page.items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function upload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) {
+      setError(new NexoraApiError('Chọn một file trước khi upload.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (selected.size > 25 * 1024 * 1024) {
+      setError(new NexoraApiError('File tối đa 25 MiB.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('upload');
+    setError(null);
+    try {
+      const session = await initiateFileUpload(selected.name, browserMediaType(selected), selected.size);
+      await completeFileUpload(session, selected);
+      setSelected(null);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  async function rename(file: FileRecord) {
+    const nextName = window.prompt('Tên file mới', file.originalName);
+    if (!nextName || nextName.trim() === file.originalName) return;
+    setBusy(file.id);
+    try {
+      const updated = await renameFile(file.id, file.etag, nextName.trim());
+      setFiles((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  async function trash(file: FileRecord) {
+    if (!window.confirm('Đưa file vào Trash? File còn reference sẽ bị server từ chối.')) return;
+    setBusy(file.id);
+    try {
+      await trashFile(file.id, file.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  return <section className="content-section" aria-labelledby="files-title"><div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload được staging và scan local trước khi attach. Storage private; mỗi download kiểm tra lại owner, lifecycle và scan state.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={upload} noValidate><div className="field-group"><label htmlFor="file-upload">Chọn file</label><input id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => setSelected(event.target.files?.[0] ?? null)} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>{selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}<SubmitButton busy={busy === 'upload'}>Upload và scan</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file</span></div>{loading ? <div className="loading-state" role="status">Đang tải file…</div> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Chưa có binary nào được server đánh dấu Clean.</p></div> : <div className="resource-cards">{files.map((file) => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}<button className="secondary-button" type="button" onClick={() => void rename(file)} disabled={busy !== null || file.lifecycle === 'Purged'}>Đổi tên</button>{file.lifecycle === 'Active' && <button className="danger-button" type="button" onClick={() => void trash(file)} disabled={busy !== null}>Trash</button>}</div></article>)}</div>}</div></section>;
+}
+
+function browserMediaType(file: File): string {
+  if (file.type) return file.type;
+  const extension = file.name.toLowerCase().split('.').pop();
+  return extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : extension === 'md' || extension === 'markdown' ? 'text/markdown' : extension === 'csv' ? 'text/csv' : extension === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : extension === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/plain';
 }
 
 function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
@@ -1779,55 +2102,7 @@ function ProductivityScreen({
         try {
           const saved = editingTask
              ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true)
-             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true);
-          setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
-          resetTask();
-          return;
-        } catch (retryError) {
-          const retryApiError = asApiError(retryError);
-          setError(retryApiError);
-          if (retryApiError.status === 401) await onAuthLost();
-          return;
-        }
-      }
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function removeTask(task: TaskRecord) {
-    if (!window.confirm(`Xóa Task “${task.title}”?`)) return;
-    setBusy(`task:${task.id}`);
-    setError(null);
-    try {
-      await deleteTask(task.id, task.etag);
-      setTasks((current) => current.filter((item) => item.id !== task.id));
-      if (editingTask?.id === task.id) resetTask();
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function saveEvent(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const startAt = localInputToIso(eventDraft.startAt);
-    const endAt = localInputToIso(eventDraft.endAt);
-    if (!eventDraft.title.trim() || !eventDraft.description.trim() || !startAt || !endAt) {
-      setError(new NexoraApiError('Event cần Title, Description, Start và End.', 422, 'ValidationFailed'));
-      return;
-    }
-    setBusy('event');
-    setError(null);
-    try {
-      const saved = editingEvent
-        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay)
-        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay);
+             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() …527 tokens truncated…At, eventDraft.timeZoneId.trim(), eventDraft.isAllDay);
       setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetEvent();
     } catch (requestError) {
@@ -3228,6 +3503,15 @@ function ModuleScreen({
   if (module.enabled && normalizedCode === 'FX16') {
     return <GoalsScreen onAuthLost={onAuthLost} />;
   }
+  if (module.enabled && normalizedCode === 'FX04') {
+    return <SharingScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX05') {
+    return <SupportScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX07') {
+    return <FilesScreen onAuthLost={onAuthLost} />;
+  }
 
   return (
     <section className="content-section" aria-labelledby="module-title">
@@ -3496,7 +3780,9 @@ export function App() {
   const [notice, setNotice] = useState<{ kind: NoticeKind; text: string }>();
 
   function navigate(screen: Screen, moduleCode?: string, replace = false) {
-    const next: LocationState = { screen, moduleCode };
+    const next: LocationState = screen === 'shared'
+      ? { screen, token: moduleCode }
+      : { screen, moduleCode };
     const nextPath = pathForLocation(next);
     if (window.location.pathname !== nextPath) {
       if (replace) {
@@ -3547,7 +3833,7 @@ export function App() {
     if (sessionState === 'anonymous' && !PUBLIC_SCREENS.has(location.screen)) {
       navigate('login', undefined, true);
     }
-    if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen)) {
+    if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen) && location.screen !== 'shared') {
       navigate('home', undefined, true);
     }
   }, [sessionState, location.screen]);
@@ -3591,6 +3877,9 @@ export function App() {
   }
 
   if (sessionState === 'authenticated' && profile) {
+    if (location.screen === 'shared') {
+      return <SharedResourceScreen token={location.token} />;
+    }
     return <Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} />;
   }
 
@@ -3604,6 +3893,8 @@ export function App() {
       return <ForgotPasswordScreen {...publicProps} />;
     case 'reset':
       return <ResetPasswordScreen {...publicProps} />;
+    case 'shared':
+      return <SharedResourceScreen token={location.token} />;
     case 'home':
     case 'profile':
     case 'security':

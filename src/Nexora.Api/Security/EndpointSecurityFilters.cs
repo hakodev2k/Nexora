@@ -5,14 +5,16 @@ namespace Nexora.Api.Security;
 
 public static class EndpointSecurityFilters
 {
-    private const long MaxMutationBodyBytes = 64 * 1024;
+    private const long DefaultMaxMutationBodyBytes = 64 * 1024;
 
-    public static RouteGroupBuilder RequireCsrfForUnsafeMethods(this RouteGroupBuilder group)
+    public static RouteGroupBuilder RequireCsrfForUnsafeMethods(this RouteGroupBuilder group, long maxMutationBodyBytes = DefaultMaxMutationBodyBytes)
     {
+        if (maxMutationBodyBytes <= 0 || maxMutationBodyBytes > 25 * 1024 * 1024)
+            throw new ArgumentOutOfRangeException(nameof(maxMutationBodyBytes));
         // Attach a server-enforced limit so chunked requests cannot bypass the
         // Content-Length check below. The filter remains responsible for the
         // safe problem response when the hosting server exposes the length.
-        group.WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(MaxMutationBodyBytes));
+        group.WithMetadata(new Microsoft.AspNetCore.Mvc.RequestSizeLimitAttribute(maxMutationBodyBytes));
         group.AddEndpointFilter(async (invocationContext, next) =>
         {
             var http = invocationContext.HttpContext;
@@ -24,7 +26,7 @@ public static class EndpointSecurityFilters
                 return await next(invocationContext);
             }
 
-            if (http.Request.ContentLength is > MaxMutationBodyBytes)
+            if (http.Request.ContentLength is > maxMutationBodyBytes)
             {
                 return Results.Problem(
                     title: "Request body is too large.",
