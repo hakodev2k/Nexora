@@ -77,7 +77,7 @@ public sealed class SqlSharingService : ISharingService
         var mode = command.Mode.Trim();
         var allowedUsers = (command.AllowedUserIds ?? Array.Empty<Guid>()).Distinct().ToArray();
         var now = DateTimeOffset.UtcNow;
-        var expiresAt = command.NoExpiry ? null : command.ExpiresAt ?? now.AddDays(7);
+        DateTimeOffset? expiresAt = command.NoExpiry ? null : command.ExpiresAt ?? now.AddDays(7);
         var expiryDescriptor = command.NoExpiry ? "no-expiry" : command.ExpiresAt is null ? "default-7d" : command.ExpiresAt.Value.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
         using var connection = _connections.Create();
         connection.Open();
@@ -165,7 +165,7 @@ public sealed class SqlSharingService : ISharingService
 
         var mode = command.Mode.Trim();
         var allowedUsers = (command.AllowedUserIds ?? Array.Empty<Guid>()).Distinct().ToArray();
-        var expiresAt = command.NoExpiry ? null : command.ExpiresAt ?? DateTimeOffset.UtcNow.AddDays(7);
+        DateTimeOffset? expiresAt = command.NoExpiry ? null : command.ExpiresAt ?? DateTimeOffset.UtcNow.AddDays(7);
         var expiryDescriptor = command.NoExpiry ? "no-expiry" : command.ExpiresAt is null ? "default-7d" : command.ExpiresAt.Value.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
         using var connection = _connections.Create();
         connection.Open();
@@ -547,7 +547,7 @@ public sealed class SqlSharingService : ISharingService
         while (taskReader.Read())
         {
             var status = taskReader.GetString(3);
-            var dueAt = taskReader.IsDBNull(4) ? null : ToOffset(taskReader.GetDateTime(4));
+            DateTimeOffset? dueAt = taskReader.IsDBNull(4) ? null : ToOffset(taskReader.GetDateTime(4));
             items.Add(new SharedTaskProjection(taskReader.GetGuid(0), taskReader.GetString(1), taskReader.IsDBNull(2) ? null : taskReader.GetString(2),
                 status, dueAt, ToOffset(taskReader.GetDateTime(5)), ToOffset(taskReader.GetDateTime(6)), taskReader.GetString(7), taskReader.GetString(8),
                 dueAt is not null && dueAt < now && status is not ("Completed" or "Skipped")));

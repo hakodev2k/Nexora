@@ -282,12 +282,12 @@ public sealed class SqlSupportService : ISupportService
             "support.session.end", idempotencyKey, $"session:{sessionId:N}|etag:{ifMatch}", out var receipt);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         var current = ReadSession(connection, transaction, sessionId, ownerId: null, forUpdate: true);
-        if (current is null || (current.Value.TargetUserId != actor.UserId && !SessionActor(connection, transaction, sessionId, actor.UserId)))
+        if (current is null || (current.TargetUserId != actor.UserId && !SessionActor(connection, transaction, sessionId, actor.UserId)))
         {
             transaction.Rollback();
             return Missing<object?>();
         }
-        if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(current.Value.ETag)))
+        if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(current.ETag)))
         {
             transaction.Rollback();
             return Revision<object?>();
@@ -297,7 +297,7 @@ public sealed class SqlSupportService : ISupportService
             ("@RowVersion", SqlDbType.Binary, (object)expectedVersion),
             ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId),
             ("@ActorUserId", SqlDbType.UniqueIdentifier, (object)actor.UserId));
-        WriteAudit(connection, transaction, actor, sessionId, "support.session.end", traceId, current.Value.TargetUserId);
+        WriteAudit(connection, transaction, actor, sessionId, "support.session.end", traceId, current.TargetUserId);
         CompleteReceipt(connection, transaction, receipt, "NoContent");
         transaction.Commit();
         return IdentityOperationResult<object?>.NoContent();
