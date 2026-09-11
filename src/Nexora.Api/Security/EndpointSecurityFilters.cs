@@ -26,7 +26,7 @@ public static class EndpointSecurityFilters
                 return await next(invocationContext);
             }
 
-            if (http.Request.ContentLength is > maxMutationBodyBytes)
+            if (http.Request.ContentLength is long contentLength && contentLength > maxMutationBodyBytes)
             {
                 return Results.Problem(
                     title: "Request body is too large.",
