@@ -33,7 +33,8 @@ public sealed class SqlReadinessProbe
         "20260910_0018_local_runtime_catalog_gate.sql",
         "20260910_0019_productivity_contract_alignment.sql",
         "20260910_0020_task_calendar_projection.sql",
-        "20260911_0021_core_sharing_support_files.sql"
+        "20260911_0021_core_sharing_support_files.sql",
+        "20260911_0022_reminders_scheduling.sql"
     ];
 
     private readonly SqlConnectionFactory _connections;

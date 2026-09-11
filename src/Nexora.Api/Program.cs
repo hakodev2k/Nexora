@@ -15,6 +15,7 @@ using Nexora.Api.Features.Goals;
 using Nexora.Api.Features.Dashboard;
 using Nexora.Api.Features.Discovery;
 using Nexora.Api.Features.Productivity;
+using Nexora.Api.Features.Reminders;
 using Nexora.Api.Features.Settings;
 using Nexora.Api.Features.Trash;
 using Nexora.Api.Features.Sharing;
@@ -25,6 +26,7 @@ using Nexora.Application.Identity;
 using Nexora.Application.Access;
 using Nexora.Application.Modules;
 using Nexora.Application.Productivity;
+using Nexora.Application.Reminders;
 using Nexora.Application.Notifications;
 using Nexora.Application.Documents;
 using Nexora.Application.Settings;
@@ -47,6 +49,7 @@ using Nexora.Infrastructure.Local;
 using Nexora.Infrastructure.Modules;
 using Nexora.Infrastructure.Persistence;
 using Nexora.Infrastructure.Productivity;
+using Nexora.Infrastructure.Reminders;
 using Nexora.Infrastructure.Notifications;
 using Nexora.Infrastructure.Documents;
 using Nexora.Infrastructure.Settings;
@@ -125,6 +128,11 @@ builder.Services.AddSingleton<IModulePolicyService>(services =>
         idempotencySecret));
 builder.Services.AddSingleton<IProductivityService>(services =>
     new SqlProductivityService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<SqlReminderService>(services =>
+    new SqlReminderService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IReminderService>(services => services.GetRequiredService<SqlReminderService>());
+builder.Services.AddSingleton<IReminderDispatchService>(services => services.GetRequiredService<SqlReminderService>());
+builder.Services.AddHostedService<ReminderDispatchWorker>();
 builder.Services.AddSingleton<IAdminAccessService>(services =>
     new SqlAdminAccessService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<INotificationService>(services =>
@@ -195,6 +203,7 @@ app.MapTrashEndpoints();
 app.MapSettingsEndpoints();
 app.MapDocumentEndpoints();
 app.MapProductivityEndpoints();
+app.MapReminderEndpoints();
 app.MapFinanceEndpoints();
 app.MapBookmarkEndpoints();
 app.MapSnippetEndpoints();

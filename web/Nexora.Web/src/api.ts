@@ -193,6 +193,39 @@ export type CalendarEventPage = {
   nextCursor: string | null;
 };
 
+export type ReminderDeliveryState = {
+  channel: string;
+  state: string;
+  attempts: number;
+  lastErrorCode: string | null;
+};
+
+export type ReminderRecord = {
+  id: string;
+  sourceType: 'Task' | 'CalendarEvent' | string;
+  sourceId: string;
+  configType: 'None' | 'BeforeStart15m' | 'Exact' | string;
+  exactAt: string | null;
+  timeZoneId: string;
+  dueAt: string | null;
+  sourceRevision: number;
+  state: 'None' | 'Pending' | 'Dispatched' | 'Canceled' | 'Expired' | 'Missed' | string;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+  deliveries: ReminderDeliveryState[];
+};
+
+export type ReminderSourceView = {
+  sourceType: 'Task' | 'CalendarEvent' | string;
+  sourceId: string;
+  sourceTitle: string;
+  sourceStartAt: string;
+  timeZoneId: string;
+  sourceETag: string;
+  reminder: ReminderRecord | null;
+};
+
 export type DocumentSummary = {
   id: string;
   title: string;
@@ -1409,6 +1442,40 @@ export function runDeveloperTool(
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ toolCode, input, options })
+  });
+}
+
+export function getReminderSource(sourceType: 'Task' | 'CalendarEvent', sourceId: string) {
+  return apiFetch<ReminderSourceView>(`/api/v1/reminders/${encodeURIComponent(sourceType)}/${encodeURIComponent(sourceId)}`);
+}
+
+export function setReminder(
+  sourceType: 'Task' | 'CalendarEvent',
+  sourceId: string,
+  configType: 'None' | 'BeforeStart15m' | 'Exact',
+  exactAt: string | null,
+  sourceETag: string,
+  reminderETag: string | null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<ReminderSourceView>(`/api/v1/reminders/${encodeURIComponent(sourceType)}/${encodeURIComponent(sourceId)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, reminderETag ? { 'If-Match': reminderETag } : undefined),
+    body: JSON.stringify({ configType, exactAt, sourceETag })
+  });
+}
+
+export function removeReminder(
+  sourceType: 'Task' | 'CalendarEvent',
+  sourceId: string,
+  sourceETag: string,
+  reminderETag: string,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<void>(`/api/v1/reminders/${encodeURIComponent(sourceType)}/${encodeURIComponent(sourceId)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': reminderETag }),
+    body: JSON.stringify({ sourceETag })
   });
 }
 

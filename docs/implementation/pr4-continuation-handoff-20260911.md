@@ -117,6 +117,32 @@ owner-isolation journeys, storage/scan tests, independent security review and CI
 for this continuation. No tests, fixtures, demo data, provider calls, secrets or
 production changes were added. Do not merge PR #4.
 
+## FX14 continuation update — 2026-09-11
+
+The next coherent local batch implements FX14 Reminders/Scheduling. It adds
+`20260911_0022_reminders_scheduling.sql`, `calendar.Reminder`, owner/source
+uniqueness and due-state indexes, source reconciliation triggers, action
+catalog rows and local FX14 enablement. `SqlReminderService` and the Minimal API
+route `/api/v1/reminders/{sourceType}/{sourceId}` enforce owner scope, allowed
+Task/manual-Event sources, source and reminder ETags, UUID idempotency and
+source lifecycle checks. Schedule/invalidation intent and sensitive changes are
+recorded in SQL outbox/audit tables.
+
+`ReminderDispatchWorker` is deliberately a local dispatcher shell: it rechecks
+current source revision/lifecycle and FX06/FX14/source module grants, handles a
+late window of at most 15 minutes, deduplicates by owner/source/revision/due,
+and produces an owner-local Inbox notification plus three delivery rows. It
+never invokes a real Email or BrowserPush provider; those rows are recorded as
+`NotApplicable`/`PermissionUnavailable` so local UI can show degradation
+honestly. `/modules/FX14` consumes typed API data and exposes loading, empty,
+error and ETag conflict states.
+
+FX10 remains the next blocked batch. Its docs explicitly defer code until the
+Vault/key portability decision (Q-04) and production backup/RPO/RTO decision
+(Q-08) are approved; no backup, restore, user-file import or export claim was
+added here. The migration has not been executed in this environment because no
+SQL runtime is available. Do not merge PR #4.
+
 ## Remote reconciliation update — 2026-09-11
 
 - Local HEAD before push: `2ba68f62fa14291cb701c60ebc3f076017e1d613`.

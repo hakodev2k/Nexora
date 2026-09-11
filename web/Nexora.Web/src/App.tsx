@@ -34,6 +34,7 @@ import {
   SharedResource,
   SupportGrantRecord,
   SupportSessionRecord,
+  ReminderSourceView,
   clearProfileRevision,
   confirmPasswordReset,
   createBookmark,
@@ -116,6 +117,9 @@ import {
   fileContentUrl,
   trashFile,
   resolveShareLink,
+  getReminderSource,
+  setReminder,
+  removeReminder,
   removeFinanceCategory,
   updateFinanceCategory,
   updateFinanceRecord,
@@ -2242,6 +2246,176 @@ function ProductivityScreen({
   );
 }
 
+type ReminderSourceOption = {
+  key: string;
+  sourceType: 'Task' | 'CalendarEvent';
+  id: string;
+  title: string;
+  startAt: string;
+  detail: string;
+};
+
+function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [sources, setSources] = useState<ReminderSourceOption[]>([]);
+  const [selectedKey, setSelectedKey] = useState('');
+  const [source, setSource] = useState<ReminderSourceView | null>(null);
+  const [configType, setConfigType] = useState<'None' | 'BeforeStart15m' | 'Exact'>('BeforeStart15m');
+  const [exactAt, setExactAt] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function loadSources() {
+    setLoading(true);
+    setError(null);
+    try {
+      const [taskPage, eventPage] = await Promise.all([listTasks(), listCalendarEvents()]);
+      const taskSources = (taskPage.items ?? [])
+        .filter((task) => !['Completed', 'Skipped', 'Deleted'].includes(task.status))
+        .map((task): ReminderSourceOption => ({ key: `Task:${task.id}`, sourceType: 'Task', id: task.id, title: task.title, startAt: task.startAt, detail: 'Task' }));
+      const eventSources = (eventPage.items ?? [])
+        .filter((event) => event.status === 'Scheduled' && event.sourceKind === 'Manual' && event.taskId === null)
+        .map((event): ReminderSourceOption => ({ key: `CalendarEvent:${event.id}`, sourceType: 'CalendarEvent', id: event.id, title: event.title, startAt: event.startAt, detail: 'Calendar Event' }));
+      const nextSources = [...taskSources, ...eventSources].sort((left, right) => left.startAt.localeCompare(right.startAt));
+      setSources(nextSources);
+      setSelectedKey((current) => nextSources.some((item) => item.key === current) ? current : nextSources[0]?.key ?? '');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadSource(option: ReminderSourceOption) {
+    setSourceLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const view = await getReminderSource(option.sourceType, option.id);
+      setSource(view);
+      setConfigType(view.reminder?.configType === 'Exact' ? 'Exact' : view.reminder?.configType === 'None' ? 'None' : 'BeforeStart15m');
+      setExactAt(isoToLocalInput(view.reminder?.exactAt ?? null));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setSource(null);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setSourceLoading(false);
+    }
+  }
+
+  useEffect(() => { void loadSources(); }, []);
+
+  useEffect(() => {
+    const option = sources.find((item) => item.key === selectedKey);
+    if (option) {
+      void loadSource(option);
+    } else {
+      setSource(null);
+    }
+  }, [selectedKey, sources]);
+
+  function handleSourceChange(value: string) {
+    requestKey.current = null;
+    setSelectedKey(value);
+    setError(null);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!source) {
+      setError(new NexoraApiError('Chọn một Task hoặc Calendar Event đang hoạt động trước khi lưu.', 422, 'ValidationFailed'));
+      return;
+    }
+    const exactIso = configType === 'Exact' ? localInputToIso(exactAt) : null;
+    if (configType === 'Exact' && !exactIso) {
+      setError(new NexoraApiError('Chọn thời điểm nhắc hợp lệ trong tương lai.', 422, 'ReminderTimeInvalid'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    setError(null);
+    setConflict(false);
+    try {
+      const saved = await setReminder(source.sourceType as 'Task' | 'CalendarEvent', source.sourceId, configType,
+        exactIso, source.sourceETag, source.reminder?.etag ?? null, requestKey.current);
+      requestKey.current = null;
+      setSource(saved);
+      setExactAt(isoToLocalInput(saved.reminder?.exactAt ?? null));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412 || apiError.status === 428) {
+        setConflict(true);
+        const option = sources.find((item) => item.key === selectedKey);
+        if (option) await loadSource(option);
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove() {
+    if (!source?.reminder) return;
+    if (!window.confirm(`Gỡ reminder cho “${source.sourceTitle}”?`)) return;
+    setBusy('remove');
+    setError(null);
+    setConflict(false);
+    try {
+      await removeReminder(source.sourceType as 'Task' | 'CalendarEvent', source.sourceId, source.sourceETag,
+        source.reminder.etag, createIdempotencyKey());
+      const option = sources.find((item) => item.key === selectedKey);
+      if (option) await loadSource(option);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412 || apiError.status === 428) {
+        setConflict(true);
+        const option = sources.find((item) => item.key === selectedKey);
+        if (option) await loadSource(option);
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="reminders-title">
+      <div className="content-heading">
+        <div><p className="eyebrow">FX14 / LOCAL SCHEDULING</p><h1 id="reminders-title">Reminders</h1><p className="lead">Mỗi Task hoặc Calendar Event thủ công có tối đa một reminder trong PersonalSpace hiện tại. Email và browser push không được gọi; khi đến hạn, local worker chỉ tạo in-app projection và báo rõ provider unavailable.</p></div>
+        <button className="secondary-button" type="button" onClick={() => void loadSources()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Reminder hoặc nguồn đã thay đổi ở nơi khác. Đã tải lại revision hiện tại.</span></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải Task và Calendar Event khả dụng…</div> : sources.length === 0 ? <div className="empty-state"><h2>Chưa có nguồn có thể nhắc</h2><p>Tạo Task đang hoạt động hoặc Calendar Event thủ công trong tương lai trước khi đặt reminder.</p></div> : <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>Cấu hình reminder</h2><span className="muted">ETag-protected</span></div>
+          <div className="field-group"><label htmlFor="reminder-source">Nguồn</label><select id="reminder-source" value={selectedKey} onChange={(event) => handleSourceChange(event.target.value)} disabled={sourceLoading || busy !== null}>{sources.map((item) => <option key={item.key} value={item.key}>{item.detail}: {item.title} · {dateTime(item.startAt)}</option>)}</select></div>
+          {sourceLoading ? <div className="loading-state" role="status">Đang tải revision reminder…</div> : source && <>
+            <div className="field-group"><label htmlFor="reminder-config">Kiểu reminder</label><select id="reminder-config" value={configType} onChange={(event) => { requestKey.current = null; setConfigType(event.target.value as 'None' | 'BeforeStart15m' | 'Exact'); setError(null); }} disabled={busy !== null}><option value="BeforeStart15m">15 phút trước khi bắt đầu</option><option value="Exact">Thời điểm chính xác</option><option value="None">Không lên lịch</option></select></div>
+            {configType === 'Exact' && <div className="field-group"><label htmlFor="reminder-exact-at">Nhắc lúc</label><input id="reminder-exact-at" type="datetime-local" value={exactAt} onChange={(event) => { requestKey.current = null; setExactAt(event.target.value); setError(null); }} required disabled={busy !== null} /></div>}
+            <div className="security-policy"><strong>Scheduling metadata</strong><span>Nguồn bắt đầu {dateTime(source.sourceStartAt)} · timezone {source.timeZoneId}. Thay đổi lifecycle/revision của nguồn sẽ được kiểm tra lại trước local delivery.</span></div>
+            <div className="form-actions"><SubmitButton busy={busy === 'save'}>{source.reminder ? 'Lưu thay đổi' : 'Đặt reminder'}</SubmitButton>{source.reminder && <button className="danger-button" type="button" onClick={() => void remove()} disabled={busy !== null}>{busy === 'remove' ? 'Đang gỡ…' : 'Gỡ reminder'}</button>}</div>
+          </>}
+        </form>
+        <div className="content-section">
+          <div className="section-heading"><h2>Trạng thái local delivery</h2><span className="muted">Không có provider ngoài</span></div>
+          {!source || sourceLoading ? <div className="empty-state"><h3>Chọn nguồn</h3><p>Trạng thái reminder sẽ xuất hiện sau khi server trả source revision.</p></div> : !source.reminder ? <div className="empty-state"><h3>Chưa có reminder</h3><p>Chọn preset hoặc thời điểm chính xác để tạo intent bền vững trong SQL.</p></div> : <article className="resource-card"><div><h3>{source.reminder.configType}</h3><p>State: <span className="state-pill">{source.reminder.state}</span></p><p>{source.reminder.dueAt ? `Due ${dateTime(source.reminder.dueAt)}` : 'Không có due time đang hoạt động.'}</p><span className="muted">Source revision {source.reminder.sourceRevision} · cập nhật {dateTime(source.reminder.updatedAt)}</span></div><div className="resource-actions"><span className="muted">{source.reminder.deliveries.length === 0 ? 'Chưa có lần dispatch local.' : ''}</span></div></article>}
+          {source?.reminder && source.reminder.deliveries.length > 0 && <div className="resource-cards">{source.reminder.deliveries.map((delivery) => <article className="resource-card" key={delivery.channel}><div><h3>{delivery.channel}</h3><p>{delivery.state}{delivery.lastErrorCode ? ` · ${delivery.lastErrorCode}` : ''}</p><span className="muted">Attempts: {delivery.attempts}</span></div></article>)}</div>}
+        </div>
+      </div>}
+    </section>
+  );
+}
+
 type FinanceRecordDraft = {
   categoryId: string;
   amount: string;
@@ -3547,6 +3721,9 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX16') {
     return <GoalsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX14') {
+    return <RemindersScreen onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX04') {
     return <SharingScreen onAuthLost={onAuthLost} />;
