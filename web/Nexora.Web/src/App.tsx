@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 60527)
-Total output lines: 3954
-
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   BookmarkRecord,
@@ -2102,7 +2099,55 @@ function ProductivityScreen({
         try {
           const saved = editingTask
              ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true)
-             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() …527 tokens truncated…At, eventDraft.timeZoneId.trim(), eventDraft.isAllDay);
+             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true);
+          setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+          resetTask();
+          return;
+        } catch (retryError) {
+          const retryApiError = asApiError(retryError);
+          setError(retryApiError);
+          if (retryApiError.status === 401) await onAuthLost();
+          return;
+        }
+      }
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeTask(task: TaskRecord) {
+    if (!window.confirm(`Xóa Task “${task.title}”?`)) return;
+    setBusy(`task:${task.id}`);
+    setError(null);
+    try {
+      await deleteTask(task.id, task.etag);
+      setTasks((current) => current.filter((item) => item.id !== task.id));
+      if (editingTask?.id === task.id) resetTask();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const startAt = localInputToIso(eventDraft.startAt);
+    const endAt = localInputToIso(eventDraft.endAt);
+    if (!eventDraft.title.trim() || !eventDraft.description.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Event cần Title, Description, Start và End.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('event');
+    setError(null);
+    try {
+      const saved = editingEvent
+        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay)
+        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay);
       setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetEvent();
     } catch (requestError) {
