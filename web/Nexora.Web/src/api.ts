@@ -1549,9 +1549,12 @@ export function removeReminder(
   });
 }
 
-export function listPlanner(from: string, to = from) {
-  const params = new URLSearchParams({ from, to });
-  return apiFetch<PlannerPlan>(`/api/v1/planner?${params.toString()}`);
+export function listPlanner(from?: string, to = from) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.size ? `?${params.toString()}` : '';
+  return apiFetch<PlannerPlan>(`/api/v1/planner${query}`);
 }
 
 export function pinPlannerTask(taskId: string, planDate: string, notes: string | null, idempotencyKey = createIdempotencyKey()) {

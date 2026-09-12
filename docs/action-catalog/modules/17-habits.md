@@ -1,6 +1,6 @@
 # FX-17 — Habits: actions
 
-Catalog v1 · 2026-09-07. The 2026-09-11 local slice binds owner read/create/update/schedule/pause/resume/archive/unarchive, local reminder-time metadata and check-in actions to `SqlHabitService` and `/api/v1/habits*`; support, Trash/purge and reminder-dispatch rows remain unavailable. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07. The 2026-09-11 local slice binds owner read/create/update/schedule/pause/resume/archive/unarchive, local reminder-time metadata and check-in actions to `SqlHabitService` and `/api/v1/habits*`; the 2026-09-12 hardening adds same-owner schedule/check-in constraints, actor attribution, stable check-in idempotency and literal-safe search. Support, Trash/purge and reminder-dispatch rows remain unavailable. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 

@@ -28,6 +28,24 @@ owner-scoped typed-reference list/add/remove/reorder subset with the same
 source-availability boundary; saved searches, Recents, Command Palette and
 persisted search index/reindex rows remain gated.
 
+The current PR #4 overlay also enables the bounded local FX15 Planner action
+set: `planner.plan.read`, `planner.plan.pin`, `planner.plan.unpin`,
+`planner.plan.reorder`, `planner.plan.reschedule` and `planner.plan.notes`.
+These actions are owner-scoped Task-lens operations backed by SQL migration
+`20260911_0023_planner_habits.sql` plus owner-integrity migration
+`20260912_0024_planner_habits_owner_integrity.sql`; they remain labelled
+`SLICE_IMPLEMENTED`, not runtime-verified. No Task/Calendar mutation,
+auto-carryover, sharing or support projection is enabled.
+
+The same overlay enables the bounded local FX17 Habits action set:
+`habits.habit.read`, `habits.habit.create`, `habits.habit.update`,
+`habits.habit.schedule`, `habits.habit.pause`, `habits.habit.resume`,
+`habits.habit.set_reminder`, `habits.checkin.record`,
+`habits.checkin.correct`, `habits.streak.read`, `habits.habit.archive` and
+`habits.habit.unarchive`. These actions remain owner-scoped, timezone-aware
+and `SLICE_IMPLEMENTED` only; social/team tracking, reminder dispatch,
+Trash/purge and support projections remain unavailable.
+
 ## Authority
 
 This file applies these current decisions:
@@ -269,7 +287,7 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 
 All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Reminders, Planner, advanced Goals targets/archive/trash/history, Habits, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard layout/widget mutation and quick-create, Search saved/recent/command/index rows, Shopping manual records, Developer Toolbox advanced/history/network rows, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text, Read-Later Bookmark-reference, FX16 numeric Goals, FX25-S01 Search, FX25-S03 Favorites, FX26-S01 Dashboard attention and the FX32 pure-toolbox subset are governed by their slice evidence documents rather than this default.
+This includes but is not limited to advanced Goals targets/archive/trash/history, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard layout/widget mutation and quick-create, Search saved/recent/command/index rows, Shopping manual records, Developer Toolbox advanced/history/network rows, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text, Read-Later Bookmark-reference, FX14 reminders, FX16 numeric Goals, FX25-S01 Search, FX25-S03 Favorites, FX26-S01 Dashboard attention, FX32 pure-toolbox subset, FX15 Planner and FX17 Habits are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 

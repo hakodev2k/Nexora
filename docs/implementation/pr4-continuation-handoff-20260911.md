@@ -189,3 +189,75 @@ PR #4.
 - `git push origin HEAD:impl/m01-s00-scaffold` was attempted but blocked because
   the environment has no GitHub HTTPS credential (`could not read Username for
   'https://github.com'`). This handoff does not claim the commits are on GitHub.
+
+## Continuation update — 2026-09-12 — FX15/FX17 owner-integrity hardening
+
+### Task brief and authority
+
+- Requested outcome: continue PR #4 on `impl/m01-s00-scaffold` with a real new
+  source batch for the local FX15 Planner and FX17 Habits slices, commit it and
+  push it to the open PR without merging.
+- Local revision before this batch: `5230f3bfe98dde3894ae6ca37393a980914a0c85`.
+  The branch and observed tracking ref were both `impl/m01-s00-scaffold` at
+  that revision before source changes; the initial fetch was blocked by the
+  workspace `.git/FETCH_HEAD` permission boundary and must be retried with the
+  authorized Git runtime before push.
+- Authority: current Product Owner decision `DEC-20260909-014`; execution
+  amendment is code-only. No new tests, fixtures, demo records, provider calls,
+  production configuration, secrets or runtime data are authorized in this run.
+- Bound goals: `NXG-FX15-G01..G03` and `NXG-FX17-G01..G03`. Evidence is bound to
+  `FX-15-BR-001..005` / `FX-15-AC-001..003` and
+  `FX-17-BR-001..005` / `FX-17-AC-001..003` in the current feature, module-goal,
+  action-catalog, UX and shared-behavior contracts.
+- Selected operating rules: `.ai/roles/technical-lead/rules/core-rules.md`,
+  `.ai/rules/architecture.md`, `.ai/rules/backend.md`, `.ai/rules/frontend.md`,
+  `.ai/rules/security.md`, `.ai/rules/database.md`, `.ai/rules/verification.md`,
+  and the repository `nexora-engineering` skill routing. The work preserves
+  PersonalSpace owner isolation, SQL authority, fail-closed lifecycle checks,
+  quoted ETag/If-Match, durable UUID idempotency and no provider execution.
+- Unresolved gates: SQL replay/readiness, API/browser/manual QA, timezone/DST
+  and concurrency evidence, independent security review, and final CI for this
+  revision. Support, Trash/purge, social/team behavior and FX14 reminder
+  dispatch remain unavailable for these modules.
+
+### Source batch
+
+The batch adds `20260912_0024_planner_habits_owner_integrity.sql`, which fails
+closed on legacy owner mismatches, adds same-owner composite foreign keys for
+Task/Project and Planner/Habit relationships, and adds nullable actor metadata
+for new Planner, schedule and check-in writes. Planner now uses the owner's
+profile timezone when no date range is supplied, locks source rows during
+mutations, treats deleted sources as unavailable and checks the exact update
+capability. Habits use stable check-in idempotency, literal-safe search,
+effective schedule rowversion checks and actor attribution. The React screens
+use owner-timezone date formatting and UTC date-only range arithmetic to avoid
+browser/DST drift.
+
+The runtime catalog/readiness and traceability documents now include migration
+`0024` and record FX15/FX17 as locally usable source slices rather than runtime
+verified. The required source behavior remains explicit: Planner only references
+Tasks and never mutates Task/Calendar/reminder state; Habits keep local-date
+history and store reminder time as metadata only.
+
+### Verification for this update
+
+- `npm ci --prefix web/Nexora.Web --ignore-scripts` — **Pass** after an
+  authorized retry for the local npm-cache `EPERM`.
+- `npm run build --prefix web/Nexora.Web` — **Pass**.
+- API and Bootstrap Release builds — **Pass**, 0 warnings and 0 errors.
+- Existing unit-test executable — **Pass**, 24 tests and 0 failures; no tests
+  were added.
+- `git diff --check` — **Pass**.
+- `python3 scripts/dev/verify-s00.py` — **Not run** because Python is not
+  available in this Windows environment.
+- SQL migration/replay — **Not run**; local SQLEXPRESS was discovered, but no
+  explicit `NEXORA_SQL_PASSWORD` was configured and the repository runner does
+  not permit a default credential. Browser/manual QA, DST/isolation journeys,
+  independent security review and final CI remain pending.
+
+### Handoff
+
+Retry Git fetch, commit and push using the approved repository Git runtime, then
+record the resulting local/remote SHA and CI state in the final response. Do not
+merge PR #4. If SQL or CI remains unavailable, report it as `Not run`/`Pending`,
+not as passed evidence.

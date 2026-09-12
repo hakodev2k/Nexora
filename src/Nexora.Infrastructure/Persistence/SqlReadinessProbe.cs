@@ -35,7 +35,8 @@ public sealed class SqlReadinessProbe
         "20260910_0020_task_calendar_projection.sql",
         "20260911_0021_core_sharing_support_files.sql",
         "20260911_0022_reminders_scheduling.sql",
-        "20260911_0023_planner_habits.sql"
+        "20260911_0023_planner_habits.sql",
+        "20260912_0024_planner_habits_owner_integrity.sql"
     ];
 
     private readonly SqlConnectionFactory _connections;

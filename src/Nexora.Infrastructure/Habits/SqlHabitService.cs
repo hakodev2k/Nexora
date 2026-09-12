@@ -92,7 +92,7 @@ public sealed class SqlHabitService : IHabitService
                 ("@Unit", SqlDbType.NVarChar, (object?)unit ?? DBNull.Value, 50),
                 ("@TimeZoneId", SqlDbType.NVarChar, zone!.Id, 128),
                 ("@ReminderLocalTime", SqlDbType.Time, command.ReminderLocalTime is { } time ? time.ToTimeSpan() : DBNull.Value, null));
-            InsertSchedule(connection, transaction, actor.OwnerId, habitId, command.EffectiveFrom, command.WeekdayMask,
+            InsertSchedule(connection, transaction, actor.OwnerId, actor.UserId, habitId, command.EffectiveFrom, command.WeekdayMask,
                 command.Kind == HabitKinds.Count ? command.TargetCount : null, paused: false);
             var row = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
             if (row is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
@@ -123,10 +123,15 @@ public sealed class SqlHabitService : IHabitService
         if (current is null) return Rollback(transaction, Missing<HabitDetail>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<HabitDetail>());
         if (current.State != HabitStates.Active) return Rollback(transaction, LifecycleLocked<HabitDetail>("Only active Habits can be edited."));
-        var action = current.ReminderLocalTime == command.ReminderLocalTime
-            ? "habits.habit.update"
-            : "habits.habit.set_reminder";
-        if (!HasCapability(actor, action)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        var coreFieldsChanged = !string.Equals(current.Title, title, StringComparison.Ordinal) ||
+            !string.Equals(current.Unit, unit, StringComparison.Ordinal) ||
+            !string.Equals(current.TimeZoneId, zone!.Id, StringComparison.Ordinal);
+        var reminderChanged = current.ReminderLocalTime != command.ReminderLocalTime;
+        if (coreFieldsChanged && !HasCapability(actor, "habits.habit.update"))
+            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        if (reminderChanged && !HasCapability(actor, "habits.habit.set_reminder"))
+            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        var action = reminderChanged && !coreFieldsChanged ? "habits.habit.set_reminder" : "habits.habit.update";
         var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, action, idempotencyKey,
             $"habit:{habitId:N}|etag:{ifMatch}|title:{title}|unit:{unit}|zone:{zone!.Id}|reminder:{command.ReminderLocalTime}", out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
@@ -179,7 +184,8 @@ public sealed class SqlHabitService : IHabitService
         var today = LocalToday(ResolveZone(current.TimeZoneId));
         if (command.EffectiveFrom <= today)
             return Rollback(transaction, Failure<HabitDetail>("ScheduleHistoryLocked", 422, "Schedule changes must begin after the current local date."));
-        if (current.Kind == HabitKinds.Boolean && command.TargetCount is not null || current.Kind == HabitKinds.Count && command.TargetCount is not > 0)
+        if ((current.Kind == HabitKinds.Boolean && command.TargetCount is not null) ||
+            (current.Kind == HabitKinds.Count && command.TargetCount is not > 0))
             return Rollback(transaction, Failure<HabitDetail>("ValidationFailed", 422, "The schedule target does not match the Habit mode."));
         var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, "habits.habit.schedule", idempotencyKey,
             $"habit:{habitId:N}|etag:{ifMatch}|effective:{command.EffectiveFrom:yyyy-MM-dd}|mask:{command.WeekdayMask}|target:{command.TargetCount}", out var receipt);
@@ -193,14 +199,17 @@ public sealed class SqlHabitService : IHabitService
             if (prior is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             var closed = Execute(connection, transaction, """
                 UPDATE [productivity].[HabitSchedule]
-                SET [EffectiveUntil] = @EffectiveUntil, [UpdatedAt] = SYSUTCDATETIME()
-                WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [EffectiveUntil] IS NULL;
+                SET [EffectiveUntil] = @EffectiveUntil, [UpdatedByUserId] = @UserId,
+                    [UpdatedAt] = SYSUTCDATETIME()
+                WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [EffectiveUntil] IS NULL AND [RowVersion] = @RowVersion;
                 """,
                 ("@EffectiveUntil", SqlDbType.Date, ToDbDate(command.EffectiveFrom), null),
                 ("@Id", SqlDbType.UniqueIdentifier, prior.Id, null),
-                ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null));
+                ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
+                ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
+                ("@RowVersion", SqlDbType.Binary, DecodeETag(prior.ETag), 8));
             if (closed != 1) return Rollback(transaction, Revision<HabitDetail>());
-            InsertSchedule(connection, transaction, actor.OwnerId, habitId, command.EffectiveFrom, command.WeekdayMask,
+            InsertSchedule(connection, transaction, actor.OwnerId, actor.UserId, habitId, command.EffectiveFrom, command.WeekdayMask,
                 current.Kind == HabitKinds.Count ? command.TargetCount : null, paused: false);
             if (!TouchHabit(connection, transaction, actor, habitId, expectedVersion, current.State, current.PreArchiveState))
                 return Rollback(transaction, Revision<HabitDetail>());
@@ -224,7 +233,8 @@ public sealed class SqlHabitService : IHabitService
     public IdentityOperationResult<HabitDetail> RecordCheckIn(IdentityPrincipal actor, Guid habitId, string? ifMatch,
         HabitCheckInCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!HasCapability(actor, "habits.checkin.record")) return ModuleUnavailable<HabitDetail>();
+        if (!HasCapability(actor, "habits.checkin.record") && !HasCapability(actor, "habits.checkin.correct"))
+            return ModuleUnavailable<HabitDetail>();
         if (!TryETag(ifMatch, out var expectedVersion)) return Precondition<HabitDetail>();
         var note = HabitPolicy.TrimOrNull(command.Note);
         if (command.Note is { Length: > HabitPolicy.MaximumCheckInNoteLength })
@@ -233,6 +243,10 @@ public sealed class SqlHabitService : IHabitService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, HabitReceiptOperations.CheckIn, idempotencyKey,
+            $"habit:{habitId:N}|etag:{ifMatch}|date:{command.LocalDate:yyyy-MM-dd}|count:{command.Count}|note:{note}", out var receipt);
+        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
+
         var current = ReadHabit(connection, transaction, actor.OwnerId, habitId, true);
         if (current is null) return Rollback(transaction, Missing<HabitDetail>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<HabitDetail>());
@@ -246,39 +260,41 @@ public sealed class SqlHabitService : IHabitService
             return Rollback(transaction, Failure<HabitDetail>("ValidationFailed", 422, "Check-in value does not match the Habit mode."));
         var existing = ReadCheckIn(connection, transaction, actor.OwnerId, habitId, command.LocalDate, true);
         var action = existing is null ? "habits.checkin.record" : "habits.checkin.correct";
-        if (existing is not null && !HasCapability(actor, action)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
-        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, action, idempotencyKey,
-            $"habit:{habitId:N}|etag:{ifMatch}|date:{command.LocalDate:yyyy-MM-dd}|count:{command.Count}|note:{note}", out var receipt);
-        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
+        if (!HasCapability(actor, action)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
 
         try
         {
             if (existing is null)
             {
-                Execute(connection, transaction, """
-                    INSERT INTO [productivity].[HabitCheckIn] ([Id], [OwnerId], [HabitId], [ScheduleId], [LocalDate], [Count], [Note])
-                    VALUES (@Id, @OwnerId, @HabitId, @ScheduleId, @LocalDate, @Count, @Note);
+                var inserted = Execute(connection, transaction, """
+                    INSERT INTO [productivity].[HabitCheckIn]
+                        ([Id], [OwnerId], [HabitId], [ScheduleId], [CreatedByUserId], [UpdatedByUserId], [LocalDate], [Count], [Note])
+                    VALUES (@Id, @OwnerId, @HabitId, @ScheduleId, @UserId, @UserId, @LocalDate, @Count, @Note);
                     """,
                     ("@Id", SqlDbType.UniqueIdentifier, Guid.NewGuid(), null),
                     ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
                     ("@HabitId", SqlDbType.UniqueIdentifier, habitId, null),
                     ("@ScheduleId", SqlDbType.UniqueIdentifier, schedule.Id, null),
+                    ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
                     ("@LocalDate", SqlDbType.Date, ToDbDate(command.LocalDate), null),
                     ("@Count", SqlDbType.Int, command.Count, null),
                     ("@Note", SqlDbType.NVarChar, (object?)note ?? DBNull.Value, 1000));
+                if (inserted != 1) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             }
             else
             {
-                Execute(connection, transaction, """
+                var changed = Execute(connection, transaction, """
                     UPDATE [productivity].[HabitCheckIn]
-                    SET [Count] = @Count, [Note] = @Note, [UpdatedAt] = SYSUTCDATETIME()
+                    SET [Count] = @Count, [Note] = @Note, [UpdatedByUserId] = @UserId, [UpdatedAt] = SYSUTCDATETIME()
                     WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion;
                     """,
                     ("@Count", SqlDbType.Int, command.Count, null),
                     ("@Note", SqlDbType.NVarChar, (object?)note ?? DBNull.Value, 1000),
+                    ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
                     ("@Id", SqlDbType.UniqueIdentifier, existing.Id, null),
                     ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
                     ("@RowVersion", SqlDbType.Binary, DecodeETag(existing.ETag), 8));
+                if (changed != 1) return Rollback(transaction, Revision<HabitDetail>());
             }
             if (!TouchHabit(connection, transaction, actor, habitId, expectedVersion, current.State, current.PreArchiveState))
                 return Rollback(transaction, Revision<HabitDetail>());
@@ -324,7 +340,8 @@ public sealed class SqlHabitService : IHabitService
             var schedule = ReadScheduleAt(connection, transaction, actor.OwnerId, habitId, today, true);
             if (schedule is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             var shouldPauseSchedule = nextState != HabitStates.Active;
-            ReplaceCurrentSchedulePause(connection, transaction, actor.OwnerId, habitId, today, schedule, shouldPauseSchedule);
+            if (!ReplaceCurrentSchedulePause(connection, transaction, actor.OwnerId, actor.UserId, habitId, today, schedule, shouldPauseSchedule))
+                return Rollback(transaction, Revision<HabitDetail>());
             var preArchiveState = nextState == HabitStates.Archived ? current.State : current.PreArchiveState;
             if (!TouchHabit(connection, transaction, actor, habitId, expectedVersion, nextState,
                     nextState == HabitStates.Archived ? preArchiveState : null))
@@ -375,7 +392,7 @@ public sealed class SqlHabitService : IHabitService
             SELECT [Id], [OwnerId], [Title], [Kind], [TargetCount], [Unit], [State], [TimeZoneId], [ReminderLocalTime],
                    [PreArchiveState], [CreatedAt], [UpdatedAt], [RowVersion]
             FROM [productivity].[Habit] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            WHERE [OwnerId] = @OwnerId AND [Id] = @HabitId;
+            WHERE [OwnerId] = @OwnerId AND [Id] = @HabitId AND [TrashBatchId] IS NULL;
             """;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@HabitId", SqlDbType.UniqueIdentifier, habitId);
@@ -393,15 +410,17 @@ public sealed class SqlHabitService : IHabitService
                    [PreArchiveState], [CreatedAt], [UpdatedAt], [RowVersion]
             FROM [productivity].[Habit] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             WHERE [OwnerId] = @OwnerId
+              AND [TrashBatchId] IS NULL
               AND (@State IS NULL OR [State] = @State)
-              AND (@Query IS NULL OR [Title] LIKE @QueryLike)
+              AND (@Query IS NULL OR LOWER([Title]) LIKE LOWER(@QueryLike) ESCAPE N'\')
             ORDER BY CASE [State] WHEN 'Active' THEN 0 WHEN 'Paused' THEN 1 ELSE 2 END, [Title], [Id];
             """;
         Add(command, "@Limit", SqlDbType.Int, limit);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@State", SqlDbType.VarChar, (object?)state ?? DBNull.Value, 16);
         Add(command, "@Query", SqlDbType.NVarChar, (object?)query ?? DBNull.Value, 100);
-        Add(command, "@QueryLike", SqlDbType.NVarChar, query is null ? DBNull.Value : $"%{query}%", 102);
+        var queryPattern = query is null ? null : $"%{EscapeLikePattern(query)}%";
+        Add(command, "@QueryLike", SqlDbType.NVarChar, (object?)queryPattern ?? DBNull.Value, HabitPolicy.MaximumSearchPatternLength);
         using var reader = command.ExecuteReader();
         var rows = new List<HabitRow>();
         while (reader.Read()) rows.Add(ReadHabit(reader));
@@ -504,17 +523,18 @@ public sealed class SqlHabitService : IHabitService
         return streak;
     }
 
-    private static void InsertSchedule(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid habitId,
+    private static void InsertSchedule(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid userId, Guid habitId,
         DateOnly effectiveFrom, byte weekdayMask, int? targetCount, bool paused)
     {
         Execute(connection, transaction, """
             INSERT INTO [productivity].[HabitSchedule]
-                ([Id], [OwnerId], [HabitId], [EffectiveFrom], [WeekdayMask], [TargetCount], [Paused])
-            VALUES (@Id, @OwnerId, @HabitId, @EffectiveFrom, @WeekdayMask, @TargetCount, @Paused);
+                ([Id], [OwnerId], [HabitId], [CreatedByUserId], [UpdatedByUserId], [EffectiveFrom], [WeekdayMask], [TargetCount], [Paused])
+            VALUES (@Id, @OwnerId, @HabitId, @UserId, @UserId, @EffectiveFrom, @WeekdayMask, @TargetCount, @Paused);
             """,
             ("@Id", SqlDbType.UniqueIdentifier, Guid.NewGuid(), null),
             ("@OwnerId", SqlDbType.UniqueIdentifier, ownerId, null),
             ("@HabitId", SqlDbType.UniqueIdentifier, habitId, null),
+            ("@UserId", SqlDbType.UniqueIdentifier, userId, null),
             ("@EffectiveFrom", SqlDbType.Date, ToDbDate(effectiveFrom), null),
             ("@WeekdayMask", SqlDbType.TinyInt, weekdayMask, null),
             ("@TargetCount", SqlDbType.Int, (object?)targetCount ?? DBNull.Value, null),
@@ -533,31 +553,35 @@ public sealed class SqlHabitService : IHabitService
         return Convert.ToInt32(command.ExecuteScalar()) == 1;
     }
 
-    private static void ReplaceCurrentSchedulePause(SqlConnection connection, SqlTransaction transaction, Guid ownerId,
-        Guid habitId, DateOnly effectiveDate, HabitScheduleRecord current, bool paused)
+    private static bool ReplaceCurrentSchedulePause(SqlConnection connection, SqlTransaction transaction, Guid ownerId,
+        Guid userId, Guid habitId, DateOnly effectiveDate, HabitScheduleRecord current, bool paused)
     {
         if (current.EffectiveFrom == effectiveDate)
         {
-            Execute(connection, transaction, """
+            var changed = Execute(connection, transaction, """
                 UPDATE [productivity].[HabitSchedule]
-                SET [Paused] = @Paused, [UpdatedAt] = SYSUTCDATETIME()
+                SET [Paused] = @Paused, [UpdatedByUserId] = @UserId, [UpdatedAt] = SYSUTCDATETIME()
                 WHERE [Id] = @Id AND [OwnerId] = @OwnerId;
                 """,
                 ("@Paused", SqlDbType.Bit, paused, null),
+                ("@UserId", SqlDbType.UniqueIdentifier, userId, null),
                 ("@Id", SqlDbType.UniqueIdentifier, current.Id, null),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, ownerId, null));
-            return;
+            return changed == 1;
         }
 
-        Execute(connection, transaction, """
+        var closed = Execute(connection, transaction, """
             UPDATE [productivity].[HabitSchedule]
-            SET [EffectiveUntil] = @EffectiveUntil, [UpdatedAt] = SYSUTCDATETIME()
+            SET [EffectiveUntil] = @EffectiveUntil, [UpdatedByUserId] = @UserId, [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [EffectiveUntil] IS NULL;
             """,
             ("@EffectiveUntil", SqlDbType.Date, ToDbDate(effectiveDate), null),
+            ("@UserId", SqlDbType.UniqueIdentifier, userId, null),
             ("@Id", SqlDbType.UniqueIdentifier, current.Id, null),
             ("@OwnerId", SqlDbType.UniqueIdentifier, ownerId, null));
-        InsertSchedule(connection, transaction, ownerId, habitId, effectiveDate, current.WeekdayMask, current.TargetCount, paused);
+        if (closed != 1) return false;
+        InsertSchedule(connection, transaction, ownerId, userId, habitId, effectiveDate, current.WeekdayMask, current.TargetCount, paused);
+        return true;
     }
 
     private static bool TouchHabit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid habitId,
@@ -609,7 +633,8 @@ public sealed class SqlHabitService : IHabitService
         if (title.Length is < 1 or > HabitPolicy.MaximumTitleLength) return "Habit title is required and must be at most 100 characters.";
         if (unit is { Length: > HabitPolicy.MaximumUnitLength }) return "Habit unit must be at most 50 characters.";
         if (command.Kind is not (HabitKinds.Boolean or HabitKinds.Count)) return "Habit mode must be Boolean or Count.";
-        if (command.Kind == HabitKinds.Boolean && command.TargetCount is not null || command.Kind == HabitKinds.Count && command.TargetCount is not > 0)
+        if ((command.Kind == HabitKinds.Boolean && command.TargetCount is not null) ||
+            (command.Kind == HabitKinds.Count && command.TargetCount is not > 0))
             return "Habit target does not match the selected mode.";
         if (!HabitPolicy.IsValidWeekdayMask(command.WeekdayMask)) return "Select at least one weekday.";
         if (!TryResolveZone(command.TimeZoneId, out zone)) return "Habit timezone is invalid.";
@@ -631,6 +656,12 @@ public sealed class SqlHabitService : IHabitService
 
     private static string CanonicalCreate(HabitCreateCommand command, string title, string? unit) =>
         $"title:{title}|kind:{command.Kind}|target:{command.TargetCount}|unit:{unit}|from:{command.EffectiveFrom:yyyy-MM-dd}|mask:{command.WeekdayMask}|zone:{command.TimeZoneId.Trim()}|reminder:{command.ReminderLocalTime}";
+
+    private static string EscapeLikePattern(string value) => value
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal)
+        .Replace("[", "\\[", StringComparison.Ordinal);
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
         IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)

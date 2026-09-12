@@ -956,8 +956,8 @@ function Shell({
           {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'goals' && <GoalsScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'planner' && (canPlanner ? <PlannerScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
-          {location.screen === 'habits' && (canHabits ? <HabitsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
+          {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
+          {location.screen === 'habits' && (canHabits ? <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
         </main>
@@ -2462,14 +2462,47 @@ type FinanceFilters = {
   query?: string;
 };
 
-function todayDateInput(): string {
-  return localDateInput(new Date());
+function todayDateInput(timeZoneId?: string): string {
+  const now = new Date();
+  return timeZoneId ? dateInputForTimeZone(now, timeZoneId) : localDateInput(now);
 }
 
-function tomorrowDateInput(): string {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return localDateInput(tomorrow);
+function tomorrowDateInput(timeZoneId?: string): string {
+  return addDateDays(todayDateInput(timeZoneId), 1);
+}
+
+function dateInputForTimeZone(value: Date, timeZoneId: string): string {
+  try {
+    const parts = Intl.DateTimeFormat('en-CA', {
+      timeZone: timeZoneId,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(value);
+    const part = (type: string) => parts.find((item) => item.type === type)?.value;
+    const year = part('year');
+    const month = part('month');
+    const day = part('day');
+    if (year && month && day) return `${year}-${month}-${day}`;
+  } catch {
+    // The API remains authoritative when a browser cannot format this IANA zone.
+  }
+  return localDateInput(value);
+}
+
+function addDateDays(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function dateRangeInputs(from: string, to: string): string[] {
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  const dayCount = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || dayCount < 1 || dayCount > 31) return [];
+  return Array.from({ length: dayCount }, (_, index) => addDateDays(from, index));
 }
 
 function localDateInput(value: Date): string {
@@ -3497,16 +3530,15 @@ function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
 function plannerRange(date: string, view: 'day' | 'week'): { from: string; to: string } {
   if (view === 'day') return { from: date, to: date };
-  const selected = new Date(`${date}T00:00:00`);
-  const day = (selected.getDay() + 6) % 7;
-  selected.setDate(selected.getDate() - day);
-  const from = localDateInput(selected);
-  selected.setDate(selected.getDate() + 6);
-  return { from, to: localDateInput(selected) };
+  const selected = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(selected.getTime())) return { from: date, to: date };
+  const mondayOffset = (selected.getUTCDay() + 6) % 7;
+  const from = addDateDays(date, -mondayOffset);
+  return { from, to: addDateDays(from, 6) };
 }
 
-function PlannerScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
-  const [planDate, setPlanDate] = useState(todayDateInput);
+function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
+  const [planDate, setPlanDate] = useState(() => todayDateInput(timeZoneId));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [plan, setPlan] = useState<PlannerPlan | null>(null);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
@@ -3535,7 +3567,8 @@ function PlannerScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
   }
 
-  useEffect(() => { void load(); }, [planDate, view]);
+  useEffect(() => { setPlanDate(todayDateInput(timeZoneId)); }, [timeZoneId]);
+  useEffect(() => { void load(); }, [planDate, timeZoneId, view]);
 
   function showError(requestError: unknown) {
     const apiError = asApiError(requestError);
@@ -3583,9 +3616,7 @@ function PlannerScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function move(pin: PlannerPinRecord, offset: number) {
-    const next = new Date(`${pin.planDate}T00:00:00`);
-    next.setDate(next.getDate() + offset);
-    const nextDate = localDateInput(next);
+    const nextDate = addDateDays(pin.planDate, offset);
     setBusy(`move:${pin.id}`);
     setConflict(false);
     setError(null);
@@ -3620,11 +3651,7 @@ function PlannerScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
   }
 
-  const days = plan ? Array.from({ length: Math.floor((new Date(`${plan.to}T00:00:00`).getTime() - new Date(`${plan.from}T00:00:00`).getTime()) / 86400000) + 1 }, (_, index) => {
-    const value = new Date(`${plan.from}T00:00:00`);
-    value.setDate(value.getDate() + index);
-    return localDateInput(value);
-  }) : [];
+  const days = plan ? dateRangeInputs(plan.from, plan.to) : [];
   return (
     <section className="content-section" aria-labelledby="planner-title">
       <div className="content-heading"><div><p className="eyebrow">FX15 / PLANNER</p><h1 id="planner-title">Daily & weekly planner</h1><p className="lead">Planner chỉ pin tham chiếu Task theo ngày. Nó không clone Task, không đổi Start/End, status, reminder hoặc tạo Calendar Event.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
@@ -3651,21 +3678,21 @@ type HabitDraft = {
   weekdayMask: number; timeZoneId: string; reminderLocalTime: string;
 };
 
-function emptyHabitDraft(): HabitDraft {
-  return { title: '', kind: 'Boolean', targetCount: '1', unit: '', effectiveFrom: todayDateInput(), weekdayMask: 127, timeZoneId: currentTimeZone(), reminderLocalTime: '' };
+function emptyHabitDraft(timeZoneId = currentTimeZone()): HabitDraft {
+  return { title: '', kind: 'Boolean', targetCount: '1', unit: '', effectiveFrom: todayDateInput(timeZoneId), weekdayMask: 127, timeZoneId, reminderLocalTime: '' };
 }
 
 const WEEKDAYS = [{ label: 'Mon', bit: 1 }, { label: 'Tue', bit: 2 }, { label: 'Wed', bit: 4 }, { label: 'Thu', bit: 8 }, { label: 'Fri', bit: 16 }, { label: 'Sat', bit: 32 }, { label: 'Sun', bit: 64 }];
 
-function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function HabitsScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<HabitRecord[]>([]);
   const [selected, setSelected] = useState<HabitDetail | null>(null);
   const [editing, setEditing] = useState<HabitRecord | null>(null);
-  const [draft, setDraft] = useState<HabitDraft>(emptyHabitDraft);
-  const [checkInDate, setCheckInDate] = useState(todayDateInput);
+  const [draft, setDraft] = useState<HabitDraft>(() => emptyHabitDraft(timeZoneId));
+  const [checkInDate, setCheckInDate] = useState(() => todayDateInput(timeZoneId));
   const [checkInCount, setCheckInCount] = useState('1');
   const [checkInNote, setCheckInNote] = useState('');
-  const [scheduleDate, setScheduleDate] = useState(tomorrowDateInput);
+  const [scheduleDate, setScheduleDate] = useState(() => tomorrowDateInput(timeZoneId));
   const [scheduleMask, setScheduleMask] = useState(127);
   const [scheduleTarget, setScheduleTarget] = useState('1');
   const [loading, setLoading] = useState(true);
@@ -3673,6 +3700,8 @@ function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
   const requestKey = useRef<string | null>(null);
+  const checkInRequestKey = useRef<string | null>(null);
+  const checkInRequestSignature = useRef<string | null>(null);
 
   async function load(selectedId?: string) {
     setLoading(true);
@@ -3700,14 +3729,18 @@ function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     return apiError;
   }
 
-  function resetEditor() { setEditing(null); setDraft(emptyHabitDraft()); requestKey.current = null; setConflict(false); }
+  function resetEditor() { setEditing(null); setDraft(emptyHabitDraft(timeZoneId)); requestKey.current = null; checkInRequestKey.current = null; checkInRequestSignature.current = null; setConflict(false); }
 
   function beginEdit(habit: HabitRecord) {
+    const localToday = todayDateInput(habit.timeZoneId);
     setEditing(habit);
-    setDraft({ title: habit.title, kind: habit.kind === 'Count' ? 'Count' : 'Boolean', targetCount: String(habit.targetCount ?? 1), unit: habit.unit ?? '', effectiveFrom: todayDateInput(), weekdayMask: habit.currentSchedule?.weekdayMask ?? 127, timeZoneId: habit.timeZoneId, reminderLocalTime: habit.reminderLocalTime?.slice(0, 5) ?? '' });
+    setDraft({ title: habit.title, kind: habit.kind === 'Count' ? 'Count' : 'Boolean', targetCount: String(habit.targetCount ?? 1), unit: habit.unit ?? '', effectiveFrom: localToday, weekdayMask: habit.currentSchedule?.weekdayMask ?? 127, timeZoneId: habit.timeZoneId, reminderLocalTime: habit.reminderLocalTime?.slice(0, 5) ?? '' });
     setScheduleMask(habit.currentSchedule?.weekdayMask ?? 127);
     setScheduleTarget(String(habit.currentSchedule?.targetCount ?? habit.targetCount ?? 1));
-    setScheduleDate(tomorrowDateInput());
+    setCheckInDate(localToday);
+    setScheduleDate(addDateDays(localToday, 1));
+    checkInRequestKey.current = null;
+    checkInRequestSignature.current = null;
     setError(null);
     setConflict(false);
   }
@@ -3727,6 +3760,8 @@ function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         ? await updateHabit(editing.id, editing.etag, { title, unit: draft.unit.trim() || null, reminderLocalTime: draft.reminderLocalTime || null, timeZoneId: draft.timeZoneId.trim() }, requestKey.current)
         : await createHabit({ title, kind: draft.kind, targetCount: target, unit: draft.unit.trim() || null, effectiveFrom: draft.effectiveFrom, weekdayMask: draft.weekdayMask, timeZoneId: draft.timeZoneId.trim(), reminderLocalTime: draft.reminderLocalTime || null }, requestKey.current);
       requestKey.current = null;
+      setCheckInDate(todayDateInput(result.habit.timeZoneId));
+      setScheduleDate(tomorrowDateInput(result.habit.timeZoneId));
       setSelected(result);
       resetEditor();
       await load(result.habit.id);
@@ -3738,7 +3773,15 @@ function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function selectHabit(id: string) {
     setBusy(`load:${id}`); setError(null);
-    try { setSelected(await getHabit(id)); } catch (requestError) { showError(requestError); } finally { setBusy(null); }
+    try {
+      const result = await getHabit(id);
+      setSelected(result);
+      const localToday = todayDateInput(result.habit.timeZoneId);
+      setCheckInDate(localToday);
+      setScheduleDate(addDateDays(localToday, 1));
+      checkInRequestKey.current = null;
+      checkInRequestSignature.current = null;
+    } catch (requestError) { showError(requestError); } finally { setBusy(null); }
   }
 
   async function recordCheckIn(event: FormEvent<HTMLFormElement>) {
@@ -3746,13 +3789,23 @@ function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (!selected) return;
     const count = Number(checkInCount);
     if (!Number.isInteger(count) || count < 0) { setError(new NexoraApiError('Check-in count phải là số nguyên không âm.', 422, 'ValidationFailed')); return; }
+    const note = checkInNote.trim() || null;
+    const requestSignature = `${checkInDate}|${count}|${note ?? ''}`;
+    if (checkInRequestSignature.current !== requestSignature) {
+      checkInRequestSignature.current = requestSignature;
+      checkInRequestKey.current = createIdempotencyKey();
+    }
+    const requestKeyValue = checkInRequestKey.current ?? createIdempotencyKey();
+    checkInRequestKey.current = requestKeyValue;
     setBusy('checkin'); setError(null); setConflict(false);
     try {
-      const result = await recordHabitCheckIn(selected.habit.id, selected.habit.etag, { localDate: checkInDate, count, note: checkInNote.trim() || null });
+      const result = await recordHabitCheckIn(selected.habit.id, selected.habit.etag, { localDate: checkInDate, count, note }, requestKeyValue);
+      checkInRequestKey.current = null;
+      checkInRequestSignature.current = null;
       setSelected(result); setCheckInNote(''); await load(result.habit.id);
     } catch (requestError) {
       const apiError = showError(requestError);
-      if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); }
+      if (apiError.status === 412) { checkInRequestKey.current = null; checkInRequestSignature.current = null; setConflict(true); await load(selected.habit.id); }
     } finally { setBusy(null); }
   }
 
@@ -4078,10 +4131,10 @@ function ModuleScreen({
     return <GoalsScreen onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX15') {
-    return <PlannerScreen onAuthLost={onAuthLost} />;
+    return <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX17') {
-    return <HabitsScreen onAuthLost={onAuthLost} />;
+    return <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX14') {
     return <RemindersScreen onAuthLost={onAuthLost} />;

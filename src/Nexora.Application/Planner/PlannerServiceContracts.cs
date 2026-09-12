@@ -27,7 +27,7 @@ public sealed record PlannerReorderCommand(DateOnly PlanDate, IReadOnlyList<Guid
 
 public interface IPlannerService
 {
-    IdentityOperationResult<PlannerPlan> List(IdentityPrincipal actor, DateOnly from, DateOnly to);
+    IdentityOperationResult<PlannerPlan> List(IdentityPrincipal actor, DateOnly? from = null, DateOnly? to = null);
     IdentityOperationResult<PlannerPinRecord> Pin(IdentityPrincipal actor, PlannerPinCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<PlannerPinRecord> Update(IdentityPrincipal actor, Guid pinId, string? ifMatch,

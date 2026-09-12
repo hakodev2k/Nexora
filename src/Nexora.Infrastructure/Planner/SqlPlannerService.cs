@@ -27,16 +27,39 @@ public sealed class SqlPlannerService : IPlannerService
         _capabilities = new SqlSelfCapability(connections);
     }
 
-    public IdentityOperationResult<PlannerPlan> List(IdentityPrincipal actor, DateOnly from, DateOnly to)
+    public IdentityOperationResult<PlannerPlan> List(IdentityPrincipal actor, DateOnly? from = null, DateOnly? to = null)
     {
         if (!HasCapabilities(actor, "planner.plan.read") || !TaskReadAvailable(actor))
             return ModuleUnavailable<PlannerPlan>();
-        if (!PlannerPolicy.IsValidRange(from, to))
-            return Failure<PlannerPlan>("ValidationFailed", 422, "Planner range must be between one and 32 local days.");
 
         using var connection = _connections.Create();
         connection.Open();
-        return IdentityOperationResult<PlannerPlan>.Success(ReadPlan(connection, null, actor.OwnerId, from, to, false));
+        DateOnly rangeFrom;
+        DateOnly rangeTo;
+        if (from is null && to is null)
+        {
+            if (!TryReadOwnerLocalToday(connection, actor.OwnerId, out var ownerToday))
+                return PersistenceFailure<PlannerPlan>();
+            rangeFrom = ownerToday;
+            rangeTo = ownerToday;
+        }
+        else
+        {
+            rangeFrom = from ?? to!.Value;
+            rangeTo = to ?? from!.Value;
+        }
+
+        if (!PlannerPolicy.IsValidRange(rangeFrom, rangeTo))
+            return Failure<PlannerPlan>("ValidationFailed", 422, "Planner range must be between one and 32 local days.");
+
+        try
+        {
+            return IdentityOperationResult<PlannerPlan>.Success(ReadPlan(connection, null, actor.OwnerId, rangeFrom, rangeTo, false));
+        }
+        catch (SqlException)
+        {
+            return PersistenceFailure<PlannerPlan>();
+        }
     }
 
     public IdentityOperationResult<PlannerPinRecord> Pin(IdentityPrincipal actor, PlannerPinCommand command,
@@ -65,12 +88,14 @@ public sealed class SqlPlannerService : IPlannerService
             var rank = ReadNextRank(connection, transaction, actor.OwnerId, command.PlanDate);
             var pinId = Guid.NewGuid();
             Execute(connection, transaction, """
-                INSERT INTO [productivity].[PlannerPin] ([Id], [OwnerId], [TaskId], [PlanDate], [Rank], [Notes])
-                VALUES (@Id, @OwnerId, @TaskId, @PlanDate, @Rank, @Notes);
+                INSERT INTO [productivity].[PlannerPin]
+                    ([Id], [OwnerId], [TaskId], [CreatedByUserId], [UpdatedByUserId], [PlanDate], [Rank], [Notes])
+                VALUES (@Id, @OwnerId, @TaskId, @ActorUserId, @ActorUserId, @PlanDate, @Rank, @Notes);
                 """,
                 ("@Id", SqlDbType.UniqueIdentifier, pinId, null),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
                 ("@TaskId", SqlDbType.UniqueIdentifier, command.TaskId, null),
+                ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
                 ("@PlanDate", SqlDbType.Date, ToDbDate(command.PlanDate), null),
                 ("@Rank", SqlDbType.Decimal, rank, null),
                 ("@Notes", SqlDbType.NVarChar, (object?)notes ?? DBNull.Value, 2000));
@@ -95,7 +120,7 @@ public sealed class SqlPlannerService : IPlannerService
     public IdentityOperationResult<PlannerPinRecord> Update(IdentityPrincipal actor, Guid pinId, string? ifMatch,
         PlannerPinUpdateCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!HasCapabilities(actor, "planner.plan.notes", "planner.plan.reschedule") || !TaskReadAvailable(actor))
+        if (!TaskReadAvailable(actor))
             return ModuleUnavailable<PlannerPinRecord>();
         if (!TryETag(ifMatch, out var expectedVersion)) return Precondition<PlannerPinRecord>();
         if (!TryValidateNotes(command.Notes, out var notes))
@@ -108,6 +133,7 @@ public sealed class SqlPlannerService : IPlannerService
         if (current is null) return Rollback(transaction, Missing<PlannerPinRecord>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<PlannerPinRecord>());
         var action = current.PlanDate == command.PlanDate ? "planner.plan.notes" : "planner.plan.reschedule";
+        if (!HasCapabilities(actor, action)) return Rollback(transaction, ModuleUnavailable<PlannerPinRecord>());
         if (!current.SourceAvailable) return Rollback(transaction, LifecycleLocked<PlannerPinRecord>());
         var receiptFailure = CheckReceipt<PlannerPinRecord>(connection, transaction, actor, action, idempotencyKey,
             $"pin:{pinId:N}|etag:{ifMatch}|date:{command.PlanDate:yyyy-MM-dd}|notes:{notes}", out var receipt);
@@ -124,12 +150,14 @@ public sealed class SqlPlannerService : IPlannerService
             }
             var changed = Execute(connection, transaction, """
                 UPDATE [productivity].[PlannerPin]
-                SET [PlanDate] = @PlanDate, [Rank] = @Rank, [Notes] = @Notes, [UpdatedAt] = SYSUTCDATETIME()
+                SET [PlanDate] = @PlanDate, [Rank] = @Rank, [Notes] = @Notes,
+                    [UpdatedByUserId] = @ActorUserId, [UpdatedAt] = SYSUTCDATETIME()
                 WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion;
                 """,
                 ("@PlanDate", SqlDbType.Date, ToDbDate(command.PlanDate), null),
                 ("@Rank", SqlDbType.Decimal, rank, null),
                 ("@Notes", SqlDbType.NVarChar, (object?)notes ?? DBNull.Value, 2000),
+                ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
                 ("@Id", SqlDbType.UniqueIdentifier, pinId, null),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion, 8));
@@ -176,15 +204,17 @@ public sealed class SqlPlannerService : IPlannerService
         {
             for (var index = 0; index < command.PinIds.Count; index++)
             {
-                Execute(connection, transaction, """
+                var changed = Execute(connection, transaction, """
                     UPDATE [productivity].[PlannerPin]
-                    SET [Rank] = @Rank, [UpdatedAt] = SYSUTCDATETIME()
+                    SET [Rank] = @Rank, [UpdatedByUserId] = @ActorUserId, [UpdatedAt] = SYSUTCDATETIME()
                     WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [PlanDate] = @PlanDate;
                     """,
                     ("@Rank", SqlDbType.Decimal, (decimal)(index + 1), null),
                     ("@Id", SqlDbType.UniqueIdentifier, command.PinIds[index], null),
                     ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
+                    ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
                     ("@PlanDate", SqlDbType.Date, ToDbDate(command.PlanDate), null));
+                if (changed != 1) return Rollback(transaction, Revision<PlannerPlan>());
             }
             var reordered = ReadPlan(connection, transaction, actor.OwnerId, command.PlanDate, command.PlanDate, false);
             WriteAudit(connection, transaction, actor, command.PinIds[0], "planner.plan.reorder", "productivity.PlannerPin", traceId);
@@ -247,10 +277,13 @@ public sealed class SqlPlannerService : IPlannerService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], pin.[UpdatedAt], pin.[RowVersion]
+                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt],
+                   pin.[UpdatedAt], pin.[RowVersion]
             FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Task] taskRow ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
-            INNER JOIN [productivity].[Project] projectRow ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
+            INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
+            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
             WHERE pin.[OwnerId] = @OwnerId AND pin.[PlanDate] >= @From AND pin.[PlanDate] <= @To
             ORDER BY pin.[PlanDate], pin.[Rank], pin.[Id];
             """;
@@ -270,10 +303,13 @@ public sealed class SqlPlannerService : IPlannerService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], pin.[UpdatedAt], pin.[RowVersion]
+                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt],
+                   pin.[UpdatedAt], pin.[RowVersion]
             FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Task] taskRow ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
-            INNER JOIN [productivity].[Project] projectRow ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
+            INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
+            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
             WHERE pin.[OwnerId] = @OwnerId AND pin.[Id] = @Id;
             """;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
@@ -289,10 +325,13 @@ public sealed class SqlPlannerService : IPlannerService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT TOP (1) pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], pin.[UpdatedAt], pin.[RowVersion]
+                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt],
+                   pin.[UpdatedAt], pin.[RowVersion]
             FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Task] taskRow ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
-            INNER JOIN [productivity].[Project] projectRow ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
+            INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
+            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
             WHERE pin.[OwnerId] = @OwnerId AND pin.[TaskId] = @TaskId AND pin.[PlanDate] = @PlanDate;
             """;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
@@ -308,17 +347,43 @@ public sealed class SqlPlannerService : IPlannerService
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT taskRow.[Id], taskRow.[Status], projectRow.[Status]
+            SELECT taskRow.[Id], taskRow.[Status], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt]
             FROM [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Project] projectRow ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = taskRow.[OwnerId]
+            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = taskRow.[OwnerId]
             WHERE taskRow.[OwnerId] = @OwnerId AND taskRow.[Id] = @TaskId;
             """;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@TaskId", SqlDbType.UniqueIdentifier, taskId);
         using var reader = command.ExecuteReader();
         return reader.Read()
-            ? new PlannerTask(reader.GetGuid(0), PlannerPolicy.IsActiveTask(reader.GetString(1), reader.GetString(2)))
+            ? new PlannerTask(reader.GetGuid(0), PlannerPolicy.IsActiveTask(reader.GetString(1), reader.GetString(2),
+                reader.IsDBNull(3), reader.IsDBNull(4)))
             : null;
+    }
+
+    private static bool TryReadOwnerLocalToday(SqlConnection connection, Guid ownerId, out DateOnly today)
+    {
+        today = default;
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                SELECT userRow.[TimeZoneId]
+                FROM [platform].[PersonalSpace] spaceRow
+                INNER JOIN [identity].[User] userRow ON userRow.[Id] = spaceRow.[UserId]
+                WHERE spaceRow.[Id] = @OwnerId
+                  AND spaceRow.[State] = 'Active'
+                  AND userRow.[State] = 'Active'
+                  AND userRow.[IsDeleted] = 0;
+                """;
+            Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+            var timeZoneId = Convert.ToString(command.ExecuteScalar());
+            if (!TryResolveZone(timeZoneId, out var zone) || zone is null) return false;
+            today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zone).DateTime);
+            return true;
+        }
+        catch (SqlException) { return false; }
     }
 
     private static decimal ReadNextRank(SqlConnection connection, SqlTransaction transaction, Guid ownerId, DateOnly planDate)
@@ -335,13 +400,26 @@ public sealed class SqlPlannerService : IPlannerService
         reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
         ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), DateOnly.FromDateTime(reader.GetDateTime(7)),
         reader.GetDecimal(8), reader.IsDBNull(9) ? null : reader.GetString(9),
-        PlannerPolicy.IsActiveTask(reader.GetString(3), reader.GetString(10)), ToOffset(reader.GetDateTime(11)),
-        EncodeETag(reader.GetFieldValue<byte[]>(12)));
+        PlannerPolicy.IsActiveTask(reader.GetString(3), reader.GetString(10), reader.IsDBNull(11), reader.IsDBNull(12)),
+        ToOffset(reader.GetDateTime(13)), EncodeETag(reader.GetFieldValue<byte[]>(14)));
 
     private static bool TryValidateNotes(string? value, out string? notes)
     {
         notes = PlannerPolicy.NormalizeNotes(value);
         return value is null || value.Length <= PlannerPolicy.MaximumNotesLength;
+    }
+
+    private static bool TryResolveZone(string? value, out TimeZoneInfo? zone)
+    {
+        zone = null;
+        if (string.IsNullOrWhiteSpace(value) || value.Trim().Length > 128) return false;
+        try
+        {
+            zone = TimeZoneInfo.FindSystemTimeZoneById(value.Trim());
+            return true;
+        }
+        catch (TimeZoneNotFoundException) { return false; }
+        catch (InvalidTimeZoneException) { return false; }
     }
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,

@@ -1,6 +1,6 @@
 # FX-15 — Planner: actions
 
-Catalog v1 · 2026-09-07. The 2026-09-11 local slice binds `planner.plan.read`, `pin`, `unpin`, `reorder`, `reschedule` and `notes` to `SqlPlannerService` and `/api/v1/planner*`; the support row remains unimplemented. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07. The 2026-09-11 local slice binds `planner.plan.read`, `pin`, `unpin`, `reorder`, `reschedule` and `notes` to `SqlPlannerService` and `/api/v1/planner*`; the 2026-09-12 hardening adds owner-local default dates, source lifecycle locking, action-specific grants, actor attribution and same-owner SQL composite constraints. The support row remains unimplemented. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 

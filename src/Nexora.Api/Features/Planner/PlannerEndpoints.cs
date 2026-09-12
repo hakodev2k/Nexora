@@ -14,11 +14,9 @@ public static class PlannerEndpoints
 
         api.MapGet("/planner", (HttpContext context, DateOnly? from, DateOnly? to, IPlannerService service,
             IIdentityService identity, SessionCookieService cookies) =>
-        {
-            var defaultDay = DateOnly.FromDateTime(DateTime.UtcNow);
-            return MapPlan(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, from ?? defaultDay, to ?? from ?? defaultDay));
-        }).WithName("listPlanner");
+            MapPlan(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.List(principal, from, to)))
+            .WithName("listPlanner");
 
         api.MapPost("/planner/pins", (HttpContext context, PlannerPinRequest request, IPlannerService service,
             IIdentityService identity, SessionCookieService cookies) =>

@@ -39,6 +39,31 @@ cleanup contract, and all three lack SQL/browser isolation evidence. Q-02
 emergency access is still an explicit `DecisionBlocked` response until duration
 and recent-auth contracts are approved.
 
+## 2026-09-12 FX15/FX17 hardening update
+
+This code-only continuation keeps the bounded local Planner and Habits slices
+and adds forward-only migration `20260912_0024_planner_habits_owner_integrity.sql`.
+The migration fails closed on legacy owner mismatches, adds same-owner composite
+foreign keys for Task/Project, PlannerPin, HabitSchedule and HabitCheckIn, and
+adds nullable actor-attribution columns for new Planner/schedule/check-in writes.
+
+Planner now resolves an omitted date range from the owner's active profile
+timezone, locks the source Task/Project rows during mutations, treats deleted
+sources as unavailable/readonly, applies the capability for the exact update
+action and verifies every reorder row update. Habits retain effective local-date
+semantics while using a stable check-in idempotency operation, owner-safe literal
+search patterns, schedule/lifecycle row checks and actor attribution. The React
+screens use owner-timezone date inputs and UTC date-only arithmetic so DST does
+not change a displayed planning range or check-in date; transient check-in
+retries retain their idempotency key until the command succeeds or conflicts.
+
+This update does not add tests, fixtures, demo data, provider calls or production
+configuration. SQL migration/replay, readiness, API/browser owner-isolation,
+timezone/DST, idempotency/retry and independent security review remain `Not run`.
+FX15 and FX17 are locally usable source slices, but their runtime evidence is
+still incomplete and their support, Trash/purge, social/team and provider
+behaviors remain unavailable.
+
 ## Implemented in this revision
 
 - SQL-backed Identity service composition: registration, hashed email-verification/reset tokens, local-safe delivery boundary (without token logging), login/logout, HttpOnly session cookie authority, reauthentication, profile `ETag`/`If-Match`, session revocation, PersonalSpace provisioning, module grants, audit/outbox/notification intent and one-time SuperAdmin bootstrap utility.
@@ -58,8 +83,8 @@ and recent-auth contracts are approved.
 - Local FX32 Developer Toolbox pure slice: SQL-gated catalog plus bounded in-memory Base64, URL, HTML entity, hash, UUID, password, JSON and regex operations. The React shell exposes `/developer/tools`; no input/output persistence, code execution, clipboard auto-read, network calls, history or provider behavior is enabled.
 - SQL-backed FX16 numeric Goals slice: owner-scoped Goal/GoalTarget/GoalProgress tables, bounded Goal CRUD, numeric progress events and explicit Draft/Active/Completed/Abandoned transitions. The React shell exposes `/goals`; task-linked/boolean targets, archive/trash/history, reminders and provider behavior remain gated.
 - SQL-backed FX14 local reminder slice: one owner-scoped current configuration per active Task or manual Calendar Event, `None`/`BeforeStart15m`/future `Exact` validation, ETag/If-Match plus idempotency, source-revision and lifecycle recheck, durable schedule/invalidation outbox rows and audit. `ReminderDispatchWorker` creates a deduplicated local inbox projection only; it never executes email/push providers.
-- SQL-backed FX15 Planner slice: owner-scoped `PlannerPin` records reference existing active Tasks by local plan date only. Day/Week planning, pin/unpin, move, keyboard-accessible reorder and notes use source capability/lifecycle rechecks, ETag/If-Match, idempotency and audit. Planner never changes Task status/times/reminders, duplicates a Task, creates an Event, auto-carries work, or exposes a separate share projection.
-- SQL-backed FX17 Habits slice: owner-scoped Boolean/Count Habits with IANA timezone, effective-dated weekday/target schedules, Active/Paused/Archived lifecycle, and unique local-date check-ins. Initial schedules may begin on the current local date; later schedule changes begin after it and preserve previous schedule rows. Streaks ignore unscheduled/paused dates and stop at missed scheduled target days. Local reminder-time metadata is stored without FX14/provider dispatch; no social/team, Calendar, Trash/purge or external behavior is enabled.
+- SQL-backed FX15 Planner slice: owner-scoped `PlannerPin` records reference existing active Tasks by local plan date only. Day/Week planning, pin/unpin, move, keyboard-accessible reorder and notes use owner-local date defaults, source capability/lifecycle rechecks, same-owner SQL constraints, ETag/If-Match, idempotency and audit. Planner never changes Task status/times/reminders, duplicates a Task, creates an Event, auto-carries work, or exposes a separate share projection.
+- SQL-backed FX17 Habits slice: owner-scoped Boolean/Count Habits with IANA timezone, effective-dated weekday/target schedules, Active/Paused/Archived lifecycle, unique local-date check-ins and same-owner schedule/check-in constraints. Initial schedules may begin on the current local date; later schedule changes begin after it and preserve previous schedule rows. Streaks ignore unscheduled/paused dates and stop at missed scheduled target days. Local reminder-time metadata is stored without FX14/provider dispatch; check-in retries are idempotent and lifecycle changes retain actor metadata. No social/team, Calendar, Trash/purge or external behavior is enabled.
 - Productivity contract-alignment continuation: Projects enforce the Title compatibility mapping, required bounded Description, A–Z list order, bounds confirmation and terminal read-only rules; Tasks enforce Title/Project/lifecycle bounds, expose server-derived Overdue, and maintain a one-way Task → Calendar projection keyed by owner/task; Calendar exposes Day default plus Week/Month/Agenda selectors and rejects direct mutation of Task projections. Migrations `20260910_0019_productivity_contract_alignment.sql` and `20260910_0020_task_calendar_projection.sql` are required for this source slice.
 - SQL-backed FX26-S01 Dashboard attention slice: owner-scoped due/overdue Tasks, today's Calendar Events, recent Draft/Published Documents and unread Notifications are projected through independent Ready/Empty/Unavailable/Degraded widgets. The React Home dashboard consumes `GET /api/v1/dashboard`; layout persistence, widget mutation, quick-create and provider widgets remain gated.
 - SQL-backed FX25-S01 Global Search slice: bounded owner-scoped source queries across Projects, Tasks, Calendar Events, Documents, Bookmarks, Snippets and Goals with type/date/archive filters, deterministic ranking, safe previews and per-source capability/degraded states. The React shell exposes `/search`; saved searches, Recents, Command Palette and persisted index remain gated.
@@ -76,14 +101,14 @@ and a source implementation is not SQL/runtime verification.
 | --- | --- | --- |
 | Documented R1 catalog | FX01–FX40 | The product catalog remains represented in SQL for policy/dependency traceability. |
 | Locally implemented | FX01, FX02, FX03, FX04, FX05, FX06, FX07, FX08, FX09, FX11, FX12, FX13, FX14, FX15, FX16, FX17, FX20, FX21, FX22, FX23, FX24, FX25, FX26, FX27, FX32 | Source, SQL, authorization and local UI slices exist; this code-only run does not claim SQL runtime verification. FX04/05/07 are bounded source slices and remain catalog-gated because their approved runtime contract/evidence is incomplete. |
-| Runtime-available after the catalog gate | The locally implemented list above excluding FX04, FX05 and FX07 | Effective SQL state is `Ready`, `SystemEnabled=1`, `RegistrationEnabled=1`; migration `0023` promotes FX15 and FX17 (and preserves FX14) for the local runtime only. |
+| Runtime-available after the catalog gate | The locally implemented list above excluding FX04, FX05 and FX07 | Effective SQL state is `Ready`, `SystemEnabled=1`, `RegistrationEnabled=1`; migration `0024` preserves the FX15/FX17 local enablement from `0023` (and FX14) for the local runtime only. |
 | Source implemented but catalog-gated | FX04, FX05, FX07 | Source/route/UI coverage exists, but effective state remains `Blocked`, system-disabled and registration-disabled; navigation intentionally exposes no usable module until an approved gate change. |
 | Deliberately unimplemented | FX10, FX18, FX19, FX28, FX29, FX31, FX33, FX36, FX37, FX38, FX39, FX40 | Effective state is `Blocked`, system disabled and registration disabled; no source slice is claimed. FX10 remains blocked by the Vault/key and backup/RPO/RTO decision gates. |
 | Provider/production gated | FX30, FX34, FX35 | Effective state is `Paused`, system disabled and registration disabled. No real provider, production, secret or paid-service execution is enabled. |
 
 `/health/live` checks only process liveness. `/health/ready` returns `503`
 unless SQL opens, the migration journal exists, every required migration through
-`0023` is applied, and the bootstrap/security invariant is valid. Its response
+`0024` is applied, and the bootstrap/security invariant is valid. Its response
 contains only coarse dependency states. The API also fails fast unless
 `NEXORA_IDEMPOTENCY_SECRET` is supplied separately from the SQL connection
 string/password.
@@ -105,20 +130,22 @@ Production deployment, public launch, real secrets/provider calls, real OAuth/pa
 
 The current instruction remains code-only: no new tests, fixtures, demo records
 or provider/runtime data were added. Earlier CI/build claims below are
-historical evidence for the earlier source snapshot. Current-continuation
-evidence consists only of commands that actually ran in this environment:
+historical evidence for the earlier source snapshot. Evidence for the
+2026-09-12 continuation is recorded separately and only lists commands that
+actually ran in this environment.
 
-- `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Blocked** on the current source: the environment has no `dotnet` executable (`/bin/bash: dotnet: command not found`).
-- `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Blocked** on the current source for the same missing-tool reason.
-- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Blocked** for the same missing-tool reason.
-- `npm ci --prefix web/Nexora.Web --ignore-scripts` — **Pass** for the current continuation.
-- `npm run build --prefix web/Nexora.Web` — **Pass**: TypeScript and Vite production bundle completed for the current continuation.
-- `python3 .ai/scripts/verify-baseline.py` — **Pass**: baseline package and 15 gate tests; application tests were not run.
-- `python3 scripts/dev/verify-s00.py` — **Pass**: source, migration-runner and
-  no-bypass structural checks.
-- `git diff --check` — **Pass** for the current continuation.
+### 2026-09-12 evidence
 
-Historical snapshot evidence:
+- `npm ci --prefix web/Nexora.Web --ignore-scripts` — **Pass**; the first sandbox attempt hit npm-cache `EPERM`, then the authorized retry completed.
+- `npm run build --prefix web/Nexora.Web` — **Pass**; TypeScript and Vite production bundle completed.
+- `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings and 0 errors; restore required authorized access to the local NuGet config.
+- `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings and 0 errors.
+- `dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release` — **Pass**, existing executable ran 24 tests with 0 failures; no tests were added.
+- `git diff --check` — **Pass**.
+- `python3 scripts/dev/verify-s00.py` — **Not run**; the exact command failed before execution because Python is not installed or available on PATH in this Windows environment. No equivalent interpreter was available.
+- `scripts/dev/migrate.ps1` — **Blocked before database access**; local SQLEXPRESS service discovery succeeded, but the repository runner requires explicit `NEXORA_SQL_PASSWORD` and no credential was configured.
+
+2026-09-11 prior continuation evidence:
 
 - `dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (local run; restore required elevated local NuGet-config access; CI repeated it).
 - `dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release` — **Pass**, 0 warnings, 0 errors (local run; CI repeated it).
@@ -129,11 +156,12 @@ Historical snapshot evidence:
 - `bash scripts/dev/verify.sh` — **Not run**: the Windows environment denied WSL/Bash instance creation (`E_ACCESSDENIED`) before the script executed.
 
 The prior workflow `34508111597` / run `149` is **Pass** (`success`) for the
-earlier source snapshot; it does not verify this continuation. The current
-environment has no SQL runtime/connection, so SQL migration execution, readiness,
-storage/scan, sharing/support authorization, browser/E2E, manual QA and
-independent security review are **Not run**. `bash scripts/dev/verify.sh`,
-`scripts/dev/migrate.*` and application unit tests were not rerun in this
-environment. The manual flow is
+earlier source snapshot; it does not verify this continuation. A local SQL
+Server service was found, but SQL migration execution and readiness were not
+run because no approved connection credential was configured. Storage/scan,
+sharing/support authorization, browser/E2E, manual QA, DST/isolation journeys,
+and independent security review are **Not run**. `bash scripts/dev/verify.sh`
+was not run because the local environment is Windows and no Bash/WSL execution
+was available. The manual flow is
 documented in `pr4-review-qa-script.md` for the human owner.
 

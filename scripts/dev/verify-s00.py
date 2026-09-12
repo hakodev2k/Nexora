@@ -152,6 +152,7 @@ REQUIRED_FILES = [
     "database/migrations/20260911_0021_core_sharing_support_files.sql",
     "database/migrations/20260911_0022_reminders_scheduling.sql",
     "database/migrations/20260911_0023_planner_habits.sql",
+    "database/migrations/20260912_0024_planner_habits_owner_integrity.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -420,13 +421,17 @@ def main() -> int:
     for marker in ("[productivity].[PlannerPin]", "[productivity].[Habit]", "[productivity].[HabitSchedule]", "[productivity].[HabitCheckIn]", "TR_HabitSchedule_NoOverlap"):
         if marker not in migration23:
             fail(f"planner/habits migration marker missing: {marker}")
+    migration24 = read("database/migrations/20260912_0024_planner_habits_owner_integrity.sql")
+    for marker in ("FK_Task_Project_Owner", "FK_PlannerPin_Task_Owner", "FK_HabitCheckIn_Schedule_Habit_Owner", "CreatedByUserId"):
+        if marker not in migration24:
+            fail(f"planner/habits owner-integrity migration marker missing: {marker}")
 
     migration_runner = read("src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs")
     for marker in ("NexoraMigration", "ContentHash", "sp_getapplock", 'Directory.GetFiles(directory, "*.sql")'):
         if marker not in migration_runner:
             fail(f"journaled migration runner marker missing: {marker}")
     readiness = read("src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs")
-    for migration_name in ("20260911_0021_core_sharing_support_files.sql", "20260911_0022_reminders_scheduling.sql", "20260911_0023_planner_habits.sql"):
+    for migration_name in ("20260911_0021_core_sharing_support_files.sql", "20260911_0022_reminders_scheduling.sql", "20260911_0023_planner_habits.sql", "20260912_0024_planner_habits_owner_integrity.sql"):
         if migration_name not in readiness:
             fail(f"readiness probe must require {migration_name}")
     for script_name in ("scripts/dev/migrate.sh", "scripts/dev/migrate.ps1"):

@@ -13,11 +13,19 @@ public static class HabitStates
     public const string Archived = "Archived";
 }
 
+public static class HabitReceiptOperations
+{
+    // Record and correction are one logical command for idempotency. The
+    // persisted check-in state must not change the receipt namespace on retry.
+    public const string CheckIn = "habits.checkin";
+}
+
 public static class HabitPolicy
 {
     public const int MaximumTitleLength = 100;
     public const int MaximumUnitLength = 50;
     public const int MaximumCheckInNoteLength = 1000;
+    public const int MaximumSearchPatternLength = MaximumTitleLength * 2 + 2;
 
     public static bool IsValidWeekdayMask(byte value) => value is >= 1 and <= 127;
 
