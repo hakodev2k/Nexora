@@ -1,0 +1,249 @@
+using System.Text.Json.Serialization;
+using Microsoft.Data.SqlClient;
+using Nexora.Api.Features.Access;
+using Nexora.Api.Features.Identity;
+using Nexora.Api.Features.Modules;
+using Nexora.Api.Features.Notifications;
+using Nexora.Api.Features.Documents;
+using Nexora.Api.Features.Finance;
+using Nexora.Api.Features.Bookmarks;
+using Nexora.Api.Features.Snippets;
+using Nexora.Api.Features.Reading;
+using Nexora.Api.Features.Organization;
+using Nexora.Api.Features.DeveloperTools;
+using Nexora.Api.Features.Goals;
+using Nexora.Api.Features.Dashboard;
+using Nexora.Api.Features.Discovery;
+using Nexora.Api.Features.Productivity;
+using Nexora.Api.Features.Reminders;
+using Nexora.Api.Features.Planner;
+using Nexora.Api.Features.Habits;
+using Nexora.Api.Features.Settings;
+using Nexora.Api.Features.Trash;
+using Nexora.Api.Features.Sharing;
+using Nexora.Api.Features.Support;
+using Nexora.Api.Features.Files;
+using Nexora.Api.Security;
+using Nexora.Application.Identity;
+using Nexora.Application.Access;
+using Nexora.Application.Modules;
+using Nexora.Application.Productivity;
+using Nexora.Application.Reminders;
+using Nexora.Application.Planner;
+using Nexora.Application.Habits;
+using Nexora.Application.Notifications;
+using Nexora.Application.Documents;
+using Nexora.Application.Settings;
+using Nexora.Application.Trash;
+using Nexora.Application.Sharing;
+using Nexora.Application.Support;
+using Nexora.Application.Files;
+using Nexora.Application.Finance;
+using Nexora.Application.Bookmarks;
+using Nexora.Application.Snippets;
+using Nexora.Application.Reading;
+using Nexora.Application.Organization;
+using Nexora.Application.DeveloperTools;
+using Nexora.Application.Goals;
+using Nexora.Application.Dashboard;
+using Nexora.Application.Discovery;
+using Nexora.Infrastructure.Identity;
+using Nexora.Infrastructure.Access;
+using Nexora.Infrastructure.Local;
+using Nexora.Infrastructure.Modules;
+using Nexora.Infrastructure.Persistence;
+using Nexora.Infrastructure.Productivity;
+using Nexora.Infrastructure.Reminders;
+using Nexora.Infrastructure.Planner;
+using Nexora.Infrastructure.Habits;
+using Nexora.Infrastructure.Notifications;
+using Nexora.Infrastructure.Documents;
+using Nexora.Infrastructure.Settings;
+using Nexora.Infrastructure.Trash;
+using Nexora.Infrastructure.Finance;
+using Nexora.Infrastructure.Bookmarks;
+using Nexora.Infrastructure.Snippets;
+using Nexora.Infrastructure.Reading;
+using Nexora.Infrastructure.Organization;
+using Nexora.Infrastructure.DeveloperTools;
+using Nexora.Infrastructure.Goals;
+using Nexora.Infrastructure.Dashboard;
+using Nexora.Infrastructure.Discovery;
+using Nexora.Infrastructure.Sharing;
+using Nexora.Infrastructure.Support;
+using Nexora.Infrastructure.Files;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
+});
+
+builder.Services.AddSingleton<CsrfTokenService>();
+builder.Services.AddSingleton<SessionCookieService>();
+var configuredSqlConnectionString = builder.Configuration.GetConnectionString("NexoraSql")
+    ?? throw new InvalidOperationException("ConnectionStrings:NexoraSql is required.");
+var sqlConnectionString = Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING");
+if (string.IsNullOrWhiteSpace(sqlConnectionString))
+{
+    var sqlPassword = Environment.GetEnvironmentVariable("NEXORA_SQL_PASSWORD");
+    if (string.IsNullOrEmpty(sqlPassword))
+    {
+        throw new InvalidOperationException("NEXORA_SQL_PASSWORD or NEXORA_SQL_CONNECTION_STRING must be supplied; no default database credential is permitted.");
+    }
+
+    var connectionBuilder = new SqlConnectionStringBuilder(configuredSqlConnectionString)
+    {
+        Password = sqlPassword
+    };
+    sqlConnectionString = connectionBuilder.ConnectionString;
+}
+var resolvedSqlConnectionString = sqlConnectionString ?? throw new InvalidOperationException("SQL connection string could not be resolved.");
+try
+{
+    // The current executable is a local-only surface. Never let a caller point
+    // this build at a non-loopback or non-development database by overriding env.
+    resolvedSqlConnectionString = LocalSqlTarget.Validate(
+        resolvedSqlConnectionString,
+        Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "Development");
+}
+catch (ArgumentException)
+{
+    throw new InvalidOperationException("Only a loopback SQL Server development target is allowed.");
+}
+catch (InvalidOperationException)
+{
+    throw new InvalidOperationException("Only a loopback SQL Server development target is allowed.");
+}
+var idempotencySecret = Environment.GetEnvironmentVariable("NEXORA_IDEMPOTENCY_SECRET");
+if (string.IsNullOrWhiteSpace(idempotencySecret))
+{
+    throw new InvalidOperationException("NEXORA_IDEMPOTENCY_SECRET is required; it must not be derived from the SQL connection string.");
+}
+builder.Services.AddSingleton(new SqlConnectionFactory(resolvedSqlConnectionString));
+builder.Services.AddSingleton<SqlReadinessProbe>();
+builder.Services.AddSingleton<IAccountMessageSink, LocalAccountMessageSink>();
+builder.Services.AddSingleton<IIdentityService>(services =>
+    new SqlIdentityService(services.GetRequiredService<SqlConnectionFactory>(),
+        services.GetRequiredService<IAccountMessageSink>(), idempotencySecret));
+builder.Services.AddSingleton<IModulePolicyService>(services =>
+    new SqlModulePolicyService(
+        services.GetRequiredService<SqlConnectionFactory>(),
+        builder.Configuration["Nexora:ModulePreviewSecret"] ?? Environment.GetEnvironmentVariable("NEXORA_MODULE_PREVIEW_SECRET"),
+        idempotencySecret));
+builder.Services.AddSingleton<IProductivityService>(services =>
+    new SqlProductivityService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<SqlReminderService>(services =>
+    new SqlReminderService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IReminderService>(services => services.GetRequiredService<SqlReminderService>());
+builder.Services.AddSingleton<IReminderDispatchService>(services => services.GetRequiredService<SqlReminderService>());
+builder.Services.AddHostedService<ReminderDispatchWorker>();
+builder.Services.AddSingleton<IPlannerService>(services =>
+    new SqlPlannerService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IHabitService>(services =>
+    new SqlHabitService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IAdminAccessService>(services =>
+    new SqlAdminAccessService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<INotificationService>(services =>
+    new SqlNotificationService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ITrashService>(services =>
+    new SqlTrashService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISettingsService>(services =>
+    new SqlSettingsService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IDocumentService>(services =>
+    new SqlDocumentService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IFinanceService>(services =>
+    new SqlFinanceService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IBookmarkService>(services =>
+    new SqlBookmarkService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISnippetService>(services =>
+    new SqlSnippetService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IReadingService>(services =>
+    new SqlReadingService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ITagService>(services =>
+    new SqlTagService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IToolboxService>(services =>
+    new LocalToolboxService(services.GetRequiredService<SqlConnectionFactory>()));
+builder.Services.AddSingleton<IGoalService>(services =>
+    new SqlGoalService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IDashboardService>(services =>
+    new SqlDashboardService(services.GetRequiredService<SqlConnectionFactory>()));
+builder.Services.AddSingleton<ISearchService>(services =>
+    new SqlSearchService(services.GetRequiredService<SqlConnectionFactory>()));
+builder.Services.AddSingleton<IFavoriteService>(services =>
+    new SqlFavoriteService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISharingService>(services =>
+    new SqlSharingService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISupportService>(services =>
+    new SqlSupportService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IFileService>(services =>
+    new SqlFileService(
+        services.GetRequiredService<SqlConnectionFactory>(),
+        builder.Configuration["Nexora:FileStorageRoot"]
+            ?? Environment.GetEnvironmentVariable("NEXORA_FILE_STORAGE_ROOT")
+            ?? Path.Combine(AppContext.BaseDirectory, "file-storage"),
+        idempotencySecret));
+builder.Services.Configure<RouteOptions>(options =>
+{
+    options.LowercaseUrls = true;
+    options.LowercaseQueryStrings = false;
+});
+
+var app = builder.Build();
+
+app.UseSecurityHeaders();
+
+app.MapGet("/health/live", () => Results.Ok(new HealthEnvelope("Live", "Nexora.Api")))
+    .WithName("liveHealth");
+
+app.MapGet("/health/ready", async (SqlReadinessProbe readiness, CancellationToken cancellationToken) =>
+{
+    var result = await readiness.CheckAsync(cancellationToken);
+    var status = result.Ready ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable;
+    return Results.Json(new ReadinessEnvelope(result.Status, "Nexora.Api", result.Dependencies), statusCode: status);
+})
+    .WithName("readyHealth");
+
+app.MapIdentityEndpoints();
+app.MapModuleEndpoints();
+app.MapAdminAccessEndpoints();
+app.MapNotificationEndpoints();
+app.MapTrashEndpoints();
+app.MapSettingsEndpoints();
+app.MapDocumentEndpoints();
+app.MapProductivityEndpoints();
+app.MapReminderEndpoints();
+app.MapPlannerEndpoints();
+app.MapHabitEndpoints();
+app.MapFinanceEndpoints();
+app.MapBookmarkEndpoints();
+app.MapSnippetEndpoints();
+app.MapReadingEndpoints();
+app.MapOrganizationEndpoints();
+app.MapDeveloperToolsEndpoints();
+app.MapGoalsEndpoints();
+app.MapDashboardEndpoints();
+app.MapSearchEndpoints();
+app.MapFavoriteEndpoints();
+app.MapSharingEndpoints();
+app.MapSupportEndpoints();
+app.MapFileEndpoints();
+
+app.MapFallback(() => Results.Problem(
+    title: "Resource unavailable",
+    detail: "The requested Nexora endpoint is not implemented in the current approved slice.",
+    statusCode: StatusCodes.Status404NotFound,
+    type: "/problems/ResourceUnavailable",
+    extensions: new Dictionary<string, object?> { ["code"] = "ResourceUnavailable" }));
+
+app.Run();
+
+public partial class Program;
+
+internal sealed record HealthEnvelope(string Status, string Service);
+
+internal sealed record ReadinessEnvelope(
+    string Status,
+    string Service,
+    IReadOnlyDictionary<string, string> Dependencies);

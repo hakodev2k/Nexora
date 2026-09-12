@@ -1,6 +1,14 @@
 # FX-26 — Dashboard — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · FX26-S01 read-only attention projection is implemented locally on PR #4; layout/configuration remains documentation-only.
+
+## Current PR #4 UX overlay
+
+The Home dashboard renders four source-owned widgets from `getDashboard`:
+Tasks due/overdue, Calendar today, Recent documents and Unread notifications.
+Each widget has independent loading, empty, unavailable and degraded states;
+the response is safe title/status/time data only. Dashboard configuration,
+reorder, provider widgets and quick-create remain gated.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
 

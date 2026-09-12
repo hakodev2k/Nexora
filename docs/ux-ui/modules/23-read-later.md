@@ -1,12 +1,16 @@
 # FX-23 — Read Later — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Bookmark-reference local UI is implemented on PR #4; reader/body/News surfaces remain contract-gated.
 
-Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
+Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. `/read-later` is an implemented local queue route; other route strings remain navigation proposals, not existing endpoints.
 
 ## 1. Scope
 
 One reading queue over Bookmark/News sources, with safe fallback and no duplicate owned body.
+
+### Local slice boundary (PR #4)
+
+The current screen implements FX23-S01 and the unavailable-source portion of FX23-S03 for Bookmark references. It provides a Bookmark picker, state filter, mark read/unread, explicit position metadata and remove. It renders only safe title/URL snapshots; it does not render a reader body, open external URLs, fetch News or infer reading percentages.
 
 ## 2. Requirement sources
 

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "nexora.application": {
+        "type": "Project",
+        "dependencies": {
+          "Nexora.Domain": "[1.0.0, )"
+        }
+      },
+      "nexora.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}

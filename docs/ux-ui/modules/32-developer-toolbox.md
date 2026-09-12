@@ -2,7 +2,7 @@
 
 > **Current decision amendment — 2026-09-07:** Local pure tools remain current; network tools paused/unavailable under integration boundary, no external navigation. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review 2026-09-10 · FX32-S01/S02 pure local subset implemented on PR #4; advanced/network surfaces remain documentation-only.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
 

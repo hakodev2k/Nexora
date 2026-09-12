@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Nexora.Application\Nexora.Application.csproj" />
+    <ProjectReference Include="..\Nexora.Domain\Nexora.Domain.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Nexora.Infrastructure</RootNamespace>
+    <AssemblyName>Nexora.Infrastructure</AssemblyName>
+  </PropertyGroup>
+</Project>

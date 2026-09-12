@@ -15,7 +15,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 
 | Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="dashboard-dashboard-read"></a>`dashboard.dashboard.read` — Xem Dashboard | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX26-S01 |
+| <a id="dashboard-dashboard-read"></a>`dashboard.dashboard.read` — Xem Dashboard | QUERY / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — owner-scoped attention projection; runtime not run | FX26-S01 |
 | <a id="dashboard-layout-update"></a>`dashboard.layout.update` — Lưu layout | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX26-S02 |
 | <a id="dashboard-layout-add-widget"></a>`dashboard.layout.add_widget` — Thêm widget | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX26-S02 |
 | <a id="dashboard-layout-configure-widget"></a>`dashboard.layout.configure_widget` — Cấu hình widget | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX26-S02 |

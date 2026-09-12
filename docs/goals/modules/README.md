@@ -1,6 +1,6 @@
 # Goals theo 40 module/capability
 
-Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext riêng. Đọc [quy tắc chung](../README.md) trước từng file. Các goal đều mới **Specified**, chưa có implementation/runtime evidence.
+Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext riêng. Đọc [quy tắc chung](../README.md) trước từng file. Các goal vẫn là **Specified** trừ những slice được ghi rõ `SLICE_IMPLEMENTED (local)`; implementation không đồng nghĩa runtime evidence.
 
 | FX | Module goals | Product phase | Delivery | Gate riêng |
 | --- | --- | --- | --- | --- |
@@ -19,23 +19,23 @@ Mỗi FX là một phạm vi logic, không bắt buộc một assembly/DbContext
 | FX-13 | [Calendar, Personal Events và ICS](13-calendar.md) | P02 | RM08 | Current action/story gates |
 | FX-14 | [Reminders và Due Scheduling](14-reminders-and-scheduling.md) | P02 | RM08 | Xem file: partial gates |
 | FX-15 | [Daily và Weekly Planner](15-planner.md) | P02 | RM10 | Current action/story gates |
-| FX-16 | [Goals và Targets](16-goals.md) | P02 | RM10 | Xem file: partial gates |
+| FX-16 | [Goals và Targets](16-goals.md) | P02 | RM10 | Numeric Goal slice implemented locally; advanced targets remain gated |
 | FX-17 | [Habit Tracker](17-habits.md) | P02 | RM10 | Current action/story gates |
 | FX-18 | [Time Tracking](18-time-tracking.md) | P02 | RM10 | Current action/story gates |
 | FX-19 | [Pomodoro và Focus](19-pomodoro.md) | P02 | RM10 | Current action/story gates |
 | FX-20 | [Documents, Note và Knowledge Pages](20-documents.md) | P03 | RM09 | Current action/story gates |
-| FX-21 | [Bookmarks](21-bookmarks.md) | P03 | RM09 | Xem file: partial gates |
-| FX-22 | [Code Snippets](22-snippets.md) | P03 | RM09 | Current action/story gates |
-| FX-23 | [Read Later](23-read-later.md) | P03 | RM09 | Xem file: partial gates |
-| FX-24 | [Tags, Collections và Templates](24-organization-and-templates.md) | P03 | RM09 | Xem file: partial gates |
-| FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | P03 | RM11 | Current action/story gates |
-| FX-26 | [Dashboard và Widgets](26-dashboard.md) | P03 | RM11 | Current action/story gates |
+| FX-21 | [Bookmarks](21-bookmarks.md) | P03 | RM09 | Manual metadata slice implemented; advanced gates remain |
+| FX-22 | [Code Snippets](22-snippets.md) | P03 | RM09 | Text/version slice implemented; advanced gates remain |
+| FX-23 | [Read Later](23-read-later.md) | P03 | RM09 | Bookmark-reference slice implemented; News/body reader and advanced gates remain |
+| FX-24 | [Tags, Collections và Templates](24-organization-and-templates.md) | P03 | RM09 | Tag catalog slice implemented; assignment/collections/templates remain gated |
+| FX-25 | [Search, Saved Search, Favorites và Command Palette](25-search-favorites-and-command-palette.md) | P03 | RM11 | FX25-S01 Search + FX25-S03 Favorites implemented locally; Recents/Saved/Command gated |
+| FX-26 | [Dashboard và Widgets](26-dashboard.md) | P03 | RM11 | FX26-S01 attention slice implemented locally; remaining actions gated |
 | FX-27 | [Finance — current basic manual records](27-finance.md) | P04 | RM12 | Xem file: partial gates |
 | FX-28 | [Vault](28-vault.md) | P04 | RM12 | Xem file: partial gates |
 | FX-29 | [News, RSS và Topic Watch](29-news-and-feeds.md) | P05 | RM13 | Xem file: partial gates |
 | FX-30 | [Shopee Price Tracking](30-shopee-price-tracking.md) | P05 | RM13 | Paused Q-06 |
 | FX-31 | [Wishlist, Comparison, Orders, Sellers và Warranty](31-shopping-records.md) | P05 | RM13 | Xem file: partial gates |
-| FX-32 | [Developer Toolbox](32-developer-toolbox.md) | P06 | RM14 | Xem file: partial gates |
+| FX-32 | [Developer Toolbox](32-developer-toolbox.md) | P06 | RM14 | Pure local toolbox subset implemented; network/history/advanced tools gated |
 | FX-33 | [GitHub Discovery](33-github-discovery.md) | P06 | RM14 | Xem file: partial gates |
 | FX-34 | [Automation, Scheduler và Workflows](34-automation-and-scheduler.md) | P06 | RM14 | Paused Q-07 |
 | FX-35 | [Integrations, Webhooks và n8n](35-integrations-webhooks-and-n8n.md) | P06 | RM14 | Paused Q-07 |

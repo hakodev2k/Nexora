@@ -74,10 +74,10 @@
 | FX15-S01 | Daily planner | `/planner?view=day` | Current / per-action gate |
 | FX15-S02 | Weekly planner | `/planner?view=week` | Current / per-action gate |
 | FX15-S03 | Plan Task picker | `/planner/add` | Current / per-action gate |
-| FX16-S01 | Goal list | `/goals` | Current / per-action gate |
-| FX16-S02 | Goal create / edit | `/goals/new; /goals/:goalId/edit` | Current / per-action gate |
-| FX16-S03 | Goal detail | `/goals/:goalId` | Current / per-action gate |
-| FX16-S04 | Progress update | `/goals/:goalId/progress` | Current / per-action gate |
+| FX16-S01 | Goal list | `/goals` | Local numeric slice / per-action gate |
+| FX16-S02 | Goal create / edit | `/goals/new; /goals/:goalId/edit` | Local numeric slice / per-action gate |
+| FX16-S03 | Goal detail | `/goals/:goalId` | Local numeric slice / per-action gate |
+| FX16-S04 | Progress update | `/goals/:goalId/progress` | Local numeric slice / per-action gate |
 | FX17-S01 | Today habits | `/habits/today` | Current / per-action gate |
 | FX17-S02 | Habit library | `/habits` | Current / per-action gate |
 | FX17-S03 | Habit form | `/habits/new; /habits/:habitId/edit` | Current / per-action gate |
@@ -106,19 +106,19 @@
 | FX22-S01 | Snippet list | `/snippets` | Current / per-action gate |
 | FX22-S02 | Snippet editor | `/snippets/new; /snippets/:snippetId/edit` | Current / per-action gate |
 | FX22-S03 | Snippet detail / history | `/snippets/:snippetId; /snippets/:snippetId/history` | Current / per-action gate |
-| FX23-S01 | Reading queue | `/read-later` | Current / per-action gate |
-| FX23-S02 | Reader | `/read-later/:itemId` | Current / per-action gate |
-| FX23-S03 | Unavailable reading sources | `/read-later?availability=unavailable` | Current / per-action gate |
-| FX24-S01 | Tag management | `/organize/tags?namespace=:namespace` | Current / per-action gate |
+| FX23-S01 | Reading queue | `/read-later` | Local Bookmark-reference slice / per-action gate |
+| FX23-S02 | Reader | `/read-later/:itemId` | Contract-gated; body reader not implemented |
+| FX23-S03 | Unavailable reading sources | `/read-later?availability=unavailable` | Local safe snapshot projection / per-action gate |
+| FX24-S01 | Tag management | `/organize/tags?namespace=:namespace` | Local Tag catalog slice / per-action gate |
 | FX24-S02 | Collections | `/organize/collections` | Current / per-action gate |
 | FX24-S03 | Collection detail | `/organize/collections/:collectionId` | Current / per-action gate |
 | FX24-S04 | Templates | `/organize/templates` | Current / per-action gate |
 | FX24-S05 | Template preview / apply | `/organize/templates/:templateId` | Current / per-action gate |
-| FX25-S01 | Global Search | `/search` | Current / per-action gate |
+| FX25-S01 | Global Search | `/search` | Local source-query search / per-action gate |
 | FX25-S02 | Command palette | `/command-palette` | Current / per-action gate |
-| FX25-S03 | Favorites / recents | `/favorites; /recent` | Current / per-action gate |
+| FX25-S03 | Favorites / recents | `/favorites; /recent` | Local Favorites typed-reference slice; Recents gated / per-action gate |
 | FX25-S04 | Saved searches | `/search/saved` | Current / per-action gate |
-| FX26-S01 | Home dashboard | `/` | Current / per-action gate |
+| FX26-S01 | Home dashboard | `/` | Local attention projection / per-action gate |
 | FX26-S02 | Dashboard configuration | `/settings/dashboard` | Current / per-action gate |
 | FX27-S01 | Finance overview | `/finance` | Historical advanced scope / Blocked |
 | FX27-S02 | Accounts | `/finance/accounts` | Historical advanced scope / Blocked |
@@ -155,8 +155,8 @@
 | FX31-S05 | Sellers / merge | `/shopping/sellers; /shopping/sellers/:sellerId/merge` | Current / per-action gate |
 | FX31-S06 | Warranty detail / claims | `/shopping/warranties/:warrantyId` | Current / per-action gate |
 | FX31-S07 | Create Asset handoff | `/shopping/orders/:orderId/create-asset` | Current / per-action gate |
-| FX32-S01 | Tool catalog | `/developer/tools` | Current / per-action gate |
-| FX32-S02 | Tool workbench | `/developer/tools/:toolCode` | Current / per-action gate |
+| FX32-S01 | Tool catalog | `/developer/tools` | Local slice / per-action gate |
+| FX32-S02 | Tool workbench | `/developer/tools/:toolCode` | Local pure subset / per-action gate |
 | FX32-S03 | Tool history / favorites | `/developer/tools/saved` | Current / per-action gate |
 | FX32-S04 | Network request preview | `/developer/tools/:toolCode/network-preview` | Current / per-action gate |
 | FX33-S01 | Discovery feed | `/developer/github` | Current / per-action gate |
