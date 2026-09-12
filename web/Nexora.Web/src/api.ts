@@ -226,6 +226,76 @@ export type ReminderSourceView = {
   reminder: ReminderRecord | null;
 };
 
+export type PlannerPinRecord = {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  taskStatus: string;
+  projectName: string;
+  startAt: string;
+  endAt: string;
+  planDate: string;
+  rank: number;
+  notes: string | null;
+  sourceAvailable: boolean;
+  updatedAt: string;
+  etag: string;
+};
+
+export type PlannerPlan = {
+  from: string;
+  to: string;
+  pins: PlannerPinRecord[];
+  etag: string;
+};
+
+export type HabitScheduleRecord = {
+  id: string;
+  effectiveFrom: string;
+  effectiveUntil: string | null;
+  weekdayMask: number;
+  targetCount: number | null;
+  paused: boolean;
+  etag: string;
+};
+
+export type HabitCheckInRecord = {
+  id: string;
+  localDate: string;
+  count: number;
+  note: string | null;
+  scheduleId: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type HabitRecord = {
+  id: string;
+  title: string;
+  kind: 'Boolean' | 'Count' | string;
+  targetCount: number | null;
+  unit: string | null;
+  state: 'Active' | 'Paused' | 'Archived' | string;
+  timeZoneId: string;
+  reminderLocalTime: string | null;
+  currentSchedule: HabitScheduleRecord | null;
+  currentStreak: number;
+  createdAt: string;
+  updatedAt: string;
+  etag: string;
+};
+
+export type HabitDetail = {
+  habit: HabitRecord;
+  schedules: HabitScheduleRecord[];
+  checkIns: HabitCheckInRecord[];
+};
+
+export type HabitPage = {
+  items: HabitRecord[];
+  nextCursor: string | null;
+};
+
 export type DocumentSummary = {
   id: string;
   title: string;
@@ -1476,6 +1546,114 @@ export function removeReminder(
     method: 'DELETE',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': reminderETag }),
     body: JSON.stringify({ sourceETag })
+  });
+}
+
+export function listPlanner(from: string, to = from) {
+  const params = new URLSearchParams({ from, to });
+  return apiFetch<PlannerPlan>(`/api/v1/planner?${params.toString()}`);
+}
+
+export function pinPlannerTask(taskId: string, planDate: string, notes: string | null, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<PlannerPinRecord>('/api/v1/planner/pins', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey),
+    body: JSON.stringify({ taskId, planDate, notes })
+  });
+}
+
+export function updatePlannerPin(
+  pinId: string,
+  etag: string,
+  planDate: string,
+  notes: string | null,
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<PlannerPinRecord>(`/api/v1/planner/pins/${encodeURIComponent(pinId)}`, {
+    method: 'PUT',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ planDate, notes })
+  });
+}
+
+export function reorderPlanner(planDate: string, pinIds: string[], etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<PlannerPlan>('/api/v1/planner/reorder', {
+    method: 'POST',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ planDate, pinIds })
+  });
+}
+
+export function unpinPlannerTask(pinId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<void>(`/api/v1/planner/pins/${encodeURIComponent(pinId)}`, {
+    method: 'DELETE',
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
+  });
+}
+
+export function listHabits(state = '', query = '', limit = 100) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (state.trim()) params.set('state', state.trim());
+  if (query.trim()) params.set('query', query.trim());
+  return apiFetch<HabitPage>(`/api/v1/habits?${params.toString()}`);
+}
+
+export function getHabit(id: string, from?: string, to?: string) {
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to) params.set('to', to);
+  const query = params.size ? `?${params.toString()}` : '';
+  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}${query}`);
+}
+
+export function createHabit(
+  value: {
+    title: string; kind: 'Boolean' | 'Count'; targetCount: number | null; unit: string | null;
+    effectiveFrom: string; weekdayMask: number; timeZoneId: string; reminderLocalTime: string | null;
+  },
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<HabitDetail>('/api/v1/habits', {
+    method: 'POST', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify(value)
+  });
+}
+
+export function updateHabit(
+  id: string,
+  etag: string,
+  value: { title: string; unit: string | null; reminderLocalTime: string | null; timeZoneId: string },
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify(value)
+  });
+}
+
+export function setHabitSchedule(
+  id: string,
+  etag: string,
+  value: { effectiveFrom: string; weekdayMask: number; targetCount: number | null },
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}/schedule`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify(value)
+  });
+}
+
+export function recordHabitCheckIn(
+  id: string,
+  etag: string,
+  value: { localDate: string; count: number; note: string | null },
+  idempotencyKey = createIdempotencyKey()
+) {
+  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}/check-ins`, {
+    method: 'POST', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify(value)
+  });
+}
+
+export function transitionHabit(id: string, etag: string, state: 'Active' | 'Paused' | 'Archived' | 'Unarchive', idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}/transition`, {
+    method: 'POST', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ state })
   });
 }
 

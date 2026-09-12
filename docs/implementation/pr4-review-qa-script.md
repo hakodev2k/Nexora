@@ -49,3 +49,32 @@ environment and confirm `/health/ready` returns `503` without secrets or stack
 traces. `/health/live` should remain a process-liveness response.
 
 Owner execution status for this code-only run: **Not run**.
+
+## FX15 Planner owner-isolation and lifecycle
+
+1. With two synthetic active users, create one active Project/Task per user.
+   Pin User A's Task with `POST /api/v1/planner/pins`; then attempt User B's
+   Task ID in User A's session. Expected: generic unavailable response, no
+   Task title leak and no PlannerPin row.
+2. Pin the same User A Task on two different local dates. Expected: two Planner
+   pins, one Task, and no new/changed Calendar Event or reminder. Repeat the
+   same date. Expected: `PlannerPinDuplicate` with the existing pin unchanged.
+3. Change a Project/Task to a terminal lifecycle state and reload its Planner
+   day. Expected: source is unavailable/readonly; move/reorder is denied but
+   unpin remains available. Use stale pin ETags and a stale plan ETag; expected
+   `412`, no rank/order overwrite.
+
+## FX17 Habits local-date, schedule and lifecycle
+
+1. Create a Boolean Habit with a synthetic IANA timezone and a selected weekday
+   mask. Attempt a future local-date check-in. Expected: `FutureCheckInDenied`.
+   Attempt an unscheduled date. Expected: `CheckInNotScheduled`.
+2. Record the same scheduled date twice with the same UUID idempotency key.
+   Expected: only one `HabitCheckIn` row and no count accumulation. Correct the
+   day with the latest Habit ETag; expected one row with an updated count/note.
+3. Set a new schedule effective tomorrow, then inspect historic rows and streak.
+   Expected: prior ScheduleId/target grading remains unchanged. Pause the Habit
+   across a scheduled day, resume, archive and unarchive. Expected: paused and
+   archived days accept no normal check-in and do not silently rewrite history.
+4. Verify no notification provider, outbox delivery, Calendar Event, social/team
+   resource or share projection is created when setting `ReminderLocalTime`.

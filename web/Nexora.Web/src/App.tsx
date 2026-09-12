@@ -35,6 +35,10 @@ import {
   SupportGrantRecord,
   SupportSessionRecord,
   ReminderSourceView,
+  PlannerPinRecord,
+  PlannerPlan,
+  HabitDetail,
+  HabitRecord,
   clearProfileRevision,
   confirmPasswordReset,
   createBookmark,
@@ -138,10 +142,22 @@ import {
   createGoal,
   updateGoal,
   recordGoalProgress,
-  transitionGoal
+  transitionGoal,
+  listPlanner,
+  pinPlannerTask,
+  updatePlannerPin,
+  reorderPlanner,
+  unpinPlannerTask,
+  listHabits,
+  getHabit,
+  createHabit,
+  updateHabit,
+  setHabitSchedule,
+  recordHabitCheckIn,
+  transitionHabit
 } from './api';
 
-type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'sharing' | 'support' | 'files' | 'shared' | 'module';
+type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module';
 type LocationState = { screen: Screen; moduleCode?: string; token?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
@@ -196,6 +212,10 @@ function routeFromPath(pathname: string): LocationState {
       return { screen: 'tools' };
     case '/goals':
       return { screen: 'goals' };
+    case '/planner':
+      return { screen: 'planner' };
+    case '/habits':
+      return { screen: 'habits' };
     case '/sharing':
       return { screen: 'sharing' };
     case '/support':
@@ -255,6 +275,10 @@ function pathForLocation(location: LocationState): string {
       return '/developer/tools';
     case 'goals':
       return '/goals';
+    case 'planner':
+      return '/planner';
+    case 'habits':
+      return '/habits';
     case 'sharing':
       return '/sharing';
     case 'support':
@@ -842,11 +866,13 @@ function Shell({
   const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
   const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
   const canGoals = profile.modules.some((module) => module.code.toUpperCase() === 'FX16' && module.enabled);
+  const canPlanner = profile.modules.some((module) => module.code.toUpperCase() === 'FX15' && module.enabled);
+  const canHabits = profile.modules.some((module) => module.code.toUpperCase() === 'FX17' && module.enabled);
   const canSearch = profile.modules.some((module) => module.code.toUpperCase() === 'FX25' && module.enabled);
   const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
   const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
   const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX04', 'FX05', 'FX07', 'FX16', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
+  const navigableModules = profile.modules.filter((module) => !['FX04', 'FX05', 'FX07', 'FX15', 'FX16', 'FX17', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -872,6 +898,8 @@ function Shell({
           {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>Tags</span></button>}
           {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>Developer tools</span></button>}
           {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>Goals</span></button>}
+          {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}>▤ <span>Planner</span></button>}
+          {canHabits && <button className={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'page' : undefined} onClick={() => navigate('habits')}>◌ <span>Habits</span></button>}
           {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}>↗ <span>Sharing</span></button>}
           {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}>◈ <span>Support access</span></button>}
           {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}>▧ <span>Files</span></button>}
@@ -928,6 +956,8 @@ function Shell({
           {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'goals' && <GoalsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'planner' && (canPlanner ? <PlannerScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
+          {location.screen === 'habits' && (canHabits ? <HabitsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
         </main>
@@ -2433,9 +2463,18 @@ type FinanceFilters = {
 };
 
 function todayDateInput(): string {
-  const now = new Date();
+  return localDateInput(new Date());
+}
+
+function tomorrowDateInput(): string {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return localDateInput(tomorrow);
+}
+
+function localDateInput(value: Date): string {
   const pad = (part: number) => String(part).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 }
 
 type BookmarkDraft = {
@@ -3456,6 +3495,322 @@ function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   );
 }
 
+function plannerRange(date: string, view: 'day' | 'week'): { from: string; to: string } {
+  if (view === 'day') return { from: date, to: date };
+  const selected = new Date(`${date}T00:00:00`);
+  const day = (selected.getDay() + 6) % 7;
+  selected.setDate(selected.getDate() - day);
+  const from = localDateInput(selected);
+  selected.setDate(selected.getDate() + 6);
+  return { from, to: localDateInput(selected) };
+}
+
+function PlannerScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [planDate, setPlanDate] = useState(todayDateInput);
+  const [view, setView] = useState<'day' | 'week'>('day');
+  const [plan, setPlan] = useState<PlannerPlan | null>(null);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [taskId, setTaskId] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const range = plannerRange(planDate, view);
+      const [planner, taskPage] = await Promise.all([listPlanner(range.from, range.to), listTasks(undefined, 100)]);
+      setPlan(planner);
+      setTasks((taskPage.items ?? []).filter((task) => task.status === 'NotStarted' || task.status === 'InProgress'));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [planDate, view]);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function pin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!taskId) {
+      setError(new NexoraApiError('Chọn một Task đang hoạt động.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('pin');
+    setConflict(false);
+    setError(null);
+    try {
+      await pinPlannerTask(taskId, planDate, notes.trim() || null, requestKey.current);
+      requestKey.current = null;
+      setTaskId('');
+      setNotes('');
+      await load();
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(pin: PlannerPinRecord) {
+    setBusy(`remove:${pin.id}`);
+    setConflict(false);
+    setError(null);
+    try {
+      await unpinPlannerTask(pin.id, pin.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(); }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function move(pin: PlannerPinRecord, offset: number) {
+    const next = new Date(`${pin.planDate}T00:00:00`);
+    next.setDate(next.getDate() + offset);
+    const nextDate = localDateInput(next);
+    setBusy(`move:${pin.id}`);
+    setConflict(false);
+    setError(null);
+    try {
+      await updatePlannerPin(pin.id, pin.etag, nextDate, pin.notes);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(); }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reorder(date: string, pins: PlannerPinRecord[], index: number, direction: -1 | 1) {
+    const swap = index + direction;
+    if (swap < 0 || swap >= pins.length) return;
+    setBusy(`reorder:${date}`);
+    setConflict(false);
+    setError(null);
+    try {
+      const dayPlan = await listPlanner(date, date);
+      const ids = [...pins];
+      [ids[index], ids[swap]] = [ids[swap], ids[index]];
+      await reorderPlanner(date, ids.map((pin) => pin.id), dayPlan.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(); }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const days = plan ? Array.from({ length: Math.floor((new Date(`${plan.to}T00:00:00`).getTime() - new Date(`${plan.from}T00:00:00`).getTime()) / 86400000) + 1 }, (_, index) => {
+    const value = new Date(`${plan.from}T00:00:00`);
+    value.setDate(value.getDate() + index);
+    return localDateInput(value);
+  }) : [];
+  return (
+    <section className="content-section" aria-labelledby="planner-title">
+      <div className="content-heading"><div><p className="eyebrow">FX15 / PLANNER</p><h1 id="planner-title">Daily & weekly planner</h1><p className="lead">Planner chỉ pin tham chiếu Task theo ngày. Nó không clone Task, không đổi Start/End, status, reminder hoặc tạo Calendar Event.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      {conflict && <Notice kind="error">Plan đã đổi ở nơi khác. Đã tải lại revision hiện tại.</Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={pin} noValidate>
+          <div className="section-heading"><h2>Pin existing Task</h2><span className="state-pill state-active">Task lens</span></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="planner-date">Ngày plan</label><input id="planner-date" type="date" value={planDate} onChange={(event) => { setPlanDate(event.target.value); requestKey.current = null; }} required /></div><div className="field-group"><label htmlFor="planner-view">View</label><select id="planner-view" value={view} onChange={(event) => setView(event.target.value as 'day' | 'week')}><option value="day">Day</option><option value="week">Week (Monday start)</option></select></div></div>
+          <div className="field-group"><label htmlFor="planner-task">Task đang hoạt động</label><select id="planner-task" value={taskId} onChange={(event) => { setTaskId(event.target.value); requestKey.current = null; }} disabled={loading || busy !== null} required><option value="">Chọn Task</option>{tasks.map((task) => <option key={task.id} value={task.id}>{task.title} · {task.status}</option>)}</select></div>
+          <div className="field-group"><label htmlFor="planner-notes">Planning note <span className="optional">(tùy chọn)</span></label><textarea id="planner-notes" value={notes} maxLength={2000} rows={3} onChange={(event) => { setNotes(event.target.value); requestKey.current = null; }} /></div>
+          <SubmitButton busy={busy === 'pin'}>Pin vào plan</SubmitButton>
+          <p className="field-help">Task terminal hoặc Project terminal sẽ bị server từ chối; cross-user Task không được tiết lộ.</p>
+        </form>
+          <div className="content-section"><div className="section-heading"><h2>{view === 'day' ? 'Daily plan' : 'Weekly plan'}</h2><span className="muted">{plan?.pins.length ?? 0} pin</span></div>{loading ? <div className="loading-state" role="status">Đang tải planner và Task có thể pin…</div> : !plan || plan.pins.length === 0 ? <div className="empty-state"><h2>Chưa có pin</h2><p>Không có auto-carryover. Chọn một Task hiện có nếu bạn muốn đưa nó vào ngày này.</p></div> : <div className="resource-cards">{days.map((day) => { const pins = plan.pins.filter((pin) => pin.planDate === day); return <article className="form-panel" key={day}><div className="section-heading"><h3>{day}</h3><span className="muted">{pins.length} Task</span></div>{pins.length === 0 ? <p className="muted">Không có Task được pin.</p> : <div className="resource-cards">{pins.map((pin, index) => <article className="resource-card" key={pin.id}><div><strong>{pin.taskTitle}</strong><span className="muted">{pin.projectName} · {pin.taskStatus} · {dateTime(pin.startAt)}</span>{pin.notes && <p>{pin.notes}</p>}{!pin.sourceAvailable && <span className="state-pill state-warning">Source unavailable / readonly</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, -1)} disabled={busy !== null || !pin.sourceAvailable || index === 0}>↑</button><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, 1)} disabled={busy !== null || !pin.sourceAvailable || index === pins.length - 1}>↓</button><button className="secondary-button" type="button" onClick={() => void move(pin, -1)} disabled={busy !== null || !pin.sourceAvailable}>← Ngày trước</button><button className="secondary-button" type="button" onClick={() => void move(pin, 1)} disabled={busy !== null || !pin.sourceAvailable}>Ngày sau →</button><button className="danger-button" type="button" onClick={() => void remove(pin)} disabled={busy !== null}>Unpin</button></div></article>)}</div>}</article>; })}</div>}</div>
+      </div>
+      <div className="security-policy"><strong>Boundary</strong><span>Planner không share riêng, không có workspace/team behavior và không là đường tắt để sửa nguồn Task hoặc Calendar.</span></div>
+    </section>
+  );
+}
+
+type HabitDraft = {
+  title: string; kind: 'Boolean' | 'Count'; targetCount: string; unit: string; effectiveFrom: string;
+  weekdayMask: number; timeZoneId: string; reminderLocalTime: string;
+};
+
+function emptyHabitDraft(): HabitDraft {
+  return { title: '', kind: 'Boolean', targetCount: '1', unit: '', effectiveFrom: todayDateInput(), weekdayMask: 127, timeZoneId: currentTimeZone(), reminderLocalTime: '' };
+}
+
+const WEEKDAYS = [{ label: 'Mon', bit: 1 }, { label: 'Tue', bit: 2 }, { label: 'Wed', bit: 4 }, { label: 'Thu', bit: 8 }, { label: 'Fri', bit: 16 }, { label: 'Sat', bit: 32 }, { label: 'Sun', bit: 64 }];
+
+function HabitsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<HabitRecord[]>([]);
+  const [selected, setSelected] = useState<HabitDetail | null>(null);
+  const [editing, setEditing] = useState<HabitRecord | null>(null);
+  const [draft, setDraft] = useState<HabitDraft>(emptyHabitDraft);
+  const [checkInDate, setCheckInDate] = useState(todayDateInput);
+  const [checkInCount, setCheckInCount] = useState('1');
+  const [checkInNote, setCheckInNote] = useState('');
+  const [scheduleDate, setScheduleDate] = useState(tomorrowDateInput);
+  const [scheduleMask, setScheduleMask] = useState(127);
+  const [scheduleTarget, setScheduleTarget] = useState('1');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(selectedId?: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listHabits('', '', 100);
+      const next = page.items ?? [];
+      setItems(next);
+      const id = selectedId ?? selected?.habit.id;
+      if (id && next.some((item) => item.id === id)) setSelected(await getHabit(id));
+      else if (!id || !next.some((item) => item.id === id)) setSelected(null);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  function resetEditor() { setEditing(null); setDraft(emptyHabitDraft()); requestKey.current = null; setConflict(false); }
+
+  function beginEdit(habit: HabitRecord) {
+    setEditing(habit);
+    setDraft({ title: habit.title, kind: habit.kind === 'Count' ? 'Count' : 'Boolean', targetCount: String(habit.targetCount ?? 1), unit: habit.unit ?? '', effectiveFrom: todayDateInput(), weekdayMask: habit.currentSchedule?.weekdayMask ?? 127, timeZoneId: habit.timeZoneId, reminderLocalTime: habit.reminderLocalTime?.slice(0, 5) ?? '' });
+    setScheduleMask(habit.currentSchedule?.weekdayMask ?? 127);
+    setScheduleTarget(String(habit.currentSchedule?.targetCount ?? habit.targetCount ?? 1));
+    setScheduleDate(tomorrowDateInput());
+    setError(null);
+    setConflict(false);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = draft.title.trim();
+    const target = draft.kind === 'Count' ? Number(draft.targetCount) : null;
+    if (!title || title.length > 100 || (draft.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0)) || !draft.weekdayMask || !draft.timeZoneId.trim()) {
+      setError(new NexoraApiError('Kiểm tra title, count target, weekdays và timezone.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save'); setError(null); setConflict(false);
+    try {
+      const result = editing
+        ? await updateHabit(editing.id, editing.etag, { title, unit: draft.unit.trim() || null, reminderLocalTime: draft.reminderLocalTime || null, timeZoneId: draft.timeZoneId.trim() }, requestKey.current)
+        : await createHabit({ title, kind: draft.kind, targetCount: target, unit: draft.unit.trim() || null, effectiveFrom: draft.effectiveFrom, weekdayMask: draft.weekdayMask, timeZoneId: draft.timeZoneId.trim(), reminderLocalTime: draft.reminderLocalTime || null }, requestKey.current);
+      requestKey.current = null;
+      setSelected(result);
+      resetEditor();
+      await load(result.habit.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(editing?.id); }
+    } finally { setBusy(null); }
+  }
+
+  async function selectHabit(id: string) {
+    setBusy(`load:${id}`); setError(null);
+    try { setSelected(await getHabit(id)); } catch (requestError) { showError(requestError); } finally { setBusy(null); }
+  }
+
+  async function recordCheckIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const count = Number(checkInCount);
+    if (!Number.isInteger(count) || count < 0) { setError(new NexoraApiError('Check-in count phải là số nguyên không âm.', 422, 'ValidationFailed')); return; }
+    setBusy('checkin'); setError(null); setConflict(false);
+    try {
+      const result = await recordHabitCheckIn(selected.habit.id, selected.habit.etag, { localDate: checkInDate, count, note: checkInNote.trim() || null });
+      setSelected(result); setCheckInNote(''); await load(result.habit.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); }
+    } finally { setBusy(null); }
+  }
+
+  async function saveSchedule(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const target = selected.habit.kind === 'Count' ? Number(scheduleTarget) : null;
+    if (!scheduleMask || (selected.habit.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0))) { setError(new NexoraApiError('Chọn weekdays và count target hợp lệ.', 422, 'ValidationFailed')); return; }
+    setBusy('schedule'); setError(null); setConflict(false);
+    try {
+      const result = await setHabitSchedule(selected.habit.id, selected.habit.etag, { effectiveFrom: scheduleDate, weekdayMask: scheduleMask, targetCount: target });
+      setSelected(result); await load(result.habit.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); }
+    } finally { setBusy(null); }
+  }
+
+  async function transition(state: 'Active' | 'Paused' | 'Archived' | 'Unarchive') {
+    if (!selected) return;
+    setBusy(`transition:${state}`); setError(null); setConflict(false);
+    try { const result = await transitionHabit(selected.habit.id, selected.habit.etag, state); setSelected(result); await load(result.habit.id); }
+    catch (requestError) { const apiError = showError(requestError); if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); } }
+    finally { setBusy(null); }
+  }
+
+  function toggleWeekday(bit: number, target: 'draft' | 'schedule') {
+    if (target === 'draft') setDraft({ ...draft, weekdayMask: draft.weekdayMask ^ bit });
+    else setScheduleMask(scheduleMask ^ bit);
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="habits-title">
+      <div className="content-heading"><div><p className="eyebrow">FX17 / HABITS</p><h1 id="habits-title">Habit tracker</h1><p className="lead">Habit và check-in chỉ thuộc PersonalSpace hiện tại. Schedule dùng ngày local theo timezone lưu trên Habit; lịch sử không bị relabel khi đổi timezone.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      {conflict && <Notice kind="error">Habit đã thay đổi ở nơi khác. Đã tải revision hiện tại.</Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{editing ? 'Sửa Habit' : 'Habit mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+          <div className="field-group"><label htmlFor="habit-title">Title</label><input id="habit-title" value={draft.title} maxLength={100} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); requestKey.current = null; }} required /></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="habit-kind">Mode</label><select id="habit-kind" value={draft.kind} disabled={!!editing} onChange={(event) => setDraft({ ...draft, kind: event.target.value as 'Boolean' | 'Count' })}><option value="Boolean">Boolean</option><option value="Count">Count</option></select></div>{draft.kind === 'Count' && <div className="field-group"><label htmlFor="habit-target">Target count</label><input id="habit-target" type="number" min={1} step={1} value={draft.targetCount} onChange={(event) => setDraft({ ...draft, targetCount: event.target.value })} required /></div>}</div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="habit-unit">Unit <span className="optional">(tùy chọn)</span></label><input id="habit-unit" value={draft.unit} maxLength={50} onChange={(event) => setDraft({ ...draft, unit: event.target.value })} /></div><div className="field-group"><label htmlFor="habit-zone">IANA timezone</label><input id="habit-zone" value={draft.timeZoneId} maxLength={128} onChange={(event) => setDraft({ ...draft, timeZoneId: event.target.value })} required /></div></div>
+          {!editing && <><div className="field-group"><label htmlFor="habit-effective">Schedule effective from</label><input id="habit-effective" type="date" value={draft.effectiveFrom} onChange={(event) => setDraft({ ...draft, effectiveFrom: event.target.value })} required /></div><WeekdayPicker value={draft.weekdayMask} onToggle={(bit) => toggleWeekday(bit, 'draft')} /></>}
+          <div className="field-group"><label htmlFor="habit-reminder">Reminder local time <span className="optional">(metadata only)</span></label><input id="habit-reminder" type="time" value={draft.reminderLocalTime} onChange={(event) => setDraft({ ...draft, reminderLocalTime: event.target.value })} /><p className="field-help">Không enqueue hoặc gọi email/browser push provider trong slice này.</p></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu Habit' : 'Tạo Habit'}</SubmitButton></div>
+        </form>
+        <div className="content-section"><div className="section-heading"><h2>Habits của bạn</h2><span className="muted">{items.length} habit</span></div>{loading ? <div className="loading-state" role="status">Đang tải habits…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có Habit</h2><p>Tạo thói quen đầu tiên với ngày schedule rõ ràng.</p></div> : <div className="resource-cards">{items.map((habit) => <article className={selected?.habit.id === habit.id ? 'resource-card selected-card' : 'resource-card'} key={habit.id}><button className="resource-card-button" type="button" onClick={() => void selectHabit(habit.id)} disabled={busy !== null}><span><strong>{habit.title}</strong><span className="muted">{habit.kind} · {habit.state} · streak {habit.currentStreak}</span></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(habit)} disabled={busy !== null || habit.state !== 'Active'}>Sửa</button></div></article>)}</div>}</div>
+      </div>
+      {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED HABIT</p><h2>{selected.habit.title}</h2></div><span className="state-pill state-active">{selected.habit.state}</span></div><p className="muted">{selected.habit.kind}{selected.habit.targetCount ? ` · target ${selected.habit.targetCount}${selected.habit.unit ? ` ${selected.habit.unit}` : ''}` : ''} · {selected.habit.timeZoneId} · streak {selected.habit.currentStreak}</p><div className="form-actions">{selected.habit.state === 'Active' && <><button className="secondary-button" type="button" onClick={() => void transition('Paused')} disabled={busy !== null}>Pause</button><button className="secondary-button" type="button" onClick={() => void transition('Archived')} disabled={busy !== null}>Archive</button></>}{selected.habit.state === 'Paused' && <><button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Resume</button><button className="secondary-button" type="button" onClick={() => void transition('Archived')} disabled={busy !== null}>Archive</button></>}{selected.habit.state === 'Archived' && <button className="secondary-button" type="button" onClick={() => void transition('Unarchive')} disabled={busy !== null}>Unarchive</button>}</div>{selected.habit.state === 'Active' && <div className="resource-layout"><form className="nested-panel" onSubmit={recordCheckIn} noValidate><div className="section-heading"><h3>Check-in</h3><span className="muted">one record per local date</span></div><div className="form-grid"><div className="field-group"><label htmlFor="habit-check-date">Local date</label><input id="habit-check-date" type="date" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} required /></div><div className="field-group"><label htmlFor="habit-check-count">{selected.habit.kind === 'Count' ? 'Count' : 'Completed (1) / correction (0)'}</label><input id="habit-check-count" type="number" min={0} max={selected.habit.kind === 'Boolean' ? 1 : undefined} step={1} value={checkInCount} onChange={(event) => setCheckInCount(event.target.value)} required /></div></div><div className="field-group"><label htmlFor="habit-check-note">Note <span className="optional">(tùy chọn)</span></label><input id="habit-check-note" value={checkInNote} maxLength={1000} onChange={(event) => setCheckInNote(event.target.value)} /></div><SubmitButton busy={busy === 'checkin'}>Record check-in</SubmitButton></form><form className="nested-panel" onSubmit={saveSchedule} noValidate><div className="section-heading"><h3>Future schedule</h3><span className="muted">past records are preserved</span></div><div className="field-group"><label htmlFor="habit-schedule-date">Effective from</label><input id="habit-schedule-date" type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} required /></div><WeekdayPicker value={scheduleMask} onToggle={(bit) => toggleWeekday(bit, 'schedule')} />{selected.habit.kind === 'Count' && <div className="field-group"><label htmlFor="habit-schedule-target">Target count</label><input id="habit-schedule-target" type="number" min={1} step={1} value={scheduleTarget} onChange={(event) => setScheduleTarget(event.target.value)} required /></div>}<SubmitButton busy={busy === 'schedule'}>Save schedule</SubmitButton></form></div>}<div className="nested-panel"><div className="section-heading"><h3>Recent local-date history</h3><span className="muted">{selected.checkIns.length} record</span></div>{selected.checkIns.length === 0 ? <p className="muted">Chưa có check-in trong khoảng hiện tại.</p> : <div className="resource-cards">{selected.checkIns.map((checkIn) => <article className="resource-card" key={checkIn.id}><div><strong>{checkIn.localDate}</strong><span className="muted">Count {checkIn.count} · schedule {checkIn.scheduleId.slice(0, 8)}</span>{checkIn.note && <p>{checkIn.note}</p>}</div></article>)}</div>}</div></div>}
+      <div className="security-policy"><strong>Boundary</strong><span>Không có social/team tracking, Calendar Event tự tạo, reminder dispatch, Trash/purge hay provider execution trong local slice này.</span></div>
+    </section>
+  );
+}
+
+function WeekdayPicker({ value, onToggle }: { value: number; onToggle: (bit: number) => void }) {
+  return <fieldset className="field-group"><legend>Scheduled weekdays</legend><div className="check-grid">{WEEKDAYS.map((day) => <label className="check-row" key={day.bit}><input type="checkbox" checked={(value & day.bit) !== 0} onChange={() => onToggle(day.bit)} /><span>{day.label}</span></label>)}</div></fieldset>;
+}
+
 function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
@@ -3721,6 +4076,12 @@ function ModuleScreen({
   }
   if (module.enabled && normalizedCode === 'FX16') {
     return <GoalsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX15') {
+    return <PlannerScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX17') {
+    return <HabitsScreen onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX14') {
     return <RemindersScreen onAuthLost={onAuthLost} />;

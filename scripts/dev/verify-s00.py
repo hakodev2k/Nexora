@@ -65,6 +65,10 @@ REQUIRED_FILES = [
     "src/Nexora.Api/Features/Reminders/ReminderEndpoints.cs",
     "src/Nexora.Api/Features/Reminders/ReminderContracts.cs",
     "src/Nexora.Api/Features/Reminders/ReminderDispatchWorker.cs",
+    "src/Nexora.Api/Features/Planner/PlannerEndpoints.cs",
+    "src/Nexora.Api/Features/Planner/PlannerContracts.cs",
+    "src/Nexora.Api/Features/Habits/HabitEndpoints.cs",
+    "src/Nexora.Api/Features/Habits/HabitContracts.cs",
     "src/Nexora.Api/Http/ApiResult.cs",
     "src/Nexora.Api/Security/CsrfTokenService.cs",
     "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
@@ -94,6 +98,10 @@ REQUIRED_FILES = [
     "src/Nexora.Application/Support/SupportServiceContracts.cs",
     "src/Nexora.Application/Reminders/ReminderServiceContracts.cs",
     "src/Nexora.Application/Reminders/ReminderPolicy.cs",
+    "src/Nexora.Application/Planner/PlannerServiceContracts.cs",
+    "src/Nexora.Application/Planner/PlannerPolicy.cs",
+    "src/Nexora.Application/Habits/HabitServiceContracts.cs",
+    "src/Nexora.Application/Habits/HabitPolicy.cs",
     "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
     "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
     "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
@@ -117,6 +125,8 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Sharing/SqlSharingService.cs",
     "src/Nexora.Infrastructure/Support/SqlSupportService.cs",
     "src/Nexora.Infrastructure/Reminders/SqlReminderService.cs",
+    "src/Nexora.Infrastructure/Planner/SqlPlannerService.cs",
+    "src/Nexora.Infrastructure/Habits/SqlHabitService.cs",
     "src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs",
     "src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
@@ -141,6 +151,7 @@ REQUIRED_FILES = [
     "database/migrations/20260910_0017_favorites_refs.sql",
     "database/migrations/20260911_0021_core_sharing_support_files.sql",
     "database/migrations/20260911_0022_reminders_scheduling.sql",
+    "database/migrations/20260911_0023_planner_habits.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -226,7 +237,7 @@ def main() -> int:
             fail(f"Nexora.Api must reference {project}")
 
     program = read("src/Nexora.Api/Program.cs")
-    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "MapGoalsEndpoints", "MapDashboardEndpoints", "MapSearchEndpoints", "MapFavoriteEndpoints", "IGoalService", "SqlGoalService", "IDashboardService", "SqlDashboardService", "ISearchService", "SqlSearchService", "IFavoriteService", "SqlFavoriteService", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
+    for marker in ("MapIdentityEndpoints", "MapModuleEndpoints", "MapAdminAccessEndpoints", "MapNotificationEndpoints", "MapTrashEndpoints", "MapSettingsEndpoints", "MapDocumentEndpoints", "MapProductivityEndpoints", "MapPlannerEndpoints", "MapHabitEndpoints", "MapFinanceEndpoints", "MapBookmarkEndpoints", "MapSnippetEndpoints", "MapReadingEndpoints", "MapOrganizationEndpoints", "MapGoalsEndpoints", "MapDashboardEndpoints", "MapSearchEndpoints", "MapFavoriteEndpoints", "IPlannerService", "SqlPlannerService", "IHabitService", "SqlHabitService", "IGoalService", "SqlGoalService", "IDashboardService", "SqlDashboardService", "ISearchService", "SqlSearchService", "IFavoriteService", "SqlFavoriteService", "IFinanceService", "SqlFinanceService", "IBookmarkService", "SqlBookmarkService", "ISnippetService", "SqlSnippetService", "IReadingService", "SqlReadingService", "ITagService", "SqlTagService", "IDocumentService", "SqlDocumentService", "IIdentityService", "SqlIdentityService", "SqlConnectionFactory"):
         if marker not in program:
             fail(f"Program.cs marker missing: {marker}")
     if "DevelopmentIdentityStore" in program or "DevelopmentModuleStore" in program:
@@ -405,13 +416,17 @@ def main() -> int:
     for marker in ("[calendar].[Reminder]", "reminders.configuration.set", "TR_Task_ReconcileReminder"):
         if marker not in migration22:
             fail(f"reminder migration marker missing: {marker}")
+    migration23 = read("database/migrations/20260911_0023_planner_habits.sql")
+    for marker in ("[productivity].[PlannerPin]", "[productivity].[Habit]", "[productivity].[HabitSchedule]", "[productivity].[HabitCheckIn]", "TR_HabitSchedule_NoOverlap"):
+        if marker not in migration23:
+            fail(f"planner/habits migration marker missing: {marker}")
 
     migration_runner = read("src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs")
     for marker in ("NexoraMigration", "ContentHash", "sp_getapplock", 'Directory.GetFiles(directory, "*.sql")'):
         if marker not in migration_runner:
             fail(f"journaled migration runner marker missing: {marker}")
     readiness = read("src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs")
-    for migration_name in ("20260911_0021_core_sharing_support_files.sql", "20260911_0022_reminders_scheduling.sql"):
+    for migration_name in ("20260911_0021_core_sharing_support_files.sql", "20260911_0022_reminders_scheduling.sql", "20260911_0023_planner_habits.sql"):
         if migration_name not in readiness:
             fail(f"readiness probe must require {migration_name}")
     for script_name in ("scripts/dev/migrate.sh", "scripts/dev/migrate.ps1"):
@@ -433,7 +448,7 @@ def main() -> int:
             if re.search(forbidden, text):
                 fail(f"forbidden runtime pattern {forbidden!r} in {rel}")
 
-    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/reminders/finance/bookmarks/snippets/read-later/organization-tags/goals/dashboard/search/favorites/sharing/support/files plus local developer-toolbox runtime, journaled migrations, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
+    print("local static verification passed: SQL-backed identity/module/access/notification/trash/settings/documents/productivity/reminders/planner/habits/finance/bookmarks/snippets/read-later/organization-tags/goals/dashboard/search/favorites/sharing/support/files plus local developer-toolbox runtime, journaled migrations, CSRF/session boundary, owner-scoped migrations and no development admin/provider/browser-token bypass.")
     return 0
 
 

@@ -1,6 +1,6 @@
 # FX-15 — Planner: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07. The 2026-09-11 local slice binds `planner.plan.read`, `pin`, `unpin`, `reorder`, `reschedule` and `notes` to `SqlPlannerService` and `/api/v1/planner*`; the support row remains unimplemented. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 
@@ -29,7 +29,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 | --- | --- | --- |
 | `planner.plan.read` | Own plan + tasks.task.read trên từng Task; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |
 | `planner.plan.pin` | Own planning metadata; source access hiện tại; không pin mới Task trong Project terminal; thay lịch Task cần action Tasks riêng; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |
-| `planner.plan.unpin` | Own planning metadata; source access hiện tại; không pin mới Task trong Project terminal; thay lịch Task cần action Tasks riêng; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |
+| `planner.plan.unpin` | Own planning metadata; terminal/unavailable source remains removable from owner history. Không pin mới Task trong Project terminal; thay lịch Task cần action Tasks riêng; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |
 | `planner.plan.reorder` | Own planning metadata; source access hiện tại; không pin mới Task trong Project terminal; thay lịch Task cần action Tasks riêng; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |
 | `planner.plan.reschedule` | Own planning metadata; source access hiện tại; không pin mới Task trong Project terminal; thay lịch Task cần action Tasks riêng; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |
 | `planner.plan.notes` | Own planning metadata; source access hiện tại; không pin mới Task trong Project terminal; thay lịch Task cần action Tasks riêng; Lens trên Task đã có; không tạo bản sao, không thay Start/End hay status | Common + dynamic source/provider guards |

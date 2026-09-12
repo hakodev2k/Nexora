@@ -143,6 +143,43 @@ Vault/key portability decision (Q-04) and production backup/RPO/RTO decision
 added here. The migration has not been executed in this environment because no
 SQL runtime is available. Do not merge PR #4.
 
+## FX15 and FX17 continuation update — 2026-09-11
+
+The next coherent local batch implements FX15 Planner and FX17 Habits with
+forward-only migration `20260911_0023_planner_habits.sql`. It creates
+`productivity.PlannerPin`, `Habit`, effective-dated `HabitSchedule`, and
+owner-scoped `HabitCheckIn` tables. The migration has unique owner/task/date
+and owner/habit/local-date constraints, index support for the local queries,
+and a trigger that rejects overlapping Habit schedule intervals. It promotes
+FX15 and FX17 to `Ready + SystemEnabled + RegistrationEnabled` only for the
+local runtime catalog and active-user grants.
+
+`SqlPlannerService` exposes `GET /api/v1/planner`, pin/update/reorder/unpin
+commands, and the `/planner` React route. It checks FX15/FX12 authority plus
+same-owner active Task/Project lifecycle at every actionable source boundary.
+Planner metadata never changes Task status, Task start/end, Task reminder or
+the Task-owned Calendar Event; completed/terminal sources stay visible only as
+unavailable history and can be unpinned.
+
+`SqlHabitService` exposes `/api/v1/habits*` and `/habits`. It validates IANA
+timezone, `Boolean`/`Count` mode, target and weekday mask, prevents future
+check-ins, stores the check-in's local date and effective schedule, and makes
+same Habit/local-date writes unique. Current streaks skip unscheduled and
+paused intervals and stop at a missed scheduled target day. Active/Paused/
+Archived transitions preserve schedule history and write audit records.
+Habit reminder local time is stored as local metadata only: no FX14 dispatch,
+email, BrowserPush, external provider, Calendar Event, social/team feature,
+Trash or purge endpoint is claimed in this batch.
+
+Both slices have SQL owner filters, current SQL capability checks, quoted ETag/
+If-Match for update/lifecycle mutations, UUID idempotency for creates and
+commands, thin Minimal API handlers, and typed frontend loading/empty/error/
+conflict surfaces. Required migration readiness now extends through `0023`.
+The source must still undergo real SQL replay, API/browser owner-isolation,
+lifecycle race, timezone/DST and idempotency journeys; no runtime verification
+or production claim is made. FX10 remains Blocked by Q-04/Q-08. Do not merge
+PR #4.
+
 ## Remote reconciliation update — 2026-09-11
 
 - Local HEAD before push: `2ba68f62fa14291cb701c60ebc3f076017e1d613`.
