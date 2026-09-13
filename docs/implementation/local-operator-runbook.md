@@ -22,9 +22,33 @@ $idempotencyBytes = [byte[]]::new(32)
 $env:NEXORA_IDEMPOTENCY_SECRET = [Convert]::ToBase64String($idempotencyBytes)
 ```
 
-Restarting the API with a new value invalidates outstanding idempotency receipts;
-use a stable local-only value for the lifetime of a disposable database, without
-copying it into source, logs or the SQL connection configuration.
+The local account-message worker also requires a separate stable
+`NEXORA_LOCAL_MESSAGE_KEY` (32 random bytes, base64 encoded) for the lifetime
+of the disposable database. Keep the key only in the process environment; it
+must not be the SQL credential or idempotency secret. Set
+`NEXORA_LOCAL_MESSAGE_CAPTURE_PATH` to a private directory outside `wwwroot`
+when the default `.local-account-messages` path is not suitable. The API has no
+HTTP mailbox endpoint. After a synthetic register/reset request, the local
+operator can inspect non-expired captured messages with:
+
+```powershell
+dotnet run --project src/Nexora.Local --configuration Release -- read-account-messages
+```
+
+The command is an explicit local operator transport and prints a token only to
+that operator's terminal; application logs and public responses never contain
+the raw token. Expired captures are ignored/removed by the local retention
+path.
+
+The API also requires a separate stable `NEXORA_CSRF_SECRET`. It signs the
+CSRF proof and opaque anonymous-session binding. Keep it unchanged across an
+API restart so a retry after a lost response remains in the same anonymous
+idempotency namespace. Never commit, print or reuse it as a password, SQL
+credential or message-delivery key.
+
+Changing `NEXORA_IDEMPOTENCY_SECRET` invalidates outstanding idempotency
+receipts; keep that value stable for the lifetime of a disposable database,
+without copying it into source, logs or the SQL connection configuration.
 
 Run from a terminal:
 

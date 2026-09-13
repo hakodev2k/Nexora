@@ -58,8 +58,9 @@ public sealed record IdentitySessionPage(IReadOnlyList<IdentitySession> Items, s
 /// <summary>
 /// Trusted identity context used by other feature modules. OwnerId is the
 /// PersonalSpace identifier; it must never be accepted from request input.
-/// Role-specific administrative grants do not replace the enabled-module
-/// own-resource baseline used by the Admin role.
+/// User and SuperAdmin own-resource access follows the baseline. Admin SELF
+/// actions require an explicit Allow and have no implicit access from the
+/// role alone; OwnerId remains the PersonalSpace identifier.
 /// </summary>
 public sealed record IdentityPrincipal(
     Guid UserId,
@@ -78,14 +79,14 @@ public sealed record BootstrapSuperAdminResult(Guid UserId, Guid PersonalSpaceId
 
 public interface IIdentityService
 {
-    IdentityOperationResult<IdentityAccepted> Register(RegistrationCommand command, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<IdentityVerification> Verify(string token, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<IdentityAccepted> ResendVerification(string email, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<IdentityLoginIssue> Login(string email, string password, string? deviceLabel = null, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<object?> Logout(string? rawSessionHandle, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<object?> Reauthenticate(string? rawSessionHandle, string password, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<IdentityAccepted> RequestPasswordReset(string email, string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<object?> ConfirmPasswordReset(string token, string newPassword, string? idempotencyKey = null, string? traceId = null);
+    IdentityOperationResult<IdentityAccepted> Register(RegistrationCommand command, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<IdentityVerification> Verify(string token, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<IdentityAccepted> ResendVerification(string email, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<IdentityLoginIssue> Login(string email, string password, string? deviceLabel = null, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<object?> Logout(string? rawSessionHandle, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<object?> Reauthenticate(string? rawSessionHandle, string password, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<IdentityAccepted> RequestPasswordReset(string email, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
+    IdentityOperationResult<object?> ConfirmPasswordReset(string token, string newPassword, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null);
     IdentityOperationResult<IdentityProfileRead> GetMe(string? rawSessionHandle);
     IdentityOperationResult<IdentityProfileRead> UpdateMe(string? rawSessionHandle, string? ifMatch, ProfilePatchRequest command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<IdentitySessionPage> ListSessions(string? rawSessionHandle);
@@ -100,10 +101,11 @@ public interface IIdentityService
 public sealed record ProfilePatchRequest(string? DisplayName, string? TimeZoneId, string? Locale);
 
 /// <summary>
-/// Account messages are emitted after the SQL transaction commits. The raw
-/// token is intentionally never persisted in SQL; production implementations
-/// should send through an approved provider, while local development may use a
-/// protected in-process capture for synthetic accounts.
+/// Account messages are represented by a durable, pre-activation delivery
+/// intent. The raw token is only transient in the command and the approved
+/// local transport; SQL stores an authenticated short-lived envelope so a
+/// bounded worker can recover after a restart. Production provider delivery
+/// remains outside this local implementation scope.
 /// </summary>
 public sealed record LocalAccountMessage(
     Guid Id,

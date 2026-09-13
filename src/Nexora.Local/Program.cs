@@ -1,14 +1,30 @@
 using System.Text;
 using Microsoft.Data.SqlClient;
-using Nexora.Api.Security;
 using Nexora.Application.Identity;
 using Nexora.Domain.Identity;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Local;
 
+if (args is ["read-account-messages"])
+{
+    var captureDirectory = Environment.GetEnvironmentVariable("NEXORA_LOCAL_MESSAGE_CAPTURE_PATH");
+    if (string.IsNullOrWhiteSpace(captureDirectory))
+    {
+        Console.Error.WriteLine("NEXORA_LOCAL_MESSAGE_CAPTURE_PATH must point to the local operator capture directory.");
+        return 2;
+    }
+
+    foreach (var message in LocalAccountMessageSink.ReadCaptured(captureDirectory))
+    {
+        Console.WriteLine($"{message.Purpose} {message.Id:N} expires {message.ExpiresAt:O} token {message.RawToken}");
+    }
+
+    return 0;
+}
+
 if (args is not ["bootstrap-superadmin"] and not ["migrate"])
 {
-    Console.Error.WriteLine("Usage: Nexora.Local migrate | bootstrap-superadmin (bootstrap requires interactive console)");
+    Console.Error.WriteLine("Usage: Nexora.Local migrate | bootstrap-superadmin | read-account-messages");
     return 2;
 }
 var connectionSetting = Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION");
@@ -67,7 +83,7 @@ try
     var outcome = await new SqlBootstrapSuperAdmin(connection).ExecuteAsync(new SqlBootstrapSuperAdminCommand
     {
         Email = email, DisplayName = name, TimeZoneId = zone,
-        PasswordHash = new PasswordHashService().Hash(password)
+        PasswordHash = new Pbkdf2PasswordHasher().Hash(password)
     });
     Console.WriteLine(outcome);
     return outcome == BootstrapOutcome.Created ? 0 : 3;

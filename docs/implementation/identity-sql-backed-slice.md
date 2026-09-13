@@ -1,5 +1,11 @@
 # SQL-backed identity slice
 
+> **Superseded implementation snapshot.** This note predates the R2 M01
+> remediation and its `DEC-20260909-014` wording is not authority. The current
+> source/evidence disposition is in [`pr4-r2-remediation-report-20260913.md`](pr4-r2-remediation-report-20260913.md), pinned to main
+> `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3` and head
+> `6d5b58dbac330b0d0d9aceb9e0b2f4695b423316`.
+
 Status: implementation on PR #4 under `DEC-20260909-014` (local/synthetic
 environment only). This note records the boundary for the identity vertical
 slice; it is not a production-readiness claim.

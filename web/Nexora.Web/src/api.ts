@@ -936,12 +936,27 @@ async function rawUploadFetch<T>(path: string, body: BodyInit, contentType: stri
   });
   if (csrfToken !== null) headers.set('X-CSRF-Token', csrfToken);
   let response: Response;
-  try {
-    response = await fetch(path, { method: 'PUT', credentials: 'same-origin', cache: 'no-store', headers, body });
-  } catch {
-    throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      response = await fetch(path, { method: 'PUT', credentials: 'same-origin', cache: 'no-store', headers, body });
+    } catch {
+      throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
+    }
+
+    if (response.ok) break;
+
+    const apiError = await toApiError(response);
+    // CSRF validation runs before the upload handler. Retain the same
+    // idempotency key and body for one bounded retry after a cookie rotation;
+    // no business effect has started when this filter rejects the request.
+    if (attempt === 0 && response.status === 403 && apiError.code === 'CsrfInvalid') {
+      await getCsrf(true);
+      if (csrfToken !== null) headers.set('X-CSRF-Token', csrfToken);
+      continue;
+    }
+
+    throw apiError;
   }
-  if (!response.ok) throw await toApiError(response);
   const rotatedCsrf = response.headers.get('X-CSRF-Token');
   if (rotatedCsrf) csrfToken = rotatedCsrf;
   return (await response.json()) as T;
@@ -1794,7 +1809,7 @@ export function getAdminUserAccess(userId: string) {
 }
 
 export function setAdminUserRole(userId: string, etag: string, role: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/role`, {
+  return apiFetch<AdminUserAccess | undefined>(`/api/v1/admin/users/${encodeURIComponent(userId)}/role`, {
     method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ role, ifMatch: etag })
   });
 }

@@ -2,6 +2,7 @@ using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Domain.Identity;
@@ -25,22 +26,44 @@ public sealed class SqlIdentityService : IIdentityService
 
     // Deliberately invalid, fixed-cost input for a missing user. It contains
     // no usable secret and prevents a fast path from disclosing account state.
-    private const string DummyPasswordHash =
-        "PBKDF2-HMAC-SHA512$220000$AAAAAAAAAAAAAAAAAAAAAA==$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    private static readonly string DummyPasswordHash =
+        new Pbkdf2PasswordHasher().Hash("Nexora dummy password proof");
+
+    private static readonly HashSet<string> SafeReplayOperations = new(StringComparer.Ordinal)
+    {
+        "identity.account.register",
+        "identity.account.verify",
+        "identity.account.resend",
+        "identity.account.reset_request",
+        "identity.account.reset_confirm",
+        "identity.session.logout",
+        "identity.profile.update",
+        "identity.session.revoke_session",
+        "identity.session.revoke_all"
+    };
 
     private readonly SqlConnectionFactory _connections;
-    private readonly IAccountMessageSink _messageSink;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly LocalAccountMessageEnvelopeProtector _deliveryProtector;
     private readonly Pbkdf2PasswordHasher _passwords = new();
 
-    public SqlIdentityService(SqlConnectionFactory connections, IAccountMessageSink? messageSink = null, string? idempotencySecret = null)
+    public SqlIdentityService(
+        SqlConnectionFactory connections,
+        IAccountMessageSink? messageSink = null,
+        string? idempotencySecret = null,
+        LocalAccountMessageEnvelopeProtector? deliveryProtector = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _messageSink = messageSink ?? NullAccountMessageSink.Instance;
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        // Delivery is deliberately owned by the durable worker. Keep the
+        // parameter for source compatibility with local callers, but never
+        // publish a token synchronously after a request transaction commits.
+        _ = messageSink;
+        var receiptSecret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(receiptSecret);
+        _deliveryProtector = deliveryProtector ?? LocalAccountMessageEnvelopeProtector.FromSecret(receiptSecret);
     }
 
-    public IdentityOperationResult<IdentityAccepted> Register(RegistrationCommand command, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<IdentityAccepted> Register(RegistrationCommand command, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         var validation = RegistrationCommandPolicy.Validate(command);
         if (!validation.IsValid || validation.Draft is null)
@@ -61,8 +84,8 @@ public sealed class SqlIdentityService : IIdentityService
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<IdentityAccepted>(connection, transaction, null,
             "identity.account.register", idempotencyKey,
-            $"email:{draft.NormalizedEmail}|display:{draft.DisplayName}|timezone:{draft.TimeZoneId}|locale:{draft.Locale}",
-            now, out var receipt);
+            $"email:{draft.NormalizedEmail}|display:{draft.DisplayName}|timezone:{draft.TimeZoneId}|locale:{draft.Locale}|passwordProof:{_receipts.DigestSensitive(command.Password)}",
+            now, anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
             RollbackQuietly(transaction);
@@ -108,11 +131,13 @@ VALUES
                 tokenCommand.ExecuteNonQuery();
             }
 
-            InsertAccountMessageIntent(connection, transaction, tokenId, userId, draft.NormalizedEmail, "EmailVerification", now);
+            InsertAccountMessageIntent(connection, transaction,
+                new LocalAccountMessage(tokenId, userId, "EmailVerification", draft.OriginalEmail,
+                    rawToken, now, expiresAt), draft.NormalizedEmail);
             InsertOutbox(connection, transaction, userId, $"identity.email-verification:{tokenId:N}",
                 "Identity.EmailVerificationRequested", new { tokenId, purpose = "EmailVerification" }, now);
             InsertAudit(connection, transaction, null, null, "identity.account.register", "User", userId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "Accepted");
+            CompleteAcceptedReceipt(connection, transaction, receipt);
             transaction.Commit();
         }
         catch (SqlException exception) when (IsUniqueViolation(exception))
@@ -128,12 +153,10 @@ VALUES
             return PersistenceFailure<IdentityAccepted>(exception);
         }
 
-        PublishMessage(new LocalAccountMessage(tokenId, userId, "EmailVerification", draft.OriginalEmail,
-            rawToken, now, expiresAt));
         return Accepted();
     }
 
-    public IdentityOperationResult<IdentityVerification> Verify(string token, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<IdentityVerification> Verify(string token, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -145,9 +168,16 @@ VALUES
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<IdentityVerification>(connection, transaction, null,
             "identity.account.verify", idempotencyKey,
-            $"token:{Convert.ToHexString(HashToken(token))}", UtcNow(), out var receipt);
+            $"token:{Convert.ToHexString(HashToken(token))}", UtcNow(), anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
+            if (receipt.IsReplay && receiptFailure.Succeeded && receiptFailure.Value is { } replay &&
+                !IsCurrentVerifiedAccount(connection, transaction, replay.Profile.Id))
+            {
+                RollbackQuietly(transaction);
+                return Failure<IdentityVerification>("AccountUnavailable", 403, "The account is not currently available.");
+            }
+
             RollbackQuietly(transaction);
             return receiptFailure;
         }
@@ -205,10 +235,11 @@ END;",
             GrantReadyModules(connection, transaction, row.UserId, now);
             InsertAudit(connection, transaction, null, null, "identity.account.verify", "User", row.UserId, "Succeeded", null, traceId, now);
             var profile = LoadProfile(connection, transaction, row.UserId);
-            CompleteReceipt(connection, transaction, receipt, "Verified");
+            var verification = new IdentityVerification("Verified", "EmailVerified", profile);
+            CompleteReceipt(connection, transaction, receipt, "Verified", 200,
+                JsonSerializer.Serialize(verification));
             transaction.Commit();
-            return IdentityOperationResult<IdentityVerification>.Success(
-                new IdentityVerification("Verified", "EmailVerified", profile));
+            return IdentityOperationResult<IdentityVerification>.Success(verification);
         }
         catch (SqlException exception)
         {
@@ -217,7 +248,7 @@ END;",
         }
     }
 
-    public IdentityOperationResult<IdentityAccepted> ResendVerification(string email, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<IdentityAccepted> ResendVerification(string email, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         var normalized = TryNormalizeEmail(email);
         if (normalized is null)
@@ -230,7 +261,7 @@ END;",
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<IdentityAccepted>(connection, transaction, null,
             "identity.account.resend", idempotencyKey,
-            $"email:{normalized}", UtcNow(), out var receipt);
+            $"email:{normalized}", UtcNow(), anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
             RollbackQuietly(transaction);
@@ -249,7 +280,7 @@ WHERE [NormalizedEmail] = @normalizedEmail AND [State] = 'PendingVerification' A
                 using var reader = lookup.ExecuteReader();
                 if (!reader.Read())
                 {
-                    CompleteReceipt(connection, transaction, receipt, "Accepted");
+                    CompleteAcceptedReceipt(connection, transaction, receipt);
                     transaction.Commit();
                     return Accepted();
                 }
@@ -268,7 +299,7 @@ ORDER BY [CreatedAt] DESC;"))
                 var latest = throttle.ExecuteScalar();
                 if (latest is DateTime latestCreated && latestCreated >= UtcNow().Subtract(ResendThrottle))
                 {
-                    CompleteReceipt(connection, transaction, receipt, "Accepted");
+                    CompleteAcceptedReceipt(connection, transaction, receipt);
                     transaction.Commit();
                     return Accepted();
                 }
@@ -285,13 +316,14 @@ WHERE [UserId] = @userId AND [Purpose] = 'EmailVerification' AND [ConsumedAt] IS
                 ("@now", SqlDbType.DateTime2, (object)now),
                 ("@userId", SqlDbType.UniqueIdentifier, (object)userId));
             InsertToken(connection, transaction, tokenId, userId, "EmailVerification", rawToken, originalEmail, expiresAt);
-            InsertAccountMessageIntent(connection, transaction, tokenId, userId, normalized, "EmailVerification", now);
+            InsertAccountMessageIntent(connection, transaction,
+                new LocalAccountMessage(tokenId, userId, "EmailVerification", originalEmail,
+                    rawToken, now, expiresAt), normalized);
             InsertOutbox(connection, transaction, userId, $"identity.email-verification:{tokenId:N}",
                 "Identity.EmailVerificationRequested", new { tokenId, purpose = "EmailVerification" }, now);
             InsertAudit(connection, transaction, null, null, "identity.account.resend", "User", userId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "Accepted");
+            CompleteAcceptedReceipt(connection, transaction, receipt);
             transaction.Commit();
-            PublishMessage(new LocalAccountMessage(tokenId, userId, "EmailVerification", originalEmail, rawToken, now, expiresAt));
             return Accepted();
         }
         catch (SqlException exception)
@@ -302,7 +334,7 @@ WHERE [UserId] = @userId AND [Purpose] = 'EmailVerification' AND [ConsumedAt] IS
     }
 
     public IdentityOperationResult<IdentityLoginIssue> Login(string email, string password, string? deviceLabel = null,
-        string? idempotencyKey = null, string? traceId = null)
+        string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         var normalized = TryNormalizeEmail(email);
         using var connection = _connections.Create();
@@ -310,7 +342,7 @@ WHERE [UserId] = @userId AND [Purpose] = 'EmailVerification' AND [ConsumedAt] IS
         using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var receiptFailure = CheckReceipt<IdentityLoginIssue>(connection, transaction, null,
             "identity.account.login", idempotencyKey,
-            $"email:{normalized ?? "invalid"}", UtcNow(), out var receipt);
+            $"email:{normalized ?? "invalid"}|passwordProof:{_receipts.DigestSensitive(password)}", UtcNow(), anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
             RollbackQuietly(transaction);
@@ -337,10 +369,12 @@ WHERE u.[NormalizedEmail] = @normalizedEmail;");
                 user = reader.Read() ? ReadLoginRow(reader) : null;
             }
 
-            var passwordMatches = user is not null && _passwords.Verify(password, user.PasswordHash);
-            if (!passwordMatches)
+            var passwordVerification = user is not null
+                ? _passwords.VerifyDetailed(password, user.PasswordHash)
+                : PasswordVerificationResult.Failed;
+            if (passwordVerification == PasswordVerificationResult.Failed)
             {
-                _ = _passwords.Verify(password, DummyPasswordHash);
+                _ = _passwords.VerifyDetailed(password, DummyPasswordHash);
                 RollbackQuietly(transaction);
                 return Failure<IdentityLoginIssue>("InvalidCredentials", 401, "Invalid credentials.");
             }
@@ -360,6 +394,19 @@ WHERE u.[NormalizedEmail] = @normalizedEmail;");
             {
                 RollbackQuietly(transaction);
                 return Failure<IdentityLoginIssue>("AccountUnavailable", 403, "The personal space is not currently available.");
+            }
+
+            if (passwordVerification == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                var upgradedHash = _passwords.Hash(password);
+                ExecuteNonQuery(connection, transaction, @"
+UPDATE [identity].[User]
+SET [PasswordHash] = @passwordHash, [UpdatedAt] = SYSUTCDATETIME()
+WHERE [Id] = @userId AND [PasswordHash] = @previousHash;",
+                    ("@passwordHash", SqlDbType.NVarChar, (object)upgradedHash, 1024),
+                    ("@userId", SqlDbType.UniqueIdentifier, (object)user.Id, 0),
+                    ("@previousHash", SqlDbType.NVarChar, (object)user.PasswordHash, 1024));
+                user = user with { PasswordHash = upgradedHash };
             }
 
             var now = UtcNow();
@@ -395,7 +442,7 @@ VALUES
         }
     }
 
-    public IdentityOperationResult<object?> Logout(string? rawSessionHandle, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<object?> Logout(string? rawSessionHandle, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         try
         {
@@ -405,7 +452,7 @@ VALUES
             var receiptFailure = CheckReceipt<object?>(connection, transaction, null,
                 "identity.session.logout", idempotencyKey,
                 $"handle:{(string.IsNullOrWhiteSpace(rawSessionHandle) ? "missing" : Convert.ToHexString(HashSession(rawSessionHandle!)))}",
-                UtcNow(), out var receipt);
+                UtcNow(), anonymousSessionBinding, out var receipt);
             if (receiptFailure is not null)
             {
                 RollbackQuietly(transaction);
@@ -419,7 +466,7 @@ WHERE [HandleHash] = @handleHash;");
             Add(command, "@now", SqlDbType.DateTime2, now);
             Add(command, "@handleHash", SqlDbType.Binary, string.IsNullOrWhiteSpace(rawSessionHandle) ? DBNull.Value : HashSession(rawSessionHandle!), 32);
             command.ExecuteNonQuery();
-            CompleteReceipt(connection, transaction, receipt, "NoContent");
+            CompleteReceipt(connection, transaction, receipt, "NoContent", 204);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
         }
@@ -429,15 +476,15 @@ WHERE [HandleHash] = @handleHash;");
         }
     }
 
-    public IdentityOperationResult<object?> Reauthenticate(string? rawSessionHandle, string password, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<object?> Reauthenticate(string? rawSessionHandle, string password, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var receiptFailure = CheckReceipt<object?>(connection, transaction, null,
             "identity.session.reauthenticate", idempotencyKey,
-            $"handle:{(string.IsNullOrWhiteSpace(rawSessionHandle) ? "missing" : Convert.ToHexString(HashSession(rawSessionHandle!)))}|passwordLength:{password.Length}",
-            UtcNow(), out var receipt);
+            $"handle:{(string.IsNullOrWhiteSpace(rawSessionHandle) ? "missing" : Convert.ToHexString(HashSession(rawSessionHandle!)))}|passwordProof:{_receipts.DigestSensitive(password)}",
+            UtcNow(), anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
             RollbackQuietly(transaction);
@@ -452,10 +499,22 @@ WHERE [HandleHash] = @handleHash;");
                 return Failure<object?>(auth.Code, auth.StatusCode, auth.Title);
             }
 
-            if (!_passwords.Verify(password, auth.User.PasswordHash))
+            var passwordVerification = _passwords.VerifyDetailed(password, auth.User.PasswordHash);
+            if (passwordVerification == PasswordVerificationResult.Failed)
             {
                 RollbackQuietly(transaction);
                 return Failure<object?>("InvalidCredentials", 401, "Invalid credentials.");
+            }
+
+            if (passwordVerification == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                ExecuteNonQuery(connection, transaction, @"
+UPDATE [identity].[User]
+SET [PasswordHash] = @passwordHash, [UpdatedAt] = SYSUTCDATETIME()
+WHERE [Id] = @userId AND [PasswordHash] = @previousHash;",
+                    ("@passwordHash", SqlDbType.NVarChar, (object)_passwords.Hash(password), 1024),
+                    ("@userId", SqlDbType.UniqueIdentifier, (object)auth.User.UserId, 0),
+                    ("@previousHash", SqlDbType.NVarChar, (object)auth.User.PasswordHash, 1024));
             }
 
             var now = UtcNow();
@@ -464,7 +523,7 @@ UPDATE [identity].[Session] SET [RecentAuthenticatedAt] = @now WHERE [Id] = @ses
                 ("@now", SqlDbType.DateTime2, (object)now),
                 ("@sessionId", SqlDbType.UniqueIdentifier, (object)auth.Session.SessionId));
             InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.session.reauthenticate", "Session", auth.Session.SessionId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "NoContent");
+            CompleteReceipt(connection, transaction, receipt, "NoContent", 204);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
         }
@@ -475,7 +534,7 @@ UPDATE [identity].[Session] SET [RecentAuthenticatedAt] = @now WHERE [Id] = @ses
         }
     }
 
-    public IdentityOperationResult<IdentityAccepted> RequestPasswordReset(string email, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<IdentityAccepted> RequestPasswordReset(string email, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         var normalized = TryNormalizeEmail(email);
         if (normalized is null)
@@ -488,7 +547,7 @@ UPDATE [identity].[Session] SET [RecentAuthenticatedAt] = @now WHERE [Id] = @ses
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<IdentityAccepted>(connection, transaction, null,
             "identity.account.reset_request", idempotencyKey,
-            $"email:{normalized}", UtcNow(), out var receipt);
+            $"email:{normalized}", UtcNow(), anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
             RollbackQuietly(transaction);
@@ -508,7 +567,7 @@ WHERE [NormalizedEmail] = @normalizedEmail AND [IsDeleted] = 0;")
                 using var reader = lookup.ExecuteReader();
                 if (!reader.Read())
                 {
-                    CompleteReceipt(connection, transaction, receipt, "Accepted");
+                    CompleteAcceptedReceipt(connection, transaction, receipt);
                     transaction.Commit();
                     return Accepted();
                 }
@@ -528,13 +587,14 @@ WHERE [UserId] = @userId AND [Purpose] = 'PasswordReset' AND [ConsumedAt] IS NUL
                 ("@now", SqlDbType.DateTime2, (object)now),
                 ("@userId", SqlDbType.UniqueIdentifier, (object)userId));
             InsertToken(connection, transaction, tokenId, userId, "PasswordReset", rawToken, originalEmail, expiresAt);
-            InsertAccountMessageIntent(connection, transaction, tokenId, userId, normalized, "PasswordReset", now);
+            InsertAccountMessageIntent(connection, transaction,
+                new LocalAccountMessage(tokenId, userId, "PasswordReset", originalEmail,
+                    rawToken, now, expiresAt), normalized);
             InsertOutbox(connection, transaction, userId, $"identity.password-reset:{tokenId:N}",
                 "Identity.PasswordResetRequested", new { tokenId, purpose = "PasswordReset" }, now);
             InsertAudit(connection, transaction, null, null, "identity.account.reset_request", "User", userId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "Accepted");
+            CompleteAcceptedReceipt(connection, transaction, receipt);
             transaction.Commit();
-            PublishMessage(new LocalAccountMessage(tokenId, userId, "PasswordReset", originalEmail, rawToken, now, expiresAt));
             return Accepted();
         }
         catch (SqlException exception)
@@ -544,7 +604,7 @@ WHERE [UserId] = @userId AND [Purpose] = 'PasswordReset' AND [ConsumedAt] IS NUL
         }
     }
 
-    public IdentityOperationResult<object?> ConfirmPasswordReset(string token, string newPassword, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<object?> ConfirmPasswordReset(string token, string newPassword, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
     {
         if (string.IsNullOrWhiteSpace(token))
         {
@@ -562,9 +622,16 @@ WHERE [UserId] = @userId AND [Purpose] = 'PasswordReset' AND [ConsumedAt] IS NUL
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<object?>(connection, transaction, null,
             "identity.account.reset_confirm", idempotencyKey,
-            $"token:{Convert.ToHexString(HashToken(token))}|passwordLength:{newPassword.Length}", UtcNow(), out var receipt);
+            $"token:{Convert.ToHexString(HashToken(token))}|passwordProof:{_receipts.DigestSensitive(newPassword)}", UtcNow(), anonymousSessionBinding, out var receipt);
         if (receiptFailure is not null)
         {
+            if (receipt.IsReplay && receiptFailure.Succeeded &&
+                !IsCurrentResetAccount(connection, transaction, HashToken(token)))
+            {
+                RollbackQuietly(transaction);
+                return Failure<object?>("AccountUnavailable", 403, "The account is not currently available.");
+            }
+
             RollbackQuietly(transaction);
             return receiptFailure;
         }
@@ -627,7 +694,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
                 "Identity.PasswordResetCompleted", new { row.TokenId }, now);
             InsertSecurityNotification(connection, transaction, row.UserId, $"identity.password-reset.completed:{row.TokenId:N}", now);
             InsertAudit(connection, transaction, null, row.UserId, "identity.account.reset_confirm", "User", row.UserId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "NoContent");
+            CompleteReceipt(connection, transaction, receipt, "NoContent", 204);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
         }
@@ -764,9 +831,11 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
                 JsonSerializer.Serialize(new { fields }), traceId, now);
             var profile = LoadProfile(connection, transaction, auth.User.UserId);
             var rowVersion = LoadRowVersion(connection, transaction, auth.User.UserId);
-            CompleteReceipt(connection, transaction, receipt, "ProfileUpdated");
+            var updatedProfile = new IdentityProfileRead(profile, ETag(rowVersion));
+            CompleteReceipt(connection, transaction, receipt, "ProfileUpdated", 200,
+                JsonSerializer.Serialize(updatedProfile));
             transaction.Commit();
-            return IdentityOperationResult<IdentityProfileRead>.Success(new IdentityProfileRead(profile, ETag(rowVersion)));
+            return IdentityOperationResult<IdentityProfileRead>.Success(updatedProfile);
         }
         catch (SqlException exception)
         {
@@ -856,7 +925,7 @@ WHERE [Id] = @sessionId AND [UserId] = @userId;");
             }
 
             InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.session.revoke_session", "Session", sessionId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "NoContent");
+            CompleteReceipt(connection, transaction, receipt, "NoContent", 204);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
         }
@@ -897,7 +966,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
                 ("@now", SqlDbType.DateTime2, (object)now),
                 ("@userId", SqlDbType.UniqueIdentifier, (object)auth.User.UserId));
             InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.session.revoke_all", "User", auth.User.UserId, "Succeeded", null, traceId, now);
-            CompleteReceipt(connection, transaction, receipt, "NoContent");
+            CompleteReceipt(connection, transaction, receipt, "NoContent", 204);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
         }
@@ -929,7 +998,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
 
             var receiptFailure = CheckReceipt<object?>(connection, transaction, auth.User.UserId,
                 "identity.account.soft_delete", idempotencyKey,
-                $"confirmation:{confirmation}|passwordLength:{password.Length}", UtcNow(), out var receipt);
+                $"confirmation:{confirmation}|passwordProof:{_receipts.DigestSensitive(password)}", UtcNow(), out var receipt);
             if (receiptFailure is not null)
             {
                 RollbackQuietly(transaction);
@@ -1387,19 +1456,22 @@ VALUES
             ("@expiresAt", SqlDbType.DateTime2, (object)expiresAt, 0));
     }
 
-    private static void InsertAccountMessageIntent(SqlConnection connection, SqlTransaction transaction, Guid tokenId,
-        Guid userId, string normalizedEmail, string purpose, DateTime now)
+    private void InsertAccountMessageIntent(SqlConnection connection, SqlTransaction transaction,
+        LocalAccountMessage message, string normalizedEmail)
     {
+        var envelope = _deliveryProtector.Protect(message);
         ExecuteNonQuery(connection, transaction, @"
 INSERT INTO [identity].[AccountMessageIntent]
-    ([Id], [UserId], [NormalizedEmailHash], [Purpose], [State], [NotBeforeAt], [CreatedAt], [UpdatedAt])
+    ([Id], [UserId], [NormalizedEmailHash], [Purpose], [State], [NotBeforeAt],
+     [CreatedAt], [UpdatedAt], [DeliveryEnvelope])
 VALUES
-    (@id, @userId, @emailHash, @purpose, 'Pending', @now, @now, @now);",
-                ("@id", SqlDbType.UniqueIdentifier, (object)tokenId, 0),
-                ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0),
+    (@id, @userId, @emailHash, @purpose, 'Pending', @now, @now, @now, @deliveryEnvelope);",
+                ("@id", SqlDbType.UniqueIdentifier, (object)message.Id, 0),
+                ("@userId", SqlDbType.UniqueIdentifier, (object)message.UserId!, 0),
                 ("@emailHash", SqlDbType.Binary, (object)HashText(normalizedEmail), 32),
-                ("@purpose", SqlDbType.VarChar, (object)purpose, 64),
-                ("@now", SqlDbType.DateTime2, (object)now, 0));
+                ("@purpose", SqlDbType.VarChar, (object)message.Purpose, 64),
+                ("@now", SqlDbType.DateTime2, (object)message.CreatedAt.UtcDateTime, 0),
+                ("@deliveryEnvelope", SqlDbType.VarBinary, (object)envelope, 0));
     }
 
     private static void InsertOutbox(SqlConnection connection, SqlTransaction transaction, Guid? ownerUserId,
@@ -1480,20 +1552,6 @@ VALUES
             ("@now", SqlDbType.DateTime2, (object)now, 0));
     }
 
-    private void PublishMessage(LocalAccountMessage message)
-    {
-        try
-        {
-            _messageSink.Publish(message);
-        }
-        catch
-        {
-            // The durable intent/outbox is already committed. A provider failure
-            // must be retried by the delivery worker and must not leak a token or
-            // turn a successful registration into an ambiguous server error.
-        }
-    }
-
     private static SqlCommand CreateCommand(SqlConnection connection, SqlTransaction? transaction, string text)
     {
         var command = connection.CreateCommand();
@@ -1556,6 +1614,12 @@ VALUES
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
         Guid? subjectId, string operationKey, string? idempotencyKey, string canonicalRequest, DateTime now,
+        out ReceiptClaim claim) =>
+        CheckReceipt<T>(connection, transaction, subjectId, operationKey, idempotencyKey, canonicalRequest, now, null, out claim);
+
+    private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
+        Guid? subjectId, string operationKey, string? idempotencyKey, string canonicalRequest, DateTime now,
+        string? anonymousSessionBinding,
         out ReceiptClaim claim)
     {
         claim = default;
@@ -1565,10 +1629,19 @@ VALUES
         }
 
         claim = _receipts.TryClaim(connection, transaction, subjectId, operationKey, idempotencyKey!,
-            canonicalRequest, now);
+            canonicalRequest, now, anonymousSessionBinding);
+        if (claim.IsInvalid)
+        {
+            return Failure<T>("AnonymousSessionRequired", 403, "A validated anonymous session is required.");
+        }
         if (claim.IsClaimed)
         {
             return null;
+        }
+
+        if (claim.IsReplay && SafeReplayOperations.Contains(operationKey))
+        {
+            return ReplaySafeResult<T>(claim);
         }
 
         return claim.IsConflict
@@ -1578,8 +1651,59 @@ VALUES
                 : Failure<T>("RequestInProgress", 409, "An identical request is already in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private static IdentityOperationResult<T> ReplaySafeResult<T>(ReceiptClaim claim)
+    {
+        if (claim.ResultStatusCode == 204)
+        {
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+        }
+
+        // Receipts created before safe-result columns were populated retain
+        // only the result code. Only the generic accepted/no-content shapes
+        // are recoverable without reconstructing a protected response.
+        if (claim.ResultStatusCode is null && string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            if (string.Equals(claim.ResultCode, "Accepted", StringComparison.Ordinal) &&
+                typeof(T) == typeof(IdentityAccepted))
+            {
+                return (IdentityOperationResult<T>)(object)Accepted();
+            }
+
+            if (string.Equals(claim.ResultCode, "NoContent", StringComparison.Ordinal))
+            {
+                return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            return Failure<T>("IdempotencyReplayUnavailable", 409,
+                "The idempotent response is unavailable; retry with a new key.");
+        }
+
+        try
+        {
+            var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+            return value is null
+                ? Failure<T>("IdempotencyReplayUnavailable", 409,
+                    "The idempotent response is unavailable; retry with a new key.")
+                : IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200,
+                    claim.ResultCode ?? "Ok");
+        }
+        catch (JsonException)
+        {
+            return Failure<T>("IdempotencyReplayUnavailable", 409,
+                "The idempotent response is unavailable; retry with a new key.");
+        }
+    }
+
+    private void CompleteAcceptedReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim) =>
+        CompleteReceipt(connection, transaction, claim, "Accepted", 202,
+            JsonSerializer.Serialize(new IdentityAccepted("Accepted", "CheckEmailIfEligible")));
+
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim,
+        string resultCode, int? resultStatusCode = null, string? resultJson = null) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static string? TryNormalizeEmail(string? email)
     {
@@ -1591,6 +1715,43 @@ VALUES
         {
             return null;
         }
+    }
+
+    private static bool IsCurrentVerifiedAccount(SqlConnection connection, SqlTransaction transaction, Guid userId)
+    {
+        using var command = CreateCommand(connection, transaction, @"
+SELECT CASE WHEN EXISTS
+(
+    SELECT 1
+    FROM [identity].[User] AS u
+    INNER JOIN [platform].[PersonalSpace] AS ps ON ps.[UserId] = u.[Id]
+    WHERE u.[Id] = @userId
+      AND u.[State] = 'Active'
+      AND u.[IsDeleted] = 0
+      AND u.[EmailConfirmed] = 1
+      AND ps.[State] = 'Active'
+) THEN 1 ELSE 0 END;");
+        Add(command, "@userId", SqlDbType.UniqueIdentifier, userId);
+        return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) == 1;
+    }
+
+    private static bool IsCurrentResetAccount(SqlConnection connection, SqlTransaction transaction, byte[] tokenHash)
+    {
+        using var command = CreateCommand(connection, transaction, @"
+SELECT CASE WHEN EXISTS
+(
+    SELECT 1
+    FROM [identity].[OneTimeToken] AS token
+    INNER JOIN [identity].[User] AS account ON account.[Id] = token.[UserId]
+    LEFT JOIN [platform].[PersonalSpace] AS space ON space.[UserId] = account.[Id]
+    WHERE token.[TokenHash] = @tokenHash
+      AND token.[Purpose] = 'PasswordReset'
+      AND account.[State] = 'Active'
+      AND account.[IsDeleted] = 0
+      AND space.[State] = 'Active'
+) THEN 1 ELSE 0 END;");
+        Add(command, "@tokenHash", SqlDbType.Binary, tokenHash, 32);
+        return Convert.ToInt32(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) == 1;
     }
 
     private static string NewToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
@@ -1692,15 +1853,6 @@ VALUES
     {
         public static AuthResult Ok(AuthRow row) => new(true, row, row, "Ok", 200, "Ok");
         public static AuthResult Fail(string code, int statusCode, string title) => new(false, null, null, code, statusCode, title);
-    }
-
-    private sealed class NullAccountMessageSink : IAccountMessageSink
-    {
-        public static NullAccountMessageSink Instance { get; } = new();
-
-        public void Publish(LocalAccountMessage message)
-        {
-        }
     }
 
     private static UserState ParseState(string state) =>

@@ -80,7 +80,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
 });
 
-builder.Services.AddSingleton<CsrfTokenService>();
 builder.Services.AddSingleton<SessionCookieService>();
 var configuredSqlConnectionString = builder.Configuration.GetConnectionString("NexoraSql")
     ?? throw new InvalidOperationException("ConnectionStrings:NexoraSql is required.");
@@ -121,12 +120,35 @@ if (string.IsNullOrWhiteSpace(idempotencySecret))
 {
     throw new InvalidOperationException("NEXORA_IDEMPOTENCY_SECRET is required; it must not be derived from the SQL connection string.");
 }
+var csrfSigningSecret = Environment.GetEnvironmentVariable("NEXORA_CSRF_SECRET");
+if (string.IsNullOrWhiteSpace(csrfSigningSecret))
+{
+    throw new InvalidOperationException("NEXORA_CSRF_SECRET is required and must remain stable across local API restarts.");
+}
+builder.Services.AddSingleton(new CsrfTokenService(csrfSigningSecret));
+var localMessageKey = Environment.GetEnvironmentVariable("NEXORA_LOCAL_MESSAGE_KEY");
+if (string.IsNullOrWhiteSpace(localMessageKey))
+{
+    throw new InvalidOperationException("NEXORA_LOCAL_MESSAGE_KEY is required for local account-message delivery.");
+}
+var localMessageCaptureDirectory = builder.Configuration["Nexora:LocalAccountMessageCapturePath"]
+    ?? Environment.GetEnvironmentVariable("NEXORA_LOCAL_MESSAGE_CAPTURE_PATH")
+    ?? Path.Combine(builder.Environment.ContentRootPath, ".local-account-messages");
 builder.Services.AddSingleton(new SqlConnectionFactory(resolvedSqlConnectionString));
 builder.Services.AddSingleton<SqlReadinessProbe>();
-builder.Services.AddSingleton<IAccountMessageSink, LocalAccountMessageSink>();
+builder.Services.AddSingleton(new LocalAccountMessageEnvelopeProtector(localMessageKey));
+builder.Services.AddSingleton<LocalAccountMessageSink>(services =>
+    new LocalAccountMessageSink(
+        localMessageCaptureDirectory,
+        builder.Environment.ContentRootPath,
+        services.GetRequiredService<ILogger<LocalAccountMessageSink>>()));
+builder.Services.AddSingleton<IAccountMessageSink>(services =>
+    services.GetRequiredService<LocalAccountMessageSink>());
 builder.Services.AddSingleton<IIdentityService>(services =>
     new SqlIdentityService(services.GetRequiredService<SqlConnectionFactory>(),
-        services.GetRequiredService<IAccountMessageSink>(), idempotencySecret));
+        services.GetRequiredService<IAccountMessageSink>(), idempotencySecret,
+        services.GetRequiredService<LocalAccountMessageEnvelopeProtector>()));
+builder.Services.AddHostedService<AccountMessageDeliveryWorker>();
 builder.Services.AddSingleton<IModulePolicyService>(services =>
     new SqlModulePolicyService(
         services.GetRequiredService<SqlConnectionFactory>(),

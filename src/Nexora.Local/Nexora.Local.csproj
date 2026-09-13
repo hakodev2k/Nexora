@@ -5,7 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Nexora.Infrastructure\Nexora.Infrastructure.csproj" />
-    <Compile Include="..\Nexora.Api\Security\PasswordHashService.cs" Link="Security\PasswordHashService.cs" />
     <None Include="..\..\database\migrations\*.sql" Link="migrations\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

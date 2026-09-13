@@ -35,16 +35,24 @@ internal sealed class SqlRequestReceiptStore
         string operationKey,
         string idempotencyKey,
         string canonicalRequest,
-        DateTime now)
+        DateTime now,
+        string? anonymousSessionBinding = null)
     {
         if (!Guid.TryParse(idempotencyKey, out _))
         {
             return ReceiptClaim.Invalid;
         }
 
+        if (subjectId is null && !IsValidAnonymousBinding(anonymousSessionBinding))
+        {
+            return ReceiptClaim.Invalid;
+        }
+
+        // The binding is the validated opaque anti-forgery session secret. It
+        // is only used as HMAC input and is never stored, logged or returned.
         var subjectHash = Digest(subjectId is { } id
-            ? $"user:{id:N}:{operationKey}"
-            : $"anonymous:{operationKey}");
+            ? $"user:{id:N}"
+            : $"anonymous-session:{anonymousSessionBinding}");
         var keyHash = KeyDigest(idempotencyKey);
         var requestDigest = Digest(canonicalRequest);
         var expiresAt = now.Add(ReceiptTtl);
@@ -166,8 +174,35 @@ internal sealed class SqlRequestReceiptStore
         command.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Produces a keyed, non-reversible request component for a credential
+    /// field. It lets same-key/different-password requests conflict without
+    /// putting the password in the receipt canonical input or SQL.
+    /// </summary>
+    public string DigestSensitive(string value) => Convert.ToHexString(Hmac("sensitive:" + value));
+
     private byte[] KeyDigest(string key) => Hmac($"key:{key}");
     private byte[] Digest(string value) => Hmac(value);
+
+    private static bool IsValidAnonymousBinding(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length > 128)
+        {
+            return false;
+        }
+
+        var separator = value.IndexOf('.');
+        if (separator != 43 || separator != value.LastIndexOf('.') || value.Length != 87)
+        {
+            return false;
+        }
+
+        return value[..separator].All(IsBase64UrlCharacter) &&
+            value[(separator + 1)..].All(IsBase64UrlCharacter);
+    }
+
+    private static bool IsBase64UrlCharacter(char character) =>
+        character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '-' or '_' or '=';
 
     private byte[] Hmac(string value)
     {

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Access;
 using Nexora.Application.Identity;
@@ -108,10 +109,21 @@ public sealed class SqlAdminAccessService : IAdminAccessService
                 ("@Stamp", SqlDbType.NVarChar, (object)Convert.ToHexString(RandomNumberGenerator.GetBytes(32))),
                 ("@UserId", SqlDbType.UniqueIdentifier, (object)userId), ("@RowVersion", SqlDbType.Binary, (object)expectedVersion));
             WriteAudit(connection, transaction, actor, userId, "access.role.set", traceId);
-            CompleteReceipt(connection, transaction, receipt, "RoleUpdated");
+
+            // A self-demotion revokes the caller's sessions and removes its
+            // authority to read the admin projection. Do not serialize the
+            // pre-change privileged DTO into the response or receipt.
+            if (userId == actor.UserId && !string.Equals(command.Role, "SuperAdmin", StringComparison.Ordinal))
+            {
+                CompleteReceipt(connection, transaction, receipt, "RoleUpdated", 204);
+                transaction.Commit();
+                return IdentityOperationResult<AdminUserAccess>.NoContent("RoleUpdated");
+            }
+
             var updated = ReadUser(connection, transaction, userId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<AdminUserAccess>("PersistenceFailure", 500, "User could not be loaded after update."); }
             var access = new AdminUserAccess(updated, ReadActionGrants(connection, transaction, userId), ReadModuleGrants(connection, transaction, userId));
+            CompleteReceipt(connection, transaction, receipt, "RoleUpdated", 200, JsonSerializer.Serialize(access));
             transaction.Commit();
             return IdentityOperationResult<AdminUserAccess>.Success(access);
         }
@@ -156,10 +168,10 @@ public sealed class SqlAdminAccessService : IAdminAccessService
             Execute(connection, transaction, "UPDATE [identity].[User] SET [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @UserId AND [RowVersion] = @RowVersion;",
                 ("@UserId", SqlDbType.UniqueIdentifier, (object)userId), ("@RowVersion", SqlDbType.Binary, (object)expectedVersion));
             WriteAudit(connection, transaction, actor, userId, "access.permission.set", traceId);
-            CompleteReceipt(connection, transaction, receipt, "PermissionUpdated");
             var updated = ReadUser(connection, transaction, userId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<AdminUserAccess>("PersistenceFailure", 500, "User could not be loaded after update."); }
             var access = new AdminUserAccess(updated, ReadActionGrants(connection, transaction, userId), ReadModuleGrants(connection, transaction, userId));
+            CompleteReceipt(connection, transaction, receipt, "PermissionUpdated", 200, JsonSerializer.Serialize(access));
             transaction.Commit();
             return IdentityOperationResult<AdminUserAccess>.Success(access);
         }
@@ -219,10 +231,10 @@ public sealed class SqlAdminAccessService : IAdminAccessService
             Execute(connection, transaction, "UPDATE [identity].[User] SET [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @UserId AND [RowVersion] = @RowVersion;",
                 ("@UserId", SqlDbType.UniqueIdentifier, (object)userId), ("@RowVersion", SqlDbType.Binary, (object)expectedVersion));
             WriteAudit(connection, transaction, actor, userId, "access.entitlement.set", traceId);
-            CompleteReceipt(connection, transaction, receipt, "ModuleGrantUpdated");
             var updated = ReadUser(connection, transaction, userId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<AdminUserAccess>("PersistenceFailure", 500, "User could not be loaded after update."); }
             var access = new AdminUserAccess(updated, ReadActionGrants(connection, transaction, userId), ReadModuleGrants(connection, transaction, userId));
+            CompleteReceipt(connection, transaction, receipt, "ModuleGrantUpdated", 200, JsonSerializer.Serialize(access));
             transaction.Commit();
             return IdentityOperationResult<AdminUserAccess>.Success(access);
         }
@@ -270,9 +282,9 @@ public sealed class SqlAdminAccessService : IAdminAccessService
                 ("@UserId", SqlDbType.UniqueIdentifier, (object)userId));
             RevokeSessions(connection, transaction, userId);
             WriteAudit(connection, transaction, actor, userId, "access.user.disable", traceId);
-            CompleteReceipt(connection, transaction, receipt, "UserDisabled");
+            CompleteReceipt(connection, transaction, receipt, "UserDisabled", 204);
             transaction.Commit();
-            return IdentityOperationResult<object?>.NoContent();
+            return IdentityOperationResult<object?>.NoContent("UserDisabled");
         }
         catch (SqlException exception)
         {
@@ -370,11 +382,34 @@ public sealed class SqlAdminAccessService : IAdminAccessService
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
+
+        if (claim.IsReplay)
+        {
+            if (claim.ResultStatusCode == 204)
+                return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+
+            if (!string.IsNullOrWhiteSpace(claim.ResultJson))
+            {
+                try
+                {
+                    var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+                    if (value is not null)
+                        return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+                }
+                catch (JsonException)
+                {
+                    // A malformed or manually repaired receipt is not a safe
+                    // reason to return a current privileged projection.
+                }
+            }
+        }
+
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) => _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? resultStatusCode = null, string? resultJson = null) => _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql, params (string Name, SqlDbType Type, object Value)[] parameters)
     {

@@ -72,10 +72,10 @@ public static class ActionGrantPolicy
         "backup.create",
         "backup.restore",
 
-        // DEC-014 permits the implemented local Release 1 self slices. These
-        // canonical catalog keys are grantable for Admin SELF access; the
-        // legacy aliases above remain accepted so existing local rows continue
-        // to behave deterministically during the migration window.
+        // The following canonical keys are retained for the current PR's
+        // historical implementation inventory. They are not authority for
+        // the current implementation boundary; only the explicit M01
+        // AdminGrantable projection below can be assigned to Admin SELF.
         "projects.project.read",
         "projects.project.create",
         "projects.project.update",
@@ -173,6 +173,55 @@ public static class ActionGrantPolicy
         "toolbox.network.dns"
     };
 
+    // Current product authority is the exact M01 action set from main's
+    // effective-status overlay. The larger inventory above is retained only
+    // so old PR code can be identified during review; it must not authorize
+    // a new grant outside this set.
+    private static readonly HashSet<string> ApprovedM01Actions = new(StringComparer.Ordinal)
+    {
+        "identity.account.register",
+        "identity.account.verify",
+        "identity.account.resend",
+        "identity.account.login",
+        "identity.account.reset_request",
+        "identity.account.reset_confirm",
+        "identity.session.logout",
+        "identity.session.read",
+        "identity.session.revoke_session",
+        "identity.session.revoke_all",
+        "identity.profile.read",
+        "identity.profile.update",
+        "access.user.read",
+        "access.permission.read",
+        "access.change.read",
+        "access.role.set",
+        "access.permission.set",
+        "access.entitlement.set",
+        "modules.catalog.read",
+        "modules.policy.enable",
+        "modules.policy.disable",
+        "modules.policy.defaults",
+        "notifications.dispatch.publish",
+        "notifications.dispatch.deliver",
+        "settings.preference.read",
+        "settings.preference.update"
+    };
+
+    // This is an explicit projection of the current M01 action manifest's
+    // AdminGrantable field. It is intentionally not inferred from a verb,
+    // namespace or database row: SUPER/CONTROL/SYSTEM/PUBLIC actions and
+    // outside-M01 actions must fail closed even if a stale SQL row exists.
+    private static readonly HashSet<string> AdminGrantableActions = new(StringComparer.Ordinal)
+    {
+        // Exact M01 actions from main's effective action set. Do not grow this
+        // list from PR-only module code until a later slice is approved.
+        "access.user.read",
+        "access.permission.read",
+        "modules.catalog.read",
+        "settings.preference.read",
+        "settings.preference.update"
+    };
+
     public static PolicyDecision CanGrantAllow(string actionKey)
     {
         if (string.IsNullOrWhiteSpace(actionKey))
@@ -190,13 +239,15 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Network toolbox action is inactive until a future PO/network decision.");
         }
 
-        if (!ApprovedLocalActions.Contains(actionKey))
+        if (!ApprovedM01Actions.Contains(actionKey))
         {
-            return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current local Release 1 scope.");
+            return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 scope.");
         }
 
-        return PolicyDecision.Allow("GrantAllowed", "Action is approved for local Release 1 grant mutation.");
+        return PolicyDecision.Allow("GrantAllowed", "Action is approved for M01 grant mutation.");
     }
 
-    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedLocalActions.Contains(actionKey);
+    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey);
+
+    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey);
 }

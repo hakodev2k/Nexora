@@ -15,25 +15,25 @@ public static class IdentityEndpoints
         {
             var issued = tokens.Issue();
             context.Response.Headers.CacheControl = "no-store";
-            tokens.AppendCookie(context.Response, issued);
+            tokens.AppendCookie(context, issued);
             return Results.Ok(new CsrfResponse(issued.RequestToken, "csrf", 1800));
         }).WithName("getCsrf");
 
-        api.MapPost("/auth/registrations", (HttpContext context, RegistrationRequest request, IIdentityService service) =>
-            ToHttp(context, service.Register(new RegistrationCommand(request.Email, request.Password, request.TimeZoneId, request.DisplayName, null), IdempotencyKey(context), context.TraceIdentifier)))
+        api.MapPost("/auth/registrations", (HttpContext context, RegistrationRequest request, IIdentityService service, CsrfTokenService csrfTokens) =>
+            ToHttp(context, service.Register(new RegistrationCommand(request.Email, request.Password, request.TimeZoneId, request.DisplayName, null), IdempotencyKey(context), context.TraceIdentifier, AnonymousBinding(context, csrfTokens))))
             .WithName("register");
 
-        api.MapPost("/auth/verifications", (HttpContext context, TokenProofRequest request, IIdentityService service) =>
-            ToHttp(context, service.Verify(request.Token, IdempotencyKey(context), context.TraceIdentifier), value => new VerificationResponse(value.Status, value.MessageCode, ToProfile(value.Profile))))
+        api.MapPost("/auth/verifications", (HttpContext context, TokenProofRequest request, IIdentityService service, CsrfTokenService csrfTokens) =>
+            ToHttp(context, service.Verify(request.Token, IdempotencyKey(context), context.TraceIdentifier, AnonymousBinding(context, csrfTokens)), value => new VerificationResponse(value.Status, value.MessageCode, ToProfile(value.Profile))))
             .WithName("verify");
 
-        api.MapPost("/auth/verifications/resend", (HttpContext context, EmailRequest request, IIdentityService service) =>
-            ToHttp(context, service.ResendVerification(request.Email, IdempotencyKey(context), context.TraceIdentifier)))
+        api.MapPost("/auth/verifications/resend", (HttpContext context, EmailRequest request, IIdentityService service, CsrfTokenService csrfTokens) =>
+            ToHttp(context, service.ResendVerification(request.Email, IdempotencyKey(context), context.TraceIdentifier, AnonymousBinding(context, csrfTokens))))
             .WithName("resendVerification");
 
         api.MapPost("/auth/login", (HttpContext context, CredentialsRequest request, IIdentityService service, SessionCookieService cookies, CsrfTokenService csrfTokens) =>
         {
-            var result = service.Login(request.Email, request.Password, context.Request.Headers.UserAgent.ToString(), context.Request.Headers["Idempotency-Key"].ToString(), context.TraceIdentifier);
+            var result = service.Login(request.Email, request.Password, context.Request.Headers.UserAgent.ToString(), context.Request.Headers["Idempotency-Key"].ToString(), context.TraceIdentifier, csrfTokens.GetValidatedAnonymousSessionBinding(context));
             if (!result.Succeeded || result.Value is null)
             {
                 return ToHttp(context, result);
@@ -42,27 +42,27 @@ public static class IdentityEndpoints
             cookies.Append(context.Response, result.Value.RawSessionHandle, result.Value.ExpiresAt);
             // A successful login rotates the CSRF cookie. The request token is
             // returned as a response header and kept in frontend memory only.
-            csrfTokens.AppendCookie(context.Response, csrfTokens.Issue());
+            csrfTokens.AppendCookie(context, csrfTokens.Issue());
             return ToHttp(context, result, value => new LoginResponse(ToProfile(value.Profile), value.ExpiresAt));
         }).WithName("login");
 
-        api.MapPost("/auth/logout", (HttpContext context, IIdentityService service, SessionCookieService cookies) =>
+        api.MapPost("/auth/logout", (HttpContext context, IIdentityService service, SessionCookieService cookies, CsrfTokenService csrfTokens) =>
         {
-            var result = service.Logout(cookies.ReadRawHandle(context.Request), IdempotencyKey(context), context.TraceIdentifier);
+            var result = service.Logout(cookies.ReadRawHandle(context.Request), IdempotencyKey(context), context.TraceIdentifier, csrfTokens.GetValidatedAnonymousSessionBinding(context));
             cookies.Clear(context.Response);
             return ToHttp(context, result);
         }).WithName("logout");
 
-        api.MapPost("/auth/reauth", (HttpContext context, PasswordProofRequest request, IIdentityService service, SessionCookieService cookies) =>
-            ToHttp(context, service.Reauthenticate(cookies.ReadRawHandle(context.Request), request.Password, IdempotencyKey(context), context.TraceIdentifier)))
+        api.MapPost("/auth/reauth", (HttpContext context, PasswordProofRequest request, IIdentityService service, SessionCookieService cookies, CsrfTokenService csrfTokens) =>
+            ToHttp(context, service.Reauthenticate(cookies.ReadRawHandle(context.Request), request.Password, IdempotencyKey(context), context.TraceIdentifier, csrfTokens.GetValidatedAnonymousSessionBinding(context))))
             .WithName("reauth");
 
-        api.MapPost("/auth/password-resets", (HttpContext context, EmailRequest request, IIdentityService service) =>
-            ToHttp(context, service.RequestPasswordReset(request.Email, IdempotencyKey(context), context.TraceIdentifier)))
+        api.MapPost("/auth/password-resets", (HttpContext context, EmailRequest request, IIdentityService service, CsrfTokenService csrfTokens) =>
+            ToHttp(context, service.RequestPasswordReset(request.Email, IdempotencyKey(context), context.TraceIdentifier, AnonymousBinding(context, csrfTokens))))
             .WithName("requestReset");
 
-        api.MapPost("/auth/password-resets/confirm", (HttpContext context, ResetProofRequest request, IIdentityService service) =>
-            ToHttp(context, service.ConfirmPasswordReset(request.Token, request.NewPassword, IdempotencyKey(context), context.TraceIdentifier)))
+        api.MapPost("/auth/password-resets/confirm", (HttpContext context, ResetProofRequest request, IIdentityService service, CsrfTokenService csrfTokens) =>
+            ToHttp(context, service.ConfirmPasswordReset(request.Token, request.NewPassword, IdempotencyKey(context), context.TraceIdentifier, AnonymousBinding(context, csrfTokens))))
             .WithName("confirmReset");
 
         api.MapGet("/me", (HttpContext context, IIdentityService service, SessionCookieService cookies) =>
@@ -139,6 +139,9 @@ public static class IdentityEndpoints
 
     private static string? IdempotencyKey(HttpContext context) =>
         context.Request.Headers["Idempotency-Key"].ToString();
+
+    private static string? AnonymousBinding(HttpContext context, CsrfTokenService csrfTokens) =>
+        csrfTokens.GetValidatedAnonymousSessionBinding(context);
 
     private static IResult ToHttp<T>(HttpContext context, IdentityOperationResult<T> result) =>
         new ApiResult<T>(result.Succeeded, result.Value, result.Code, result.StatusCode, result.Title).ToHttp(context);

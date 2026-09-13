@@ -1,6 +1,11 @@
 # Draft PR description — PR #4 review hardening
 
 > Unposted draft. Do not publish or merge as part of this task.
+>
+> **Superseded historical draft.** Its DEC-014/full-local-R1 wording and
+> earlier SHA claims are retained only for history. Use
+> [`pr4-r2-description-draft-20260913.md`](pr4-r2-description-draft-20260913.md)
+> for the current unposted draft.
 
 ## Scope
 

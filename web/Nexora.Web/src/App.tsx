@@ -161,6 +161,7 @@ import {
   recordHabitCheckIn,
   transitionHabit
 } from './api';
+import { LocaleContext, useI18n } from './i18n';
 
 type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
@@ -360,38 +361,56 @@ function asApiError(error: unknown): NexoraApiError {
   return new NexoraApiError('Yêu cầu không thành công.', 0, 'UnknownError');
 }
 
+function localizedError(error: NexoraApiError, t: (key: string, fallback?: string) => string): string {
+  const code = error.code?.toLowerCase();
+  const key = code === 'validationfailed' ? 'errorValidation'
+    : code === 'permissiondenied' || code === 'forbidden' ? 'errorPermission'
+      : code === 'authenticationrequired' || code === 'invalidcredentials' || code === 'accountunavailable' ? 'errorAuthentication'
+        : code === 'persistenceunavailable' || code === 'serviceunavailable' ? 'errorUnavailable'
+          : error.status === 412 || code === 'revisionconflict' ? 'errorConflict'
+            : code === 'csrfinvalid' ? 'errorCsrf'
+              : code === 'requestbodytoolarge' ? 'errorTooLarge'
+                : code === 'tokenunavailable' ? 'errorTokenUnavailable'
+                  : undefined;
+  return key ? t(key, error.message) : error.message;
+}
+
 function firstFieldError(error: NexoraApiError, field: string): string | undefined {
   const match = Object.entries(error.fieldErrors).find(([key]) => key.toLowerCase() === field.toLowerCase());
   return match?.[1][0];
 }
 
-function passwordError(password: string): string | undefined {
+function passwordError(password: string, t?: (key: string, fallback?: string) => string): string | undefined {
   const length = Array.from(password).length;
   if (length < 15) {
-    return 'Mật khẩu cần ít nhất 15 ký tự Unicode.';
+    return t?.('passwordMinimum') ?? 'Mật khẩu cần ít nhất 15 ký tự Unicode.';
   }
   if (length > 128) {
-    return 'Mật khẩu không được vượt quá 128 ký tự Unicode.';
+    return t?.('passwordMaximum') ?? 'Mật khẩu không được vượt quá 128 ký tự Unicode.';
   }
   return undefined;
 }
 
 function dateTime(value: string, timeZoneId?: string, locale?: string): string {
   try {
-    return new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : locale === 'vi' ? 'vi-VN' : undefined, {
+    const effectiveLocale = locale ?? (typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'vi');
+    return new Intl.DateTimeFormat(effectiveLocale === 'en' ? 'en-US' : 'vi-VN', {
       dateStyle: 'medium', timeStyle: 'short', timeZone: validTimeZone(timeZoneId ?? currentTimeZone())
     }).format(new Date(value));
   } catch {
-    return 'Không xác định';
+    return locale === 'en' || (locale === undefined && typeof document !== 'undefined' && document.documentElement.lang === 'en')
+      ? 'Unknown'
+      : 'Không xác định';
   }
 }
 
 function Notice({ kind, children, onDismiss }: { kind: NoticeKind; children: React.ReactNode; onDismiss?: () => void }) {
+  const { t } = useI18n();
   return (
     <div className={`notice notice-${kind}`} role={kind === 'error' ? 'alert' : 'status'} aria-live="polite">
       <span>{children}</span>
       {onDismiss && (
-        <button className="icon-button" type="button" aria-label="Đóng thông báo" onClick={onDismiss}>
+        <button className="icon-button" type="button" aria-label={t('closeNotice')} onClick={onDismiss}>
           ×
         </button>
       )}
@@ -411,9 +430,10 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 }
 
 function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <button className="primary-button" type="submit" disabled={busy}>
-      {busy ? 'Đang xử lý…' : children}
+      {busy ? t('processing') : children}
     </button>
   );
 }
@@ -429,38 +449,41 @@ function PublicFrame({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="public-layout">
       <header className="public-header">
-        <button className="brand" type="button" onClick={() => navigate('login')} aria-label="Nexora — tới trang đăng nhập">
+        <button className="brand" type="button" onClick={() => navigate('login')} aria-label={`Nexora — ${t('signIn').toLowerCase()}`}>
           <span className="brand-mark" aria-hidden="true">N</span>
           <span>Nexora</span>
         </button>
-        <span className="environment-label">Local application</span>
+        <span className="environment-label">{t('localApplication')}</span>
       </header>
       <main className="public-main">
         {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
         {children}
       </main>
-      <footer className="public-footer">Phiên xác thực do server quản lý bằng cookie HttpOnly; trình duyệt không lưu token đăng nhập.</footer>
+      <footer className="public-footer">{t('authFooter')}</footer>
     </div>
   );
 }
 
 function AuthLinks({ navigate, current }: { navigate: (screen: Screen) => void; current: Screen }) {
+  const { t } = useI18n();
   return (
-    <nav className="auth-links" aria-label="Điều hướng tài khoản">
-      {current !== 'login' && <button className="link-button" type="button" onClick={() => navigate('login')}>Đăng nhập</button>}
-      {current !== 'register' && <button className="link-button" type="button" onClick={() => navigate('register')}>Tạo tài khoản</button>}
-      {current !== 'forgot' && current !== 'reset' && <button className="link-button" type="button" onClick={() => navigate('forgot')}>Quên mật khẩu?</button>}
+    <nav className="auth-links" aria-label={t('accountNavigation')}>
+      {current !== 'login' && <button className="link-button" type="button" onClick={() => navigate('login')}>{t('signIn')}</button>}
+      {current !== 'register' && <button className="link-button" type="button" onClick={() => navigate('register')}>{t('createAccount')}</button>}
+      {current !== 'forgot' && current !== 'reset' && <button className="link-button" type="button" onClick={() => navigate('forgot')}>{t('forgotPassword')}</button>}
     </nav>
   );
 }
 
 function FormCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <section className="form-card" aria-labelledby="form-title">
-      <p className="eyebrow">NEXORA ACCOUNT</p>
+      <p className="eyebrow">{t('accountEyebrow')}</p>
       <h1 id="form-title">{title}</h1>
       <p className="lead">{description}</p>
       {children}
@@ -479,6 +502,7 @@ function RegisterScreen({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
@@ -498,20 +522,20 @@ function RegisterScreen({
     setClientError(undefined);
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      setClientError('Nhập một địa chỉ email hợp lệ.');
+      setClientError(t('validEmail'));
       return;
     }
-    const passwordIssue = passwordError(password);
+    const passwordIssue = passwordError(password, t);
     if (passwordIssue) {
       setClientError(passwordIssue);
       return;
     }
     if (!timeZoneId.trim()) {
-      setClientError('Timezone IANA là bắt buộc.');
+      setClientError(t('timezoneRequired'));
       return;
     }
     if (displayName.trim().length > 100) {
-      setClientError('Tên hiển thị không được vượt quá 100 ký tự.');
+      setClientError(t('displayNameMaximum'));
       return;
     }
 
@@ -530,33 +554,33 @@ function RegisterScreen({
 
   return (
     <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
-      <FormCard title="Tạo tài khoản" description="Đăng ký tài khoản cá nhân. Bạn cần xác minh email trước khi dùng dữ liệu và module riêng của mình.">
+      <FormCard title={t('createAccountTitle')} description={t('createAccountDescription')}>
         <form className="stack-form" onSubmit={submit} noValidate>
           <div className="field-group">
-            <label htmlFor="register-email">Email</label>
+            <label htmlFor="register-email">{t('email')}</label>
             <input id="register-email" type="email" autoComplete="email" value={email} onChange={(event) => { resetRequestKey(); setEmail(event.target.value); }} required aria-describedby="register-email-help register-email-error" />
-            <p className="field-help" id="register-email-help">Địa chỉ này được dùng để gửi hướng dẫn xác minh.</p>
+            <p className="field-help" id="register-email-help">{t('emailVerificationHelp')}</p>
             <FieldError id="register-email-error" message={error ? firstFieldError(error, 'email') : undefined} />
           </div>
           <div className="field-group">
-            <label htmlFor="register-display-name">Tên hiển thị <span className="optional">(tùy chọn)</span></label>
+            <label htmlFor="register-display-name">{t('displayName')} <span className="optional">({t('optional')})</span></label>
             <input id="register-display-name" type="text" autoComplete="name" maxLength={100} value={displayName} onChange={(event) => { resetRequestKey(); setDisplayName(event.target.value); }} aria-describedby="register-display-name-error" />
             <FieldError id="register-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} />
           </div>
           <div className="field-group">
-            <label htmlFor="register-password">Mật khẩu</label>
+            <label htmlFor="register-password">{t('password')}</label>
             <input id="register-password" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={password} onChange={(event) => { resetRequestKey(); setPassword(event.target.value); }} aria-describedby="register-password-help register-password-error" required />
-            <p className="field-help" id="register-password-help">Từ 15 đến 128 ký tự Unicode. Không dùng mật khẩu phổ biến.</p>
+            <p className="field-help" id="register-password-help">{t('passwordHelp')}</p>
             <FieldError id="register-password-error" message={error ? firstFieldError(error, 'password') : undefined} />
           </div>
           <div className="field-group">
-            <label htmlFor="register-timezone">Timezone IANA</label>
+            <label htmlFor="register-timezone">{t('timezone')}</label>
             <input id="register-timezone" type="text" autoComplete="off" value={timeZoneId} onChange={(event) => { resetRequestKey(); setTimeZoneId(event.target.value); }} aria-describedby="register-timezone-help register-timezone-error" required />
-            <p className="field-help" id="register-timezone-help">Phát hiện từ trình duyệt; bạn có thể sửa, ví dụ <code>Asia/Ho_Chi_Minh</code>.</p>
+            <p className="field-help" id="register-timezone-help">{t('timezoneHelp')} <code>Asia/Ho_Chi_Minh</code>.</p>
             <FieldError id="register-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} />
           </div>
-          {(clientError || error) && <Notice kind="error">{clientError ?? error?.message ?? 'Không thể tạo tài khoản.'}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-          <SubmitButton busy={busy}>Tạo tài khoản</SubmitButton>
+          {(clientError || error) && <Notice kind="error">{clientError ?? (error ? localizedError(error, t) : t('createAccountFailed'))}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>{t('submitCreateAccount')}</SubmitButton>
         </form>
         <AuthLinks navigate={navigate} current="register" />
       </FormCard>
@@ -579,6 +603,7 @@ function VerifyScreen({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [resendBusy, setResendBusy] = useState(false);
@@ -603,7 +628,7 @@ function VerifyScreen({
     event.preventDefault();
     setError(null);
     if (!token.trim()) {
-      setError(new NexoraApiError('Mã xác minh là bắt buộc.', 422, 'ValidationFailed'));
+      setError(new NexoraApiError(t('tokenRequired'), 422, 'ValidationFailed'));
       return;
     }
     requestKey.current ??= createIdempotencyKey();
@@ -623,7 +648,7 @@ function VerifyScreen({
   async function resend() {
     setResendError(null);
     if (!email.trim()) {
-      setResendError(new NexoraApiError('Email là bắt buộc để gửi lại mã.', 422, 'ValidationFailed'));
+      setResendError(new NexoraApiError(t('requiredEmail'), 422, 'ValidationFailed'));
       return;
     }
     resendKey.current ??= createIdempotencyKey();
@@ -642,39 +667,39 @@ function VerifyScreen({
 
   return (
     <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
-      <FormCard title="Xác minh email" description="Nhập mã từ kênh email/transport đã cấu hình. Nexora không hiển thị mailbox không được bảo vệ trong trình duyệt.">
+      <FormCard title={t('verifyEmailTitle')} description={t('verifyDescription')}>
         {verified ? (
           <div className="success-panel">
-            <h2>Email đã được xác minh</h2>
-            <p>PersonalSpace sẽ được tạo theo transaction xác minh. Hãy đăng nhập để tiếp tục.</p>
-            <button className="primary-button" type="button" onClick={() => navigate('login')}>Tới đăng nhập</button>
+            <h2>{t('emailVerified')}</h2>
+            <p>{t('personalSpaceCreated')}</p>
+            <button className="primary-button" type="button" onClick={() => navigate('login')}>{t('goToLogin')}</button>
           </div>
         ) : (
           <>
             <form className="stack-form" onSubmit={submit} noValidate>
               <div className="field-group">
-                <label htmlFor="verify-email">Email</label>
-                <input id="verify-email" type="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); requestKey.current = null; }} required />
+                <label htmlFor="verify-email">{t('email')}</label>
+                <input id="verify-email" type="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); requestKey.current = null; resendKey.current = null; }} required />
               </div>
               <div className="field-group">
-                <label htmlFor="verify-token">Mã xác minh</label>
+                <label htmlFor="verify-token">{t('emailVerificationCode')}</label>
                 <input id="verify-token" type="text" inputMode="text" autoComplete="one-time-code" value={token} onChange={(event) => { setToken(event.target.value); requestKey.current = null; }} required aria-describedby="verify-token-help" />
-                <p className="field-help" id="verify-token-help">Chỉ dán mã vào trường này; mã không được lưu vào storage của trình duyệt.</p>
+                <p className="field-help" id="verify-token-help">{t('tokenHelp')}</p>
               </div>
-              {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-              <SubmitButton busy={busy}>Xác minh email</SubmitButton>
+              {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+              <SubmitButton busy={busy}>{t('submitVerify')}</SubmitButton>
             </form>
             <div className="secondary-action">
               <button className="secondary-button" type="button" disabled={resendBusy || secondsRemaining > 0} onClick={resend}>
-                {resendBusy ? 'Đang gửi…' : secondsRemaining > 0 ? `Gửi lại sau ${secondsRemaining}s` : 'Gửi lại email xác minh'}
+                {resendBusy ? t('sending') : secondsRemaining > 0 ? t('resendAfter').replace('{seconds}', String(secondsRemaining)) : t('resendVerification')}
               </button>
-              {resendError && <Notice kind="error">{resendError.message}</Notice>}
+              {resendError && <Notice kind="error">{localizedError(resendError, t)}</Notice>}
             </div>
           </>
         )}
         <div className="auth-links">
-          <button className="link-button" type="button" onClick={() => navigate('register')}>Quay lại đăng ký</button>
-          <button className="link-button" type="button" onClick={() => navigate('login')}>Đăng nhập</button>
+          <button className="link-button" type="button" onClick={() => navigate('register')}>{t('backToRegister')}</button>
+          <button className="link-button" type="button" onClick={() => navigate('login')}>{t('signIn')}</button>
         </div>
       </FormCard>
     </PublicFrame>
@@ -694,6 +719,7 @@ function LoginScreen({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -704,7 +730,7 @@ function LoginScreen({
     event.preventDefault();
     setError(null);
     if (!email.trim() || !password) {
-      setError(new NexoraApiError('Email và mật khẩu là bắt buộc.', 422, 'ValidationFailed'));
+      setError(new NexoraApiError(t('credentialsRequired'), 422, 'ValidationFailed'));
       return;
     }
     requestKey.current ??= createIdempotencyKey();
@@ -726,18 +752,18 @@ function LoginScreen({
 
   return (
     <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
-      <FormCard title="Đăng nhập" description="Đăng nhập vào PersonalSpace của bạn. Quyền và module luôn được server kiểm tra lại.">
+      <FormCard title={t('signIn')} description={t('loginDescription')}>
         <form className="stack-form" onSubmit={submit} noValidate>
           <div className="field-group">
-            <label htmlFor="login-email">Email</label>
+            <label htmlFor="login-email">{t('email')}</label>
             <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => { requestKey.current = null; setEmail(event.target.value); }} required />
           </div>
           <div className="field-group">
-            <label htmlFor="login-password">Mật khẩu</label>
+            <label htmlFor="login-password">{t('password')}</label>
             <input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => { requestKey.current = null; setPassword(event.target.value); }} required />
           </div>
-          {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-          <SubmitButton busy={busy}>Đăng nhập</SubmitButton>
+          {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>{t('submitLogin')}</SubmitButton>
         </form>
         <AuthLinks navigate={navigate} current="login" />
       </FormCard>
@@ -754,6 +780,7 @@ function ForgotPasswordScreen({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -764,7 +791,7 @@ function ForgotPasswordScreen({
     event.preventDefault();
     setError(null);
     if (!email.trim() || !email.includes('@')) {
-      setError(new NexoraApiError('Nhập một địa chỉ email hợp lệ.', 422, 'ValidationFailed'));
+      setError(new NexoraApiError(t('validEmail'), 422, 'ValidationFailed'));
       return;
     }
     requestKey.current ??= createIdempotencyKey();
@@ -782,21 +809,21 @@ function ForgotPasswordScreen({
 
   return (
     <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
-      <FormCard title="Đặt lại mật khẩu" description="Nhập email để nhận hướng dẫn nếu tài khoản đủ điều kiện. Phản hồi luôn giống nhau để không tiết lộ account tồn tại.">
+      <FormCard title={t('forgotTitle')} description={t('forgotDescription')}>
         {accepted ? (
           <div className="success-panel">
-            <h2>Đã tiếp nhận yêu cầu</h2>
-            <p>Nếu email đủ điều kiện, hãy dùng mã reset từ kênh được cấu hình. Không nhập mã vào URL hoặc lưu mã trong trình duyệt.</p>
-            <button className="primary-button" type="button" onClick={() => navigate('reset')}>Nhập mã reset</button>
+            <h2>{t('requestAccepted')}</h2>
+            <p>{t('resetInstructions')}</p>
+            <button className="primary-button" type="button" onClick={() => navigate('reset')}>{t('enterResetCode')}</button>
           </div>
         ) : (
           <form className="stack-form" onSubmit={submit} noValidate>
             <div className="field-group">
-              <label htmlFor="forgot-email">Email</label>
+              <label htmlFor="forgot-email">{t('email')}</label>
               <input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(event) => { requestKey.current = null; setEmail(event.target.value); }} required />
             </div>
-            {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-            <SubmitButton busy={busy}>Gửi yêu cầu reset</SubmitButton>
+            {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+            <SubmitButton busy={busy}>{t('submitResetRequest')}</SubmitButton>
           </form>
         )}
         <AuthLinks navigate={navigate} current="forgot" />
@@ -814,6 +841,7 @@ function ResetPasswordScreen({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -826,9 +854,9 @@ function ResetPasswordScreen({
     event.preventDefault();
     setError(null);
     setClientError(undefined);
-    const passwordIssue = passwordError(password);
+    const passwordIssue = passwordError(password, t);
     if (!token.trim()) {
-      setClientError('Mã reset là bắt buộc.');
+      setClientError(t('resetRequired'));
       return;
     }
     if (passwordIssue) {
@@ -836,7 +864,7 @@ function ResetPasswordScreen({
       return;
     }
     if (password !== confirmation) {
-      setClientError('Hai mật khẩu không khớp.');
+      setClientError(t('passwordsMismatch'));
       return;
     }
     requestKey.current ??= createIdempotencyKey();
@@ -854,23 +882,23 @@ function ResetPasswordScreen({
 
   return (
     <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
-      <FormCard title="Xác nhận mật khẩu mới" description="Mã reset chỉ dùng một lần và không tự đăng nhập. Sau khi thành công, các session cũ bị thu hồi theo policy.">
+      <FormCard title={t('resetTitle')} description={t('resetDescription')}>
         <form className="stack-form" onSubmit={submit} noValidate>
           <div className="field-group">
-            <label htmlFor="reset-token">Mã reset</label>
+            <label htmlFor="reset-token">{t('resetCode')}</label>
             <input id="reset-token" type="text" autoComplete="one-time-code" value={token} onChange={(event) => { requestKey.current = null; setToken(event.target.value); }} required />
           </div>
           <div className="field-group">
-            <label htmlFor="reset-password">Mật khẩu mới</label>
+            <label htmlFor="reset-password">{t('newPassword')}</label>
             <input id="reset-password" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={password} onChange={(event) => { requestKey.current = null; setPassword(event.target.value); }} required />
-            <p className="field-help">Từ 15 đến 128 ký tự Unicode.</p>
+            <p className="field-help">{t('passwordHelp').split('. ')[0]}.</p>
           </div>
           <div className="field-group">
-            <label htmlFor="reset-confirmation">Nhập lại mật khẩu mới</label>
+            <label htmlFor="reset-confirmation">{t('confirmNewPassword')}</label>
             <input id="reset-confirmation" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={confirmation} onChange={(event) => { requestKey.current = null; setConfirmation(event.target.value); }} required />
           </div>
-          {(clientError || error) && <Notice kind="error">{clientError ?? error?.message ?? 'Không thể reset mật khẩu.'}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-          <SubmitButton busy={busy}>Đặt mật khẩu mới</SubmitButton>
+          {(clientError || error) && <Notice kind="error">{clientError ?? (error ? localizedError(error, t) : t('resetFailed'))}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>{t('submitReset')}</SubmitButton>
         </form>
         <AuthLinks navigate={navigate} current="reset" />
       </FormCard>
@@ -899,6 +927,7 @@ function Shell({
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
 }) {
+  const { t } = useI18n();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
   const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
@@ -929,55 +958,55 @@ function Shell({
     <div className="app-shell">
       <aside className="sidebar" aria-label="Nexora navigation">
         <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
-        <nav className="primary-nav" aria-label="Điều hướng chính">
-          <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>Home</span></button>
-          {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>Search</span></button>}
-          {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}>★ <span>Favorites</span></button>}
-          {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>Finance</span></button>}
-          {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>Bookmarks</span></button>}
-          {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>Snippets</span></button>}
-          {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>Read Later</span></button>}
-          {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>Tags</span></button>}
-          {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>Developer tools</span></button>}
-          {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>Goals</span></button>}
-          {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}>▤ <span>Planner</span></button>}
-          {canHabits && <button className={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'page' : undefined} onClick={() => navigate('habits')}>◌ <span>Habits</span></button>}
-          {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}>↗ <span>Sharing</span></button>}
-          {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}>◈ <span>Support access</span></button>}
-          {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}>▧ <span>Files</span></button>}
-          <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>Notifications</span></button>
-          <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>Trash</span></button>
-          {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>Admin access</span></button>}
-          <p className="nav-section-label">Modules</p>
+        <nav className="primary-nav" aria-label={t('primaryNavigation')}>
+          <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>{t('home')}</span></button>
+          {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>{t('search')}</span></button>}
+          {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}>★ <span>{t('favorites')}</span></button>}
+          {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>{t('finance')}</span></button>}
+          {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>{t('bookmarks')}</span></button>}
+          {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>{t('snippets')}</span></button>}
+          {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>{t('readLater')}</span></button>}
+          {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>{t('tags')}</span></button>}
+          {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>{t('developerTools')}</span></button>}
+          {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>{t('goals')}</span></button>}
+          {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}>▤ <span>{t('planner')}</span></button>}
+          {canHabits && <button className={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'page' : undefined} onClick={() => navigate('habits')}>◌ <span>{t('habits')}</span></button>}
+          {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}>↗ <span>{t('sharing')}</span></button>}
+          {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}>◈ <span>{t('supportAccess')}</span></button>}
+          {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}>▧ <span>{t('files')}</span></button>}
+          <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>{t('notifications')}</span></button>
+          <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>{t('trash')}</span></button>
+          {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>{t('adminAccess')}</span></button>}
+          <p className="nav-section-label">{t('modules')}</p>
           {profile.modules.length === 0 ? (
-            <p className="nav-empty">Server chưa cấp module cho phiên này.</p>
+            <p className="nav-empty">{t('noModules')}</p>
           ) : navigableModules.length === 0 ? (
-            <p className="nav-empty">Các module còn lại chưa được cấp cho phiên này.</p>
+            <p className="nav-empty">{t('noOtherModules')}</p>
           ) : (
             navigableModules.map((module) => {
               const enabled = module.enabled;
               const active = location.screen === 'module' && location.moduleCode === module.code.toUpperCase();
               return (
-                <button key={module.code} className={active ? 'nav-item active' : 'nav-item'} type="button" aria-current={active ? 'page' : undefined} disabled={!enabled} title={enabled ? undefined : module.unavailableReason ?? 'Module chưa khả dụng'} onClick={() => navigate('module', module.code.toUpperCase())}>
+                <button key={module.code} className={active ? 'nav-item active' : 'nav-item'} type="button" aria-current={active ? 'page' : undefined} disabled={!enabled} title={enabled ? undefined : module.unavailableReason ?? t('moduleUnavailable')} onClick={() => navigate('module', module.code.toUpperCase())}>
                   <span className="module-dot" aria-hidden="true">{enabled ? '●' : '○'}</span><span>{module.code}</span>
                 </button>
               );
             })
           )}
         </nav>
-        <nav className="utility-nav" aria-label="Cài đặt tài khoản">
-          <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}>⚙ <span>Profile</span></button>
-          <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}>▣ <span>Security & sessions</span></button>
-          <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}>↪ <span>{logoutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}</span></button>
+        <nav className="utility-nav" aria-label={t('accountSettings')}>
+          <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}>⚙ <span>{t('profile')}</span></button>
+          <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}>▣ <span>{t('securitySessions')}</span></button>
+          <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}>↪ <span>{logoutBusy ? t('loggingOut') : t('logout')}</span></button>
         </nav>
       </aside>
       <div className="shell-content">
         <header className="shell-header">
           <div>
-            <p className="eyebrow">PERSONAL SPACE</p>
+            <p className="eyebrow">{t('personalSpace')}</p>
             <p className="signed-in">{profile.email}</p>
           </div>
-          <button className="mobile-logout" type="button" onClick={signOut} disabled={logoutBusy}>{logoutBusy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button>
+          <button className="mobile-logout" type="button" onClick={signOut} disabled={logoutBusy}>{logoutBusy ? t('loggingOut') : t('logout')}</button>
         </header>
         <main className="shell-main">
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
@@ -1712,6 +1741,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 }
 
 function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const actionKeys = useRef<Record<string, string>>({});
+  const { t } = useI18n();
   const [users, setUsers] = useState<AdminUserRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
   const [access, setAccess] = useState<AdminUserAccess | null>(null);
@@ -1753,6 +1784,11 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
       const loaded = await getAdminUserAccess(user.id);
       setAccess(loaded);
       setRole(loaded.user.role);
+      delete actionKeys.current.role;
+      delete actionKeys.current.roleIntent;
+      delete actionKeys.current.permission;
+      delete actionKeys.current.permissionIntent;
+      delete actionKeys.current.disable;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -1769,8 +1805,25 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
     if (!access) return;
     setBusy('role');
     setError(null);
+    const roleIntent = `${access.user.id}|${access.user.etag}|${role}`;
+    if (actionKeys.current.roleIntent !== roleIntent) {
+      actionKeys.current.roleIntent = roleIntent;
+      actionKeys.current.role = createIdempotencyKey();
+    }
+    actionKeys.current.role ??= createIdempotencyKey();
     try {
-      const updated = await setAdminUserRole(access.user.id, access.user.etag, role);
+      const updated = await setAdminUserRole(access.user.id, access.user.etag, role, actionKeys.current.role);
+      delete actionKeys.current.role;
+      delete actionKeys.current.roleIntent;
+      if (!updated) {
+        // A self-demotion is a successful 204 and revokes the current
+        // authority/session. Clear the privileged projection before the
+        // shell re-authenticates; never retain the pre-change DTO in state.
+        setAccess(null);
+        setSelectedId('');
+        await onAuthLost();
+        return;
+      }
       setAccess(updated);
       setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
     } catch (requestError) {
@@ -1788,8 +1841,16 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
     if (!access || !actionKey.trim()) return;
     setBusy('permission');
     setError(null);
+    const permissionIntent = `${access.user.id}|${access.user.etag}|${actionKey.trim()}|${effect}`;
+    if (actionKeys.current.permissionIntent !== permissionIntent) {
+      actionKeys.current.permissionIntent = permissionIntent;
+      actionKeys.current.permission = createIdempotencyKey();
+    }
+    actionKeys.current.permission ??= createIdempotencyKey();
     try {
-      const updated = await setAdminActionGrant(access.user.id, access.user.etag, actionKey.trim(), effect);
+      const updated = await setAdminActionGrant(access.user.id, access.user.etag, actionKey.trim(), effect, actionKeys.current.permission);
+      delete actionKeys.current.permission;
+      delete actionKeys.current.permissionIntent;
       setAccess(updated);
       setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
       setActionKey('');
@@ -1806,8 +1867,11 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
     if (!access) return;
     setBusy(`module:${code}`);
     setError(null);
+    const keyName = `module:${code}:${enabled ? 'on' : 'off'}`;
+    actionKeys.current[keyName] ??= createIdempotencyKey();
     try {
-      const updated = await setAdminModuleGrant(access.user.id, access.user.etag, code, enabled);
+      const updated = await setAdminModuleGrant(access.user.id, access.user.etag, code, enabled, actionKeys.current[keyName]);
+      delete actionKeys.current[keyName];
       setAccess(updated);
       setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
     } catch (requestError) {
@@ -1823,8 +1887,10 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
     if (!access || access.user.state === 'Disabled') return;
     setBusy('disable');
     setError(null);
+    actionKeys.current.disable ??= createIdempotencyKey();
     try {
-      await disableAdminUser(access.user.id, access.user.etag);
+      await disableAdminUser(access.user.id, access.user.etag, actionKeys.current.disable);
+      delete actionKeys.current.disable;
       await loadUsers();
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1837,10 +1903,51 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
 
   return (
     <section className="content-section" aria-labelledby="admin-access-title">
-      <div className="content-heading"><div><p className="eyebrow">FX02 / SUPERADMIN</p><h1 id="admin-access-title">Admin access</h1><p className="lead">Operational account metadata, roles, action grants and module enablement. Business-resource payloads không xuất hiện trong projection này.</p></div><button className="secondary-button" type="button" onClick={loadUsers} disabled={loading}>Tải lại users</button></div>
-      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      {loading ? <div className="loading-state" role="status">Đang tải users…</div> : users.length === 0 ? <div className="empty-state"><h2>Chưa có account</h2><p>SQL chưa trả operational user projection.</p></div> : <div className="admin-layout"><div className="admin-user-list"><h2>Users</h2>{users.map((user) => <button key={user.id} type="button" className={selectedId === user.id ? 'admin-user-row active' : 'admin-user-row'} onClick={() => void selectUser(user)} disabled={busy !== null}><strong>{user.displayName}</strong><span>{user.email}</span><span>{user.role} · {user.state}</span></button>)}</div><div className="admin-detail">{!access ? <div className="empty-state"><h2>Chọn user</h2></div> : <><div className="section-heading"><div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div><button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>Disable user</button></div><form className="form-panel" onSubmit={saveRole}><div className="field-group"><label htmlFor="admin-role">Role</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div><button className="primary-button" type="submit" disabled={busy !== null}>Lưu role</button></form><form className="form-panel" onSubmit={saveGrant}><div className="section-heading"><h3>Action grant</h3><span className="muted">Allow chỉ cho action đã có policy</span></div><div className="form-grid"><div className="field-group"><label htmlFor="admin-action">Action key</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">Effect</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div><button className="secondary-button" type="submit" disabled={busy !== null}>Cập nhật grant</button></form><div className="form-panel"><div className="section-heading"><h3>Module grants</h3><span className="muted">Server rechecks state/dependency</span></div><div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ' · system disabled'}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div></div><div className="form-panel"><h3>Current action grants</h3>{access.actionGrants.length === 0 ? <p className="muted">No explicit grants.</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div></>}
-      </div></div>}
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">{t('adminAccessEyebrow')}</p>
+          <h1 id="admin-access-title">{t('adminAccessTitle')}</h1>
+          <p className="lead">{t('adminAccessLead')}</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={loadUsers} disabled={loading}>{t('reloadUsers')}</button>
+      </div>
+      {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? (
+        <div className="loading-state" role="status">{t('loadingUsers')}</div>
+      ) : users.length === 0 ? (
+        <div className="empty-state"><h2>{t('noAccounts')}</h2><p>{t('noUserProjection')}</p></div>
+      ) : (
+        <div className="admin-layout">
+          <div className="admin-user-list">
+            <h2>{t('users')}</h2>
+            {users.map((user) => <button key={user.id} type="button" className={selectedId === user.id ? 'admin-user-row active' : 'admin-user-row'} onClick={() => void selectUser(user)} disabled={busy !== null}>
+              <strong>{user.displayName}</strong><span>{user.email}</span><span>{user.role} · {user.state}</span>
+            </button>)}
+          </div>
+          <div className="admin-detail">
+            {!access ? <div className="empty-state"><h2>{t('selectUser')}</h2></div> : <>
+              <div className="section-heading">
+                <div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div>
+                <button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>{t('disableUser')}</button>
+              </div>
+              <form className="form-panel" onSubmit={saveRole}>
+                <div className="field-group"><label htmlFor="admin-role">{t('role')}</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div>
+                <button className="primary-button" type="submit" disabled={busy !== null}>{t('saveRole')}</button>
+              </form>
+              <form className="form-panel" onSubmit={saveGrant}>
+                <div className="section-heading"><h3>{t('actionGrant')}</h3><span className="muted">{t('allowPolicy')}</span></div>
+                <div className="form-grid"><div className="field-group"><label htmlFor="admin-action">{t('actionKey')}</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">{t('effect')}</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div>
+                <button className="secondary-button" type="submit" disabled={busy !== null}>{t('updateGrant')}</button>
+              </form>
+              <div className="form-panel">
+                <div className="section-heading"><h3>{t('moduleGrants')}</h3><span className="muted">{t('serverRechecks')}</span></div>
+                <div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ` · ${t('systemDisabled')}`}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div>
+              </div>
+              <div className="form-panel"><h3>{t('currentActionGrants')}</h3>{access.actionGrants.length === 0 ? <p className="muted">{t('noExplicitGrants')}</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div>
+            </>}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -4662,6 +4769,7 @@ function ProfileScreen({
   onAuthLost: () => Promise<void>;
   onThemeChanged: (mode: ThemeMode) => void;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState<ProfilePatch>({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -4670,6 +4778,7 @@ function ProfileScreen({
   const requestKey = useRef<string | null>(null);
 
   useEffect(() => {
+    requestKey.current = null;
     setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
     setConflict(false);
   }, [profile]);
@@ -4684,6 +4793,7 @@ function ProfileScreen({
     setError(null);
     try {
       const latest = normalizeProfile(await getMe());
+      requestKey.current = null;
       onProfileUpdated(latest);
       setDraft({ displayName: latest.displayName, timeZoneId: latest.timeZoneId, locale: latest.locale });
       setConflict(false);
@@ -4705,11 +4815,11 @@ function ProfileScreen({
     const displayName = (draft.displayName ?? '').trim();
     const timeZoneId = (draft.timeZoneId ?? '').trim();
     if (!displayName || displayName.length > 100) {
-      setError(new NexoraApiError('Tên hiển thị phải từ 1 đến 100 ký tự.', 422, 'ValidationFailed'));
+      setError(new NexoraApiError(t('displayNameRange'), 422, 'ValidationFailed'));
       return;
     }
     if (!timeZoneId) {
-      setError(new NexoraApiError('Timezone IANA là bắt buộc.', 422, 'ValidationFailed'));
+      setError(new NexoraApiError(t('timezoneRequired'), 422, 'ValidationFailed'));
       return;
     }
     requestKey.current ??= createIdempotencyKey();
@@ -4735,21 +4845,21 @@ function ProfileScreen({
   const changed = draft.displayName !== profile.displayName || draft.timeZoneId !== profile.timeZoneId || draft.locale !== profile.locale;
   return (
     <section className="content-section" aria-labelledby="profile-title">
-      <div className="content-heading"><div><p className="eyebrow">SETTINGS / PROFILE</p><h1 id="profile-title">Profile</h1><p className="lead">Chỉ các trường profile được phép mới có thể cập nhật; UserId, OwnerId, role và state luôn do server quản lý.</p></div><span className="state-pill state-active">{profile.state}</span></div>
+      <div className="content-heading"><div><p className="eyebrow">{t('settingsProfile')}</p><h1 id="profile-title">{t('profileTitle')}</h1><p className="lead">{t('profileLead')}</p></div><span className="state-pill state-active">{profile.state}</span></div>
       {conflict && (
         <Notice kind="error">
-          <span>Dữ liệu profile đã thay đổi ở tab hoặc session khác. Draft hiện tại vẫn được giữ trong memory.</span>
-          <button className="inline-button" type="button" onClick={reload} disabled={loading}>{loading ? 'Đang tải…' : 'Reload revision'}</button>
+          <span>{t('profileChanged')}</span>
+          <button className="inline-button" type="button" onClick={reload} disabled={loading}>{loading ? t('loading') : t('reloadRevision')}</button>
         </Notice>
       )}
       <form className="profile-form" onSubmit={submit} noValidate>
         <div className="form-panel">
-          <div className="field-group"><label htmlFor="profile-email">Email</label><input id="profile-email" type="email" value={profile.email} readOnly aria-describedby="profile-email-help" /><p className="field-help" id="profile-email-help">Đổi email là flow xác minh riêng và không có trong màn hình này.</p></div>
-          <div className="field-group"><label htmlFor="profile-display-name">Tên hiển thị</label><input id="profile-display-name" type="text" maxLength={100} value={draft.displayName ?? ''} onChange={(event) => changeDraft({ displayName: event.target.value })} required aria-describedby="profile-display-name-error" /><FieldError id="profile-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} /></div>
-          <div className="field-group"><label htmlFor="profile-timezone">Timezone IANA</label><input id="profile-timezone" type="text" value={draft.timeZoneId ?? ''} onChange={(event) => changeDraft({ timeZoneId: event.target.value })} required aria-describedby="profile-timezone-error" /><FieldError id="profile-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} /></div>
-          <div className="field-group"><label htmlFor="profile-locale">Ngôn ngữ giao diện</label><select id="profile-locale" value={draft.locale ?? profile.locale} onChange={(event) => changeDraft({ locale: event.target.value as 'vi' | 'en' })}><option value="vi">Tiếng Việt</option><option value="en">English</option></select><FieldError id="profile-locale-error" message={error ? firstFieldError(error, 'locale') : undefined} /></div>
-          {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-          <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale })} disabled={!changed || busy}>Hủy thay đổi</button><SubmitButton busy={busy}>Lưu profile</SubmitButton></div>
+          <div className="field-group"><label htmlFor="profile-email">{t('email')}</label><input id="profile-email" type="email" value={profile.email} readOnly aria-describedby="profile-email-help" /><p className="field-help" id="profile-email-help">{t('profileEmailHelp')}</p></div>
+          <div className="field-group"><label htmlFor="profile-display-name">{t('displayName')}</label><input id="profile-display-name" type="text" maxLength={100} value={draft.displayName ?? ''} onChange={(event) => changeDraft({ displayName: event.target.value })} required aria-describedby="profile-display-name-error" /><FieldError id="profile-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} /></div>
+          <div className="field-group"><label htmlFor="profile-timezone">{t('timezone')}</label><input id="profile-timezone" type="text" value={draft.timeZoneId ?? ''} onChange={(event) => changeDraft({ timeZoneId: event.target.value })} required aria-describedby="profile-timezone-error" /><FieldError id="profile-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} /></div>
+          <div className="field-group"><label htmlFor="profile-locale">{t('interfaceLanguage')}</label><select id="profile-locale" value={draft.locale ?? profile.locale} onChange={(event) => changeDraft({ locale: event.target.value as 'vi' | 'en' })}><option value="vi">{t('vietnamese')}</option><option value="en">{t('english')}</option></select><FieldError id="profile-locale-error" message={error ? firstFieldError(error, 'locale') : undefined} /></div>
+          {error && !conflict && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={() => { requestKey.current = null; setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale }); }} disabled={!changed || busy}>{t('cancelChanges')}</button><SubmitButton busy={busy}>{t('saveProfile')}</SubmitButton></div>
         </div>
       </form>
       <PreferencesPanel onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />
@@ -4758,13 +4868,16 @@ function ProfileScreen({
 }
 
 function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Promise<void>; onThemeChanged: (mode: ThemeMode) => void }) {
+  const { t } = useI18n();
   const [preference, setPreference] = useState<PreferenceRecord | null>(null);
   const [mode, setMode] = useState<ThemeMode>('System');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
 
   async function load() {
+    requestKey.current = null;
     setLoading(true);
     setError(null);
     try {
@@ -4779,7 +4892,7 @@ function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Pr
             onThemeChanged(value.mode);
           }
         } catch {
-          setError(new NexoraApiError('Theme preference không hợp lệ.', 422, 'ValidationFailed'));
+          setError(new NexoraApiError(t('invalidTheme'), 422, 'ValidationFailed'));
         }
       }
     } catch (requestError) {
@@ -4794,10 +4907,12 @@ function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Pr
   useEffect(() => { void load(); }, []);
 
   async function save() {
+    requestKey.current ??= createIdempotencyKey();
     setBusy(true);
     setError(null);
     try {
-      const saved = await updatePreference('theme', preference?.etag ?? '*', { mode });
+      const saved = await updatePreference('theme', preference?.etag ?? '*', { mode }, requestKey.current);
+      requestKey.current = null;
       setPreference(saved);
       onThemeChanged(mode);
     } catch (requestError) {
@@ -4810,10 +4925,11 @@ function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Pr
     }
   }
 
-  return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">Preferences</h2><p className="muted">Schema-validated, non-secret settings; không có mute/quiet-hours/channel suppression.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">Theme</label><select id="theme-mode" value={mode} onChange={(event) => { const next = event.target.value as ThemeMode; setMode(next); onThemeChanged(next); }} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? 'Đang lưu…' : 'Lưu preferences'}</button></div></section>;
+  return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">{t('preferences')}</h2><p className="muted">{t('preferencesDescription')}</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{t('reload')}</button></div>{error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">{t('theme')}</label><select id="theme-mode" value={mode} onChange={(event) => { const next = event.target.value as ThemeMode; requestKey.current = null; setMode(next); onThemeChanged(next); }} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? t('saving') : t('savePreferences')}</button></div></section>;
 }
 
 function SecurityScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const { locale, t } = useI18n();
   const [sessions, setSessions] = useState<SessionProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -4888,11 +5004,11 @@ function SecurityScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   return (
     <section className="content-section" aria-labelledby="security-title">
-      <div className="content-heading"><div><p className="eyebrow">SETTINGS / SECURITY</p><h1 id="security-title">Security & sessions</h1><p className="lead">Session metadata được server projection an toàn; raw cookie/token không được render.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
-      <div className="security-policy"><strong>MFA và recovery</strong><span>Chính sách có thể yêu cầu flow riêng; màn hình này không giả lập hoặc bỏ qua step-up.</span></div>
-      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      {loading ? <div className="loading-state" role="status">Đang tải session…</div> : sessions.length === 0 ? <div className="empty-state"><h2>Không có session hiển thị</h2><p>Server không trả session active nào cho account hiện tại.</p></div> : <div className="table-wrap"><table><caption>Danh sách session của account hiện tại</caption><thead><tr><th scope="col">Thiết bị</th><th scope="col">Hoạt động gần nhất</th><th scope="col">Hết hạn</th><th scope="col"><span className="sr-only">Thao tác</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">Session hiện tại</span>}<span className="muted">Tạo {dateTime(session.createdAt)}</span></td><td>{dateTime(session.lastSeenAt)}</td><td>{dateTime(session.expiresAt)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>Thu hồi session này?</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? 'Đang thu hồi…' : 'Xác nhận'}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>Hủy</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>Thu hồi</button>}</td></tr>)}</tbody></table></div>}
-      <div className="danger-zone"><div><h2>Thu hồi tất cả session</h2><p>Thao tác này bao gồm session hiện tại và sẽ đưa bạn về màn hình đăng nhập.</p></div>{confirmAll ? <div className="confirm-actions"><span>Thu hồi tất cả?</span><button className="danger-button" type="button" onClick={revokeEverywhere} disabled={busyId === 'all'}>{busyId === 'all' ? 'Đang thu hồi…' : 'Xác nhận'}</button><button className="link-button" type="button" onClick={() => setConfirmAll(false)} disabled={busyId === 'all'}>Hủy</button></div> : <button className="danger-button" type="button" onClick={() => setConfirmAll(true)} disabled={busyId !== null || loading}>Thu hồi tất cả</button>}</div>
+      <div className="content-heading"><div><p className="eyebrow">{t('securityEyebrow')}</p><h1 id="security-title">{t('securityTitle')}</h1><p className="lead">{t('securityLead')}</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{loading ? t('loading') : t('reload')}</button></div>
+      <div className="security-policy"><strong>{t('mfaRecovery')}</strong><span>{t('mfaRecoveryDescription')}</span></div>
+      {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">{t('loadingSessions')}</div> : sessions.length === 0 ? <div className="empty-state"><h2>{t('noSessions')}</h2><p>{t('noSessionsDescription')}</p></div> : <div className="table-wrap"><table><caption>{t('sessionList')}</caption><thead><tr><th scope="col">{t('device')}</th><th scope="col">{t('lastActivity')}</th><th scope="col">{t('expires')}</th><th scope="col"><span className="sr-only">{t('actions')}</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">{t('currentSession')}</span>}<span className="muted">{t('created')} {dateTime(session.createdAt, undefined, locale)}</span></td><td>{dateTime(session.lastSeenAt, undefined, locale)}</td><td>{dateTime(session.expiresAt, undefined, locale)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>{t('revokeThisSession')}</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>{t('cancel')}</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>{t('revoke')}</button>}</td></tr>)}</tbody></table></div>}
+      <div className="danger-zone"><div><h2>{t('revokeAllTitle')}</h2><p>{t('revokeAllDescription')}</p></div>{confirmAll ? <div className="confirm-actions"><span>{t('revokeAllQuestion')}</span><button className="danger-button" type="button" onClick={revokeEverywhere} disabled={busyId === 'all'}>{busyId === 'all' ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmAll(false)} disabled={busyId === 'all'}>{t('cancel')}</button></div> : <button className="danger-button" type="button" onClick={() => setConfirmAll(true)} disabled={busyId !== null || loading}>{t('revokeAll')}</button>}</div>
     </section>
   );
 }
@@ -5070,7 +5186,7 @@ export function App() {
     if (location.screen === 'shared') {
       return <SharedResourceScreen token={location.token} />;
     }
-    return <Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onThemeChanged={setThemeMode} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} />;
+    return <LocaleContext.Provider value={profile.locale === 'en' ? 'en' : 'vi'}><Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onThemeChanged={setThemeMode} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} /></LocaleContext.Provider>;
   }
 
   const publicProps = { navigate, notice, onDismissNotice: () => setNotice(undefined) };

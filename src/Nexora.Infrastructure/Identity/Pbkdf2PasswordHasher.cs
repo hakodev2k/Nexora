@@ -1,34 +1,80 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 
 namespace Nexora.Infrastructure.Identity;
 
-internal sealed class Pbkdf2PasswordHasher
+/// <summary>
+/// M01 password hashing boundary. New hashes and the normal verification path
+/// use the versioned ASP.NET Identity PasswordHasher with the approved
+/// PBKDF2-HMAC-SHA512 cost. The legacy parser exists only for bounded upgrade
+/// compatibility with hashes written by the pre-review local implementation.
+/// </summary>
+public sealed class Pbkdf2PasswordHasher
 {
-    private const int SaltSize = 16;
-    private const int HashSize = 32;
-    private const int Iterations = 220_000;
-    private const string Algorithm = "PBKDF2-HMAC-SHA512";
+    public const int ApprovedIterationCount = 220_000;
+    private const string LegacyPrefix = "PBKDF2-HMAC-SHA512$";
+    private const int LegacyMinimumIterations = 100_000;
+    private const int LegacyMaximumIterations = 2_000_000;
+    private const int LegacyMinimumSaltBytes = 8;
+    private const int LegacyMaximumSaltBytes = 64;
+    private const int LegacyMinimumHashBytes = 16;
+    private const int LegacyMaximumHashBytes = 64;
+
+    private static readonly object IdentityUser = new();
+    private readonly PasswordHasher<object> _identityHasher;
+
+    public Pbkdf2PasswordHasher()
+    {
+        _identityHasher = new PasswordHasher<object>(Options.Create(new PasswordHasherOptions
+        {
+            CompatibilityMode = PasswordHasherCompatibilityMode.IdentityV3,
+            IterationCount = ApprovedIterationCount
+        }));
+    }
 
     public string Hash(string password)
     {
         ArgumentNullException.ThrowIfNull(password);
-        var salt = RandomNumberGenerator.GetBytes(SaltSize);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, Iterations,
-            HashAlgorithmName.SHA512, HashSize);
-        return string.Join('$', Algorithm, Iterations.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            Convert.ToBase64String(salt), Convert.ToBase64String(hash));
+        return _identityHasher.HashPassword(IdentityUser, password);
     }
 
-    public bool Verify(string password, string encodedHash)
+    public bool Verify(string password, string encodedHash) =>
+        VerifyDetailed(password, encodedHash) != PasswordVerificationResult.Failed;
+
+    public PasswordVerificationResult VerifyDetailed(string password, string encodedHash)
     {
         ArgumentNullException.ThrowIfNull(password);
         ArgumentNullException.ThrowIfNull(encodedHash);
-        var parts = encodedHash.Split('$');
-        if (parts.Length != 4 || parts[0] != Algorithm || !int.TryParse(parts[1], out var iterations) ||
-            iterations < 100_000 || iterations > 2_000_000)
+
+        if (encodedHash.StartsWith(LegacyPrefix, StringComparison.Ordinal))
         {
-            return false;
+            return VerifyLegacy(password, encodedHash);
+        }
+
+        try
+        {
+            return _identityHasher.VerifyHashedPassword(IdentityUser, encodedHash, password);
+        }
+        catch (ArgumentException)
+        {
+            return PasswordVerificationResult.Failed;
+        }
+        catch (FormatException)
+        {
+            return PasswordVerificationResult.Failed;
+        }
+    }
+
+    private static PasswordVerificationResult VerifyLegacy(string password, string encodedHash)
+    {
+        var parts = encodedHash.Split('$');
+        if (parts.Length != 4 || !int.TryParse(parts[1], System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out var iterations) ||
+            iterations is < LegacyMinimumIterations or > LegacyMaximumIterations)
+        {
+            return PasswordVerificationResult.Failed;
         }
 
         byte[] salt;
@@ -40,16 +86,26 @@ internal sealed class Pbkdf2PasswordHasher
         }
         catch (FormatException)
         {
-            return false;
+            return PasswordVerificationResult.Failed;
         }
 
-        if (salt.Length < 8 || salt.Length > 64 || expected.Length < 16 || expected.Length > 64)
+        if (salt.Length is < LegacyMinimumSaltBytes or > LegacyMaximumSaltBytes ||
+            expected.Length is < LegacyMinimumHashBytes or > LegacyMaximumHashBytes)
         {
-            return false;
+            return PasswordVerificationResult.Failed;
         }
 
-        var actual = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, iterations,
-            HashAlgorithmName.SHA512, expected.Length);
-        return CryptographicOperations.FixedTimeEquals(actual, expected);
+        try
+        {
+            var actual = Rfc2898DeriveBytes.Pbkdf2(Encoding.UTF8.GetBytes(password), salt, iterations,
+                HashAlgorithmName.SHA512, expected.Length);
+            return CryptographicOperations.FixedTimeEquals(actual, expected)
+                ? PasswordVerificationResult.SuccessRehashNeeded
+                : PasswordVerificationResult.Failed;
+        }
+        catch (ArgumentException)
+        {
+            return PasswordVerificationResult.Failed;
+        }
     }
 }

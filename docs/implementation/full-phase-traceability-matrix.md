@@ -1,5 +1,12 @@
 # Full phase traceability matrix — PR #4 local continuation
 
+> **Historical inventory, not current evidence.** The current head is
+> `6d5b58dbac330b0d0d9aceb9e0b2f4695b423316`, and the current authority is
+> main `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3`. Use the canonical R2
+> report and authority manifest for current requirement/action/goal mapping;
+> rows below that mention older revisions, CI runs or DEC-014 are not refreshed
+> by this banner and must not be used as acceptance evidence.
+
 ## Current working-tree snapshot — review hardening 2026-09-13
 
 This section is the current traceability index for the review-hardening work.

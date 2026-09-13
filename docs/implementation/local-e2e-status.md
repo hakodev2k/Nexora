@@ -1,5 +1,11 @@
 # Local Release 1 implementation status
 
+> **Historical implementation inventory, not current authority/evidence.**
+> Its DEC-014, R1 and earlier SHA/CI claims are superseded. Use the current
+> R2 authority manifest and remediation report, pinned to main
+> `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3` and head
+> `6d5b58dbac330b0d0d9aceb9e0b2f4695b423316`.
+
 Status: active code-only implementation on PR #4 (`impl/m01-s00-scaffold`) under DEC-20260909-014. The earlier snapshot was represented by code commit `e42516e2360ad2afd7d8a0144412a15086770983` and CI/evidence revision `a3a0a7b84a124a8a9063d35d65641119e2824718` (workflow run `149`). The 2026-09-11 continuation adds source code for FX04/FX05/FX07; source implementation commit is `6fb229ab7d56b6ee7091b7e85ea028c47c1a893b`. This is not a merge, production or runtime-verification claim.
 
 ## 2026-09-11 continuation update

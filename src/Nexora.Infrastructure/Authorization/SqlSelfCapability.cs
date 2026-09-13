@@ -1,17 +1,19 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
+using Nexora.Domain.Access;
 using Nexora.Infrastructure.Persistence;
 
 namespace Nexora.Infrastructure.Authorization;
 
 /// <summary>
-/// Resolves the current SELF capability from SQL on every request. User,
-/// Admin and SuperAdmin principals have the approved own-resource
-/// baseline. AdminPermission rows are reserved for administrative,
-/// cross-user and support paths; they must not remove an Admin's own-resource
-/// baseline. Every hard module dependency must be ready, system enabled and
-/// enabled for the same user. No decision is cached in Redis or in the process.
+/// Resolves the current SELF capability from SQL on every request. User and
+/// SuperAdmin principals use the approved own-resource baseline.
+/// Admin SELF is narrower: a resolved, Admin-grantable action needs an
+/// explicit Allow row and any explicit Deny wins. Every hard module
+/// dependency must be ready, system enabled and enabled for the same user.
+/// RegistrationEnabled is a verification-time default, not a current-user
+/// authorization gate. No decision is cached in Redis or in the process.
 /// </summary>
 internal sealed class SqlSelfCapability
 {
@@ -47,6 +49,15 @@ internal sealed class SqlSelfCapability
         if (connection is null || actor is null || string.IsNullOrWhiteSpace(moduleCode) || actions.Length == 0)
             return SqlCapabilityStatus.ModuleUnavailable;
 
+        // Admin SELF is an explicit grant context. A stale or hand-inserted
+        // AdminPermission row cannot turn a PUBLIC/SUPER/CONTROL/SYSTEM action
+        // into self access; the manifest projection is checked before SQL.
+        if (string.Equals(actor.Role, "Admin", StringComparison.Ordinal) &&
+            actions.Any(action => !ActionGrantPolicy.IsAdminGrantable(action)))
+        {
+            return SqlCapabilityStatus.PermissionDenied;
+        }
+
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         var actionParameters = new string[actions.Length];
@@ -72,17 +83,19 @@ internal sealed class SqlSelfCapability
             SELECT CASE
                        WHEN m.[State] <> 'Ready'
                             OR m.[SystemEnabled] <> 1
-                            OR m.[RegistrationEnabled] <> 1
                             OR COALESCE(g.[Enabled], 0) <> 1
                             OR userRow.[State] <> 'Active'
                             OR userRow.[IsDeleted] <> 0
                             OR spaceRow.[State] <> 'Active'
-                            OR NOT EXISTS
+                            OR
                             (
-                                SELECT 1
-                                FROM [platform].[Permission] requestedPermission
-                                WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
-                                  AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})
+                                NOT EXISTS
+                                (
+                                    SELECT 1
+                                    FROM [platform].[Permission] requestedPermission
+                                    WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
+                                      AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})
+                                )
                             )
                             OR EXISTS
                             (
@@ -96,10 +109,36 @@ internal sealed class SqlSelfCapability
                                 WHERE c.[DependencyKind] = 'Hard'
                                   AND (dependencyModule.[State] <> 'Ready'
                                        OR dependencyModule.[SystemEnabled] <> 1
-                                       OR dependencyModule.[RegistrationEnabled] <> 1
                                        OR COALESCE(dependencyGrant.[Enabled], 0) <> 1)
                             ) THEN 0
-                       WHEN @Role IN ('User', 'Admin', 'SuperAdmin') THEN 1
+                       WHEN @Role IN ('User', 'SuperAdmin') THEN 1
+                       WHEN @Role = 'Admin'
+                            AND EXISTS
+                            (
+                                SELECT 1
+                                FROM [platform].[Permission] requestedPermission
+                                WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
+                                  AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})
+                                  AND EXISTS
+                                  (
+                                      SELECT 1
+                                      FROM [platform].[AdminPermission] adminPermission
+                                      WHERE adminPermission.[PermissionId] = requestedPermission.[Id]
+                                        AND adminPermission.[UserId] = @UserId
+                                        AND adminPermission.[Effect] = 'Allow'
+                                  )
+                            )
+                            AND NOT EXISTS
+                            (
+                                SELECT 1
+                                FROM [platform].[Permission] deniedAction
+                                INNER JOIN [platform].[AdminPermission] deniedPermission
+                                  ON deniedPermission.[PermissionId] = deniedAction.[Id]
+                                 AND deniedPermission.[UserId] = @UserId
+                                 AND deniedPermission.[Effect] = 'Deny'
+                                WHERE deniedAction.[EffectiveStatus] = 'Resolved'
+                                  AND deniedAction.[ActionKey] IN ({string.Join(',', actionParameters)})
+                            ) THEN 1
                        ELSE 2
                    END
             FROM [platform].[Module] m

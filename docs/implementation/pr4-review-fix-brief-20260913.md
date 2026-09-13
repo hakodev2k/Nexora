@@ -1,5 +1,14 @@
 # PR #4 review-fix task brief — 2026-09-13
 
+> **Superseded historical brief.** This file records an earlier working-tree
+> review and is not current evidence. Its `fcb1f75...` snapshot and
+> `DEC-20260909-014` scope claim must not be used as authority. The current
+> authority manifest, R2 disposition and verification log are in
+> [`pr4-r2-remediation-report-20260913.md`](pr4-r2-remediation-report-20260913.md)
+> and [`pr4-r2-authority-manifest-20260913.md`](pr4-r2-authority-manifest-20260913.md),
+> pinned to main `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3` and head
+> `6d5b58dbac330b0d0d9aceb9e0b2f4695b423316`.
+
 ## Task brief
 
 | Field | Current value |
