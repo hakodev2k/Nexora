@@ -408,8 +408,11 @@ public sealed class SqlFavoriteService : IFavoriteService
             "Event" => ("FX13", "calendar.event.read", """
                 SELECT e.[Title], e.[Status], e.[UpdatedAt]
                 FROM [calendar].[Event] e
+                LEFT JOIN [productivity].[Task] taskRow
+                    ON taskRow.[Id] = e.[TaskId] AND taskRow.[OwnerId] = e.[OwnerId]
                 WHERE e.[OwnerId] = @OwnerId AND e.[Id] = @ResourceId
                   AND e.[Status] <> 'Deleted'
+                  AND (e.[TaskId] IS NULL OR (@TaskSourceAvailable = 1 AND taskRow.[Id] IS NOT NULL AND taskRow.[Status] <> 'Deleted'))
                   AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
                       WHERE tr.[OwnerId] = e.[OwnerId] AND tr.[ResourceType] = 'Event'
                         AND tr.[ResourceId] = e.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);
@@ -464,6 +467,8 @@ public sealed class SqlFavoriteService : IFavoriteService
         command.CommandTimeout = 3;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@ResourceId", SqlDbType.UniqueIdentifier, resourceId);
+        Add(command, "@TaskSourceAvailable", SqlDbType.Bit,
+            resourceType == "Event" && _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view"));
         using var reader = command.ExecuteReader();
         if (!reader.Read())
             return null;
@@ -477,20 +482,11 @@ public sealed class SqlFavoriteService : IFavoriteService
         // disable from committing around this source read.
         if (!ModuleAvailable(connection, transaction, actor, capability.Value.Module, capability.Value.Action))
             return null;
-        return new SourceProjection(title, status, updatedAt, RouteFor(resourceType));
+        return new SourceProjection(title, status, updatedAt, RouteFor(resourceType, resourceId));
     }
 
-    private static string RouteFor(string resourceType) => resourceType switch
-    {
-        "Project" => "/modules/FX11",
-        "Task" => "/modules/FX12",
-        "Event" => "/modules/FX13",
-        "Document" => "/modules/FX20",
-        "Bookmark" => "/bookmarks",
-        "Snippet" => "/snippets",
-        "Goal" => "/goals",
-        _ => "/"
-    };
+    private static string RouteFor(string resourceType, Guid resourceId) =>
+        $"/resources/{Uri.EscapeDataString(resourceType)}/{resourceId:N}";
 
     private static string? NormalizeResourceType(string? value)
     {
@@ -641,7 +637,7 @@ public sealed class SqlFavoriteService : IFavoriteService
             VALUES (@ActorUserId, @OwnerUserId, @ActionKey, N'discovery.Favorite', @TargetId, 'Succeeded', @TraceId);
             """,
         ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
-        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
+        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
         ("@ActionKey", SqlDbType.NVarChar, actionKey, 160),
         ("@TargetId", SqlDbType.UniqueIdentifier, targetId, null),
         ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value, 200));

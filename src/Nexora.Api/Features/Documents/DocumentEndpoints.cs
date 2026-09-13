@@ -10,7 +10,10 @@ public static class DocumentEndpoints
 {
     public static WebApplication MapDocumentEndpoints(this WebApplication app)
     {
-        var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
+        // The domain limit is 1 MiB UTF-8 for the body. JSON quoting and the
+        // title/change-note envelope need bounded headroom; keep this local to
+        // the document group instead of weakening the global 64 KiB default.
+        var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
         api.MapGet("/documents", (HttpContext context, string? status, int? limit, IDocumentService service,
             IIdentityService identity, SessionCookieService cookies) =>

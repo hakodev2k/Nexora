@@ -10,7 +10,7 @@ public static class DeveloperToolsEndpoints
 {
     public static WebApplication MapDeveloperToolsEndpoints(this WebApplication app)
     {
-        var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
+        var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
         api.MapGet("/developer/tools", (HttpContext context,
             IToolboxService service, IIdentityService identity, SessionCookieService cookies) =>

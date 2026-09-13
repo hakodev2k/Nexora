@@ -1,7 +1,9 @@
 using System.Data;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Productivity;
+using Nexora.Application.Reminders;
 using Nexora.Domain.Identity;
 using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
@@ -28,10 +30,13 @@ public sealed class SqlProductivityService : IProductivityService
         _capabilities = new SqlSelfCapability(connections);
     }
 
-    public IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null)
+    public IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "FX11", "projects.project.read", "projects.view")) return ModuleUnavailable<ProjectPage>();
-        var take = Math.Clamp(limit ?? 50, 1, 100);
+        var take = Math.Clamp(limit ?? 25, 1, 100);
+        ProjectListCursor? position = null;
+        if (cursor is not null && (!TryDecodeCursor(cursor, out position) || position is null || position.Scope != "projects"))
+            return Failure<ProjectPage>("InvalidCursor", 422, "The Project cursor is invalid or does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
         using var command = connection.CreateCommand();
@@ -39,14 +44,35 @@ public sealed class SqlProductivityService : IProductivityService
             SELECT TOP (@Limit) [Id], [Name], [Description], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [Notes]
             FROM [productivity].[Project]
             WHERE [OwnerId] = @OwnerId AND [Status] <> 'Deleted'
+              AND (@HasCursor = 0 OR [Name] > @CursorName OR ([Name] = @CursorName AND [Id] > @CursorId))
             ORDER BY [Name] ASC, [Id];
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
+        Add(command, "@HasCursor", SqlDbType.Bit, cursor is not null);
+        Add(command, "@CursorName", SqlDbType.NVarChar, (object?)position?.Name ?? DBNull.Value, 200);
+        Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
         using var reader = command.ExecuteReader();
         var items = new List<ProjectRecord>();
         while (reader.Read()) items.Add(ReadProject(reader));
-        return IdentityOperationResult<ProjectPage>.Success(new ProjectPage(items, null));
+        var hasMore = items.Count > take;
+        if (hasMore) items.RemoveAt(items.Count - 1);
+        var nextCursor = hasMore && items.Count > 0
+            ? EncodeCursor(new ProjectListCursor("projects", items[^1].Name, items[^1].Id))
+            : null;
+        return IdentityOperationResult<ProjectPage>.Success(new ProjectPage(items, nextCursor));
+    }
+
+    public IdentityOperationResult<ProjectRecord> GetProject(IdentityPrincipal actor, Guid projectId)
+    {
+        if (!ModuleAvailable(actor, "FX11", "projects.project.read", "projects.view")) return ModuleUnavailable<ProjectRecord>();
+        if (projectId == Guid.Empty) return Failure<ProjectRecord>("ResourceUnavailable", 404, "Project unavailable.");
+        using var connection = _connections.Create();
+        connection.Open();
+        var project = ReadProject(connection, null, actor.OwnerId, projectId, forUpdate: false);
+        return project is null || project.Status == "Deleted"
+            ? Failure<ProjectRecord>("ResourceUnavailable", 404, "Project unavailable.")
+            : IdentityOperationResult<ProjectRecord>.Success(project);
     }
 
     public IdentityOperationResult<ProjectRecord> CreateProject(IdentityPrincipal actor, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -87,7 +113,7 @@ public sealed class SqlProductivityService : IProductivityService
         var result = ReadProject(connection, transaction, actor.OwnerId, id, forUpdate: false);
         if (result is not null) InsertProjectHistory(connection, transaction, actor.OwnerId, result, null);
         WriteAudit(connection, transaction, actor, id, "productivity.project.create", traceId);
-        CompleteReceipt(connection, transaction, receipt, "ProjectCreated");
+        CompleteReceipt(connection, transaction, receipt, "ProjectCreated", 200, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<ProjectRecord>.Failure("PersistenceFailure", 500, "Project could not be loaded after creation.")
@@ -160,7 +186,7 @@ public sealed class SqlProductivityService : IProductivityService
         var result = ReadProject(connection, transaction, actor.OwnerId, projectId, forUpdate: false);
         if (result is not null) InsertProjectHistory(connection, transaction, actor.OwnerId, result, command.TransitionReason);
         WriteAudit(connection, transaction, actor, projectId, "productivity.project.update", traceId);
-        CompleteReceipt(connection, transaction, receipt, "ProjectUpdated");
+        CompleteReceipt(connection, transaction, receipt, "ProjectUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<ProjectRecord>.Failure("PersistenceFailure", 500, "Project could not be loaded after update.")
@@ -231,7 +257,7 @@ public sealed class SqlProductivityService : IProductivityService
         InsertProjectHistory(connection, transaction, actor.OwnerId, current with { Status = status }, reason);
         WriteAudit(connection, transaction, actor, projectId, "productivity.project.transition", traceId);
         var updated = ReadProject(connection, transaction, actor.OwnerId, projectId, forUpdate: false);
-        CompleteReceipt(connection, transaction, receipt, "ProjectTransitioned");
+        CompleteReceipt(connection, transaction, receipt, "ProjectTransitioned", 200, updated is null ? null : JsonSerializer.Serialize(updated));
         transaction.Commit();
         return updated is null
             ? Failure<ProjectRecord>("PersistenceFailure", 500, "Project could not be loaded after transition.")
@@ -288,15 +314,19 @@ public sealed class SqlProductivityService : IProductivityService
             ("@RowVersion", SqlDbType.Binary, (object)expectedVersion));
         InsertProjectHistory(connection, transaction, actor.OwnerId, current with { Status = "Deleted" }, "Trash");
         WriteAudit(connection, transaction, actor, projectId, "productivity.project.delete", traceId);
-        CompleteReceipt(connection, transaction, receipt, "NoContent");
+        CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
         transaction.Commit();
         return IdentityOperationResult<object?>.NoContent();
     }
 
-    public IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null)
+    public IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view")) return ModuleUnavailable<TaskPage>();
-        var take = Math.Clamp(limit ?? 100, 1, 200);
+        var take = Math.Clamp(limit ?? 25, 1, 100);
+        var taskScope = projectId?.ToString("N") ?? string.Empty;
+        TaskListCursor? position = null;
+        if (cursor is not null && (!TryDecodeCursor(cursor, out position) || position is null || position.Scope != taskScope))
+            return Failure<TaskPage>("InvalidCursor", 422, "The Task cursor is invalid or does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
         using var command = connection.CreateCommand();
@@ -305,15 +335,42 @@ public sealed class SqlProductivityService : IProductivityService
             FROM [productivity].[Task]
             WHERE [OwnerId] = @OwnerId AND [Status] <> 'Deleted'
               AND (@ProjectId IS NULL OR [ProjectId] = @ProjectId)
+              AND (@HasCursor = 0 OR
+                   CASE WHEN [DueAt] IS NULL THEN 1 ELSE 0 END > @CursorDueNull
+                   OR (CASE WHEN [DueAt] IS NULL THEN 1 ELSE 0 END = @CursorDueNull AND
+                       ((@CursorDueNull = 0 AND ([DueAt] > @CursorDueAt OR ([DueAt] = @CursorDueAt AND ([UpdatedAt] < @CursorUpdatedAt OR ([UpdatedAt] = @CursorUpdatedAt AND [Id] > @CursorId)))))
+                        OR (@CursorDueNull = 1 AND ([UpdatedAt] < @CursorUpdatedAt OR ([UpdatedAt] = @CursorUpdatedAt AND [Id] > @CursorId))))))
             ORDER BY CASE WHEN [DueAt] IS NULL THEN 1 ELSE 0 END, [DueAt], [UpdatedAt] DESC, [Id];
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@ProjectId", SqlDbType.UniqueIdentifier, (object?)projectId ?? DBNull.Value);
+        Add(command, "@HasCursor", SqlDbType.Bit, cursor is not null);
+        Add(command, "@CursorDueNull", SqlDbType.Int, position is null || !position.HasDueAt ? 1 : 0);
+        Add(command, "@CursorDueAt", SqlDbType.DateTime2, (object?)position?.DueAt ?? DBNull.Value);
+        Add(command, "@CursorUpdatedAt", SqlDbType.DateTime2, (object?)position?.UpdatedAt ?? DBNull.Value);
+        Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
         using var reader = command.ExecuteReader();
         var items = new List<TaskRecord>();
         while (reader.Read()) items.Add(ReadTask(reader));
-        return IdentityOperationResult<TaskPage>.Success(new TaskPage(items, null));
+        var hasMore = items.Count > take;
+        if (hasMore) items.RemoveAt(items.Count - 1);
+        var nextCursor = hasMore && items.Count > 0
+            ? EncodeCursor(new TaskListCursor(taskScope, items[^1].DueAt is not null, items[^1].DueAt?.UtcDateTime, items[^1].UpdatedAt.UtcDateTime, items[^1].Id))
+            : null;
+        return IdentityOperationResult<TaskPage>.Success(new TaskPage(items, nextCursor));
+    }
+
+    public IdentityOperationResult<TaskRecord> GetTask(IdentityPrincipal actor, Guid taskId)
+    {
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view")) return ModuleUnavailable<TaskRecord>();
+        if (taskId == Guid.Empty) return Failure<TaskRecord>("ResourceUnavailable", 404, "Task unavailable.");
+        using var connection = _connections.Create();
+        connection.Open();
+        var task = ReadTask(connection, null, actor.OwnerId, taskId, forUpdate: false);
+        return task is null || task.Status == "Deleted"
+            ? Failure<TaskRecord>("ResourceUnavailable", 404, "Task unavailable.")
+            : IdentityOperationResult<TaskRecord>.Success(task);
     }
 
     public IdentityOperationResult<TaskRecord> CreateTask(IdentityPrincipal actor, TaskCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -362,7 +419,7 @@ public sealed class SqlProductivityService : IProductivityService
         Add(insert, "@DueAt", SqlDbType.DateTime2, (object?)command.DueAt?.UtcDateTime ?? DBNull.Value);
         Add(insert, "@StartAt", SqlDbType.DateTime2, command.StartAt!.Value.UtcDateTime);
         Add(insert, "@EndAt", SqlDbType.DateTime2, command.EndAt!.Value.UtcDateTime);
-        Add(insert, "@Priority", SqlDbType.VarChar, command.Priority.Trim(), 2);
+        Add(insert, "@Priority", SqlDbType.VarChar, (object?)NormalizePriority(command.Priority) ?? DBNull.Value, 2);
         Add(insert, "@TagsJson", SqlDbType.NVarChar, NormalizeJson(command.TagsJson), -1);
         Add(insert, "@AcceptanceCriteriaJson", SqlDbType.NVarChar, NormalizeJson(command.AcceptanceCriteriaJson), -1);
         Add(insert, "@Rank", SqlDbType.Int, command.Rank);
@@ -371,21 +428,26 @@ public sealed class SqlProductivityService : IProductivityService
         var result = ReadTask(connection, transaction, actor.OwnerId, id, forUpdate: false);
         if (result is not null)
         {
+            result = ReconcileTaskReminder(connection, transaction, result, command);
             InsertTaskHistory(connection, transaction, actor.OwnerId, result, null);
-            if (_capabilities.IsAllowed(actor, "FX13", "calendar.event.read", "calendar.view"))
-                UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
+            UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
         }
         WriteAudit(connection, transaction, actor, id, "productivity.task.create", traceId);
-        CompleteReceipt(connection, transaction, receipt, "TaskCreated");
+        CompleteReceipt(connection, transaction, receipt, "TaskCreated", 200, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<TaskRecord>.Failure("PersistenceFailure", 500, "Task could not be loaded after creation.")
             : IdentityOperationResult<TaskRecord>.Success(result);
     }
 
-    public IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null) =>
+        UpdateTaskCore(actor, taskId, ifMatch, command, idempotencyKey, traceId,
+            "productivity.task.update", "productivity.task.update", "tasks.task.update", "tasks.update");
+
+    private IdentityOperationResult<TaskRecord> UpdateTaskCore(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey, string? traceId,
+        string receiptOperationKey, string auditAction, params string[] actionKeys)
     {
-        if (!ModuleAvailable(actor, "FX12", "tasks.task.update", "tasks.update")) return ModuleUnavailable<TaskRecord>();
+        if (!ModuleAvailable(actor, "FX12", actionKeys)) return ModuleUnavailable<TaskRecord>();
         var validation = ValidateTask(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<TaskRecord>(ifMatch);
@@ -393,7 +455,7 @@ public sealed class SqlProductivityService : IProductivityService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var receiptFailure = CheckReceipt<TaskRecord>(connection, transaction, actor,
-            "productivity.task.update",
+            receiptOperationKey,
             idempotencyKey,
             CanonicalTask(command, taskId, ifMatch),
             out var receipt);
@@ -450,11 +512,12 @@ public sealed class SqlProductivityService : IProductivityService
         Add(update, "@DueAt", SqlDbType.DateTime2, (object?)command.DueAt?.UtcDateTime ?? DBNull.Value);
         Add(update, "@StartAt", SqlDbType.DateTime2, command.StartAt!.Value.UtcDateTime);
         Add(update, "@EndAt", SqlDbType.DateTime2, command.EndAt!.Value.UtcDateTime);
-        Add(update, "@Priority", SqlDbType.VarChar, command.Priority.Trim(), 2);
+        Add(update, "@Priority", SqlDbType.VarChar, (object?)NormalizePriority(command.Priority) ?? DBNull.Value, 2);
         Add(update, "@TagsJson", SqlDbType.NVarChar, NormalizeJson(command.TagsJson), -1);
         Add(update, "@AcceptanceCriteriaJson", SqlDbType.NVarChar, NormalizeJson(command.AcceptanceCriteriaJson), -1);
         Add(update, "@Rank", SqlDbType.Int, command.Rank);
-        Add(update, "@ReminderAt", SqlDbType.DateTime2, (object?)command.ReminderAt?.UtcDateTime ?? DBNull.Value);
+        var effectiveReminderAt = command.ManageReminder ? command.ReminderAt : current.ReminderAt;
+        Add(update, "@ReminderAt", SqlDbType.DateTime2, (object?)effectiveReminderAt?.UtcDateTime ?? DBNull.Value);
         Add(update, "@Id", SqlDbType.UniqueIdentifier, taskId);
         Add(update, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(update, "@RowVersion", SqlDbType.Binary, expectedVersion, 8);
@@ -466,12 +529,13 @@ public sealed class SqlProductivityService : IProductivityService
         var result = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: false);
         if (result is not null)
         {
-            InsertTaskHistory(connection, transaction, actor.OwnerId, result, command.TransitionReason);
-            if (_capabilities.IsAllowed(actor, "FX13", "calendar.event.read", "calendar.view"))
-                UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
+            result = ReconcileTaskReminder(connection, transaction, result, command);
+            InsertTaskHistory(connection, transaction, actor.OwnerId, result,
+                command.TransitionReason ?? (command.ManageReminder ? "ReminderConfiguration" : null));
+            UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
         }
-        WriteAudit(connection, transaction, actor, taskId, "productivity.task.update", traceId);
-        CompleteReceipt(connection, transaction, receipt, "TaskUpdated");
+        WriteAudit(connection, transaction, actor, taskId, auditAction, traceId);
+        CompleteReceipt(connection, transaction, receipt, "TaskUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<TaskRecord>.Failure("PersistenceFailure", 500, "Task could not be loaded after update.")
@@ -490,10 +554,11 @@ public sealed class SqlProductivityService : IProductivityService
         connection.Open();
         var current = ReadTask(connection, null, actor.OwnerId, taskId, forUpdate: false);
         if (current is null) return IdentityOperationResult<TaskRecord>.Failure("ResourceUnavailable", 404, "Task unavailable.");
-        return UpdateTask(actor, taskId, ifMatch,
+        return UpdateTaskCore(actor, taskId, ifMatch,
             new TaskCommand(current.ProjectId, current.Title, current.Description, status, current.DueAt,
                 current.StartAt, current.EndAt, current.Priority, current.TagsJson, current.AcceptanceCriteriaJson,
-                current.Rank, current.ReminderAt, reason), idempotencyKey, traceId);
+                current.Rank, current.ReminderAt, reason), idempotencyKey, traceId,
+            "productivity.task.transition", "productivity.task.transition", TaskTransitionAction(status));
     }
 
     public IdentityOperationResult<object?> DeleteTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
@@ -546,38 +611,85 @@ public sealed class SqlProductivityService : IProductivityService
             ("@ResourceId", SqlDbType.UniqueIdentifier, (object)taskId),
             ("@Batch", SqlDbType.UniqueIdentifier, (object)Guid.NewGuid()),
             ("@PriorStatus", SqlDbType.VarChar, (object)current.Status));
-        if (_capabilities.IsAllowed(actor, "FX13", "calendar.event.read", "calendar.view"))
-            CancelTaskCalendarProjection(connection, transaction, actor.OwnerId, taskId);
+        CancelTaskCalendarProjection(connection, transaction, actor.OwnerId, taskId);
         InsertTaskHistory(connection, transaction, actor.OwnerId, current with { Status = "Deleted" }, "Trash");
         WriteAudit(connection, transaction, actor, taskId, "productivity.task.delete", traceId);
-        CompleteReceipt(connection, transaction, receipt, "NoContent");
+        CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
         transaction.Commit();
         return IdentityOperationResult<object?>.NoContent();
     }
 
-    public IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null)
+    public IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "FX13", "calendar.event.read", "calendar.view")) return ModuleUnavailable<EventPage>();
-        var take = Math.Clamp(limit ?? 100, 1, 200);
+        var take = Math.Clamp(limit ?? 25, 1, 100);
+        var eventScope = $"{from?.UtcDateTime:o}|{to?.UtcDateTime:o}";
+        EventListCursor? position = null;
+        if (cursor is not null && (!TryDecodeCursor(cursor, out position) || position is null || position.Scope != eventScope))
+            return Failure<EventPage>("InvalidCursor", 422, "The Calendar cursor is invalid or does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view");
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
-            SELECT TOP (@Limit) [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId]
-            FROM [calendar].[Event]
-            WHERE [OwnerId] = @OwnerId AND [Status] <> 'Deleted'
-              AND (@From IS NULL OR [EndAt] > @From)
-              AND (@To IS NULL OR [StartAt] < @To)
-            ORDER BY [StartAt], [Id];
+            SELECT TOP (@Limit) e.[Id], e.[Title], e.[Description], e.[StartAt], e.[EndAt], e.[TimeZoneId], e.[Status], e.[CreatedAt], e.[UpdatedAt], e.[RowVersion], e.[IsAllDay], e.[SourceUid], e.[SourceKind], e.[TaskId]
+            FROM [calendar].[Event] e
+            LEFT JOIN [productivity].[Task] taskRow
+              ON taskRow.[Id] = e.[TaskId] AND taskRow.[OwnerId] = e.[OwnerId]
+            WHERE e.[OwnerId] = @OwnerId AND e.[Status] <> 'Deleted'
+              AND (e.[TaskId] IS NULL OR (@TaskSourceAllowed = 1 AND taskRow.[Id] IS NOT NULL AND taskRow.[Status] <> 'Deleted'))
+              AND (@From IS NULL OR e.[EndAt] > @From)
+              AND (@To IS NULL OR e.[StartAt] < @To)
+              AND (@HasCursor = 0 OR e.[StartAt] > @CursorStartAt OR (e.[StartAt] = @CursorStartAt AND e.[Id] > @CursorId))
+            ORDER BY e.[StartAt], e.[Id];
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
+        Add(command, "@TaskSourceAllowed", SqlDbType.Bit, taskSourceAllowed);
         Add(command, "@From", SqlDbType.DateTime2, (object?)from?.UtcDateTime ?? DBNull.Value);
         Add(command, "@To", SqlDbType.DateTime2, (object?)to?.UtcDateTime ?? DBNull.Value);
+        Add(command, "@HasCursor", SqlDbType.Bit, cursor is not null);
+        Add(command, "@CursorStartAt", SqlDbType.DateTime2, (object?)position?.StartAt ?? DBNull.Value);
+        Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
         using var reader = command.ExecuteReader();
         var items = new List<EventRecord>();
         while (reader.Read()) items.Add(ReadEvent(reader));
-        return IdentityOperationResult<EventPage>.Success(new EventPage(items, null));
+        transaction.Commit();
+        var hasMore = items.Count > take;
+        if (hasMore) items.RemoveAt(items.Count - 1);
+        var nextCursor = hasMore && items.Count > 0
+            ? EncodeCursor(new EventListCursor(eventScope, items[^1].StartAt.UtcDateTime, items[^1].Id))
+            : null;
+        return IdentityOperationResult<EventPage>.Success(new EventPage(items, nextCursor));
+    }
+
+    public IdentityOperationResult<EventRecord> GetEvent(IdentityPrincipal actor, Guid eventId)
+    {
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.read", "calendar.view")) return ModuleUnavailable<EventRecord>();
+        if (eventId == Guid.Empty) return Failure<EventRecord>("ResourceUnavailable", 404, "Event unavailable.");
+        using var connection = _connections.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var current = ReadEvent(connection, transaction, actor.OwnerId, eventId, forUpdate: true);
+        if (current is null || current.Status == "Deleted")
+        {
+            transaction.Rollback();
+            return Failure<EventRecord>("ResourceUnavailable", 404, "Event unavailable.");
+        }
+        if (current.TaskId is { } taskId)
+        {
+            var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view");
+            var task = taskSourceAllowed ? ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true) : null;
+            if (!taskSourceAllowed || task is null || task.Status == "Deleted")
+            {
+                transaction.Rollback();
+                return Failure<EventRecord>("ResourceUnavailable", 404, "Event unavailable.");
+            }
+        }
+        transaction.Commit();
+        return IdentityOperationResult<EventRecord>.Success(current);
     }
 
     public IdentityOperationResult<EventRecord> CreateEvent(IdentityPrincipal actor, EventCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -617,16 +729,21 @@ public sealed class SqlProductivityService : IProductivityService
         insert.ExecuteNonQuery();
         WriteAudit(connection, transaction, actor, id, "calendar.event.create", traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, id, forUpdate: false);
-        CompleteReceipt(connection, transaction, receipt, "EventCreated");
+        CompleteReceipt(connection, transaction, receipt, "EventCreated", 200, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<EventRecord>.Failure("PersistenceFailure", 500, "Event could not be loaded after creation.")
             : IdentityOperationResult<EventRecord>.Success(result);
     }
 
-    public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null)
+    public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null) =>
+        UpdateEventCore(actor, eventId, ifMatch, command, idempotencyKey, traceId,
+            "calendar.event.update", "calendar.event.update", "calendar.event.update", "calendar.update");
+
+    private IdentityOperationResult<EventRecord> UpdateEventCore(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey, string? traceId,
+        string receiptOperationKey, string auditAction, params string[] actionKeys)
     {
-        if (!ModuleAvailable(actor, "FX13", "calendar.event.update", "calendar.update")) return ModuleUnavailable<EventRecord>();
+        if (!ModuleAvailable(actor, "FX13", actionKeys)) return ModuleUnavailable<EventRecord>();
         var validation = ValidateEvent(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<EventRecord>(ifMatch);
@@ -634,7 +751,7 @@ public sealed class SqlProductivityService : IProductivityService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor,
-            "calendar.event.update",
+            receiptOperationKey,
             idempotencyKey,
             $"event:{eventId:N}|etag:{ifMatch}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|uid:{command.SourceUid}|status:{command.Status}",
             out var receipt);
@@ -689,9 +806,9 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<EventRecord>.Failure("RevisionConflict", 412, "Event revision changed.");
         }
-        WriteAudit(connection, transaction, actor, eventId, "calendar.event.update", traceId);
+        WriteAudit(connection, transaction, actor, eventId, auditAction, traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, eventId, forUpdate: false);
-        CompleteReceipt(connection, transaction, receipt, "EventUpdated");
+        CompleteReceipt(connection, transaction, receipt, "EventUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<EventRecord>.Failure("PersistenceFailure", 500, "Event could not be loaded after update.")
@@ -712,9 +829,9 @@ public sealed class SqlProductivityService : IProductivityService
         if (current.TaskId is not null) return IdentityOperationResult<EventRecord>.Failure("TaskCalendarProjectionReadOnly", 409, "Task Calendar projections are controlled by the Task and cannot be edited here.");
         if (current.Status is "Completed" or "Canceled")
             return IdentityOperationResult<EventRecord>.Failure("EventTerminal", 409, "Completed or canceled events are read-only.");
-        return UpdateEvent(actor, eventId, ifMatch,
+        return UpdateEventCore(actor, eventId, ifMatch,
             new EventCommand(current.Title, current.Description, current.StartAt, current.EndAt, current.TimeZoneId, current.IsAllDay, current.SourceUid, status),
-            idempotencyKey, traceId);
+            idempotencyKey, traceId, "calendar.event.transition", "calendar.event.transition", EventTransitionAction(status));
     }
 
     public IdentityOperationResult<object?> DeleteEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
@@ -767,7 +884,7 @@ public sealed class SqlProductivityService : IProductivityService
             return IdentityOperationResult<object?>.Failure("RevisionConflict", 412, "Event revision changed.");
         }
         WriteAudit(connection, transaction, actor, eventId, "calendar.event.delete", traceId);
-        CompleteReceipt(connection, transaction, receipt, "NoContent");
+        CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
         transaction.Commit();
         return IdentityOperationResult<object?>.NoContent();
     }
@@ -800,8 +917,8 @@ public sealed class SqlProductivityService : IProductivityService
             return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task start and end are required and end must be after start.");
         if (!IsPriority(command.Priority) || !IsJsonArray(command.TagsJson) || !IsJsonArray(command.AcceptanceCriteriaJson))
             return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task priority, tags or acceptance criteria are invalid.");
-        if (command.Rank < 0 || command.ReminderAt is not null && (command.ReminderAt < command.StartAt || command.ReminderAt > command.EndAt))
-            return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task rank or reminder is invalid.");
+        if (command.Rank < 0)
+            return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task rank is invalid.");
         return null;
     }
 
@@ -818,10 +935,44 @@ public sealed class SqlProductivityService : IProductivityService
         if (command.EndAt <= command.StartAt)
             return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Event end must be after start.");
         var decision = RegistrationPolicy.ValidateTimeZoneId(command.TimeZoneId);
-        return decision.Allowed ? null : IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, decision.Message);
+        if (!decision.Allowed)
+            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, decision.Message);
+        if (command.IsAllDay && (!TryGetTimeZone(command.TimeZoneId, out var timeZone) ||
+            TimeZoneInfo.ConvertTime(command.StartAt, timeZone).TimeOfDay != TimeSpan.Zero ||
+            TimeZoneInfo.ConvertTime(command.EndAt, timeZone).TimeOfDay != TimeSpan.Zero ||
+            TimeZoneInfo.ConvertTime(command.EndAt, timeZone).Date <= TimeZoneInfo.ConvertTime(command.StartAt, timeZone).Date))
+            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "All-day events require local midnight boundaries and an exclusive end date after the start date.");
+        return null;
     }
 
-    private static bool IsPriority(string value) => value is "P0" or "P1" or "P2" or "P3";
+    private static bool TryGetTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
+    {
+        try
+        {
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId.Trim());
+            return true;
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            if (TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId.Trim(), out var windowsId))
+            {
+                try
+                {
+                    timeZone = TimeZoneInfo.FindSystemTimeZoneById(windowsId);
+                    return true;
+                }
+                catch (TimeZoneNotFoundException) { }
+                catch (InvalidTimeZoneException) { }
+            }
+        }
+        catch (InvalidTimeZoneException) { }
+
+        timeZone = TimeZoneInfo.Utc;
+        return false;
+    }
+
+    private static bool IsPriority(string? value) => string.IsNullOrWhiteSpace(value) || value.Trim() is "P0" or "P1" or "P2" or "P3";
+    private static string? NormalizePriority(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static bool IsJsonArray(string? value)
     {
         if (string.IsNullOrWhiteSpace(value)) return true;
@@ -936,7 +1087,7 @@ public sealed class SqlProductivityService : IProductivityService
         IdentityOperationResult<T>.Failure("RevisionConflict", 412, $"{resource} revision changed.");
 
     private static string CanonicalTask(TaskCommand command, Guid? id = null, string? etag = null) =>
-        $"task:{id?.ToString("N")}|etag:{etag}|project:{command.ProjectId:N}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|status:{command.Status}|due:{command.DueAt?.UtcDateTime:o}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|acceptance:{NormalizeJson(command.AcceptanceCriteriaJson)}|rank:{command.Rank}|reminder:{command.ReminderAt?.UtcDateTime:o}|confirmProjectTimeBounds:{command.ConfirmProjectTimeBounds}";
+        $"task:{id?.ToString("N")}|etag:{etag}|project:{command.ProjectId:N}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|status:{command.Status}|due:{command.DueAt?.UtcDateTime:o}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{NormalizePriority(command.Priority)}|tags:{NormalizeJson(command.TagsJson)}|acceptance:{NormalizeJson(command.AcceptanceCriteriaJson)}|rank:{command.Rank}|reminder:{command.ReminderAt?.UtcDateTime:o}|manageReminder:{command.ManageReminder}|confirmProjectTimeBounds:{command.ConfirmProjectTimeBounds}";
 
     private static void InsertProjectHistory(SqlConnection connection, SqlTransaction transaction, Guid ownerId, ProjectRecord project, string? reason)
     {
@@ -966,13 +1117,137 @@ public sealed class SqlProductivityService : IProductivityService
             ("@Description", SqlDbType.NVarChar, (object?)task.Description ?? DBNull.Value),
             ("@StartAt", SqlDbType.DateTime2, (object)(task.StartAt?.UtcDateTime ?? task.CreatedAt.UtcDateTime)),
             ("@EndAt", SqlDbType.DateTime2, (object)(task.EndAt?.UtcDateTime ?? task.UpdatedAt.UtcDateTime)),
-            ("@Priority", SqlDbType.VarChar, (object)task.Priority),
+            ("@Priority", SqlDbType.VarChar, (object?)task.Priority ?? DBNull.Value),
             ("@TagsJson", SqlDbType.NVarChar, (object)NormalizeJson(task.TagsJson)),
             ("@AcceptanceCriteriaJson", SqlDbType.NVarChar, (object)NormalizeJson(task.AcceptanceCriteriaJson)),
             ("@Rank", SqlDbType.Int, (object)task.Rank),
             ("@ReminderAt", SqlDbType.DateTime2, (object?)task.ReminderAt?.UtcDateTime ?? DBNull.Value),
             ("@Status", SqlDbType.VarChar, (object)task.Status),
             ("@Reason", SqlDbType.NVarChar, (object?)reason ?? DBNull.Value));
+    }
+
+    /// <summary>
+    /// Keeps the post-0022 Reminder row in the same SQL transaction as an
+    /// embedded Task command. Task.ReminderAt is retained as a compatibility
+    /// projection for the existing wire contract; the Reminder row owns the
+    /// configuration/state used by dispatch.
+    /// </summary>
+    private static TaskRecord ReconcileTaskReminder(SqlConnection connection, SqlTransaction transaction,
+        TaskRecord task, TaskCommand command)
+    {
+        var ownerId = GetTaskOwner(connection, transaction, task.Id);
+        using var read = connection.CreateCommand();
+        read.Transaction = transaction;
+        read.CommandText = """
+            SELECT [Id], [ConfigType], [ExactAt]
+            FROM [calendar].[Reminder] WITH (UPDLOCK, ROWLOCK)
+            WHERE [OwnerId] = @OwnerId AND [SourceType] = 'Task' AND [SourceId] = @TaskId;
+            """;
+        Add(read, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(read, "@TaskId", SqlDbType.UniqueIdentifier, task.Id);
+        Guid? reminderId = null;
+        string? currentConfig = null;
+        DateTimeOffset? currentExactAt = null;
+        using (var reader = read.ExecuteReader())
+        {
+            if (reader.Read())
+            {
+                reminderId = reader.GetGuid(0);
+                currentConfig = reader.GetString(1);
+                currentExactAt = reader.IsDBNull(2) ? null : ToOffset(reader.GetDateTime(2));
+            }
+        }
+
+        // An ordinary Task edit preserves the canonical configuration, but it
+        // must still recompute BeforeStart15m, lifecycle state and source
+        // revision. A non-null legacy field is accepted on create because the
+        // Task form predates the separate reminder configuration screen.
+        var commandOwnsConfiguration = command.ManageReminder || reminderId is null && command.ReminderAt is not null;
+        if (!commandOwnsConfiguration && reminderId is null)
+            return task;
+
+        var configType = commandOwnsConfiguration
+            ? command.ReminderAt is null
+                ? ReminderConfigurationTypes.None
+                : ReminderConfigurationTypes.Exact
+            : currentConfig ?? ReminderConfigurationTypes.None;
+        var exactAt = configType == ReminderConfigurationTypes.Exact
+            ? commandOwnsConfiguration ? command.ReminderAt : currentExactAt
+            : null;
+        var schedule = ReminderPolicy.Resolve(configType, exactAt, task.StartAt!.Value, DateTimeOffset.UtcNow, allowExpired: true);
+        if (!schedule.IsValid)
+            throw new InvalidOperationException("The embedded Task reminder configuration could not be resolved.");
+        var dueAt = schedule.DueAt;
+        var state = configType == ReminderConfigurationTypes.None
+            ? ReminderStates.None
+            : task.Status is "Completed" or "Skipped" or "Deleted"
+                ? ReminderStates.Canceled
+                : dueAt <= DateTimeOffset.UtcNow ? ReminderStates.Expired : ReminderStates.Pending;
+
+        // Task.ReminderAt remains a compatibility projection. Keep it aligned
+        // with the canonical row, including when a StartAt edit moves a preset.
+        if (task.ReminderAt != dueAt)
+        {
+            Execute(connection, transaction, "UPDATE [productivity].[Task] SET [ReminderAt] = @ReminderAt, [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @TaskId AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion;",
+                ("@ReminderAt", SqlDbType.DateTime2, (object?)dueAt?.UtcDateTime ?? DBNull.Value),
+                ("@TaskId", SqlDbType.UniqueIdentifier, (object)task.Id),
+                ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId),
+                ("@RowVersion", SqlDbType.Binary, (object)DecodeETag(task.ETag)));
+            task = ReadTask(connection, transaction, ownerId, task.Id, forUpdate: false)
+                ?? throw new InvalidOperationException("Task was not visible after reminder reconciliation.");
+        }
+        var sourceRevision = DecodeETag(task.ETag);
+
+        if (reminderId is null)
+        {
+            Execute(connection, transaction, """
+                INSERT INTO [calendar].[Reminder]
+                    ([OwnerId], [SourceType], [SourceId], [ConfigType], [ExactAt], [TimeZoneId], [DueAt], [SourceRevision], [State])
+                SELECT @OwnerId, 'Task', @TaskId, @ConfigType, @ExactAt, userRow.[TimeZoneId], @DueAt,
+                       CONVERT(bigint, @SourceRevision), @State
+                FROM [platform].[PersonalSpace] spaceRow
+                INNER JOIN [identity].[User] userRow ON userRow.[Id] = spaceRow.[UserId]
+                WHERE spaceRow.[Id] = @OwnerId;
+                """,
+                ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId),
+                ("@TaskId", SqlDbType.UniqueIdentifier, (object)task.Id),
+                ("@ConfigType", SqlDbType.VarChar, (object)configType),
+                ("@ExactAt", SqlDbType.DateTime2, (object?)exactAt?.UtcDateTime ?? DBNull.Value),
+                ("@DueAt", SqlDbType.DateTime2, (object?)dueAt?.UtcDateTime ?? DBNull.Value),
+                ("@SourceRevision", SqlDbType.Binary, (object)sourceRevision),
+                ("@State", SqlDbType.VarChar, (object)state));
+        }
+        else
+        {
+            Execute(connection, transaction, """
+                UPDATE [calendar].[Reminder]
+                SET [ConfigType] = @ConfigType, [ExactAt] = @ExactAt, [DueAt] = @DueAt,
+                    [TimeZoneId] = @TimeZoneId, [SourceRevision] = CONVERT(bigint, @SourceRevision), [State] = @State,
+                    [LastNotificationId] = CASE WHEN @State = 'Pending' THEN NULL ELSE [LastNotificationId] END,
+                    [UpdatedAt] = SYSUTCDATETIME()
+                WHERE [Id] = @ReminderId AND [OwnerId] = @OwnerId AND [SourceType] = 'Task' AND [SourceId] = @TaskId;
+                """,
+                ("@ReminderId", SqlDbType.UniqueIdentifier, (object)reminderId.Value),
+                ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId),
+                ("@TaskId", SqlDbType.UniqueIdentifier, (object)task.Id),
+                ("@ConfigType", SqlDbType.VarChar, (object)configType),
+                ("@ExactAt", SqlDbType.DateTime2, (object?)exactAt?.UtcDateTime ?? DBNull.Value),
+                ("@TimeZoneId", SqlDbType.NVarChar, (object)ReadOwnerTimeZone(connection, transaction, ownerId)),
+                ("@DueAt", SqlDbType.DateTime2, (object?)dueAt?.UtcDateTime ?? DBNull.Value),
+                ("@SourceRevision", SqlDbType.Binary, (object)sourceRevision),
+                ("@State", SqlDbType.VarChar, (object)state));
+        }
+
+        static Guid GetTaskOwner(SqlConnection connection, SqlTransaction transaction, Guid taskId)
+        {
+            using var owner = connection.CreateCommand();
+            owner.Transaction = transaction;
+            owner.CommandText = "SELECT [OwnerId] FROM [productivity].[Task] WHERE [Id] = @TaskId;";
+            Add(owner, "@TaskId", SqlDbType.UniqueIdentifier, taskId);
+            return (Guid)(owner.ExecuteScalar() ?? throw new InvalidOperationException("Task owner is unavailable while reconciling its reminder."));
+        }
+
+        return task;
     }
 
     private static void UpsertTaskCalendarProjection(SqlConnection connection, SqlTransaction transaction, Guid ownerId, TaskRecord task)
@@ -1075,7 +1350,7 @@ public sealed class SqlProductivityService : IProductivityService
     {
         var status = reader.GetString(4);
         var endAt = ToOffset(reader.GetDateTime(10));
-        return new TaskRecord(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3), status, reader.IsDBNull(5) ? null : ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), ToOffset(reader.GetDateTime(7)), EncodeETag((byte[])reader[8]), ToOffset(reader.GetDateTime(9)), endAt, reader.GetString(11), reader.GetString(12), reader.GetString(13), reader.GetInt32(14), reader.IsDBNull(15) ? null : ToOffset(reader.GetDateTime(15)), endAt < DateTimeOffset.UtcNow && status is not ("Completed" or "Skipped" or "Deleted"));
+        return new TaskRecord(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.IsDBNull(3) ? null : reader.GetString(3), status, reader.IsDBNull(5) ? null : ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), ToOffset(reader.GetDateTime(7)), EncodeETag((byte[])reader[8]), ToOffset(reader.GetDateTime(9)), endAt, reader.IsDBNull(11) ? null : reader.GetString(11), reader.GetString(12), reader.GetString(13), reader.GetInt32(14), reader.IsDBNull(15) ? null : ToOffset(reader.GetDateTime(15)), endAt < DateTimeOffset.UtcNow && status is not ("Completed" or "Skipped" or "Deleted"));
     }
 
     private static EventRecord ReadEvent(SqlDataReader reader) =>
@@ -1085,8 +1360,9 @@ public sealed class SqlProductivityService : IProductivityService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES ((SELECT [UserId] FROM [platform].[PersonalSpace] WHERE [Id] = @OwnerId), @OwnerId, @Action, N'PersonalResource', @TargetId, 'Succeeded', @TraceId);";
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
+        command.CommandText = "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@ActorUserId, @OwnerUserId, @Action, N'PersonalResource', @TargetId, 'Succeeded', @TraceId);";
+        Add(command, "@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId);
+        Add(command, "@OwnerUserId", SqlDbType.UniqueIdentifier, actor.UserId);
         Add(command, "@Action", SqlDbType.NVarChar, action, 160);
         Add(command, "@TargetId", SqlDbType.UniqueIdentifier, targetId);
         Add(command, "@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value, 128);
@@ -1106,6 +1382,14 @@ public sealed class SqlProductivityService : IProductivityService
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
+        if (claim.IsInvalid)
+            return IdentityOperationResult<T>.Failure("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay)
+        {
+            var replay = ReplayReceipt<T>(connection, transaction, actor, operationKey, canonicalRequest, claim);
+            if (replay is not null) return replay;
+        }
+
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         var message = claim.IsConflict
             ? "The same Idempotency-Key was already used with a different request."
@@ -1113,8 +1397,126 @@ public sealed class SqlProductivityService : IProductivityService
         return IdentityOperationResult<T>.Failure(code, 409, message);
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private IdentityOperationResult<T>? ReplayReceipt<T>(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operationKey, string canonicalRequest, ReceiptClaim claim)
+    {
+        var operationStatus = EvaluateReplayOperation(connection, transaction, actor, operationKey, canonicalRequest);
+        if (operationStatus == SqlCapabilityStatus.PermissionDenied)
+            return IdentityOperationResult<T>.Failure("PermissionDenied", 403, "The idempotent operation is no longer allowed.");
+        if (operationStatus != SqlCapabilityStatus.Allowed)
+            return ModuleUnavailable<T>();
+        if (claim.ResultStatusCode == 204)
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+        if (string.IsNullOrWhiteSpace(claim.ResultJson)) return null;
+
+        try
+        {
+            var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+            if (value is null) return null;
+
+            if (value is ProjectRecord project)
+            {
+                var current = ReadProject(connection, transaction, actor.OwnerId, project.Id, forUpdate: true);
+                return current is null || current.Status == "Deleted"
+                    ? Failure<T>("ResourceUnavailable", 404, "Project unavailable.")
+                    : IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+            }
+
+            if (value is TaskRecord task)
+            {
+                var current = ReadTask(connection, transaction, actor.OwnerId, task.Id, forUpdate: true);
+                return current is null || current.Status == "Deleted"
+                    ? Failure<T>("ResourceUnavailable", 404, "Task unavailable.")
+                    : IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+            }
+
+            if (value is EventRecord calendarEvent)
+            {
+                var current = ReadEvent(connection, transaction, actor.OwnerId, calendarEvent.Id, forUpdate: true);
+                if (current is null || current.Status == "Deleted")
+                    return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
+                if (current.TaskId is { } taskId)
+                {
+                    if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view"))
+                        return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
+                    var source = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true);
+                    if (source is null || source.Status == "Deleted")
+                        return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
+                }
+
+                return IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+            }
+
+            return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+        catch (NotSupportedException)
+        {
+            return null;
+        }
+    }
+
+    private SqlCapabilityStatus EvaluateReplayOperation(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operationKey, string canonicalRequest) => operationKey switch
+        {
+            "productivity.project.create" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.create", "projects.create"),
+            "productivity.project.update" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.update", "projects.update"),
+            "productivity.project.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX11", ProjectTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
+            "productivity.project.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.trash", "projects.delete"),
+            "productivity.task.create" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.create", "tasks.create"),
+            "productivity.task.update" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.update", "tasks.update"),
+            "productivity.task.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX12", TaskTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
+            "productivity.task.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.trash", "tasks.delete"),
+            "calendar.event.create" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.create", "calendar.create"),
+            "calendar.event.update" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.update", "calendar.update"),
+            "calendar.event.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX13", EventTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
+            "calendar.event.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.cancel", "calendar.event.delete"),
+            _ => SqlCapabilityStatus.ModuleUnavailable
+        };
+
+    private static string? CanonicalValue(string canonicalRequest, string key)
+    {
+        var prefix = key + ":";
+        return canonicalRequest.Split('|')
+            .FirstOrDefault(part => part.StartsWith(prefix, StringComparison.Ordinal))?[prefix.Length..];
+    }
+
+    private static string EncodeCursor<T>(T value)
+    {
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(value);
+        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    private static bool TryDecodeCursor<T>(string value, out T? result)
+    {
+        result = default;
+        try
+        {
+            var padded = value.Replace('-', '+').Replace('_', '/');
+            padded = padded.PadRight(padded.Length + ((4 - padded.Length % 4) % 4), '=');
+            result = JsonSerializer.Deserialize<T>(Convert.FromBase64String(padded));
+            return result is not null;
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    private sealed record ProjectListCursor(string Scope, string Name, Guid Id);
+    private sealed record TaskListCursor(string Scope, bool HasDueAt, DateTime? DueAt, DateTime UpdatedAt, Guid Id);
+    private sealed record EventListCursor(string Scope, DateTime StartAt, Guid Id);
+
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim,
+        string resultCode, int resultStatusCode, string? resultJson) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql,
         params (string Name, SqlDbType Type, object Value)[] parameters)

@@ -1,6 +1,7 @@
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
@@ -64,6 +65,18 @@ public sealed class SqlSnippetService : ISnippetService
         return IdentityOperationResult<SnippetPage>.Success(new SnippetPage(items, null));
     }
 
+    public IdentityOperationResult<SnippetRecord> Get(IdentityPrincipal actor, Guid snippetId)
+    {
+        if (!ModuleAvailable(actor, "FX22", "snippets.snippet.read")) return ModuleUnavailable<SnippetRecord>();
+        if (snippetId == Guid.Empty) return Failure<SnippetRecord>("ResourceUnavailable", 404, "Snippet unavailable.");
+        using var connection = _connections.Create();
+        connection.Open();
+        var snippet = Read(connection, null, actor.OwnerId, snippetId, forUpdate: false);
+        return snippet is null || snippet.Status == "Deleted"
+            ? Failure<SnippetRecord>("ResourceUnavailable", 404, "Snippet unavailable.")
+            : IdentityOperationResult<SnippetRecord>.Success(snippet);
+    }
+
     public IdentityOperationResult<SnippetRecord> Create(IdentityPrincipal actor, SnippetCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
@@ -94,7 +107,7 @@ public sealed class SqlSnippetService : ISnippetService
             var created = Read(connection, transaction, actor.OwnerId, id, forUpdate: false);
             if (created is null) { transaction.Rollback(); return Failure<SnippetRecord>("PersistenceFailure", 500, "Snippet could not be loaded after creation."); }
             WriteAudit(connection, transaction, actor, id, "snippets.snippet.create", traceId);
-            CompleteReceipt(connection, transaction, receipt, "SnippetCreated");
+            CompleteReceipt(connection, transaction, receipt, "SnippetCreated", 201, JsonSerializer.Serialize(created));
             transaction.Commit();
             return IdentityOperationResult<SnippetRecord>.Success(created, 201, "SnippetCreated");
         }
@@ -146,7 +159,7 @@ public sealed class SqlSnippetService : ISnippetService
             var saved = Read(connection, transaction, actor.OwnerId, snippetId, forUpdate: false);
             if (saved is null) { transaction.Rollback(); return Failure<SnippetRecord>("PersistenceFailure", 500, "Snippet could not be loaded after save."); }
             WriteAudit(connection, transaction, actor, snippetId, "snippets.snippet.save", traceId);
-            CompleteReceipt(connection, transaction, receipt, "SnippetSaved");
+            CompleteReceipt(connection, transaction, receipt, "SnippetSaved", 200, JsonSerializer.Serialize(saved));
             transaction.Commit();
             return IdentityOperationResult<SnippetRecord>.Success(saved);
         }
@@ -198,7 +211,7 @@ public sealed class SqlSnippetService : ISnippetService
             var updated = Read(connection, transaction, actor.OwnerId, snippetId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<SnippetRecord>("PersistenceFailure", 500, "Snippet could not be loaded after transition."); }
             WriteAudit(connection, transaction, actor, snippetId, action, traceId);
-            CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "SnippetArchived" : "SnippetUnarchived");
+            CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "SnippetArchived" : "SnippetUnarchived", 200, JsonSerializer.Serialize(updated));
             transaction.Commit();
             return IdentityOperationResult<SnippetRecord>.Success(updated);
         }
@@ -239,7 +252,7 @@ public sealed class SqlSnippetService : ISnippetService
         reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4),
         reader.GetInt64(5), reader.GetString(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag(reader.GetFieldValue<byte[]>(9)));
 
-    private static SnippetRecord? Read(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid snippetId, bool forUpdate)
+    private static SnippetRecord? Read(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid snippetId, bool forUpdate)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -257,16 +270,32 @@ public sealed class SqlSnippetService : ISnippetService
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
+        if (claim.IsInvalid)
+            return Failure<T>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay && claim.ResultStatusCode == 204)
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+        if (claim.IsReplay && !string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            try
+            {
+                var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+                if (value is not null)
+                    return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+            }
+            catch (JsonException) { }
+            catch (NotSupportedException) { }
+        }
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? resultStatusCode = null, string? resultJson = null) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string actionKey, string? traceId) => Execute(connection, transaction,
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'knowledge.Snippet', @Target, 'Succeeded', @TraceId);",
-        ("@Actor", SqlDbType.UniqueIdentifier, actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, actor.OwnerId),
+        ("@Actor", SqlDbType.UniqueIdentifier, actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, actor.UserId),
         ("@Action", SqlDbType.NVarChar, actionKey), ("@Target", SqlDbType.UniqueIdentifier, targetId),
         ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
 

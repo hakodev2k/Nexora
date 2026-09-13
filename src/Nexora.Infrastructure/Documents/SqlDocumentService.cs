@@ -1,6 +1,7 @@
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Documents;
 using Nexora.Application.Identity;
@@ -104,7 +105,7 @@ public sealed class SqlDocumentService : IDocumentService
             WriteAudit(connection, transaction, actor, id, "documents.page.create", traceId);
             var created = ReadDetail(connection, transaction, actor.OwnerId, id, forUpdate: false);
             if (created is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after creation."); }
-            CompleteReceipt(connection, transaction, receipt, "DocumentCreated");
+            CompleteReceipt(connection, transaction, receipt, "DocumentCreated", 201, JsonSerializer.Serialize(created));
             transaction.Commit();
             return IdentityOperationResult<DocumentDetail>.Success(created, 201, "DocumentCreated");
         }
@@ -168,7 +169,7 @@ public sealed class SqlDocumentService : IDocumentService
             WriteAudit(connection, transaction, actor, documentId, "documents.page.save", traceId);
             var saved = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
             if (saved is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after save."); }
-            CompleteReceipt(connection, transaction, receipt, "DocumentSaved");
+            CompleteReceipt(connection, transaction, receipt, "DocumentSaved", 200, JsonSerializer.Serialize(saved));
             transaction.Commit();
             return IdentityOperationResult<DocumentDetail>.Success(saved);
         }
@@ -217,7 +218,7 @@ public sealed class SqlDocumentService : IDocumentService
             WriteAudit(connection, transaction, actor, documentId, "documents.page.transition", traceId);
             var transitioned = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
             if (transitioned is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after transition."); }
-            CompleteReceipt(connection, transaction, receipt, "DocumentTransitioned");
+            CompleteReceipt(connection, transaction, receipt, "DocumentTransitioned", 200, JsonSerializer.Serialize(transitioned));
             transaction.Commit();
             return IdentityOperationResult<DocumentDetail>.Success(transitioned);
         }
@@ -337,19 +338,41 @@ public sealed class SqlDocumentService : IDocumentService
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
+        if (claim.IsInvalid)
+            return Failure<DocumentDetail>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay && claim.ResultStatusCode == 204)
+            return IdentityOperationResult<DocumentDetail>.NoContent(claim.ResultCode ?? "NoContent");
+        if (claim.IsReplay && !string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            try
+            {
+                var stored = JsonSerializer.Deserialize<DocumentDetail>(claim.ResultJson);
+                if (stored is not null)
+                {
+                    var current = ReadDetail(connection, transaction, actor.OwnerId, stored.Id, forUpdate: true);
+                    return current is null
+                        ? Missing()
+                        : IdentityOperationResult<DocumentDetail>.Success(current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+                }
+            }
+            catch (JsonException) { }
+            catch (NotSupportedException) { }
+        }
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         var message = claim.IsConflict ? "The same Idempotency-Key was already used with a different request." : "The request was already completed or is in progress.";
         return Failure<DocumentDetail>(code, 409, message);
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? resultStatusCode = null, string? resultJson = null) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string action, string? traceId)
     {
         Execute(connection, transaction,
-            "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES ((SELECT [UserId] FROM [platform].[PersonalSpace] WHERE [Id] = @OwnerId), @OwnerId, @Action, N'DocumentPage', @TargetId, 'Succeeded', @TraceId);",
-            ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
+            "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@ActorUserId, @OwnerUserId, @Action, N'DocumentPage', @TargetId, 'Succeeded', @TraceId);",
+            ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId),
+            ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.UserId),
             ("@Action", SqlDbType.NVarChar, action),
             ("@TargetId", SqlDbType.UniqueIdentifier, targetId),
             ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));

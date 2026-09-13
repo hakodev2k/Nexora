@@ -1269,3 +1269,150 @@ td .muted {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Theme is applied by the authenticated shell from the persisted preference;
+   System follows the OS media query without storing a browser-side secret. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  background: #111827;
+  color: #e5edf9;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .app-shell,
+:root[data-theme="dark"] .shared-resource-page {
+  background: #111827;
+  color: #e5edf9;
+}
+
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] .brand,
+:root[data-theme="dark"] .sidebar-brand,
+:root[data-theme="dark"] label,
+:root[data-theme="dark"] .field-group,
+:root[data-theme="dark"] .signed-in {
+  color: #e5edf9;
+}
+
+:root[data-theme="dark"] .muted,
+:root[data-theme="dark"] .field-help,
+:root[data-theme="dark"] .hint,
+:root[data-theme="dark"] .optional,
+:root[data-theme="dark"] .lead,
+:root[data-theme="dark"] .environment-label,
+:root[data-theme="dark"] .full-page-state p {
+  color: #aab9ce;
+}
+
+:root[data-theme="dark"] .form-card,
+:root[data-theme="dark"] .shared-resource-card,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .shell-header,
+:root[data-theme="dark"] .resource-card,
+:root[data-theme="dark"] .form-panel,
+:root[data-theme="dark"] .settings-panel,
+:root[data-theme="dark"] .info-card,
+:root[data-theme="dark"] .module-card,
+:root[data-theme="dark"] .table-wrap,
+:root[data-theme="dark"] .admin-detail,
+:root[data-theme="dark"] .notification-card,
+:root[data-theme="dark"] .file-card {
+  background: #1b2638;
+  border-color: #34445d;
+  color: #e5edf9;
+}
+
+:root[data-theme="dark"] .admin-user-list,
+:root[data-theme="dark"] .shared-document-body,
+:root[data-theme="dark"] .document-body,
+:root[data-theme="dark"] .snippet-code,
+:root[data-theme="dark"] .empty-state {
+  background: #151f30;
+  border-color: #34445d;
+  color: #e5edf9;
+}
+
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea {
+  background: #121b2a;
+  border-color: #50627d;
+  color: #f1f5fb;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: #8fa1bb;
+}
+
+:root[data-theme="dark"] code {
+  background: #293952;
+  color: #dce8fb;
+}
+
+:root[data-theme="dark"] .nav-item,
+:root[data-theme="dark"] .admin-user-row {
+  color: #c8d5e8;
+}
+
+:root[data-theme="dark"] .nav-item:hover,
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .admin-user-row:hover,
+:root[data-theme="dark"] .admin-user-row.active {
+  background: #263852;
+  border-color: #466184;
+  color: #f1f5fb;
+}
+
+:root[data-theme="dark"] .shell-header,
+:root[data-theme="dark"] .sidebar,
+:root[data-theme="dark"] .utility-nav,
+:root[data-theme="dark"] table th,
+:root[data-theme="dark"] table td {
+  border-color: #34445d;
+}
+
+:root[data-theme="dark"] .source-unavailable {
+  background: #32251f;
+  border-color: #855d43;
+}
+
+:root[data-theme="dark"] .source-unavailable-message {
+  color: #f0bd9b !important;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(15 23 42 / 68%);
+}
+
+.dialog-panel {
+  width: min(100%, 32rem);
+  padding: 1.5rem;
+  border: 1px solid var(--border-color, #d6dce5);
+  border-radius: 1rem;
+  background: var(--surface, #fff);
+  color: var(--text, #172033);
+  box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 28%);
+}
+
+.dialog-panel h2 {
+  margin-top: 0;
+}
+
+:root[data-theme="dark"] .dialog-panel {
+  border-color: #50627d;
+  background: #1b2638;
+  color: #e5edf9;
+}

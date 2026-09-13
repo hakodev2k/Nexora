@@ -17,6 +17,7 @@ namespace Nexora.Infrastructure.Reminders;
 public sealed class SqlReminderService : IReminderService, IReminderDispatchService
 {
     private const int DispatchBatchSize = 25;
+    private const int MaxDispatchAttempts = 8;
     private static readonly TimeSpan LateDeliveryWindow = TimeSpan.FromMinutes(15);
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
@@ -67,6 +68,11 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
 
         var source = ReadSource(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
         if (source is null) return Rollback(transaction, SourceUnavailable<ReminderSourceView>());
+        if (receipt.IsReplay)
+        {
+            if (!source.AccountActive) return Rollback(transaction, ModuleUnavailable<ReminderSourceView>());
+            return Rollback(transaction, ReplayReceipt<ReminderSourceView>(connection, transaction, source, receipt));
+        }
         if (!expectedSourceVersion.AsSpan().SequenceEqual(source.RowVersion)) return Rollback(transaction, Revision<ReminderSourceView>("The source revision changed."));
 
         var current = ReadReminder(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
@@ -92,6 +98,8 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         {
             return Rollback(transaction, Revision<ReminderSourceView>("The source revision changed."));
         }
+        if (source.CanConfigure && source.SourceType == ReminderSourceTypes.Task)
+            InsertTaskReminderHistory(connection, transaction, source.SourceId);
         if (source.CanConfigure)
         {
             source = ReadSource(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
@@ -102,9 +110,10 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         var reminder = UpsertReminder(connection, transaction, current, source, configType, command.ExactAt, schedule.DueAt);
         InsertIntent(connection, transaction, source, reminder, configType == ReminderConfigurationTypes.None ? "InvalidateRequested" : "ScheduleRequested");
         WriteAudit(connection, transaction, actor.UserId, actor.UserId, reminder.Id, "reminders.configuration.set", traceId);
-        CompleteReceipt(connection, transaction, receipt, "ReminderConfigured");
+        var response = ToView(connection, transaction, source);
+        CompleteReceipt(connection, transaction, receipt, "ReminderConfigured", current is null ? 201 : 200, JsonSerializer.Serialize(response));
         transaction.Commit();
-        return IdentityOperationResult<ReminderSourceView>.Success(ToView(connection, null, source), current is null ? 201 : 200, "ReminderConfigured");
+        return IdentityOperationResult<ReminderSourceView>.Success(response, current is null ? 201 : 200, "ReminderConfigured");
     }
 
     public IdentityOperationResult<object?> Remove(IdentityPrincipal actor, string sourceType, Guid sourceId,
@@ -128,6 +137,11 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
 
         var source = ReadSource(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
         if (source is null) return Rollback(transaction, SourceUnavailable<object?>());
+        if (receipt.IsReplay)
+        {
+            if (!source.AccountActive) return Rollback(transaction, ModuleUnavailable<object?>());
+            return Rollback(transaction, ReplayReceipt<object?>(connection, transaction, source, receipt));
+        }
         if (!expectedSourceVersion.AsSpan().SequenceEqual(source.RowVersion)) return Rollback(transaction, Revision<object?>("The source revision changed."));
         var current = ReadReminder(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
         if (current is null) return Rollback(transaction, SourceUnavailable<object?>());
@@ -137,6 +151,8 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         {
             return Rollback(transaction, Revision<object?>("The source revision changed."));
         }
+        if (source.CanConfigure && source.SourceType == ReminderSourceTypes.Task)
+            InsertTaskReminderHistory(connection, transaction, source.SourceId);
         if (source.CanConfigure)
         {
             source = ReadSource(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
@@ -147,7 +163,7 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         var removed = UpsertReminder(connection, transaction, current, source, ReminderConfigurationTypes.None, null, null);
         InsertIntent(connection, transaction, source, removed, "InvalidateRequested");
         WriteAudit(connection, transaction, actor.UserId, actor.UserId, removed.Id, "reminders.configuration.remove", traceId);
-        CompleteReceipt(connection, transaction, receipt, "ReminderRemoved");
+        CompleteReceipt(connection, transaction, receipt, "ReminderRemoved", 204);
         transaction.Commit();
         return IdentityOperationResult<object?>.Success(null, 204, "ReminderRemoved");
     }
@@ -157,54 +173,71 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         cancellationToken.ThrowIfCancellationRequested();
         using var connection = _connections.Create();
         connection.Open();
-        var ids = ReadDueReminderIds(connection);
+        var claims = ClaimDueReminders(connection);
         var result = new ReminderDispatchResult(0, 0, 0, 0);
-        foreach (var reminderId in ids)
+        foreach (var claim in claims)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            result = Add(result, DispatchOne(reminderId));
+            try
+            {
+                result = Add(result, DispatchOne(claim));
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (SqlException)
+            {
+                result = Add(result, TryRecordDispatchFailure(claim, "SqlDispatchFailure"));
+            }
+            catch (InvalidOperationException)
+            {
+                result = Add(result, TryRecordDispatchFailure(claim, "DispatchFailure"));
+            }
         }
 
         return Task.FromResult(result);
     }
 
-    private ReminderDispatchResult DispatchOne(Guid reminderId)
+    private ReminderDispatchResult DispatchOne(ReminderDispatchClaim claim)
     {
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var reminder = ReadReminderById(connection, transaction, reminderId, true);
-        if (reminder is null || reminder.State != ReminderStates.Pending || reminder.DueAt is null || reminder.DueAt > DateTimeOffset.UtcNow)
+        var reminder = ReadReminderById(connection, transaction, claim.Id, true);
+        if (reminder is null || reminder.State != ReminderStates.Pending || reminder.DueAt is null ||
+            reminder.DueAt > DateTimeOffset.UtcNow || reminder.DispatchLeaseId != claim.LeaseId)
         {
             transaction.Rollback();
             return new ReminderDispatchResult(0, 0, 0, 0);
         }
 
         var source = ReadSource(connection, transaction, reminder.OwnerId, reminder.SourceType, reminder.SourceId, true);
-        if (source is null || !source.CanConfigure || source.Revision != reminder.SourceRevision)
+        if (source is null || !source.AccountActive || !source.CanConfigure || source.Revision != reminder.SourceRevision)
         {
-            UpdateReminderState(connection, transaction, reminder, ReminderStates.Canceled, null);
-            WriteAudit(connection, transaction, source?.OwnerUserId ?? Guid.Empty, source?.OwnerUserId ?? Guid.Empty, reminder.Id, "reminders.schedule.invalidate", null);
+            UpdateReminderState(connection, transaction, reminder, ReminderStates.Canceled, null, claim.LeaseId);
+            if (source is { AccountActive: true })
+                WriteAudit(connection, transaction, source.OwnerUserId, source.OwnerUserId, reminder.Id, "reminders.schedule.invalidate", null);
             transaction.Commit();
             return new ReminderDispatchResult(0, 0, 1, 0);
         }
         if (!IsDispatchAllowed(connection, transaction, source))
         {
             transaction.Rollback();
-            return new ReminderDispatchResult(0, 0, 0, 1);
+            return TryRecordDispatchFailure(claim, "DispatchAuthorizationUnavailable");
         }
 
         var now = DateTimeOffset.UtcNow;
         if (now - reminder.DueAt.Value > LateDeliveryWindow)
         {
-            UpdateReminderState(connection, transaction, reminder, ReminderStates.Missed, null);
+            UpdateReminderState(connection, transaction, reminder, ReminderStates.Missed, null, claim.LeaseId);
             WriteAudit(connection, transaction, source.OwnerUserId, source.OwnerUserId, reminder.Id, "reminders.schedule.dispatch", null);
             transaction.Commit();
             return new ReminderDispatchResult(0, 1, 0, 0);
         }
 
         var notificationId = EnsureNotificationProjection(connection, transaction, reminder, source);
-        UpdateReminderState(connection, transaction, reminder, ReminderStates.Dispatched, notificationId);
+        UpdateReminderState(connection, transaction, reminder, ReminderStates.Dispatched, notificationId, claim.LeaseId);
         WriteAudit(connection, transaction, source.OwnerUserId, source.OwnerUserId, reminder.Id, "reminders.schedule.dispatch", null);
         transaction.Commit();
         return new ReminderDispatchResult(1, 0, 0, 0);
@@ -228,7 +261,7 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         {
             return ReadSource(connection, transaction, forUpdate, """
                 SELECT taskRow.[Id], taskRow.[Title], taskRow.[StartAt], userRow.[TimeZoneId], taskRow.[Status], projectRow.[Status],
-                       CONVERT(bigint, taskRow.[RowVersion]), taskRow.[RowVersion], spaceRow.[UserId]
+                       CONVERT(bigint, taskRow.[RowVersion]), taskRow.[RowVersion], spaceRow.[UserId], userRow.[State], userRow.[IsDeleted], spaceRow.[State]
                 FROM [productivity].[Task] taskRow
                 INNER JOIN [productivity].[Project] projectRow ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = taskRow.[OwnerId]
                 INNER JOIN [platform].[PersonalSpace] spaceRow ON spaceRow.[Id] = taskRow.[OwnerId]
@@ -241,9 +274,10 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         {
             return ReadSource(connection, transaction, forUpdate, """
                 SELECT eventRow.[Id], eventRow.[Title], eventRow.[StartAt], eventRow.[TimeZoneId], eventRow.[Status], eventRow.[Status],
-                       CONVERT(bigint, eventRow.[RowVersion]), eventRow.[RowVersion], spaceRow.[UserId]
+                       CONVERT(bigint, eventRow.[RowVersion]), eventRow.[RowVersion], spaceRow.[UserId], userRow.[State], userRow.[IsDeleted], spaceRow.[State]
                 FROM [calendar].[Event] eventRow
                 INNER JOIN [platform].[PersonalSpace] spaceRow ON spaceRow.[Id] = eventRow.[OwnerId]
+                INNER JOIN [identity].[User] userRow ON userRow.[Id] = spaceRow.[UserId]
                 WHERE eventRow.[Id] = @SourceId AND eventRow.[OwnerId] = @OwnerId
                   AND eventRow.[SourceKind] = 'Manual' AND eventRow.[TaskId] IS NULL;
                 """, ownerId, sourceId, sourceType);
@@ -270,21 +304,25 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         var canConfigure = sourceType == ReminderSourceTypes.Task
             ? (sourceStatus is "NotStarted" or "InProgress") && (parentStatus is "NotStarted" or "InProgress")
             : sourceStatus == "Scheduled";
+        var accountActive = string.Equals(reader.GetString(9), "Active", StringComparison.Ordinal) &&
+            !reader.GetBoolean(10) && string.Equals(reader.GetString(11), "Active", StringComparison.Ordinal);
         return new ReminderSourceSnapshot(sourceType, reader.GetGuid(0), ownerId, reader.GetString(1), ToOffset(reader.GetDateTime(2)),
-            reader.GetString(3), reader.GetInt64(6), reader.GetFieldValue<byte[]>(7), reader.GetGuid(8), canConfigure);
+            reader.GetString(3), reader.GetInt64(6), reader.GetFieldValue<byte[]>(7), reader.GetGuid(8), accountActive, canConfigure);
     }
 
     private ReminderRow? ReadReminder(SqlConnection connection, SqlTransaction? transaction, Guid ownerId,
         string sourceType, Guid sourceId, bool forUpdate) => ReadReminder(connection, transaction, $"""
             SELECT [Id], [OwnerId], [SourceType], [SourceId], [ConfigType], [ExactAt], [TimeZoneId], [DueAt], [SourceRevision],
-                   [State], [LastNotificationId], [CreatedAt], [UpdatedAt], [RowVersion]
+                   [State], [LastNotificationId], [CreatedAt], [UpdatedAt], [RowVersion], [DispatchLeaseId], [DispatchLeaseUntil],
+                   [DispatchAttempts], [NextAttemptAt], [LastErrorCode]
             FROM [calendar].[Reminder]{(forUpdate ? " WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             WHERE [OwnerId] = @OwnerId AND [SourceType] = @SourceType AND [SourceId] = @SourceId;
             """, ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId), ("@SourceType", SqlDbType.VarChar, (object)sourceType), ("@SourceId", SqlDbType.UniqueIdentifier, (object)sourceId));
 
     private ReminderRow? ReadReminderById(SqlConnection connection, SqlTransaction transaction, Guid reminderId, bool forUpdate) => ReadReminder(connection, transaction, $"""
             SELECT [Id], [OwnerId], [SourceType], [SourceId], [ConfigType], [ExactAt], [TimeZoneId], [DueAt], [SourceRevision],
-                   [State], [LastNotificationId], [CreatedAt], [UpdatedAt], [RowVersion]
+                   [State], [LastNotificationId], [CreatedAt], [UpdatedAt], [RowVersion], [DispatchLeaseId], [DispatchLeaseUntil],
+                   [DispatchAttempts], [NextAttemptAt], [LastErrorCode]
             FROM [calendar].[Reminder]{(forUpdate ? " WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             WHERE [Id] = @Id;
             """, ("@Id", SqlDbType.UniqueIdentifier, (object)reminderId));
@@ -301,7 +339,9 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         return new ReminderRow(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetGuid(3), reader.GetString(4),
             reader.IsDBNull(5) ? null : ToOffset(reader.GetDateTime(5)), reader.GetString(6), reader.IsDBNull(7) ? null : ToOffset(reader.GetDateTime(7)),
             reader.GetInt64(8), reader.GetString(9), reader.IsDBNull(10) ? null : reader.GetGuid(10), ToOffset(reader.GetDateTime(11)),
-            ToOffset(reader.GetDateTime(12)), reader.GetFieldValue<byte[]>(13));
+            ToOffset(reader.GetDateTime(12)), reader.GetFieldValue<byte[]>(13), reader.IsDBNull(14) ? null : reader.GetGuid(14),
+            reader.IsDBNull(15) ? null : ToOffset(reader.GetDateTime(15)), reader.GetInt32(16),
+            reader.IsDBNull(17) ? null : ToOffset(reader.GetDateTime(17)), reader.IsDBNull(18) ? null : reader.GetString(18));
     }
 
     private static IReadOnlyList<ReminderDeliveryState> ReadDeliveries(SqlConnection connection, SqlTransaction? transaction, Guid? notificationId)
@@ -340,10 +380,25 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         return command.ExecuteNonQuery() == 1;
     }
 
+    private static void InsertTaskReminderHistory(SqlConnection connection, SqlTransaction transaction, Guid taskId)
+    {
+        Execute(connection, transaction, """
+            INSERT INTO [productivity].[TaskHistory]
+                ([TaskId], [OwnerId], [ProjectId], [Title], [Description], [StartAt], [EndAt], [Priority],
+                 [TagsJson], [AcceptanceCriteriaJson], [Rank], [ReminderAt], [Status], [Reason])
+            SELECT [Id], [OwnerId], [ProjectId], [Title], [Description], [StartAt], [EndAt], [Priority],
+                   [TagsJson], [AcceptanceCriteriaJson], [Rank], [ReminderAt], [Status], N'ReminderConfiguration'
+            FROM [productivity].[Task]
+            WHERE [Id] = @TaskId;
+            """, ("@TaskId", SqlDbType.UniqueIdentifier, (object)taskId));
+    }
+
     private ReminderRow UpsertReminder(SqlConnection connection, SqlTransaction transaction, ReminderRow? current,
         ReminderSourceSnapshot source, string configType, DateTimeOffset? exactAt, DateTimeOffset? dueAt)
     {
-        var state = configType == ReminderConfigurationTypes.None ? ReminderStates.None : ReminderStates.Pending;
+        var state = configType == ReminderConfigurationTypes.None
+            ? ReminderStates.None
+            : dueAt <= DateTimeOffset.UtcNow ? ReminderStates.Expired : ReminderStates.Pending;
         if (current is null)
         {
             var id = Guid.NewGuid();
@@ -367,7 +422,8 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         update.CommandText = """
             UPDATE [calendar].[Reminder]
             SET [ConfigType] = @ConfigType, [ExactAt] = @ExactAt, [TimeZoneId] = @TimeZoneId, [DueAt] = @DueAt,
-                [SourceRevision] = @SourceRevision, [State] = @State,
+                [SourceRevision] = @SourceRevision, [State] = @State, [DispatchLeaseId] = NULL, [DispatchLeaseUntil] = NULL,
+                [DispatchAttempts] = 0, [NextAttemptAt] = NULL, [LastErrorCode] = NULL,
                 [LastNotificationId] = CASE WHEN @State = 'Pending' THEN NULL ELSE [LastNotificationId] END,
                 [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion;
@@ -418,20 +474,102 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         command.ExecuteNonQuery();
     }
 
-    private static IReadOnlyList<Guid> ReadDueReminderIds(SqlConnection connection)
+    private static IReadOnlyList<ReminderDispatchClaim> ClaimDueReminders(SqlConnection connection)
     {
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var leaseId = Guid.NewGuid();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
-            SELECT TOP (@Limit) [Id]
-            FROM [calendar].[Reminder] WITH (READPAST)
-            WHERE [State] = 'Pending' AND [DueAt] <= SYSUTCDATETIME()
-            ORDER BY [DueAt], [Id];
+            ;WITH due AS
+            (
+                SELECT TOP (@Limit) [Id]
+                FROM [calendar].[Reminder] WITH (UPDLOCK, READPAST, ROWLOCK)
+                WHERE [State] = 'Pending'
+                  AND [DueAt] <= SYSUTCDATETIME()
+                  AND [DispatchAttempts] < @MaxAttempts
+                  AND ([NextAttemptAt] IS NULL OR [NextAttemptAt] <= SYSUTCDATETIME())
+                  AND ([DispatchLeaseUntil] IS NULL OR [DispatchLeaseUntil] < SYSUTCDATETIME())
+                ORDER BY [DueAt], [Id]
+            )
+            UPDATE reminderRow
+            SET [DispatchLeaseId] = @LeaseId,
+                [DispatchLeaseUntil] = DATEADD(minute, 2, SYSUTCDATETIME()),
+                [DispatchAttempts] = [DispatchAttempts] + 1,
+                [LastErrorCode] = NULL,
+                [UpdatedAt] = SYSUTCDATETIME()
+            OUTPUT inserted.[Id], inserted.[DispatchLeaseId]
+            FROM [calendar].[Reminder] reminderRow
+            INNER JOIN due ON due.[Id] = reminderRow.[Id];
             """;
         Add(command, "@Limit", SqlDbType.Int, DispatchBatchSize);
+        Add(command, "@MaxAttempts", SqlDbType.Int, MaxDispatchAttempts);
+        Add(command, "@LeaseId", SqlDbType.UniqueIdentifier, leaseId);
         using var reader = command.ExecuteReader();
-        var ids = new List<Guid>();
-        while (reader.Read()) ids.Add(reader.GetGuid(0));
-        return ids;
+        var claims = new List<ReminderDispatchClaim>();
+        while (reader.Read()) claims.Add(new ReminderDispatchClaim(reader.GetGuid(0), reader.GetGuid(1)));
+        transaction.Commit();
+        return claims;
+    }
+
+    private ReminderDispatchResult TryRecordDispatchFailure(ReminderDispatchClaim claim, string errorCode)
+    {
+        try
+        {
+            return RecordDispatchFailure(claim, errorCode);
+        }
+        catch (SqlException)
+        {
+            // The lease remains bounded and will be reclaimed after expiry if
+            // the database is unavailable while recording the disposition.
+            return new ReminderDispatchResult(0, 0, 0, 0);
+        }
+        catch (InvalidOperationException)
+        {
+            return new ReminderDispatchResult(0, 0, 0, 0);
+        }
+    }
+
+    private ReminderDispatchResult RecordDispatchFailure(ReminderDispatchClaim claim, string errorCode)
+    {
+        using var connection = _connections.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var reminder = ReadReminderById(connection, transaction, claim.Id, true);
+        if (reminder is null || reminder.State != ReminderStates.Pending || reminder.DispatchLeaseId != claim.LeaseId)
+        {
+            transaction.Rollback();
+            return new ReminderDispatchResult(0, 0, 0, 0);
+        }
+
+        var terminal = reminder.DispatchAttempts >= MaxDispatchAttempts;
+        var delaySeconds = Math.Min(15 * 60, Math.Max(30, reminder.DispatchAttempts * 30));
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            UPDATE [calendar].[Reminder]
+            SET [State] = CASE WHEN @Terminal = 1 THEN 'Canceled' ELSE 'Pending' END,
+                [NextAttemptAt] = CASE WHEN @Terminal = 1 THEN NULL ELSE DATEADD(second, @DelaySeconds, SYSUTCDATETIME()) END,
+                [DispatchLeaseId] = NULL, [DispatchLeaseUntil] = NULL,
+                [LastErrorCode] = @ErrorCode, [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [Id] = @Id AND [RowVersion] = @RowVersion AND [DispatchLeaseId] = @LeaseId;
+            """;
+        Add(command, "@Terminal", SqlDbType.Bit, terminal);
+        Add(command, "@DelaySeconds", SqlDbType.Int, delaySeconds);
+        Add(command, "@ErrorCode", SqlDbType.VarChar, errorCode, 64);
+        Add(command, "@Id", SqlDbType.UniqueIdentifier, claim.Id);
+        Add(command, "@RowVersion", SqlDbType.Binary, reminder.RowVersion);
+        Add(command, "@LeaseId", SqlDbType.UniqueIdentifier, claim.LeaseId);
+        if (command.ExecuteNonQuery() != 1)
+        {
+            transaction.Rollback();
+            return new ReminderDispatchResult(0, 0, 0, 0);
+        }
+
+        transaction.Commit();
+        return terminal
+            ? new ReminderDispatchResult(0, 0, 1, 0)
+            : new ReminderDispatchResult(0, 0, 0, 1);
     }
 
     private static bool IsDispatchAllowed(SqlConnection connection, SqlTransaction transaction, ReminderSourceSnapshot source)
@@ -465,6 +603,16 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
                      (
                          SELECT 1 FROM [platform].[Permission]
                          WHERE [ActionKey] = 'reminders.schedule.dispatch' AND [EffectiveStatus] = 'Resolved'
+                     )
+                     OR NOT EXISTS
+                     (
+                         SELECT 1
+                         FROM [identity].[User] userRow
+                         INNER JOIN [platform].[PersonalSpace] spaceRow ON spaceRow.[UserId] = userRow.[Id]
+                         WHERE userRow.[Id] = @UserId
+                           AND userRow.[State] = 'Active'
+                           AND userRow.[IsDeleted] = 0
+                           AND spaceRow.[State] = 'Active'
                      )
                      OR EXISTS
                      (
@@ -542,19 +690,23 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
     }
 
     private static void UpdateReminderState(SqlConnection connection, SqlTransaction transaction, ReminderRow reminder,
-        string state, Guid? notificationId)
+        string state, Guid? notificationId, Guid? leaseId = null)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
             UPDATE [calendar].[Reminder]
-            SET [State] = @State, [LastNotificationId] = @NotificationId, [UpdatedAt] = SYSUTCDATETIME()
-            WHERE [Id] = @Id AND [RowVersion] = @RowVersion;
+            SET [State] = @State, [LastNotificationId] = @NotificationId, [DispatchLeaseId] = NULL,
+                [DispatchLeaseUntil] = NULL, [NextAttemptAt] = NULL, [LastErrorCode] = NULL,
+                [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [Id] = @Id AND [RowVersion] = @RowVersion
+              AND (@LeaseId IS NULL OR [DispatchLeaseId] = @LeaseId);
             """;
         Add(command, "@State", SqlDbType.VarChar, state);
         Add(command, "@NotificationId", SqlDbType.UniqueIdentifier, (object?)notificationId ?? DBNull.Value);
         Add(command, "@Id", SqlDbType.UniqueIdentifier, reminder.Id);
         Add(command, "@RowVersion", SqlDbType.Binary, reminder.RowVersion);
+        Add(command, "@LeaseId", SqlDbType.UniqueIdentifier, (object?)leaseId ?? DBNull.Value);
         if (command.ExecuteNonQuery() != 1) throw new InvalidOperationException("Reminder revision changed while dispatching.");
     }
 
@@ -587,12 +739,26 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
         if (claim.IsInvalid) return Failure<T>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay) return null;
         return Failure<T>(claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress", 409,
             "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? resultStatusCode = null, string? resultJson = null) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
+
+    private IdentityOperationResult<T> ReplayReceipt<T>(SqlConnection connection, SqlTransaction transaction,
+        ReminderSourceSnapshot source, ReceiptClaim claim)
+    {
+        if (claim.ResultStatusCode == 204)
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+        if (typeof(T) != typeof(ReminderSourceView) || string.IsNullOrWhiteSpace(claim.ResultJson))
+            return Failure<T>("IdempotencyReplayUnavailable", 409, "The idempotent response is unavailable; retry with a new key.");
+
+        var current = ToView(connection, transaction, source);
+        return IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+    }
 
     private static bool TrySourceCapability(string? sourceType, out string moduleCode, out string readAction, out string writeAction)
     {
@@ -663,9 +829,21 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         return result;
     }
 
-    private static void Add(SqlCommand command, string name, SqlDbType type, object value)
+    private static void Add(SqlCommand command, string name, SqlDbType type, object value, int size = 0)
     {
-        command.Parameters.Add(name, type).Value = value;
+        var parameter = command.Parameters.Add(name, type);
+        if (size > 0) parameter.Size = size;
+        parameter.Value = value;
+    }
+
+    private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql,
+        params (string Name, SqlDbType Type, object Value)[] parameters)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = sql;
+        foreach (var parameter in parameters) Add(command, parameter.Name, parameter.Type, parameter.Value);
+        command.ExecuteNonQuery();
     }
 
     private static IdentityOperationResult<T> Failure<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
@@ -679,9 +857,14 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
     private static IdentityOperationResult<T> ReminderPrecondition<T>(string? value) => Failure<T>(string.IsNullOrWhiteSpace(value) ? "PreconditionRequired" : "RevisionConflict", string.IsNullOrWhiteSpace(value) ? 428 : 412, string.IsNullOrWhiteSpace(value) ? "If-Match is required for an existing reminder." : "The reminder ETag is invalid.");
 
     private sealed record ReminderSourceSnapshot(string SourceType, Guid SourceId, Guid OwnerId, string Title,
-        DateTimeOffset StartAt, string TimeZoneId, long Revision, byte[] RowVersion, Guid OwnerUserId, bool CanConfigure);
+        DateTimeOffset StartAt, string TimeZoneId, long Revision, byte[] RowVersion, Guid OwnerUserId,
+        bool AccountActive, bool CanConfigure);
 
     private sealed record ReminderRow(Guid Id, Guid OwnerId, string SourceType, Guid SourceId, string ConfigType,
         DateTimeOffset? ExactAt, string TimeZoneId, DateTimeOffset? DueAt, long SourceRevision, string State,
-        Guid? LastNotificationId, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, byte[] RowVersion);
+        Guid? LastNotificationId, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, byte[] RowVersion,
+        Guid? DispatchLeaseId, DateTimeOffset? DispatchLeaseUntil, int DispatchAttempts, DateTimeOffset? NextAttemptAt,
+        string? LastErrorCode);
+
+    private sealed record ReminderDispatchClaim(Guid Id, Guid LeaseId);
 }

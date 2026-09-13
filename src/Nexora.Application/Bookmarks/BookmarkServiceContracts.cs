@@ -23,6 +23,7 @@ public interface IBookmarkService
 {
     IdentityOperationResult<BookmarkPage> List(IdentityPrincipal actor, bool includeArchived = false,
         string? query = null, int? limit = null);
+    IdentityOperationResult<BookmarkRecord> Get(IdentityPrincipal actor, Guid bookmarkId);
     IdentityOperationResult<BookmarkRecord> Create(IdentityPrincipal actor, BookmarkCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<BookmarkRecord> Update(IdentityPrincipal actor, Guid bookmarkId, string? ifMatch,

@@ -16,7 +16,7 @@ namespace Nexora.Infrastructure.Files;
 /// session id, checked against an allow-list and a conservative local scanner,
 /// and become readable only after a clean FileObject is committed in SQL.
 /// </summary>
-public sealed class SqlFileService : IFileService
+public sealed class SqlFileService : IFileService, IFileCleanupService
 {
     private const long MaxBytes = 25 * 1024 * 1024;
     private static readonly IReadOnlyDictionary<string, string[]> AllowedTypes = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
@@ -128,31 +128,52 @@ public sealed class SqlFileService : IFileService
         if (string.IsNullOrWhiteSpace(uploadHandle) || uploadHandle.Length > 256 || content is null)
             return Missing<FileRecord>();
 
-        var stagePath = StagingPath(uploadSessionId);
-        TryDelete(stagePath);
+        string? stagePath = null;
+        Guid? stagingCleanupId = null;
         string? finalPath = null;
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<FileRecord>(connection, transaction, actor,
-            "files.upload.complete", idempotencyKey,
-            $"session:{uploadSessionId:N}|length:{contentLength?.ToString() ?? "unknown"}", out var receipt);
-        if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
+        ReceiptClaim receipt = default;
 
         try
         {
             var digest = HashHandle(uploadHandle);
             var session = ReadUploadSession(connection, transaction, actor.OwnerId, uploadSessionId, digest, forUpdate: true);
-            if (session is null || session.State is "Canceled" or "Failed" or "Ready")
+            // Owner, session id, and the one-way upload handle are checked
+            // before claiming a receipt or resolving/deleting any staging
+            // path. A rejected actor therefore cannot influence another
+            // attempt's storage lifecycle.
+            if (session is null)
             {
                 transaction.Rollback();
                 return Missing<FileRecord>();
             }
+
+            var receiptFailure = CheckReceipt<FileRecord>(connection, transaction, actor,
+                "files.upload.complete", idempotencyKey,
+                $"session:{uploadSessionId:N}|length:{contentLength?.ToString() ?? "unknown"}", out receipt);
+            if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
+            if (session.State is "Canceled" or "Failed" or "Ready")
+            {
+                transaction.Rollback();
+                return Missing<FileRecord>();
+            }
+            if (session.AttemptLeaseUntil is { } activeLease && activeLease > DateTimeOffset.UtcNow)
+            {
+                transaction.Rollback();
+                return Failure<FileRecord>("UploadInProgress", 409, "The upload session is already being completed.");
+            }
+            var previousStagePath = ResolveOwnedStoragePath(actor.OwnerId, session.StagingStorageKey);
+            if (!string.IsNullOrWhiteSpace(session.StagingStorageKey))
+                stagingCleanupId = QueueStorageCleanup(connection, transaction, actor.OwnerId, session.Id,
+                    session.StagingStorageKey!, "SupersededUploadAttempt");
             if (session.ExpiresAt <= DateTimeOffset.UtcNow)
             {
                 FailUpload(connection, transaction, session.Id, actor.OwnerId, "UploadExpired", 0);
                 CompleteReceipt(connection, transaction, receipt, "UploadRejected");
                 transaction.Commit();
+                TryFinalizeStorageCleanup(stagingCleanupId, previousStagePath);
                 return Failure<FileRecord>("UploadExpired", 422, "The upload session has expired.");
             }
             if (contentLength is { } suppliedLength && suppliedLength != session.ExpectedBytes)
@@ -160,20 +181,36 @@ public sealed class SqlFileService : IFileService
                 FailUpload(connection, transaction, session.Id, actor.OwnerId, "ByteLengthMismatch", 0);
                 CompleteReceipt(connection, transaction, receipt, "UploadRejected");
                 transaction.Commit();
+                TryFinalizeStorageCleanup(stagingCleanupId, previousStagePath);
                 return Failure<FileRecord>("ByteLengthMismatch", 422, "The upload length does not match the initiated session.");
             }
 
-            Execute(connection, transaction, "UPDATE [files].[UploadSession] SET [State] = 'Scanning', [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [State] IN ('Created','Uploading');",
-                ("@Id", SqlDbType.UniqueIdentifier, (object)session.Id), ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId));
+            var attemptId = Guid.NewGuid();
+            var stagingKey = $".staging/{actor.OwnerId:N}/{session.Id:N}/{attemptId:N}.upload";
+            stagePath = ResolveStoragePath(stagingKey);
+            if (stagePath is null) throw new IOException("Generated staging path is outside the private storage root.");
+            Execute(connection, transaction, """
+                UPDATE [files].[UploadSession]
+                SET [State] = 'Scanning', [AttemptId] = @AttemptId,
+                    [AttemptLeaseUntil] = DATEADD(minute, 30, SYSUTCDATETIME()), [StagingStorageKey] = @StagingKey,
+                    [UpdatedAt] = SYSUTCDATETIME()
+                WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [State] IN ('Created','Uploading','Scanning')
+                  AND [RowVersion] = @RowVersion;
+                """,
+                ("@Id", SqlDbType.UniqueIdentifier, (object)session.Id), ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId),
+                ("@AttemptId", SqlDbType.UniqueIdentifier, (object)attemptId), ("@StagingKey", SqlDbType.NVarChar, (object)stagingKey),
+                ("@RowVersion", SqlDbType.Binary, (object)DecodeETag(session.ETag)));
+            Directory.CreateDirectory(Path.GetDirectoryName(stagePath)!);
             var copied = await CopyToStagingAsync(content, stagePath, session.ExpectedBytes, cancellationToken);
             var scanError = ScanStagedFile(stagePath, session.OriginalName, session.MediaType);
             if (copied.Bytes != session.ExpectedBytes || scanError is not null)
             {
                 var code = copied.Bytes != session.ExpectedBytes ? "ByteLengthMismatch" : scanError!;
+                stagingCleanupId = QueueStorageCleanup(connection, transaction, actor.OwnerId, session.Id, stagingKey, code);
                 FailUpload(connection, transaction, session.Id, actor.OwnerId, code, Math.Min(copied.Bytes, session.ExpectedBytes));
                 CompleteReceipt(connection, transaction, receipt, "UploadRejected");
                 transaction.Commit();
-                TryDelete(stagePath);
+                TryFinalizeStorageCleanup(stagingCleanupId);
                 return Failure<FileRecord>("UploadRejected", 422, "The file failed the local type, size or content safety checks.");
             }
 
@@ -188,7 +225,8 @@ public sealed class SqlFileService : IFileService
                     ([Id], [OwnerId], [CreatedByUserId], [UpdatedByUserId], [StorageKey], [OriginalName], [MediaType], [ByteLength], [Digest], [ScanState], [Lifecycle])
                 VALUES (@Id, @OwnerId, @Actor, @Actor, @StorageKey, @OriginalName, @MediaType, @ByteLength, @Digest, 'Clean', 'Active');
                 UPDATE [files].[UploadSession]
-                SET [FileObjectId] = @Id, [ReceivedBytes] = @ByteLength, [State] = 'Ready', [UpdatedAt] = SYSUTCDATETIME(), [ErrorCode] = NULL
+                SET [FileObjectId] = @Id, [ReceivedBytes] = @ByteLength, [State] = 'Ready', [UpdatedAt] = SYSUTCDATETIME(), [ErrorCode] = NULL,
+                    [AttemptId] = NULL, [AttemptLeaseUntil] = NULL, [StagingStorageKey] = NULL
                 WHERE [Id] = @SessionId AND [OwnerId] = @OwnerId AND [State] = 'Scanning';
                 """,
                 ("@Id", SqlDbType.UniqueIdentifier, (object)fileId),
@@ -205,7 +243,7 @@ public sealed class SqlFileService : IFileService
             if (file is null)
             {
                 transaction.Rollback();
-                TryDelete(finalPath);
+                TryDeleteOwned(finalPath);
                 return PersistenceFailure<FileRecord>();
             }
             CompleteReceipt(connection, transaction, receipt, "FileCreated");
@@ -215,22 +253,22 @@ public sealed class SqlFileService : IFileService
         catch (OperationCanceledException)
         {
             try { transaction.Rollback(); } catch (InvalidOperationException) { }
-            TryDelete(stagePath);
-            TryDelete(finalPath);
+            TryDeleteOwned(stagePath);
+            TryDeleteOwned(finalPath);
             throw;
         }
         catch (SqlException)
         {
             try { transaction.Rollback(); } catch (InvalidOperationException) { }
-            TryDelete(stagePath);
-            TryDelete(finalPath);
+            TryDeleteOwned(stagePath);
+            TryDeleteOwned(finalPath);
             return PersistenceFailure<FileRecord>();
         }
         catch (IOException)
         {
             try { transaction.Rollback(); } catch (InvalidOperationException) { }
-            TryDelete(stagePath);
-            TryDelete(finalPath);
+            TryDeleteOwned(stagePath);
+            TryDeleteOwned(finalPath);
             return Failure<FileRecord>("StorageUnavailable", 503, "Private file storage is unavailable.");
         }
     }
@@ -257,12 +295,16 @@ public sealed class SqlFileService : IFileService
             transaction.Rollback();
             return Failure<object?>("UploadAlreadyCompleted", 409, "The upload session has already completed.");
         }
-        Execute(connection, transaction, "UPDATE [files].[UploadSession] SET [State] = 'Canceled', [UpdatedAt] = SYSUTCDATETIME(), [ErrorCode] = 'Canceled' WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [State] NOT IN ('Ready','Canceled');",
+        var stagingPath = ResolveOwnedStoragePath(actor.OwnerId, session.StagingStorageKey);
+        Guid? cleanupId = null;
+        if (!string.IsNullOrWhiteSpace(session.StagingStorageKey))
+            cleanupId = QueueStorageCleanup(connection, transaction, actor.OwnerId, session.Id, session.StagingStorageKey!, "UploadCanceled");
+        Execute(connection, transaction, "UPDATE [files].[UploadSession] SET [State] = 'Canceled', [UpdatedAt] = SYSUTCDATETIME(), [ErrorCode] = 'Canceled', [AttemptId] = NULL, [AttemptLeaseUntil] = NULL, [StagingStorageKey] = NULL WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [State] NOT IN ('Ready','Canceled');",
             ("@Id", SqlDbType.UniqueIdentifier, (object)uploadSessionId), ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId));
         WriteAudit(connection, transaction, actor, uploadSessionId, "files.upload.cancel", traceId);
         CompleteReceipt(connection, transaction, receipt, "NoContent");
         transaction.Commit();
-        TryDelete(StagingPath(uploadSessionId));
+        TryFinalizeStorageCleanup(cleanupId, stagingPath);
         return IdentityOperationResult<object?>.NoContent();
     }
 
@@ -475,6 +517,7 @@ public sealed class SqlFileService : IFileService
             transaction.Rollback();
             return Missing<object?>();
         }
+        var cleanupId = QueueStorageCleanup(connection, transaction, actor.OwnerId, fileId, file.Value.StorageKey, "FilePurged");
         Execute(connection, transaction, """
             UPDATE [platform].[TrashItem] SET [PurgedAt] = COALESCE([PurgedAt], SYSUTCDATETIME())
             WHERE [OwnerId] = @OwnerId AND [ResourceType] = 'File' AND [ResourceId] = @FileId AND [RestoredAt] IS NULL AND [PurgedAt] IS NULL;
@@ -487,14 +530,141 @@ public sealed class SqlFileService : IFileService
         CompleteReceipt(connection, transaction, receipt, "NoContent");
         transaction.Commit();
         var path = ResolveStoragePath(file.Value.StorageKey);
+        return TryFinalizeStorageCleanup(cleanupId, path)
+            ? IdentityOperationResult<object?>.NoContent()
+            : Failure<object?>("StorageCleanupPending", 503, "File metadata was purged but private storage cleanup is pending.");
+    }
+
+    public Task<int> ProcessPendingAsync(CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var connection = _connections.Create();
+        connection.Open();
+        var claims = ClaimStorageCleanup(connection);
+        var processed = 0;
+        foreach (var claim in claims)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var path = ResolveOwnedStoragePath(claim.OwnerId, claim.StorageKey);
+            if (TryDeleteOwned(path))
+            {
+                MarkStorageCleanupCompleted(claim);
+                processed++;
+            }
+            else
+            {
+                RecordStorageCleanupFailure(claim, path is null ? "StoragePathInvalid" : "StorageDeleteFailed");
+            }
+        }
+        return Task.FromResult(processed);
+    }
+
+    private static IReadOnlyList<StorageCleanupClaim> ClaimStorageCleanup(SqlConnection connection)
+    {
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var leaseId = Guid.NewGuid();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            ;WITH due AS
+            (
+                SELECT TOP (25) [Id]
+                FROM [files].[StorageCleanup] WITH (UPDLOCK, READPAST, ROWLOCK)
+                WHERE [State] = 'Pending' AND [Attempts] < 8
+                  AND ([NextAttemptAt] IS NULL OR [NextAttemptAt] <= SYSUTCDATETIME())
+                  AND ([LeaseUntil] IS NULL OR [LeaseUntil] < SYSUTCDATETIME())
+                ORDER BY [NextAttemptAt], [UpdatedAt], [Id]
+            )
+            UPDATE cleanupRow
+            SET [LeaseId] = @LeaseId, [LeaseUntil] = DATEADD(minute, 2, SYSUTCDATETIME()),
+                [Attempts] = [Attempts] + 1, [UpdatedAt] = SYSUTCDATETIME()
+            OUTPUT inserted.[Id], inserted.[OwnerId], inserted.[StorageKey], inserted.[LeaseId]
+            FROM [files].[StorageCleanup] cleanupRow
+            INNER JOIN due ON due.[Id] = cleanupRow.[Id];
+            """;
+        Add(command, "@LeaseId", SqlDbType.UniqueIdentifier, leaseId);
+        using var reader = command.ExecuteReader();
+        var claims = new List<StorageCleanupClaim>();
+        while (reader.Read()) claims.Add(new StorageCleanupClaim(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetGuid(3)));
+        transaction.Commit();
+        return claims;
+    }
+
+    private void MarkStorageCleanupCompleted(StorageCleanupClaim claim)
+    {
+        using var connection = _connections.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        Execute(connection, transaction, """
+            UPDATE [files].[StorageCleanup]
+            SET [State] = 'Completed', [LeaseId] = NULL, [LeaseUntil] = NULL, [NextAttemptAt] = NULL,
+                [LastErrorCode] = NULL, [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [Id] = @Id AND [LeaseId] = @LeaseId AND [State] = 'Pending';
+            """,
+            ("@Id", SqlDbType.UniqueIdentifier, (object)claim.Id),
+            ("@LeaseId", SqlDbType.UniqueIdentifier, (object)claim.LeaseId));
+        transaction.Commit();
+    }
+
+    private void RecordStorageCleanupFailure(StorageCleanupClaim claim, string errorCode)
+    {
+        using var connection = _connections.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        Execute(connection, transaction, """
+            UPDATE [files].[StorageCleanup]
+            SET [State] = CASE WHEN [Attempts] >= 8 THEN 'Failed' ELSE 'Pending' END,
+                [NextAttemptAt] = CASE WHEN [Attempts] >= 8 THEN NULL ELSE DATEADD(second, CASE WHEN [Attempts] * 30 > 900 THEN 900 ELSE [Attempts] * 30 END, SYSUTCDATETIME()) END,
+                [LeaseId] = NULL, [LeaseUntil] = NULL, [LastErrorCode] = @ErrorCode, [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [Id] = @Id AND [LeaseId] = @LeaseId AND [State] = 'Pending';
+            """,
+            ("@ErrorCode", SqlDbType.VarChar, (object)errorCode),
+            ("@Id", SqlDbType.UniqueIdentifier, (object)claim.Id),
+            ("@LeaseId", SqlDbType.UniqueIdentifier, (object)claim.LeaseId));
+        transaction.Commit();
+    }
+
+    private Guid QueueStorageCleanup(SqlConnection connection, SqlTransaction transaction, Guid ownerId,
+        Guid? fileObjectId, string storageKey, string errorCode)
+    {
+        using var existing = connection.CreateCommand();
+        existing.Transaction = transaction;
+        existing.CommandText = "SELECT [Id] FROM [files].[StorageCleanup] WITH (UPDLOCK, HOLDLOCK) WHERE [OwnerId] = @OwnerId AND [StorageKey] = @StorageKey;";
+        Add(existing, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(existing, "@StorageKey", SqlDbType.NVarChar, storageKey);
+        var current = existing.ExecuteScalar();
+        if (current is Guid currentId) return currentId;
+
+        var id = Guid.NewGuid();
+        Execute(connection, transaction, """
+            INSERT INTO [files].[StorageCleanup] ([Id], [OwnerId], [FileObjectId], [StorageKey], [State], [LastErrorCode])
+            VALUES (@Id, @OwnerId, @FileObjectId, @StorageKey, 'Pending', @ErrorCode);
+            """,
+            ("@Id", SqlDbType.UniqueIdentifier, (object)id),
+            ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId),
+            ("@FileObjectId", SqlDbType.UniqueIdentifier, (object?)fileObjectId ?? DBNull.Value),
+            ("@StorageKey", SqlDbType.NVarChar, (object)storageKey),
+            ("@ErrorCode", SqlDbType.VarChar, (object)errorCode));
+        return id;
+    }
+
+    private bool TryFinalizeStorageCleanup(Guid? cleanupId, string? ownedPath = null)
+    {
+        if (cleanupId is null) return true;
+        if (!TryDeleteOwned(ownedPath)) return false;
         try
         {
-            if (path is not null && File.Exists(path)) File.Delete(path);
-            return IdentityOperationResult<object?>.NoContent();
+            using var connection = _connections.Create();
+            connection.Open();
+            using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+            Execute(connection, transaction, "UPDATE [files].[StorageCleanup] SET [State] = 'Completed', [LeaseId] = NULL, [LeaseUntil] = NULL, [NextAttemptAt] = NULL, [LastErrorCode] = NULL, [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [State] <> 'Completed';",
+                ("@Id", SqlDbType.UniqueIdentifier, (object)cleanupId.Value));
+            transaction.Commit();
+            return true;
         }
-        catch (IOException)
+        catch (SqlException)
         {
-            return Failure<object?>("StorageCleanupPending", 503, "File metadata was purged but private storage cleanup is pending.");
+            return false;
         }
     }
 
@@ -669,12 +839,12 @@ public sealed class SqlFileService : IFileService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [OriginalName], [MediaType], [ExpectedBytes], [ReceivedBytes], [State], [ExpiresAt], [RowVersion] FROM [files].[UploadSession] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (NOLOCK)")} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [UploadHandleHash] = @HandleHash;";
+        command.CommandText = $"SELECT [Id], [OriginalName], [MediaType], [ExpectedBytes], [ReceivedBytes], [State], [ExpiresAt], [RowVersion], [AttemptId], [AttemptLeaseUntil], [StagingStorageKey] FROM [files].[UploadSession] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (NOLOCK)")} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [UploadHandleHash] = @HandleHash;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@HandleHash", SqlDbType.Binary, handleHash, 32);
         using var reader = command.ExecuteReader();
-        return !reader.Read() ? null : new UploadSessionData(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetString(5), ToOffset(reader.GetDateTime(6)), EncodeETag(reader.GetFieldValue<byte[]>(7)));
+        return !reader.Read() ? null : new UploadSessionData(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetInt64(3), reader.GetInt64(4), reader.GetString(5), ToOffset(reader.GetDateTime(6)), EncodeETag(reader.GetFieldValue<byte[]>(7)), reader.IsDBNull(8) ? null : reader.GetGuid(8), reader.IsDBNull(9) ? null : ToOffset(reader.GetDateTime(9)), reader.IsDBNull(10) ? null : reader.GetString(10));
     }
 
     private static FileUploadSessionRecord ToResponse(UploadSessionData session, string rawHandle) => new(session.Id, session.ExpectedBytes, session.ReceivedBytes, session.State, session.ExpiresAt, rawHandle, session.ETag);
@@ -703,12 +873,23 @@ public sealed class SqlFileService : IFileService
     }
 
     private void FailUpload(SqlConnection connection, SqlTransaction transaction, Guid sessionId, Guid ownerId, string errorCode, long receivedBytes) =>
-        Execute(connection, transaction, "UPDATE [files].[UploadSession] SET [State] = 'Failed', [ReceivedBytes] = @Received, [ErrorCode] = @ErrorCode, [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [OwnerId] = @OwnerId;",
+        Execute(connection, transaction, "UPDATE [files].[UploadSession] SET [State] = 'Failed', [ReceivedBytes] = @Received, [ErrorCode] = @ErrorCode, [AttemptId] = NULL, [AttemptLeaseUntil] = NULL, [StagingStorageKey] = NULL, [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [OwnerId] = @OwnerId;",
             ("@Received", SqlDbType.BigInt, (object)receivedBytes), ("@ErrorCode", SqlDbType.VarChar, (object)errorCode),
             ("@Id", SqlDbType.UniqueIdentifier, (object)sessionId), ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId));
 
-    private string StagingPath(Guid sessionId) => Path.Combine(_storageRoot, ".staging", sessionId.ToString("N") + ".upload");
-    private string? ResolveStoragePath(string storageKey)
+    private string? ResolveOwnedStoragePath(Guid ownerId, string? storageKey)
+    {
+        if (string.IsNullOrWhiteSpace(storageKey)) return null;
+        var normalized = storageKey.Replace('\\', '/');
+        var prefix = $"{ownerId:N}/";
+        var stagingPrefix = $".staging/{ownerId:N}/";
+        return normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ||
+               normalized.StartsWith(stagingPrefix, StringComparison.OrdinalIgnoreCase)
+            ? ResolveStoragePath(normalized)
+            : null;
+    }
+
+    private string? ResolveStoragePath(string? storageKey)
     {
         if (string.IsNullOrWhiteSpace(storageKey) || storageKey.Contains('\\') || storageKey.Contains("..", StringComparison.Ordinal)) return null;
         var full = Path.GetFullPath(Path.Combine(_storageRoot, storageKey.Replace('/', Path.DirectorySeparatorChar)));
@@ -716,9 +897,20 @@ public sealed class SqlFileService : IFileService
         return full.StartsWith(root, StringComparison.Ordinal) ? full : null;
     }
 
+    private static bool TryDeleteOwned(string? path)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return !string.IsNullOrWhiteSpace(path);
+            File.Delete(path);
+            return true;
+        }
+        catch (IOException) { return false; }
+        catch (UnauthorizedAccessException) { return false; }
+    }
+
     private static string CreateHandle() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     private static byte[] HashHandle(string handle) => SHA256.HashData(Encoding.UTF8.GetBytes(handle));
-    private static void TryDelete(string? path) { try { if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) File.Delete(path); } catch (IOException) { } catch (UnauthorizedAccessException) { } }
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string action, string? traceId) =>
         Execute(connection, transaction, "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @OwnerUser, @Action, N'files.FileObject', @Target, 'Succeeded', @TraceId);",
@@ -777,5 +969,6 @@ public sealed class SqlFileService : IFileService
     private static IdentityOperationResult<T> PersistenceFailure<T>() => Failure<T>("PersistenceUnavailable", 503, "File persistence is unavailable.");
     private static IdentityOperationResult<T> Failure<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
 
-    private sealed record UploadSessionData(Guid Id, string OriginalName, string MediaType, long ExpectedBytes, long ReceivedBytes, string State, DateTimeOffset ExpiresAt, string ETag);
+    private sealed record UploadSessionData(Guid Id, string OriginalName, string MediaType, long ExpectedBytes, long ReceivedBytes, string State, DateTimeOffset ExpiresAt, string ETag, Guid? AttemptId, DateTimeOffset? AttemptLeaseUntil, string? StagingStorageKey);
+    private sealed record StorageCleanupClaim(Guid Id, Guid OwnerId, string StorageKey, Guid LeaseId);
 }

@@ -22,6 +22,7 @@ public interface ISnippetService
 {
     IdentityOperationResult<SnippetPage> List(IdentityPrincipal actor, bool includeArchived = false,
         string? query = null, int? limit = null);
+    IdentityOperationResult<SnippetRecord> Get(IdentityPrincipal actor, Guid snippetId);
     IdentityOperationResult<SnippetRecord> Create(IdentityPrincipal actor, SnippetCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<SnippetRecord> Save(IdentityPrincipal actor, Guid snippetId, string? ifMatch,

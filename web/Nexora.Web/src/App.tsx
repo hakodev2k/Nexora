@@ -63,6 +63,11 @@ import {
   removeFavorite,
   reorderFavorite,
   getDocument,
+  getProject,
+  getTask,
+  getCalendarEvent,
+  getBookmark,
+  getSnippet,
   getGoal,
   getAdminUserAccess,
   listCalendarEvents,
@@ -157,13 +162,35 @@ import {
   transitionHabit
 } from './api';
 
-type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module';
-type LocationState = { screen: Screen; moduleCode?: string; token?: string };
+type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
+type ThemeMode = 'System' | 'Light' | 'Dark';
+type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
+type DirtyLeaveContinuation = () => void;
+type DirtyLeaveGuard = (continueAction: DirtyLeaveContinuation) => boolean;
 
 const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
 const DEFAULT_TIME_ZONE = 'UTC';
+const dirtyLeaveGuard: { current: DirtyLeaveGuard | null } = { current: null };
+const RESOURCE_TYPES = new Set<ResourceType>(['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal']);
+
+function safeReturnPath(value: string | null | undefined): string | undefined {
+  if (!value || value.length > 320) return undefined;
+  const candidate = value.trim();
+  if (!candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\')) return undefined;
+  try {
+    const parsed = new URL(candidate, window.location.origin);
+    if (parsed.origin !== window.location.origin || parsed.username || parsed.password || parsed.hash || parsed.search) return undefined;
+    const route = routeFromPath(parsed.pathname);
+    return route.screen === 'resource' && route.resourceType && route.resourceId
+      ? pathForLocation(route)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 function decodeRouteSegment(value: string): string {
   try {
@@ -173,7 +200,7 @@ function decodeRouteSegment(value: string): string {
   }
 }
 
-function routeFromPath(pathname: string): LocationState {
+function routeFromPath(pathname: string, search = ''): LocationState {
   const path = pathname.replace(/\/+$/, '') || '/';
   switch (path) {
     case '/register':
@@ -223,7 +250,7 @@ function routeFromPath(pathname: string): LocationState {
     case '/files':
       return { screen: 'files' };
     case '/login':
-      return { screen: 'login' };
+      return { screen: 'login', returnTo: safeReturnPath(new URLSearchParams(search).get('returnTo')) };
     case '/':
       return { screen: 'home' };
     default:
@@ -232,6 +259,15 @@ function routeFromPath(pathname: string): LocationState {
       }
       if (path.startsWith('/modules/')) {
         return { screen: 'module', moduleCode: decodeRouteSegment(path.slice('/modules/'.length)).toUpperCase() };
+      }
+      if (path.startsWith('/resources/')) {
+        const segments = path.slice('/resources/'.length).split('/');
+        const resourceType = decodeRouteSegment(segments[0] ?? '') as ResourceType;
+        const resourceId = decodeRouteSegment(segments[1] ?? '');
+        const canonicalResourceType = [...RESOURCE_TYPES].find((value) => value.toLowerCase() === resourceType.toLowerCase());
+        if (segments.length === 2 && canonicalResourceType && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(resourceId)) {
+          return { screen: 'resource', resourceType: canonicalResourceType, resourceId };
+        }
       }
       return { screen: 'home' };
   }
@@ -288,9 +324,11 @@ function pathForLocation(location: LocationState): string {
     case 'shared':
       return `/share/${encodeURIComponent(location.token ?? '')}`;
     case 'login':
-      return '/login';
+      return location.returnTo ? `/login?returnTo=${encodeURIComponent(location.returnTo)}` : '/login';
     case 'module':
       return `/modules/${encodeURIComponent(location.moduleCode ?? '')}`;
+    case 'resource':
+      return `/resources/${encodeURIComponent(location.resourceType ?? '')}/${encodeURIComponent(location.resourceId ?? '')}`;
     default:
       return '/';
   }
@@ -338,9 +376,11 @@ function passwordError(password: string): string | undefined {
   return undefined;
 }
 
-function dateTime(value: string): string {
+function dateTime(value: string, timeZoneId?: string, locale?: string): string {
   try {
-    return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+    return new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : locale === 'vi' ? 'vi-VN' : undefined, {
+      dateStyle: 'medium', timeStyle: 'short', timeZone: validTimeZone(timeZoneId ?? currentTimeZone())
+    }).format(new Date(value));
   } catch {
     return 'Không xác định';
   }
@@ -844,6 +884,7 @@ function Shell({
   navigate,
   onLogout,
   onProfileUpdated,
+  onThemeChanged,
   onAuthLost,
   notice,
   onDismissNotice
@@ -853,6 +894,7 @@ function Shell({
   navigate: (screen: Screen, moduleCode?: string) => void;
   onLogout: () => Promise<void>;
   onProfileUpdated: (profile: ProfileResponse) => void;
+  onThemeChanged: (mode: ThemeMode) => void;
   onAuthLost: () => Promise<void>;
   notice?: { kind: NoticeKind; text: string };
   onDismissNotice?: () => void;
@@ -939,9 +981,10 @@ function Shell({
         </header>
         <main className="shell-main">
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
-          {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
-          {location.screen === 'favorites' && (canSearch ? <FavoritesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
-          {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} />}
+          {location.screen === 'resource' && <ResourceScreen resourceType={location.resourceType} resourceId={location.resourceId} navigate={navigate} onAuthLost={onAuthLost} />}
+          {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'favorites' && (canSearch ? <FavoritesScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />}
           {location.screen === 'security' && <SecurityScreen onAuthLost={onAuthLost} />}
           {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
           {location.screen === 'trash' && <TrashScreen onAuthLost={onAuthLost} />}
@@ -1240,6 +1283,8 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const markAllRequestRef = useRef<{ signature: string; key: string } | null>(null);
+  const deleteRequestRef = useRef<{ signature: string; key: string } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -1278,10 +1323,15 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
   }
 
   async function markAll() {
+    const signature = `mark-all:${unreadOnly}`;
+    if (markAllRequestRef.current?.signature !== signature) {
+      markAllRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
     setBusy('all');
     setError(null);
     try {
-      await markAllNotificationsRead();
+      await markAllNotificationsRead(markAllRequestRef.current.key);
+      markAllRequestRef.current = null;
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1294,10 +1344,15 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
 
   async function removeSelected() {
     if (selected.size === 0) return;
+    const signature = Array.from(selected).sort().join(',');
+    if (deleteRequestRef.current?.signature !== signature) {
+      deleteRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
     setBusy('delete');
     setError(null);
     try {
-      await deleteNotifications(Array.from(selected));
+      await deleteNotifications(Array.from(selected), deleteRequestRef.current.key);
+      deleteRequestRef.current = null;
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1332,6 +1387,7 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKeys = useRef<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -1350,10 +1406,13 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   useEffect(() => { void load(); }, []);
 
   async function restore(batchId: string) {
+    const requestKey = requestKeys.current[`restore:${batchId}`] ?? createIdempotencyKey();
+    requestKeys.current[`restore:${batchId}`] = requestKey;
     setBusy(batchId);
     setError(null);
     try {
-      await restoreTrashBatch(batchId);
+      await restoreTrashBatch(batchId, requestKey);
+      delete requestKeys.current[`restore:${batchId}`];
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1366,10 +1425,13 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function purge(batchId: string) {
     if (confirmation[batchId] !== 'PURGE') return;
+    const requestKey = requestKeys.current[`purge:${batchId}`] ?? createIdempotencyKey();
+    requestKeys.current[`purge:${batchId}`] = requestKey;
     setBusy(batchId);
     setError(null);
     try {
-      await purgeTrashBatch(batchId, confirmation[batchId]);
+      await purgeTrashBatch(batchId, confirmation[batchId], requestKey);
+      delete requestKeys.current[`purge:${batchId}`];
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1407,6 +1469,70 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState<DocumentRecord | null>(null);
+  const [leavePrompt, setLeavePrompt] = useState<{ continueAction: DirtyLeaveContinuation } | null>(null);
+  const leaveDialogRef = useRef<HTMLDivElement | null>(null);
+  const leaveReturnFocusRef = useRef<HTMLElement | null>(null);
+  const saveRequestRef = useRef<{ signature: string; key: string } | null>(null);
+  const transitionRequestRef = useRef<{ signature: string; key: string } | null>(null);
+
+  const isDirty = selected
+    ? title !== selected.title || body !== selected.body
+    : Boolean(title || body || documentType || editorMode);
+
+  useEffect(() => {
+    dirtyLeaveGuard.current = (continueAction) => {
+      if (!isDirty) return false;
+      setLeavePrompt({ continueAction });
+      return true;
+    };
+    return () => {
+      dirtyLeaveGuard.current = null;
+    };
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!leavePrompt) return;
+    leaveReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = leaveDialogRef.current;
+    const focusable = dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+      : [];
+    focusable[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setLeavePrompt(null);
+        return;
+      }
+      if (event.key !== 'Tab' || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    dialog?.addEventListener('keydown', onKeyDown);
+    return () => {
+      dialog?.removeEventListener('keydown', onKeyDown);
+      if (leaveReturnFocusRef.current && document.contains(leaveReturnFocusRef.current)) leaveReturnFocusRef.current.focus();
+      leaveReturnFocusRef.current = null;
+    };
+  }, [Boolean(leavePrompt)]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   async function load() {
     setLoading(true);
@@ -1424,18 +1550,32 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   useEffect(() => { void load(); }, []);
 
-  function startNew() {
+  function clearEditor() {
     setSelected(null);
     setTitle('');
     setBody('');
     setDocumentType('');
     setEditorMode('');
+    setConflict(null);
     setError(null);
   }
 
-  async function openDocument(item: DocumentSummary) {
+  function requestDirtyAction(action: () => void | Promise<void>) {
+    if (!isDirty) {
+      void action();
+      return;
+    }
+    setLeavePrompt({ continueAction: () => { void action(); } });
+  }
+
+  function startNew() {
+    requestDirtyAction(clearEditor);
+  }
+
+  async function openDocumentNow(item: DocumentSummary) {
     setBusy(`open:${item.id}`);
     setError(null);
+    setConflict(null);
     try {
       const document = await getDocument(item.id);
       setSelected(document);
@@ -1452,47 +1592,99 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
   }
 
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function openDocument(item: DocumentSummary) {
+    requestDirtyAction(() => openDocumentNow(item));
+  }
+
+  async function saveDraft(): Promise<boolean> {
     if (!title.trim() || !documentType || !editorMode) {
       setError(new NexoraApiError('Tiêu đề, Document type và Editor mode là bắt buộc khi tạo page.', 422, 'ValidationFailed'));
-      return;
+      return false;
+    }
+    const signature = `save:${selected?.id ?? 'new'}:${selected?.etag ?? ''}:${title}:${body}`;
+    if (saveRequestRef.current?.signature !== signature) {
+      saveRequestRef.current = { signature, key: createIdempotencyKey() };
     }
     setBusy('save');
     setError(null);
     try {
       const saved = selected
-        ? await saveDocument(selected.id, selected.etag, title.trim(), body)
-        : await createDocument(title.trim(), documentType, editorMode, body);
+        ? await saveDocument(selected.id, selected.etag, title.trim(), body, null, saveRequestRef.current.key)
+        : await createDocument(title.trim(), documentType, editorMode, body, saveRequestRef.current.key);
+      saveRequestRef.current = null;
       setSelected(saved);
       setTitle(saved.title);
       setBody(saved.body);
+      setConflict(null);
       setItems((current) => selected
         ? current.map((candidate) => candidate.id === saved.id ? saved : candidate)
         : [saved, ...current]);
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
-      if (apiError.status === 412 && selected) await openDocument(selected);
+      if (apiError.status === 412 && selected) {
+        saveRequestRef.current = null;
+        try {
+          setConflict(await getDocument(selected.id));
+        } catch (reloadError) {
+          setError(asApiError(reloadError));
+        }
+      }
+      return false;
     } finally {
       setBusy(null);
     }
   }
 
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await saveDraft();
+  }
+
+  async function saveAndContinue() {
+    if (!leavePrompt) return;
+    const continueAction = leavePrompt.continueAction;
+    if (!await saveDraft()) return;
+    setLeavePrompt(null);
+    continueAction();
+  }
+
+  function discardAndContinue() {
+    if (!leavePrompt) return;
+    const continueAction = leavePrompt.continueAction;
+    setLeavePrompt(null);
+    continueAction();
+  }
+
   async function transition(status: string) {
     if (!selected) return;
+    const signature = `transition:${selected.id}:${selected.etag}:${status}`;
+    if (transitionRequestRef.current?.signature !== signature) {
+      transitionRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
     setBusy('transition');
     setError(null);
     try {
-      const saved = await transitionDocument(selected.id, selected.etag, status);
+      const saved = await transitionDocument(selected.id, selected.etag, status, transitionRequestRef.current.key);
+      transitionRequestRef.current = null;
       setSelected(saved);
+      setTitle(saved.title);
+      setBody(saved.body);
       setItems((current) => current.map((candidate) => candidate.id === saved.id ? saved : candidate));
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
-      if (apiError.status === 412) await openDocument(selected);
+      if (apiError.status === 412) {
+        transitionRequestRef.current = null;
+        try {
+          setConflict(await getDocument(selected.id));
+        } catch (reloadError) {
+          setError(asApiError(reloadError));
+        }
+      }
     } finally {
       setBusy(null);
     }
@@ -1502,6 +1694,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     <section className="content-section" aria-labelledby="documents-title">
       <div className="content-heading"><div><p className="eyebrow">FX20 / KNOWLEDGE</p><h1 id="documents-title">Documents</h1><p className="lead">Page thuộc PersonalSpace hiện tại; Save tạo version SQL mới và body chỉ xuất hiện ở detail của owner.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {leavePrompt && <div className="dialog-backdrop" role="presentation"><div ref={leaveDialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="unsaved-changes-title"><h2 id="unsaved-changes-title">Unsaved changes</h2><p>Document hiện có thay đổi chưa lưu. Bạn muốn lưu thay đổi, bỏ draft hay tiếp tục chỉnh sửa?</p><div className="form-actions"><button className="primary-button" type="button" onClick={() => void saveAndContinue()} disabled={busy !== null}>Save changes</button><button className="danger-button" type="button" onClick={discardAndContinue} disabled={busy !== null}>Discard changes</button><button className="link-button" type="button" onClick={() => setLeavePrompt(null)} disabled={busy !== null}>Keep editing</button></div></div></div>}
+      {conflict && <div className="conflict-panel" role="alert" aria-labelledby="document-conflict-title"><div><h2 id="document-conflict-title">Document đã thay đổi trên server</h2><p>Draft hiện tại vẫn giữ nguyên trong memory. Revision server là v{conflict.versionNumber}; chọn cách xử lý trước khi lưu tiếp.</p><details><summary>So sánh bản server</summary><p><strong>Tiêu đề:</strong> {conflict.title}</p><p><strong>Trạng thái:</strong> {conflict.status}</p><pre className="conflict-preview">{conflict.body}</pre></details></div><div className="form-actions"><button className="secondary-button" type="button" onClick={() => { setSelected(conflict); setTitle(conflict.title); setBody(conflict.body); setDocumentType(conflict.documentType); setEditorMode(conflict.editorMode); setConflict(null); setError(null); }}>Tải bản server</button><button className="primary-button" type="button" onClick={() => { setSelected(conflict); setConflict(null); setError(null); }}>Giữ draft và áp dụng lại</button><button className="link-button" type="button" onClick={() => setConflict(null)}>Hủy xử lý</button></div></div>}
       <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew}>Tạo mới</button>}</div>
@@ -1651,7 +1845,7 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
   );
 }
 
-function SearchScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void }) {
   const [query, setQuery] = useState('');
   const [resourceType, setResourceType] = useState('');
   const [from, setFrom] = useState('');
@@ -1699,7 +1893,7 @@ function SearchScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         {page.providers.some((provider) => provider.state === 'Degraded' || provider.state === 'Unavailable') && <Notice kind="info">Một số nguồn không khả dụng; kết quả hiện tại là partial và không đại diện cho toàn bộ dữ liệu.</Notice>}
         <div className="section-heading"><h2>Kết quả cho “{page.query}”</h2><span className="muted">{page.items.length} kết quả hiển thị</span></div>
         <div className="module-grid">
-          {page.items.length === 0 ? <div className="empty-state"><h3>Không có kết quả</h3><p>Thử từ khóa khác hoặc xóa bộ lọc.</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {new Date(item.updatedAt).toLocaleString()}</p><button className="secondary-button" type="button" onClick={() => window.location.assign(item.route)}>Mở nguồn</button></article>)}
+          {page.items.length === 0 ? <div className="empty-state"><h3>Không có kết quả</h3><p>Thử từ khóa khác hoặc xóa bộ lọc.</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {dateTime(item.updatedAt)}</p><button className="secondary-button" type="button" onClick={() => navigate('resource', item.resourceType, false, item.id)}>Mở nguồn</button></article>)}
         </div>
         <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
       </>}
@@ -1718,9 +1912,107 @@ function ModuleUnavailableScreen({ moduleCode }: { moduleCode: string }) {
   );
 }
 
+type ResourceView = {
+  resourceType: ResourceType;
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  updatedAt: string;
+  body?: string;
+  startAt?: string;
+  endAt?: string;
+  timeZoneId?: string;
+  isAllDay?: boolean;
+  language?: string;
+  versionNumber?: number;
+  parentId?: string;
+};
+
+function ResourceScreen({ resourceType, resourceId, navigate, onAuthLost }: {
+  resourceType?: ResourceType;
+  resourceId?: string;
+  navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  const [resource, setResource] = useState<ResourceView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!resourceType || !resourceId) {
+        setError(new NexoraApiError('Resource unavailable.', 404, 'ResourceUnavailable'));
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        let next: ResourceView;
+        switch (resourceType) {
+          case 'Project': {
+            const item = await getProject(resourceId);
+            next = { resourceType, id: item.id, title: item.name, description: item.description, status: item.status, updatedAt: item.updatedAt };
+            break;
+          }
+          case 'Task': {
+            const item = await getTask(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, startAt: item.startAt, endAt: item.endAt, parentId: item.projectId };
+            break;
+          }
+          case 'Event': {
+            const item = await getCalendarEvent(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, startAt: item.startAt, endAt: item.endAt, timeZoneId: item.timeZoneId, isAllDay: item.isAllDay, parentId: item.taskId ?? undefined };
+            break;
+          }
+          case 'Document': {
+            const item = await getDocument(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: null, status: item.status, updatedAt: item.updatedAt, body: item.body, versionNumber: item.versionNumber };
+            break;
+          }
+          case 'Bookmark': {
+            const item = await getBookmark(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt };
+            break;
+          }
+          case 'Snippet': {
+            const item = await getSnippet(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, body: item.body, language: item.language, versionNumber: item.versionNumber };
+            break;
+          }
+          case 'Goal': {
+            const item = await getGoal(resourceId);
+            next = { resourceType, id: item.goal.id, title: item.goal.title, description: item.goal.description, status: item.goal.status, updatedAt: item.goal.updatedAt };
+            break;
+          }
+        }
+        if (!cancelled) setResource(next);
+      } catch (requestError) {
+        if (cancelled) return;
+        const apiError = asApiError(requestError);
+        setResource(null);
+        setError(apiError);
+        if (apiError.status === 401) await onAuthLost();
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [resourceType, resourceId, onAuthLost]);
+
+  if (loading) return <section className="content-section"><div className="loading-state" role="status">Đang mở {resourceType ?? 'resource'}…</div></section>;
+  if (error || !resource) return <section className="content-section"><div className="empty-state"><h1>Không thể mở resource</h1><p>{error?.status === 404 || error?.status === 403 ? 'Resource không tồn tại, đã bị ẩn hoặc quyền hiện tại không còn hợp lệ.' : error?.message ?? 'Server không trả projection được phép.'}</p></div></section>;
+
+  const moduleCode = ({ Project: 'FX11', Task: 'FX12', Event: 'FX13', Document: 'FX20', Bookmark: 'FX21', Snippet: 'FX22', Goal: 'FX16' } as const)[resource.resourceType];
+  return <section className="content-section" aria-labelledby="resource-title"><div className="content-heading"><div><p className="eyebrow">RESOURCE / {resource.resourceType.toUpperCase()}</p><h1 id="resource-title">{resource.title}</h1><p className="lead">Detail resolver đã kiểm tra owner, module gate và lifecycle ở source.</p></div><button className="secondary-button" type="button" onClick={() => navigate('module', moduleCode)}>Mở module nguồn</button></div><article className="resource-card resource-detail-card"><div><p>{resource.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.status} · cập nhật {dateTime(resource.updatedAt, resource.timeZoneId)}</p>{resource.startAt && resource.endAt && <p className="muted">{dateTime(resource.startAt, resource.timeZoneId)} — {dateTime(resource.endAt, resource.timeZoneId)}{resource.timeZoneId ? ` · ${resource.timeZoneId}` : ''}{resource.isAllDay ? ' · All-day' : ''}</p>}{resource.parentId && <p className="muted">Parent source: {resource.parentId}</p>}{resource.language && <p className="muted">Language: {resource.language}{resource.versionNumber ? ` · version ${resource.versionNumber}` : ''}</p>}{resource.body !== undefined && <pre className="resource-body-preview">{resource.body}</pre>}</div></article></section>;
+}
+
 const FAVORITE_RESOURCE_TYPES = ['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal'];
 
-function FavoritesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function FavoritesScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void }) {
   const [page, setPage] = useState<FavoritePage | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -1729,6 +2021,8 @@ function FavoritesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [resourceId, setResourceId] = useState('');
   const [rankDraft, setRankDraft] = useState<Record<string, string>>({});
   const [cursor, setCursor] = useState('');
+  const addRequestRef = useRef<{ signature: string; key: string } | null>(null);
+  const requestKeys = useRef<Record<string, string>>({});
 
   async function load(nextCursor = '') {
     setLoading(true);
@@ -1762,10 +2056,15 @@ function FavoritesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setError(new NexoraApiError('Resource id là bắt buộc.', 422, 'ValidationFailed'));
       return;
     }
+    const signature = `add:${resourceType}:${trimmedId}`;
+    if (addRequestRef.current?.signature !== signature) {
+      addRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
     setBusy('add');
     setError(null);
     try {
-      await addFavorite(resourceType, trimmedId);
+      await addFavorite(resourceType, trimmedId, addRequestRef.current.key);
+      addRequestRef.current = null;
       setResourceId('');
       await load();
     } catch (requestError) {
@@ -1778,16 +2077,22 @@ function FavoritesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function remove(item: FavoritePage['items'][number]) {
+    const requestKey = requestKeys.current[`remove:${item.id}`] ?? createIdempotencyKey();
+    requestKeys.current[`remove:${item.id}`] = requestKey;
     setBusy(`remove:${item.id}`);
     setError(null);
     try {
-      await removeFavorite(item.id, item.etag);
+      await removeFavorite(item.id, item.etag, requestKey);
+      delete requestKeys.current[`remove:${item.id}`];
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
-      if (apiError.status === 412) await load();
+      if (apiError.status === 412) {
+        delete requestKeys.current[`remove:${item.id}`];
+        await load();
+      }
     } finally {
       setBusy(null);
     }
@@ -1799,23 +2104,32 @@ function FavoritesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setError(new NexoraApiError('Rank phải từ 0 đến 1000000000 và tối đa 8 chữ số thập phân.', 422, 'ValidationFailed'));
       return;
     }
+    const requestKey = requestKeys.current[`rank:${item.id}`] ?? createIdempotencyKey();
+    requestKeys.current[`rank:${item.id}`] = requestKey;
     setBusy(`rank:${item.id}`);
     setError(null);
     try {
-      await reorderFavorite(item.id, item.etag, value);
+      await reorderFavorite(item.id, item.etag, value, requestKey);
+      delete requestKeys.current[`rank:${item.id}`];
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
-      if (apiError.status === 412) await load();
+      if (apiError.status === 412) {
+        delete requestKeys.current[`rank:${item.id}`];
+        await load();
+      }
     } finally {
       setBusy(null);
     }
   }
 
   function openSource(route: string | null) {
-    if (route && route.startsWith('/') && !route.startsWith('//')) window.location.assign(route);
+    const match = route?.match(/^\/resources\/([^/]+)\/([0-9a-f-]{36})$/i);
+    if (!match) return;
+    const resourceType = decodeRouteSegment(match[1]) as ResourceType;
+    if (RESOURCE_TYPES.has(resourceType)) navigate('resource', resourceType, false, match[2]);
   }
 
   return (
@@ -1915,18 +2229,92 @@ type ProjectDraft = { name: string; description: string; startAt: string; endAt:
 type TaskDraft = { projectId: string; title: string; description: string; status: string; dueAt: string; startAt: string; endAt: string; priority: string; tagsJson: string; acceptanceCriteriaJson: string; reminderAt: string };
 type EventDraft = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string; isAllDay: boolean };
 
-function localInputToIso(value: string): string | null {
-  if (!value.trim()) return null;
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.valueOf()) ? null : parsed.toISOString();
+type ZonedDateParts = { year: number; month: number; day: number; hour: number; minute: number };
+
+function validTimeZone(timeZoneId: string | undefined): string {
+  if (!timeZoneId?.trim()) return DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timeZoneId }).format();
+    return timeZoneId;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
 }
 
-function isoToLocalInput(value: string | null): string {
+function zonedDateParts(value: Date, timeZoneId: string): ZonedDateParts {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: validTimeZone(timeZoneId),
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(value);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') };
+}
+
+function localInputToIso(value: string, timeZoneId = currentTimeZone()): string | null {
+  if (!value.trim()) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value.trim());
+  if (!match) return null;
+  const [, year, month, day, hour, minute] = match;
+  const naiveUtc = Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  if (Number.isNaN(naiveUtc)) return null;
+  const zone = validTimeZone(timeZoneId);
+  const represented = zonedDateParts(new Date(naiveUtc), zone);
+  const representedUtc = Date.UTC(represented.year, represented.month - 1, represented.day, represented.hour, represented.minute);
+  const instant = new Date(naiveUtc - (representedUtc - naiveUtc));
+  const roundTrip = zonedDateParts(instant, zone);
+  const valid = roundTrip.year === Number(year) && roundTrip.month === Number(month) && roundTrip.day === Number(day)
+    && roundTrip.hour === Number(hour) && roundTrip.minute === Number(minute);
+  return valid && !Number.isNaN(instant.valueOf()) ? instant.toISOString() : null;
+}
+
+function isoToLocalInput(value: string | null, timeZoneId = currentTimeZone()): string {
   if (!value) return '';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) return '';
+  const parts = zonedDateParts(parsed, timeZoneId);
   const pad = (part: number) => String(part).padStart(2, '0');
-  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}T${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`;
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
+}
+
+function localDateToIso(value: string, timeZoneId: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim())
+    ? localInputToIso(`${value.trim()}T00:00`, timeZoneId)
+    : null;
+}
+
+function isoToLocalDate(value: string | null, timeZoneId: string): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return '';
+  const parts = zonedDateParts(parsed, timeZoneId);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+}
+
+function allDayLabel(event: CalendarEventRecord): string {
+  const start = isoToLocalDate(event.startAt, event.timeZoneId);
+  const exclusiveEnd = isoToLocalDate(event.endAt, event.timeZoneId);
+  const end = exclusiveEnd ? addDateDays(exclusiveEnd, -1) : '';
+  return start && end ? `${start} — ${end}` : 'All-day';
+}
+
+function calendarVisibleRange(view: 'day' | 'week' | 'month' | 'agenda', timeZoneId: string): { from: string; to: string } {
+  const today = todayDateInput(timeZoneId);
+  let from = today;
+  let days = view === 'day' ? 1 : view === 'week' ? 7 : view === 'month' ? 31 : 31;
+  if (view === 'week') {
+    const weekday = new Date(`${today}T00:00:00Z`).getUTCDay();
+    from = addDateDays(today, -weekday);
+    days = 7;
+  } else if (view === 'month') {
+    from = `${today.slice(0, 7)}-01`;
+    const monthStart = new Date(`${from}T00:00:00Z`);
+    monthStart.setUTCMonth(monthStart.getUTCMonth() + 1);
+    const nextMonth = monthStart.toISOString().slice(0, 10);
+    return { from: localInputToIso(`${from}T00:00`, timeZoneId) ?? `${from}T00:00:00.000Z`, to: localInputToIso(`${nextMonth}T00:00`, timeZoneId) ?? `${nextMonth}T00:00:00.000Z` };
+  }
+  const to = addDateDays(from, days);
+  return { from: localInputToIso(`${from}T00:00`, timeZoneId) ?? `${from}T00:00:00.000Z`, to: localInputToIso(`${to}T00:00`, timeZoneId) ?? `${to}T00:00:00.000Z` };
 }
 
 function ProductivityScreen({
@@ -1943,6 +2331,9 @@ function ProductivityScreen({
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [events, setEvents] = useState<CalendarEventRecord[]>([]);
+  const [projectNextCursor, setProjectNextCursor] = useState<string | null>(null);
+  const [taskNextCursor, setTaskNextCursor] = useState<string | null>(null);
+  const [eventNextCursor, setEventNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -1950,40 +2341,68 @@ function ProductivityScreen({
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEventRecord | null>(null);
   const [projectDraft, setProjectDraft] = useState<ProjectDraft>({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
-  const [taskDraft, setTaskDraft] = useState<TaskDraft>({ projectId: '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+  const [taskDraft, setTaskDraft] = useState<TaskDraft>({ projectId: '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
   const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
+  const [taskReminderChanged, setTaskReminderChanged] = useState(false);
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
+  const projectRequestKey = useRef<string | null>(null);
+  const taskRequestKey = useRef<string | null>(null);
+  const eventRequestKey = useRef<string | null>(null);
+  const actionRequestKeys = useRef<Record<string, { signature: string; key: string }>>({});
+
+  function getActionRequestKey(operation: string, signature: string): string {
+    const current = actionRequestKeys.current[operation];
+    if (!current || current.signature !== signature) {
+      const next = { signature, key: createIdempotencyKey() };
+      actionRequestKeys.current[operation] = next;
+      return next.key;
+    }
+    return current.key;
+  }
+
+  function clearActionRequestKey(operation: string, signature: string): void {
+    if (actionRequestKeys.current[operation]?.signature === signature) {
+      delete actionRequestKeys.current[operation];
+    }
+  }
 
   const canProjects = profile.modules.some((module) => module.code.toUpperCase() === 'FX11' && module.enabled);
   const canTasks = profile.modules.some((module) => module.code.toUpperCase() === 'FX12' && module.enabled);
   const canCalendar = profile.modules.some((module) => module.code.toUpperCase() === 'FX13' && module.enabled);
 
-  const calendarToday = new Date();
+  const calendarRange = calendarVisibleRange(calendarView, profile.timeZoneId);
+  const calendarRangeStart = new Date(calendarRange.from).getTime();
+  const calendarRangeEnd = new Date(calendarRange.to).getTime();
   const calendarEventsForView = events.filter((item) => {
-    if (calendarView === 'agenda') return true;
-    const start = new Date(item.startAt);
-    if (calendarView === 'day') {
-      return start.toDateString() === calendarToday.toDateString();
-    }
-    if (calendarView === 'month') {
-      return start.getFullYear() === calendarToday.getFullYear() && start.getMonth() === calendarToday.getMonth();
-    }
-    const dayDifference = Math.floor((start.getTime() - calendarToday.getTime()) / 86_400_000);
-    return dayDifference >= -calendarToday.getDay() && dayDifference < 7 - calendarToday.getDay();
+    const start = new Date(item.startAt).getTime();
+    const end = new Date(item.endAt).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && start < calendarRangeEnd && end > calendarRangeStart;
   });
 
-  async function load() {
+  async function load(append = false) {
     setLoading(true);
     setError(null);
     try {
       const [projectPage, taskPage, eventPage] = await Promise.all([
-        canProjects || canTasks ? listProjects() : Promise.resolve(null),
-        canTasks ? listTasks() : Promise.resolve(null),
-        canCalendar ? listCalendarEvents() : Promise.resolve(null)
+        canProjects || canTasks ? listProjects(25, append && moduleCode === 'FX11' ? projectNextCursor ?? '' : '') : Promise.resolve(null),
+        canTasks ? listTasks(undefined, 25, append && moduleCode === 'FX12' ? taskNextCursor ?? '' : '') : Promise.resolve(null),
+        canCalendar ? listCalendarEvents(calendarRange.from, calendarRange.to, 25, append && moduleCode === 'FX13' ? eventNextCursor ?? '' : '') : Promise.resolve(null)
       ]);
-      if (projectPage) setProjects(Array.isArray(projectPage.items) ? projectPage.items : []);
-      if (taskPage) setTasks(Array.isArray(taskPage.items) ? taskPage.items : []);
-      if (eventPage) setEvents(Array.isArray(eventPage.items) ? eventPage.items : []);
+      if (projectPage) {
+        const items = Array.isArray(projectPage.items) ? projectPage.items : [];
+        setProjects((current) => append && moduleCode === 'FX11' ? [...current, ...items] : items);
+        setProjectNextCursor(projectPage.nextCursor ?? null);
+      }
+      if (taskPage) {
+        const items = Array.isArray(taskPage.items) ? taskPage.items : [];
+        setTasks((current) => append && moduleCode === 'FX12' ? [...current, ...items] : items);
+        setTaskNextCursor(taskPage.nextCursor ?? null);
+      }
+      if (eventPage) {
+        const items = Array.isArray(eventPage.items) ? eventPage.items : [];
+        setEvents((current) => append && moduleCode === 'FX13' ? [...current, ...items] : items);
+        setEventNextCursor(eventPage.nextCursor ?? null);
+      }
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -1995,42 +2414,61 @@ function ProductivityScreen({
 
   useEffect(() => {
     void load();
-  }, [moduleCode]);
+  }, [moduleCode, calendarView, profile.timeZoneId]);
+
+  useEffect(() => { projectRequestKey.current = null; }, [projectDraft]);
+  useEffect(() => { taskRequestKey.current = null; }, [taskDraft, taskReminderChanged]);
+  useEffect(() => { eventRequestKey.current = null; }, [eventDraft]);
 
   function resetProject() {
+    projectRequestKey.current = null;
     setEditingProject(null);
     setProjectDraft({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
   }
 
   function resetTask() {
+    taskRequestKey.current = null;
     setEditingTask(null);
-    setTaskDraft({ projectId: projects[0]?.id ?? '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+    setTaskReminderChanged(false);
+    setTaskDraft({ projectId: projects[0]?.id ?? '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
   }
 
   function resetEvent() {
+    eventRequestKey.current = null;
     setEditingEvent(null);
     setEventDraft({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
   }
 
   function beginProjectEdit(project: ProjectRecord) {
+    projectRequestKey.current = null;
     setEditingProject(project);
-    setProjectDraft({ name: project.name, description: project.description ?? '', startAt: isoToLocalInput(project.startAt), endAt: isoToLocalInput(project.endAt), priority: project.priority, tagsJson: project.tagsJson, notes: project.notes ?? '' });
+    setProjectDraft({ name: project.name, description: project.description ?? '', startAt: isoToLocalInput(project.startAt, profile.timeZoneId), endAt: isoToLocalInput(project.endAt, profile.timeZoneId), priority: project.priority, tagsJson: project.tagsJson, notes: project.notes ?? '' });
   }
 
   function beginTaskEdit(task: TaskRecord) {
+    taskRequestKey.current = null;
     setEditingTask(task);
-    setTaskDraft({ projectId: task.projectId, title: task.title, description: task.description ?? '', status: task.status, dueAt: isoToLocalInput(task.dueAt), startAt: isoToLocalInput(task.startAt), endAt: isoToLocalInput(task.endAt), priority: task.priority, tagsJson: task.tagsJson, acceptanceCriteriaJson: task.acceptanceCriteriaJson, reminderAt: isoToLocalInput(task.reminderAt) });
+    setTaskReminderChanged(false);
+    setTaskDraft({ projectId: task.projectId, title: task.title, description: task.description ?? '', status: task.status, dueAt: isoToLocalInput(task.dueAt, profile.timeZoneId), startAt: isoToLocalInput(task.startAt, profile.timeZoneId), endAt: isoToLocalInput(task.endAt, profile.timeZoneId), priority: task.priority ?? '', tagsJson: task.tagsJson, acceptanceCriteriaJson: task.acceptanceCriteriaJson, reminderAt: isoToLocalInput(task.reminderAt, profile.timeZoneId) });
   }
 
   function beginEventEdit(event: CalendarEventRecord) {
+    eventRequestKey.current = null;
     setEditingEvent(event);
-    setEventDraft({ title: event.title, description: event.description ?? '', startAt: isoToLocalInput(event.startAt), endAt: isoToLocalInput(event.endAt), timeZoneId: event.timeZoneId, isAllDay: event.isAllDay });
+    setEventDraft({
+      title: event.title,
+      description: event.description ?? '',
+      startAt: event.isAllDay ? isoToLocalDate(event.startAt, event.timeZoneId) : isoToLocalInput(event.startAt, event.timeZoneId),
+      endAt: event.isAllDay ? addDateDays(isoToLocalDate(event.endAt, event.timeZoneId), -1) : isoToLocalInput(event.endAt, event.timeZoneId),
+      timeZoneId: event.timeZoneId,
+      isAllDay: event.isAllDay
+    });
   }
 
   async function saveProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const startAt = localInputToIso(projectDraft.startAt);
-    const endAt = localInputToIso(projectDraft.endAt);
+    const startAt = localInputToIso(projectDraft.startAt, profile.timeZoneId);
+    const endAt = localInputToIso(projectDraft.endAt, profile.timeZoneId);
     const description = projectDraft.description.trim();
     if (!projectDraft.name.trim() || !description || !startAt || !endAt) {
       setError(new NexoraApiError('Project cần Title, Description, Start và End.', 422, 'ValidationFailed'));
@@ -2038,7 +2476,7 @@ function ProductivityScreen({
     }
     setBusy('project');
     setError(null);
-    const requestKey = createIdempotencyKey();
+    const requestKey = projectRequestKey.current ??= createIdempotencyKey();
     try {
       let saved = editingProject
         ? await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey)
@@ -2050,7 +2488,7 @@ function ProductivityScreen({
       const apiError = asApiError(requestError);
       if (editingProject && apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Một hoặc nhiều Task nằm ngoài khung thời gian mới. Lưu Project mà không tự dời Task?')) {
         try {
-          const saved = await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, createIdempotencyKey(), true);
+          const saved = await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey, true);
           setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
           resetProject();
           return;
@@ -2072,8 +2510,11 @@ function ProductivityScreen({
     if (!window.confirm(`Đưa Project “${project.name}” và các Task vào Trash?`)) return;
     setBusy(`project:${project.id}`);
     setError(null);
+    const signature = `${project.id}:${project.etag}`;
+    const requestKey = getActionRequestKey('project.delete', signature);
     try {
-      await deleteProject(project.id, project.etag);
+      await deleteProject(project.id, project.etag, requestKey);
+      clearActionRequestKey('project.delete', signature);
       setProjects((current) => current.filter((item) => item.id !== project.id));
       setTasks((current) => current.filter((item) => item.projectId !== project.id));
       if (editingProject?.id === project.id) resetProject();
@@ -2092,11 +2533,15 @@ function ProductivityScreen({
     if (!window.confirm(`Xác nhận ${status} Project? Sau thao tác này Project sẽ chỉ-đọc vĩnh viễn.`)) return;
     setBusy(`project:${project.id}`);
     setError(null);
+    const signature = `${project.id}:${project.etag}:${status}:${reason.trim()}`;
+    const requestKey = getActionRequestKey('project.transition', signature);
     try {
-      const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null, createIdempotencyKey(), true);
+      const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null, requestKey, true);
+      clearActionRequestKey('project.transition', signature);
       setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
     } catch (requestError) {
       const apiError = asApiError(requestError);
+      if (apiError.status === 412) clearActionRequestKey('project.transition', signature);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -2106,10 +2551,10 @@ function ProductivityScreen({
 
   async function saveTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const dueAt = taskDraft.dueAt ? localInputToIso(taskDraft.dueAt) : null;
-    const startAt = localInputToIso(taskDraft.startAt);
-    const endAt = localInputToIso(taskDraft.endAt);
-    const reminderAt = taskDraft.reminderAt ? localInputToIso(taskDraft.reminderAt) : null;
+    const dueAt = taskDraft.dueAt ? localInputToIso(taskDraft.dueAt, profile.timeZoneId) : null;
+    const startAt = localInputToIso(taskDraft.startAt, profile.timeZoneId);
+    const endAt = localInputToIso(taskDraft.endAt, profile.timeZoneId);
+    const reminderAt = taskDraft.reminderAt ? localInputToIso(taskDraft.reminderAt, profile.timeZoneId) : null;
     if (!taskDraft.projectId || !taskDraft.title.trim() || !startAt || !endAt) {
       setError(new NexoraApiError('Project và tiêu đề Task là bắt buộc.', 422, 'ValidationFailed'));
       return;
@@ -2120,11 +2565,11 @@ function ProductivityScreen({
     }
     setBusy('task');
     setError(null);
-    const requestKey = createIdempotencyKey();
+    const requestKey = taskRequestKey.current ??= createIdempotencyKey();
     try {
       const saved = editingTask
-        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey)
-        : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey);
+        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, false, taskReminderChanged)
+        : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, false, true);
       setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetTask();
     } catch (requestError) {
@@ -2132,8 +2577,8 @@ function ProductivityScreen({
       if (apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Task nằm ngoài khung thời gian Project. Lưu Task mà không thay đổi Project?')) {
         try {
           const saved = editingTask
-             ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true)
-             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, createIdempotencyKey(), true);
+             ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, taskReminderChanged)
+             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, true);
           setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
           resetTask();
           return;
@@ -2155,8 +2600,11 @@ function ProductivityScreen({
     if (!window.confirm(`Xóa Task “${task.title}”?`)) return;
     setBusy(`task:${task.id}`);
     setError(null);
+    const signature = `${task.id}:${task.etag}`;
+    const requestKey = getActionRequestKey('task.delete', signature);
     try {
-      await deleteTask(task.id, task.etag);
+      await deleteTask(task.id, task.etag, requestKey);
+      clearActionRequestKey('task.delete', signature);
       setTasks((current) => current.filter((item) => item.id !== task.id));
       if (editingTask?.id === task.id) resetTask();
     } catch (requestError) {
@@ -2170,18 +2618,23 @@ function ProductivityScreen({
 
   async function saveEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const startAt = localInputToIso(eventDraft.startAt);
-    const endAt = localInputToIso(eventDraft.endAt);
+    const startAt = eventDraft.isAllDay
+      ? localDateToIso(eventDraft.startAt, eventDraft.timeZoneId)
+      : localInputToIso(eventDraft.startAt, eventDraft.timeZoneId);
+    const endAt = eventDraft.isAllDay
+      ? localDateToIso(addDateDays(eventDraft.endAt, 1), eventDraft.timeZoneId)
+      : localInputToIso(eventDraft.endAt, eventDraft.timeZoneId);
     if (!eventDraft.title.trim() || !eventDraft.description.trim() || !startAt || !endAt) {
       setError(new NexoraApiError('Event cần Title, Description, Start và End.', 422, 'ValidationFailed'));
       return;
     }
     setBusy('event');
     setError(null);
+    const requestKey = eventRequestKey.current ??= createIdempotencyKey();
     try {
       const saved = editingEvent
-        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay)
-        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay);
+        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey)
+        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey);
       setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetEvent();
     } catch (requestError) {
@@ -2197,12 +2650,34 @@ function ProductivityScreen({
     if (!window.confirm(`Xóa lịch “${item.title}”?`)) return;
     setBusy(`event:${item.id}`);
     setError(null);
+    const signature = `${item.id}:${item.etag}`;
+    const requestKey = getActionRequestKey('calendar.event.delete', signature);
     try {
-      await deleteCalendarEvent(item.id, item.etag);
+      await deleteCalendarEvent(item.id, item.etag, requestKey);
+      clearActionRequestKey('calendar.event.delete', signature);
       setEvents((current) => current.filter((eventItem) => eventItem.id !== item.id));
       if (editingEvent?.id === item.id) resetEvent();
     } catch (requestError) {
       const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function completeEvent(item: CalendarEventRecord) {
+    const signature = `${item.id}:${item.etag}:Completed`;
+    const requestKey = getActionRequestKey('calendar.event.transition', signature);
+    setBusy(`event:${item.id}`);
+    setError(null);
+    try {
+      const saved = await transitionCalendarEvent(item.id, item.etag, 'Completed', requestKey);
+      clearActionRequestKey('calendar.event.transition', signature);
+      setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (apiError.status === 412) clearActionRequestKey('calendar.event.transition', signature);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -2238,7 +2713,7 @@ function ProductivityScreen({
             <div className="form-grid"><div className="field-group"><label htmlFor="project-priority">Ưu tiên</label><select id="project-priority" value={projectDraft.priority} onChange={(event) => setProjectDraft({ ...projectDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div><div className="field-group"><label htmlFor="project-tags">Tags JSON <span className="optional">(mảng)</span></label><input id="project-tags" value={projectDraft.tagsJson} onChange={(event) => setProjectDraft({ ...projectDraft, tagsJson: event.target.value })} /></div></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetProject} disabled={busy === 'project'}>Làm mới</button><SubmitButton busy={busy === 'project'}>{editingProject ? 'Lưu Project' : 'Tạo Project'}</SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Projects của bạn</h2><span className="muted">{projects.length} bản ghi</span></div>{projects.length === 0 ? <div className="empty-state"><h3>Chưa có Project</h3><p>Tạo Project đầu tiên để bắt đầu gom Task.</p></div> : <div className="resource-cards">{projects.map((project) => <article className="resource-card" key={project.id}><div><h3>{project.name}</h3><p>{project.description || 'Không có mô tả.'}</p><span className="muted">{dateTime(project.startAt)} — {dateTime(project.endAt)} · {project.priority} · {project.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginProjectEdit(project)} disabled={busy !== null || project.status === 'Completed' || project.status === 'Skipped'}>Sửa</button>{(project.status === 'NotStarted' || project.status === 'InProgress') && <><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Completed')} disabled={busy !== null}>Hoàn tất</button><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Skipped')} disabled={busy !== null}>Bỏ qua</button></>}<button className="danger-button" type="button" onClick={() => void removeProject(project)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Projects của bạn</h2><span className="muted">{projects.length} bản ghi</span></div>{projects.length === 0 ? <div className="empty-state"><h3>Chưa có Project</h3><p>Tạo Project đầu tiên để bắt đầu gom Task.</p></div> : <div className="resource-cards">{projects.map((project) => <article className="resource-card" key={project.id}><div><h3>{project.name}</h3><p>{project.description || 'Không có mô tả.'}</p><span className="muted">{dateTime(project.startAt)} — {dateTime(project.endAt)} · {project.priority} · {project.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginProjectEdit(project)} disabled={busy !== null || project.status === 'Completed' || project.status === 'Skipped'}>Sửa</button>{(project.status === 'NotStarted' || project.status === 'InProgress') && <><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Completed')} disabled={busy !== null}>Hoàn tất</button><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Skipped')} disabled={busy !== null}>Bỏ qua</button></>}<button className="danger-button" type="button" onClick={() => void removeProject(project)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}{projectNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Project</button>}</div>
         </div>
       )}
 
@@ -2249,13 +2724,13 @@ function ProductivityScreen({
             <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>
             <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={200} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
             <div className="field-group"><label htmlFor="task-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="task-description" value={taskDraft.description} maxLength={4000} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} rows={3} /></div>
-            <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên</label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên <span className="optional">(tùy chọn)</span></label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="">Không đặt</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-start">Bắt đầu</label><input id="task-start" type="datetime-local" value={taskDraft.startAt} onChange={(event) => setTaskDraft({ ...taskDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="task-end">Kết thúc</label><input id="task-end" type="datetime-local" value={taskDraft.endAt} onChange={(event) => setTaskDraft({ ...taskDraft, endAt: event.target.value })} required /></div></div>
-            <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => setTaskDraft({ ...taskDraft, reminderAt: event.target.value })} /></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => { setTaskReminderChanged(true); setTaskDraft({ ...taskDraft, reminderAt: event.target.value }); }} /><p className="field-help">Để trống để gỡ nhắc khi đang sửa; mốc nhắc có thể nằm trước Start theo policy.</p></div></div>
             {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}{taskNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Task</button>}</div>
         </div>
       )}
 
@@ -2265,11 +2740,11 @@ function ProductivityScreen({
             <div className="section-heading"><h2>{editingEvent ? 'Sửa sự kiện' : 'Tạo sự kiện'}</h2>{editingEvent && <button className="link-button" type="button" onClick={resetEvent}>Hủy sửa</button>}</div>
             <div className="field-group"><label htmlFor="event-title">Title</label><input id="event-title" value={eventDraft.title} maxLength={200} onChange={(event) => setEventDraft({ ...eventDraft, title: event.target.value })} required /></div>
             <div className="field-group"><label htmlFor="event-description">Description</label><textarea id="event-description" value={eventDraft.description} maxLength={20000} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows={3} required /></div>
-            <div className="form-grid"><div className="field-group"><label htmlFor="event-start">Bắt đầu</label><input id="event-start" type="datetime-local" value={eventDraft.startAt} onChange={(event) => setEventDraft({ ...eventDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="event-end">Kết thúc</label><input id="event-end" type="datetime-local" value={eventDraft.endAt} onChange={(event) => setEventDraft({ ...eventDraft, endAt: event.target.value })} required /></div></div>
-            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft({ ...eventDraft, timeZoneId: event.target.value })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft({ ...eventDraft, isAllDay: event.target.checked })} /> All-day</label><p className="field-help">Timed values preserve the instant; all-day values use the owner timezone.</p></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="event-start">{eventDraft.isAllDay ? 'Ngày bắt đầu' : 'Bắt đầu'}</label><input id="event-start" type={eventDraft.isAllDay ? 'date' : 'datetime-local'} value={eventDraft.startAt} onChange={(event) => setEventDraft({ ...eventDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="event-end">{eventDraft.isAllDay ? 'Ngày kết thúc (bao gồm)' : 'Kết thúc'}</label><input id="event-end" type={eventDraft.isAllDay ? 'date' : 'datetime-local'} value={eventDraft.endAt} onChange={(event) => setEventDraft({ ...eventDraft, endAt: event.target.value })} required /></div></div>
+            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft((current) => { const nextZone = event.target.value; if (current.isAllDay || !nextZone.trim() || !current.timeZoneId.trim()) return { ...current, timeZoneId: nextZone }; const startIso = localInputToIso(current.startAt, current.timeZoneId); const endIso = localInputToIso(current.endAt, current.timeZoneId); return { ...current, timeZoneId: nextZone, startAt: startIso ? isoToLocalInput(startIso, nextZone) : current.startAt, endAt: endIso ? isoToLocalInput(endIso, nextZone) : current.endAt }; })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft((current) => event.target.checked ? { ...current, startAt: current.startAt.slice(0, 10), endAt: current.endAt.slice(0, 10), isAllDay: true } : { ...current, startAt: current.startAt ? `${current.startAt.slice(0, 10)}T00:00` : '', endAt: current.endAt ? `${addDateDays(current.endAt.slice(0, 10), 1)}T00:00` : '', isAllDay: false })} /> All-day</label><p className="field-help">Timed values preserve the instant. All-day values use date-only input, store the end boundary exclusively, and resolve both boundaries in this IANA timezone.</p></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEvent} disabled={busy === 'event'}>Làm mới</button><SubmitButton busy={busy === 'event'}>{editingEvent ? 'Lưu sự kiện' : 'Tạo sự kiện'}</SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{dateTime(item.startAt)} — {dateTime(item.endAt)}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void transitionCalendarEvent(item.id, item.etag, 'Completed').then((saved) => setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem))).catch((requestError) => setError(asApiError(requestError)))} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Hủy</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{item.isAllDay ? allDayLabel(item) : `${dateTime(item.startAt, item.timeZoneId, profile.locale)} — ${dateTime(item.endAt, item.timeZoneId, profile.locale)}`}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void completeEvent(item)} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Hủy</button></div></article>)}</div>}{eventNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm sự kiện</button>}</div>
         </div>
       )}
     </section>
@@ -2296,13 +2771,14 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
-  const requestKey = useRef<string | null>(null);
+  const requestKey = useRef<{ signature: string; key: string } | null>(null);
+  const removeRequestKey = useRef<string | null>(null);
 
   async function loadSources() {
     setLoading(true);
     setError(null);
     try {
-      const [taskPage, eventPage] = await Promise.all([listTasks(), listCalendarEvents()]);
+      const [taskPage, eventPage] = await Promise.all([listTasks(undefined, 100), listCalendarEvents(undefined, undefined, 100)]);
       const taskSources = (taskPage.items ?? [])
         .filter((task) => !['Completed', 'Skipped', 'Deleted'].includes(task.status))
         .map((task): ReminderSourceOption => ({ key: `Task:${task.id}`, sourceType: 'Task', id: task.id, title: task.title, startAt: task.startAt, detail: 'Task' }));
@@ -2329,7 +2805,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       const view = await getReminderSource(option.sourceType, option.id);
       setSource(view);
       setConfigType(view.reminder?.configType === 'Exact' ? 'Exact' : view.reminder?.configType === 'None' ? 'None' : 'BeforeStart15m');
-      setExactAt(isoToLocalInput(view.reminder?.exactAt ?? null));
+      setExactAt(isoToLocalInput(view.reminder?.exactAt ?? null, view.timeZoneId));
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setSource(null);
@@ -2353,6 +2829,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function handleSourceChange(value: string) {
     requestKey.current = null;
+    removeRequestKey.current = null;
     setSelectedKey(value);
     setError(null);
   }
@@ -2363,21 +2840,24 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setError(new NexoraApiError('Chọn một Task hoặc Calendar Event đang hoạt động trước khi lưu.', 422, 'ValidationFailed'));
       return;
     }
-    const exactIso = configType === 'Exact' ? localInputToIso(exactAt) : null;
+    const exactIso = configType === 'Exact' ? localInputToIso(exactAt, source.timeZoneId) : null;
     if (configType === 'Exact' && !exactIso) {
       setError(new NexoraApiError('Chọn thời điểm nhắc hợp lệ trong tương lai.', 422, 'ReminderTimeInvalid'));
       return;
     }
-    requestKey.current ??= createIdempotencyKey();
+    const signature = `set:${source.sourceType}:${source.sourceId}:${source.sourceETag}:${source.reminder?.etag ?? ''}:${configType}:${exactIso ?? ''}`;
+    if (requestKey.current?.signature !== signature) {
+      requestKey.current = { signature, key: createIdempotencyKey() };
+    }
     setBusy('save');
     setError(null);
     setConflict(false);
     try {
       const saved = await setReminder(source.sourceType as 'Task' | 'CalendarEvent', source.sourceId, configType,
-        exactIso, source.sourceETag, source.reminder?.etag ?? null, requestKey.current);
+        exactIso, source.sourceETag, source.reminder?.etag ?? null, requestKey.current.key);
       requestKey.current = null;
       setSource(saved);
-      setExactAt(isoToLocalInput(saved.reminder?.exactAt ?? null));
+      setExactAt(isoToLocalInput(saved.reminder?.exactAt ?? null, saved.timeZoneId));
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -2395,18 +2875,21 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   async function remove() {
     if (!source?.reminder) return;
     if (!window.confirm(`Gỡ reminder cho “${source.sourceTitle}”?`)) return;
+    removeRequestKey.current ??= createIdempotencyKey();
     setBusy('remove');
     setError(null);
     setConflict(false);
     try {
       await removeReminder(source.sourceType as 'Task' | 'CalendarEvent', source.sourceId, source.sourceETag,
-        source.reminder.etag, createIdempotencyKey());
+        source.reminder.etag, removeRequestKey.current);
+      removeRequestKey.current = null;
       const option = sources.find((item) => item.key === selectedKey);
       if (option) await loadSource(option);
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 412 || apiError.status === 428) {
+        removeRequestKey.current = null;
         setConflict(true);
         const option = sources.find((item) => item.key === selectedKey);
         if (option) await loadSource(option);
@@ -4171,11 +4654,13 @@ function ModuleScreen({
 function ProfileScreen({
   profile,
   onProfileUpdated,
-  onAuthLost
+  onAuthLost,
+  onThemeChanged
 }: {
   profile: ProfileResponse;
   onProfileUpdated: (profile: ProfileResponse) => void;
   onAuthLost: () => Promise<void>;
+  onThemeChanged: (mode: ThemeMode) => void;
 }) {
   const [draft, setDraft] = useState<ProfilePatch>({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
   const [busy, setBusy] = useState(false);
@@ -4267,14 +4752,14 @@ function ProfileScreen({
           <div className="form-actions"><button className="secondary-button" type="button" onClick={() => setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale })} disabled={!changed || busy}>Hủy thay đổi</button><SubmitButton busy={busy}>Lưu profile</SubmitButton></div>
         </div>
       </form>
-      <PreferencesPanel onAuthLost={onAuthLost} />
+      <PreferencesPanel onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />
     </section>
   );
 }
 
-function PreferencesPanel({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Promise<void>; onThemeChanged: (mode: ThemeMode) => void }) {
   const [preference, setPreference] = useState<PreferenceRecord | null>(null);
-  const [mode, setMode] = useState<'System' | 'Light' | 'Dark'>('System');
+  const [mode, setMode] = useState<ThemeMode>('System');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -4289,7 +4774,10 @@ function PreferencesPanel({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       if (theme) {
         try {
           const value = JSON.parse(theme.valueJson) as { mode?: string };
-          if (value.mode === 'System' || value.mode === 'Light' || value.mode === 'Dark') setMode(value.mode);
+          if (value.mode === 'System' || value.mode === 'Light' || value.mode === 'Dark') {
+            setMode(value.mode);
+            onThemeChanged(value.mode);
+          }
         } catch {
           setError(new NexoraApiError('Theme preference không hợp lệ.', 422, 'ValidationFailed'));
         }
@@ -4311,6 +4799,7 @@ function PreferencesPanel({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     try {
       const saved = await updatePreference('theme', preference?.etag ?? '*', { mode });
       setPreference(saved);
+      onThemeChanged(mode);
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -4321,7 +4810,7 @@ function PreferencesPanel({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
   }
 
-  return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">Preferences</h2><p className="muted">Schema-validated, non-secret settings; không có mute/quiet-hours/channel suppression.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">Theme</label><select id="theme-mode" value={mode} onChange={(event) => setMode(event.target.value as 'System' | 'Light' | 'Dark')} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? 'Đang lưu…' : 'Lưu preferences'}</button></div></section>;
+  return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">Preferences</h2><p className="muted">Schema-validated, non-secret settings; không có mute/quiet-hours/channel suppression.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">Theme</label><select id="theme-mode" value={mode} onChange={(event) => { const next = event.target.value as ThemeMode; setMode(next); onThemeChanged(next); }} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? 'Đang lưu…' : 'Lưu preferences'}</button></div></section>;
 }
 
 function SecurityScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
@@ -4409,18 +4898,34 @@ function SecurityScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 }
 
 export function App() {
-  const [location, setLocation] = useState<LocationState>(() => routeFromPath(window.location.pathname));
+  const [location, setLocation] = useState<LocationState>(() => routeFromPath(window.location.pathname, window.location.search));
+  const locationRef = useRef(location);
   const [sessionState, setSessionState] = useState<SessionState>('checking');
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [themeMode, setThemeMode] = useState<ThemeMode>('System');
   const [verificationEmail, setVerificationEmail] = useState('');
   const [notice, setNotice] = useState<{ kind: NoticeKind; text: string }>();
 
-  function navigate(screen: Screen, moduleCode?: string, replace = false) {
-    const next: LocationState = screen === 'shared'
-      ? { screen, token: moduleCode }
-      : { screen, moduleCode };
-    const nextPath = pathForLocation(next);
-    if (window.location.pathname !== nextPath) {
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      const dark = themeMode === 'Dark' || (themeMode === 'System' && media.matches);
+      root.dataset.theme = dark ? 'dark' : 'light';
+      root.lang = profile?.locale === 'en' ? 'en' : 'vi';
+    };
+    apply();
+    if (themeMode === 'System') media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, [themeMode, profile?.locale]);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
+  function commitNavigation(next: LocationState, nextPath: string, replace: boolean) {
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (currentPath !== nextPath) {
       if (replace) {
         window.history.replaceState({}, '', nextPath);
       } else {
@@ -4431,8 +4936,37 @@ export function App() {
     setNotice(undefined);
   }
 
+  function navigate(screen: Screen, moduleCode?: string, replace = false, resourceId?: string) {
+    const next: LocationState = screen === 'shared'
+      ? { screen, token: moduleCode }
+      : screen === 'login'
+        ? { screen, returnTo: safeReturnPath(moduleCode) }
+      : screen === 'resource'
+        ? { screen, resourceType: moduleCode as ResourceType, resourceId }
+        : { screen, moduleCode };
+    const nextPath = pathForLocation(next);
+    if (!replace && window.location.pathname !== nextPath) {
+      const handled = dirtyLeaveGuard.current?.(() => commitNavigation(next, nextPath, false)) ?? false;
+      if (handled) return;
+    }
+    commitNavigation(next, nextPath, replace);
+  }
+
   useEffect(() => {
-    const onPopState = () => setLocation(routeFromPath(window.location.pathname));
+    const onPopState = () => {
+      const next = routeFromPath(window.location.pathname, window.location.search);
+      const currentPath = pathForLocation(locationRef.current);
+      const handled = dirtyLeaveGuard.current?.(() => {
+        window.history.pushState({}, '', pathForLocation(next));
+        setLocation(next);
+        setNotice(undefined);
+      }) ?? false;
+      if (handled) {
+        window.history.pushState({}, '', currentPath);
+        return;
+      }
+      setLocation(next);
+    };
     window.addEventListener('popstate', onPopState);
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -4446,6 +4980,16 @@ export function App() {
         if (!cancelled) {
           setProfile(current);
           setSessionState('authenticated');
+        }
+        try {
+          const preferencePage = await listPreferences();
+          const theme = preferencePage.items.find((item) => item.preferenceKey === 'theme');
+          if (theme && !cancelled) {
+            const value = JSON.parse(theme.valueJson) as { mode?: string };
+            if (value.mode === 'System' || value.mode === 'Light' || value.mode === 'Dark') setThemeMode(value.mode);
+          }
+        } catch {
+          // A preference read must not make an otherwise authenticated local session unavailable.
         }
       } catch (requestError) {
         if (cancelled) {
@@ -4467,7 +5011,7 @@ export function App() {
 
   useEffect(() => {
     if (sessionState === 'anonymous' && !PUBLIC_SCREENS.has(location.screen)) {
-      navigate('login', undefined, true);
+      navigate('login', location.screen === 'resource' ? pathForLocation(location) : undefined, true);
     }
     if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen) && location.screen !== 'shared') {
       navigate('home', undefined, true);
@@ -4475,16 +5019,26 @@ export function App() {
   }, [sessionState, location.screen]);
 
   function authenticate(nextProfile: ProfileResponse) {
+    const returnTo = safeReturnPath(locationRef.current.returnTo);
     setProfile(nextProfile);
     setSessionState('authenticated');
-    navigate('home', undefined, true);
+    if (returnTo) {
+      const target = routeFromPath(returnTo);
+      navigate('resource', target.resourceType, true, target.resourceId);
+    } else {
+      navigate('home', undefined, true);
+    }
   }
 
   async function clearSession(message?: string) {
+    const returnTo = locationRef.current.screen === 'resource'
+      ? safeReturnPath(pathForLocation(locationRef.current))
+      : undefined;
     clearProfileRevision();
+    setThemeMode('System');
     setProfile(null);
     setSessionState('anonymous');
-    navigate('login', undefined, true);
+    navigate('login', returnTo, true);
     if (message) {
       setNotice({ kind: 'info', text: message });
     }
@@ -4516,7 +5070,7 @@ export function App() {
     if (location.screen === 'shared') {
       return <SharedResourceScreen token={location.token} />;
     }
-    return <Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} />;
+    return <Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onThemeChanged={setThemeMode} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} />;
   }
 
   const publicProps = { navigate, notice, onDismissNotice: () => setNotice(undefined) };

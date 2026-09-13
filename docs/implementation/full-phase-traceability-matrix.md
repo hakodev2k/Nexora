@@ -1,5 +1,23 @@
 # Full phase traceability matrix — PR #4 local continuation
 
+## Current working-tree snapshot — review hardening 2026-09-13
+
+This section is the current traceability index for the review-hardening work.
+The repository `HEAD` is `fcb1f75fd8dccfa0ba1f15b49569e04c694569ce` on
+`impl/m01-s00-scaffold`, the same revision as the supplied review baseline; the
+changes described here are an uncommitted working tree on top of that `HEAD`.
+The per-finding source/status/evidence table is maintained in
+[`pr4-review-fix-brief-20260913.md`](pr4-review-fix-brief-20260913.md), and the
+unposted PR body is [`pr4-description-draft-20260913.md`](pr4-description-draft-20260913.md).
+
+The earlier matrix rows below are retained as historical implementation
+inventory and must not be read as evidence for this working tree. In
+particular, old commit/CI references, `Implemented` labels and prior
+`Not run` statements are not refreshed by this section. Build/static evidence
+for the current tree is recorded only in the current brief after the final
+source edits. No SQL migration was executed and no runtime acceptance is
+claimed.
+
 > Branch: `impl/m01-s00-scaffold` · base: `main` · snapshot before this matrix: `99db64e2ab07a202ddd4fde1d5ce2b756879a2d8`.
 >
 > Authority: Product Owner decision `DEC-20260909-014`, current requirements,

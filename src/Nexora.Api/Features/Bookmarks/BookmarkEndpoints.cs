@@ -19,6 +19,12 @@ public static class BookmarkEndpoints
                 value => new BookmarkPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listBookmarks");
 
+        api.MapGet("/bookmarks/{bookmarkId:guid}", (HttpContext context, Guid bookmarkId,
+            IBookmarkService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Get(principal, bookmarkId), ToResponse))
+            .WithName("getBookmark");
+
         api.MapPost("/bookmarks", (HttpContext context, BookmarkRequest request,
             IBookmarkService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),

@@ -74,3 +74,8 @@ public interface IFileService
     IdentityOperationResult<object?> Purge(IdentityPrincipal actor, Guid fileId, string? ifMatch,
         string? idempotencyKey = null, string? traceId = null);
 }
+
+public interface IFileCleanupService
+{
+    Task<int> ProcessPendingAsync(CancellationToken cancellationToken = default);
+}

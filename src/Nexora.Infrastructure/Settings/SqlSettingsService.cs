@@ -178,7 +178,7 @@ public sealed class SqlSettingsService : ISettingsService
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string? traceId) => Execute(connection, transaction,
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, 'settings.preference.update', N'platform.Preference', @Target, 'Succeeded', @TraceId);",
-        ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.OwnerId), ("@Target", SqlDbType.UniqueIdentifier, (object)targetId), ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
+        ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Target", SqlDbType.UniqueIdentifier, (object)targetId), ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
 
     private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql, params (string Name, SqlDbType Type, object Value)[] parameters)
     {

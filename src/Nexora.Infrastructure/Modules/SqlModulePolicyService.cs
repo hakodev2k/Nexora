@@ -339,7 +339,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             VALUES (@Actor, @Owner, @Action, N'platform.Module', @Target, @Result, @TraceId);
             """;
         command.Parameters.Add(new SqlParameter("@Actor", System.Data.SqlDbType.UniqueIdentifier) { Value = actor.UserId });
-        command.Parameters.Add(new SqlParameter("@Owner", System.Data.SqlDbType.UniqueIdentifier) { Value = actor.OwnerId });
+        command.Parameters.Add(new SqlParameter("@Owner", System.Data.SqlDbType.UniqueIdentifier) { Value = actor.UserId });
         command.Parameters.Add(new SqlParameter("@Action", System.Data.SqlDbType.NVarChar, 160) { Value = action });
         command.Parameters.Add(new SqlParameter("@Target", System.Data.SqlDbType.UniqueIdentifier) { Value = targetId });
         command.Parameters.Add(new SqlParameter("@Result", System.Data.SqlDbType.VarChar, 32) { Value = result });

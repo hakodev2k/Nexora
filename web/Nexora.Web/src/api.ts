@@ -158,7 +158,7 @@ export type TaskRecord = {
   etag: string;
   startAt: string;
   endAt: string;
-  priority: string;
+  priority: string | null;
   tagsJson: string;
   acceptanceCriteriaJson: string;
   rank: number;
@@ -603,7 +603,7 @@ export type SharedTask = {
   dueAt: string | null;
   startAt: string;
   endAt: string;
-  priority: string;
+  priority: string | null;
   tagsJson: string;
   isOverdue: boolean;
 };
@@ -710,6 +710,7 @@ export class NexoraApiError extends Error {
 // These values intentionally live only for the lifetime of this page. Authentication
 // authority remains the server's Secure/HttpOnly cookie and the SQL-backed session.
 let csrfToken: string | null = null;
+let csrfRefreshPromise: Promise<CsrfEnvelope> | null = null;
 let currentProfileETag: string | null = null;
 
 export function createIdempotencyKey(): string {
@@ -720,7 +721,27 @@ export function createIdempotencyKey(): string {
   throw new NexoraApiError('Trình duyệt không hỗ trợ tạo UUID an toàn cho mutation.', 0, 'IdempotencyKeyUnavailable');
 }
 
-export async function getCsrf(): Promise<CsrfEnvelope> {
+export async function getCsrf(force = false): Promise<CsrfEnvelope> {
+  if (!force && csrfToken !== null) {
+    return { requestToken: csrfToken, tokenType: 'csrf', expiresInSeconds: 1800 };
+  }
+  if (csrfRefreshPromise !== null) {
+    return csrfRefreshPromise;
+  }
+
+  csrfToken = null;
+  const refresh = requestCsrfToken();
+  csrfRefreshPromise = refresh;
+  try {
+    return await refresh;
+  } finally {
+    if (csrfRefreshPromise === refresh) {
+      csrfRefreshPromise = null;
+    }
+  }
+}
+
+async function requestCsrfToken(): Promise<CsrfEnvelope> {
   let response: Response;
   try {
     response = await fetch('/api/v1/auth/csrf', {
@@ -780,23 +801,35 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   let response: Response;
-  try {
-    response = await fetch(path, {
-      ...init,
-      method,
-      credentials: 'same-origin',
-      cache: 'no-store',
-      headers
-    });
-  } catch {
-    throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
-  }
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      response = await fetch(path, {
+        ...init,
+        method,
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers
+      });
+    } catch {
+      throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable');
+    }
 
-  if (!response.ok) {
+    if (response.ok) break;
+
+    const apiError = await toApiError(response);
+    // The endpoint filter rejects CSRF before invoking a mutation handler, so
+    // this one retry cannot duplicate a business effect. The same body and
+    // idempotency key are retained; all other failures are surfaced.
+    if (unsafe && attempt === 0 && response.status === 403 && apiError.code === 'CsrfInvalid' &&
+        (init.body === undefined || typeof init.body === 'string')) {
+      await getCsrf(true);
+      if (csrfToken !== null) headers.set('X-CSRF-Token', csrfToken);
+      continue;
+    }
     if (response.status === 401) {
       currentProfileETag = null;
     }
-    throw await toApiError(response);
+    throw apiError;
   }
 
   const rotatedCsrf = response.headers.get('X-CSRF-Token');
@@ -1062,8 +1095,14 @@ export function revokeAllSessions(idempotencyKey = createIdempotencyKey()) {
   });
 }
 
-export function listProjects(limit = 50) {
-  return apiFetch<ProjectPage>(`/api/v1/projects?limit=${encodeURIComponent(limit)}`);
+export function listProjects(limit = 25, cursor = '') {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (cursor) query.set('cursor', cursor);
+  return apiFetch<ProjectPage>(`/api/v1/projects?${query.toString()}`);
+}
+
+export function getProject(id: string) {
+  return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}`);
 }
 
 export function createProject(name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey(), confirmTaskBounds = false) {
@@ -1097,10 +1136,15 @@ export function transitionProject(id: string, etag: string, status: string, reas
   });
 }
 
-export function listTasks(projectId?: string, limit = 100) {
+export function listTasks(projectId?: string, limit = 25, cursor = '') {
   const query = new URLSearchParams({ limit: String(limit) });
   if (projectId) query.set('projectId', projectId);
+  if (cursor) query.set('cursor', cursor);
   return apiFetch<TaskPage>(`/api/v1/tasks?${query.toString()}`);
+}
+
+export function getTask(id: string) {
+  return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}`);
 }
 
 export function createTask(
@@ -1111,18 +1155,19 @@ export function createTask(
   dueAt: string | null,
   startAt: string,
   endAt: string,
-  priority = 'P3',
+  priority: string | null = null,
   tagsJson: string | null = null,
   acceptanceCriteriaJson: string | null = null,
   rank = 0,
   reminderAt: string | null = null,
   idempotencyKey = createIdempotencyKey(),
-  confirmProjectTimeBounds = false
+  confirmProjectTimeBounds = false,
+  manageReminder = false
 ) {
   return apiFetch<TaskRecord>('/api/v1/tasks', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
-    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds })
+    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds, manageReminder })
   });
 }
 
@@ -1136,18 +1181,19 @@ export function updateTask(
   dueAt: string | null,
   startAt: string,
   endAt: string,
-  priority = 'P3',
+  priority: string | null = null,
   tagsJson: string | null = null,
   acceptanceCriteriaJson: string | null = null,
   rank = 0,
   reminderAt: string | null = null,
   idempotencyKey = createIdempotencyKey(),
-  confirmProjectTimeBounds = false
+  confirmProjectTimeBounds = false,
+  manageReminder = false
 ) {
   return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds })
+    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds, manageReminder })
   });
 }
 
@@ -1166,11 +1212,16 @@ export function transitionTask(id: string, etag: string, status: string, reason:
   });
 }
 
-export function listCalendarEvents(from?: string, to?: string, limit = 100) {
+export function listCalendarEvents(from?: string, to?: string, limit = 25, cursor = '') {
   const query = new URLSearchParams({ limit: String(limit) });
   if (from) query.set('from', from);
   if (to) query.set('to', to);
+  if (cursor) query.set('cursor', cursor);
   return apiFetch<CalendarEventPage>(`/api/v1/calendar/events?${query.toString()}`);
+}
+
+export function getCalendarEvent(id: string) {
+  return apiFetch<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}`);
 }
 
 export function createCalendarEvent(
@@ -1385,6 +1436,10 @@ export function listBookmarks(includeArchived = false, query = '', limit = 100) 
   return apiFetch<BookmarkPage>(`/api/v1/bookmarks?${params.toString()}`);
 }
 
+export function getBookmark(id: string) {
+  return apiFetch<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}`);
+}
+
 export function createBookmark(url: string, title: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<BookmarkRecord>('/api/v1/bookmarks', {
     method: 'POST',
@@ -1413,6 +1468,10 @@ export function listSnippets(includeArchived = false, query = '', limit = 100) {
   const params = new URLSearchParams({ includeArchived: String(includeArchived), limit: String(limit) });
   if (query.trim()) params.set('query', query.trim());
   return apiFetch<SnippetPage>(`/api/v1/snippets?${params.toString()}`);
+}
+
+export function getSnippet(id: string) {
+  return apiFetch<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}`);
 }
 
 export function createSnippet(title: string, language: string, body: string, description: string | null, idempotencyKey = createIdempotencyKey()) {

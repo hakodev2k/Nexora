@@ -74,6 +74,9 @@ internal sealed class SqlSelfCapability
                             OR m.[SystemEnabled] <> 1
                             OR m.[RegistrationEnabled] <> 1
                             OR COALESCE(g.[Enabled], 0) <> 1
+                            OR userRow.[State] <> 'Active'
+                            OR userRow.[IsDeleted] <> 0
+                            OR spaceRow.[State] <> 'Active'
                             OR NOT EXISTS
                             (
                                 SELECT 1
@@ -102,11 +105,16 @@ internal sealed class SqlSelfCapability
             FROM [platform].[Module] m
             LEFT JOIN [platform].[UserModuleGrant] g
               ON g.[ModuleId] = m.[Id] AND g.[UserId] = @UserId
+            INNER JOIN [identity].[User] userRow
+              ON userRow.[Id] = @UserId
+            INNER JOIN [platform].[PersonalSpace] spaceRow
+              ON spaceRow.[Id] = @OwnerId AND spaceRow.[UserId] = @UserId
             WHERE m.[Code] = @ModuleCode
             OPTION (MAXRECURSION 32);
             """;
         command.Parameters.Add("@Role", SqlDbType.VarChar, 32).Value = actor.Role;
         command.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = actor.UserId;
+        command.Parameters.Add("@OwnerId", SqlDbType.UniqueIdentifier).Value = actor.OwnerId;
         command.Parameters.Add("@ModuleCode", SqlDbType.VarChar, 64).Value = moduleCode;
         return Convert.ToInt32(command.ExecuteScalar() ?? 0) switch
         {

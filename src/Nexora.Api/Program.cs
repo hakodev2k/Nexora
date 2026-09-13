@@ -177,13 +177,16 @@ builder.Services.AddSingleton<ISharingService>(services =>
     new SqlSharingService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<ISupportService>(services =>
     new SqlSupportService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
-builder.Services.AddSingleton<IFileService>(services =>
+builder.Services.AddSingleton<SqlFileService>(services =>
     new SqlFileService(
         services.GetRequiredService<SqlConnectionFactory>(),
         builder.Configuration["Nexora:FileStorageRoot"]
             ?? Environment.GetEnvironmentVariable("NEXORA_FILE_STORAGE_ROOT")
             ?? Path.Combine(AppContext.BaseDirectory, "file-storage"),
         idempotencySecret));
+builder.Services.AddSingleton<IFileService>(services => services.GetRequiredService<SqlFileService>());
+builder.Services.AddSingleton<IFileCleanupService>(services => services.GetRequiredService<SqlFileService>());
+builder.Services.AddHostedService<FileCleanupWorker>();
 builder.Services.Configure<RouteOptions>(options =>
 {
     options.LowercaseUrls = true;

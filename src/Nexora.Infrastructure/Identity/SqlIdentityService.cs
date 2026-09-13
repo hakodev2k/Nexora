@@ -382,7 +382,7 @@ VALUES
                 ("@idleExpiresAt", SqlDbType.DateTime2, (object)now.Add(IdleTtl), 0),
                 ("@absoluteExpiresAt", SqlDbType.DateTime2, (object)absoluteExpiresAt, 0));
 
-            InsertAudit(connection, transaction, user.Id, user.PersonalSpaceId, "identity.account.login", "Session", sessionId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, user.Id, user.Id, "identity.account.login", "Session", sessionId, "Succeeded", null, traceId, now);
             var profile = LoadProfile(connection, transaction, user.Id);
             CompleteReceipt(connection, transaction, receipt, "LoginSucceeded");
             transaction.Commit();
@@ -463,7 +463,7 @@ WHERE [HandleHash] = @handleHash;");
 UPDATE [identity].[Session] SET [RecentAuthenticatedAt] = @now WHERE [Id] = @sessionId;",
                 ("@now", SqlDbType.DateTime2, (object)now),
                 ("@sessionId", SqlDbType.UniqueIdentifier, (object)auth.Session.SessionId));
-            InsertAudit(connection, transaction, auth.User.UserId, auth.User.PersonalSpaceId, "identity.session.reauthenticate", "Session", auth.Session.SessionId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.session.reauthenticate", "Session", auth.Session.SessionId, "Succeeded", null, traceId, now);
             CompleteReceipt(connection, transaction, receipt, "NoContent");
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
@@ -626,7 +626,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
             InsertOutbox(connection, transaction, row.UserId, $"identity.password-reset.completed:{row.TokenId:N}",
                 "Identity.PasswordResetCompleted", new { row.TokenId }, now);
             InsertSecurityNotification(connection, transaction, row.UserId, $"identity.password-reset.completed:{row.TokenId:N}", now);
-            InsertAudit(connection, transaction, null, row.PersonalSpaceId, "identity.account.reset_confirm", "User", row.UserId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, null, row.UserId, "identity.account.reset_confirm", "User", row.UserId, "Succeeded", null, traceId, now);
             CompleteReceipt(connection, transaction, receipt, "NoContent");
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
@@ -760,7 +760,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
             }
 
             var now = UtcNow();
-            InsertAudit(connection, transaction, auth.User.UserId, auth.User.PersonalSpaceId, "identity.profile.update", "User", auth.User.UserId, "Succeeded",
+            InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.profile.update", "User", auth.User.UserId, "Succeeded",
                 JsonSerializer.Serialize(new { fields }), traceId, now);
             var profile = LoadProfile(connection, transaction, auth.User.UserId);
             var rowVersion = LoadRowVersion(connection, transaction, auth.User.UserId);
@@ -855,7 +855,7 @@ WHERE [Id] = @sessionId AND [UserId] = @userId;");
                 return Failure<object?>("ResourceUnavailable", 404, "Session unavailable.");
             }
 
-            InsertAudit(connection, transaction, auth.User.UserId, auth.User.PersonalSpaceId, "identity.session.revoke_session", "Session", sessionId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.session.revoke_session", "Session", sessionId, "Succeeded", null, traceId, now);
             CompleteReceipt(connection, transaction, receipt, "NoContent");
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
@@ -896,7 +896,7 @@ UPDATE [identity].[Session] SET [RevokedAt] = COALESCE([RevokedAt], @now)
 WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
                 ("@now", SqlDbType.DateTime2, (object)now),
                 ("@userId", SqlDbType.UniqueIdentifier, (object)auth.User.UserId));
-            InsertAudit(connection, transaction, auth.User.UserId, auth.User.PersonalSpaceId, "identity.session.revoke_all", "User", auth.User.UserId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.session.revoke_all", "User", auth.User.UserId, "Succeeded", null, traceId, now);
             CompleteReceipt(connection, transaction, receipt, "NoContent");
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
@@ -983,7 +983,7 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
                 ("@userId", SqlDbType.UniqueIdentifier, (object)auth.User.UserId));
             InsertOutbox(connection, transaction, auth.User.UserId, $"identity.account.soft-delete:{auth.User.UserId:N}",
                 "Identity.AccountSoftDeleted", new { userId = auth.User.UserId }, now);
-            InsertAudit(connection, transaction, auth.User.UserId, auth.User.PersonalSpaceId, "identity.account.soft_delete", "User", auth.User.UserId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, auth.User.UserId, auth.User.UserId, "identity.account.soft_delete", "User", auth.User.UserId, "Succeeded", null, traceId, now);
             CompleteReceipt(connection, transaction, receipt, "NoContent");
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
@@ -1109,7 +1109,7 @@ INSERT INTO [identity].[UserRole] ([UserId], [RoleId])
 SELECT @userId, [Id] FROM [identity].[Role] WHERE [Code] = 'SuperAdmin';",
                 ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0));
             GrantReadyModules(connection, transaction, userId, now);
-            InsertAudit(connection, transaction, userId, spaceId, "identity.superadmin.bootstrap", "User", userId, "Succeeded", null, traceId, now);
+            InsertAudit(connection, transaction, userId, userId, "identity.superadmin.bootstrap", "User", userId, "Succeeded", null, traceId, now);
             ExecuteNonQuery(connection, transaction, @"
 UPDATE [platform].[SecurityInvariant]
 SET [BootstrapCompletedAt] = @now, [UpdatedAt] = @now

@@ -1,6 +1,7 @@
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Notifications;
@@ -103,7 +104,7 @@ public sealed class SqlNotificationService : INotificationService
             var updated = ReadNotification(connection, transaction, actor, notificationId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<NotificationRecord>("PersistenceFailure", 500, "Notification could not be loaded after update."); }
             WriteAudit(connection, transaction, actor, notificationId, command.Read ? "notifications.inbox.mark_read" : "notifications.inbox.mark_unread", traceId);
-            CompleteReceipt(connection, transaction, receipt, "NotificationReadStateUpdated");
+            CompleteReceipt(connection, transaction, receipt, "NotificationReadStateUpdated", 200, JsonSerializer.Serialize(updated));
             transaction.Commit();
             return IdentityOperationResult<NotificationRecord>.Success(updated);
         }
@@ -118,26 +119,27 @@ public sealed class SqlNotificationService : INotificationService
         string? idempotencyKey = null, string? traceId = null)
     {
         if (!ModuleAvailable(actor, "FX06", "notifications.inbox.mark_all_read")) return ModuleUnavailable<NotificationMarkAllReadResult>();
-        var watermark = DateTime.UtcNow;
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<NotificationMarkAllReadResult>(connection, transaction, actor,
             "notifications.inbox.mark_all_read", idempotencyKey,
-            $"watermark:{watermark:O}", out var receipt);
+            "mark-all-read:v1", out var receipt);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         try
         {
+            var watermark = DateTime.UtcNow;
             using var update = connection.CreateCommand();
             update.Transaction = transaction;
             update.CommandText = "UPDATE [notifications].[Notification] SET [ReadAt] = COALESCE([ReadAt], @Watermark) WHERE [OwnerUserId] = @UserId AND [DeletedAt] IS NULL AND [ReadAt] IS NULL AND [CreatedAt] <= @Watermark;";
             Add(update, "@UserId", SqlDbType.UniqueIdentifier, actor.UserId);
             Add(update, "@Watermark", SqlDbType.DateTime2, watermark);
             var updatedCount = update.ExecuteNonQuery();
+            var result = new NotificationMarkAllReadResult(new DateTimeOffset(watermark, TimeSpan.Zero), updatedCount);
             WriteAudit(connection, transaction, actor, null, "notifications.inbox.mark_all_read", traceId);
-            CompleteReceipt(connection, transaction, receipt, "NotificationsMarkedRead");
+            CompleteReceipt(connection, transaction, receipt, "NotificationsMarkedRead", 200, JsonSerializer.Serialize(result));
             transaction.Commit();
-            return IdentityOperationResult<NotificationMarkAllReadResult>.Success(new NotificationMarkAllReadResult(new DateTimeOffset(watermark, TimeSpan.Zero), updatedCount));
+            return IdentityOperationResult<NotificationMarkAllReadResult>.Success(result);
         }
         catch (SqlException exception)
         {
@@ -175,7 +177,7 @@ public sealed class SqlNotificationService : INotificationService
                 $"UPDATE [notifications].[Notification] SET [DeletedAt] = COALESCE([DeletedAt], SYSUTCDATETIME()) WHERE [OwnerUserId] = @UserId AND [Id] IN ({string.Join(',', names)}) AND [DeletedAt] IS NULL;",
                 parameters.ToArray());
             WriteAudit(connection, transaction, actor, null, "notifications.inbox.delete", traceId);
-            CompleteReceipt(connection, transaction, receipt, "NotificationsDeleted");
+            CompleteReceipt(connection, transaction, receipt, "NotificationsDeleted", 204, null);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent();
         }
@@ -236,7 +238,7 @@ public sealed class SqlNotificationService : INotificationService
             WriteAudit(connection, transaction, actor, notificationId, "notifications.dispatch.publish", traceId);
             var created = ReadNotification(connection, transaction, actor with { UserId = recipientId, OwnerId = actor.OwnerId }, notificationId, forUpdate: false, ownerUserIdOverride: recipientId);
             if (created is null) { transaction.Rollback(); return Failure<NotificationRecord>("PersistenceFailure", 500, "Notification could not be loaded after publish."); }
-            CompleteReceipt(connection, transaction, receipt, "NotificationPublished");
+            CompleteReceipt(connection, transaction, receipt, "NotificationPublished", 201, JsonSerializer.Serialize(created));
             transaction.Commit();
             return IdentityOperationResult<NotificationRecord>.Success(created, 201, "NotificationPublished");
         }
@@ -311,16 +313,34 @@ public sealed class SqlNotificationService : INotificationService
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
+        if (claim.IsInvalid)
+            return Failure<T>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay && claim.ResultStatusCode == 204)
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+        if (claim.IsReplay && claim.ResultJson is not null)
+        {
+            try
+            {
+                var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+                if (value is not null)
+                {
+                    return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+                }
+            }
+            catch (JsonException) { }
+            catch (NotSupportedException) { }
+        }
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) => _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? resultStatusCode = null, string? resultJson = null) => _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid? targetId, string action, string? traceId) =>
         Execute(connection, transaction,
             "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'notifications.Notification', @Target, 'Succeeded', @TraceId);",
-            ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.OwnerId),
+            ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.UserId),
             ("@Action", SqlDbType.NVarChar, (object)action), ("@Target", SqlDbType.UniqueIdentifier, (object?)targetId ?? DBNull.Value), ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
 
     private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql, params (string Name, SqlDbType Type, object Value)[] parameters)

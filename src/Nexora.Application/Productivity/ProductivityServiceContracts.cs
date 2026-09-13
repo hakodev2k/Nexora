@@ -38,13 +38,14 @@ public sealed record TaskCommand(
     DateTimeOffset? DueAt,
     DateTimeOffset? StartAt = null,
     DateTimeOffset? EndAt = null,
-    string Priority = "P3",
+    string? Priority = null,
     string? TagsJson = null,
     string? AcceptanceCriteriaJson = null,
     int Rank = 0,
     DateTimeOffset? ReminderAt = null,
     string? TransitionReason = null,
-    bool ConfirmProjectTimeBounds = false);
+    bool ConfirmProjectTimeBounds = false,
+    bool ManageReminder = false);
 
 public sealed record TaskRecord(
     Guid Id,
@@ -58,7 +59,7 @@ public sealed record TaskRecord(
     string ETag,
     DateTimeOffset? StartAt = null,
     DateTimeOffset? EndAt = null,
-    string Priority = "P3",
+    string? Priority = null,
     string? TagsJson = null,
     string? AcceptanceCriteriaJson = null,
     int Rank = 0,
@@ -97,19 +98,22 @@ public sealed record EventPage(IReadOnlyList<EventRecord> Items, string? NextCur
 
 public interface IProductivityService
 {
-    IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null);
+    IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null, string? cursor = null);
+    IdentityOperationResult<ProjectRecord> GetProject(IdentityPrincipal actor, Guid projectId);
     IdentityOperationResult<ProjectRecord> CreateProject(IdentityPrincipal actor, ProjectCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<ProjectRecord> UpdateProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, ProjectCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null, bool confirmed = false);
     IdentityOperationResult<object?> DeleteProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string? idempotencyKey = null, string? traceId = null);
 
-    IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null);
+    IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null, string? cursor = null);
+    IdentityOperationResult<TaskRecord> GetTask(IdentityPrincipal actor, Guid taskId);
     IdentityOperationResult<TaskRecord> CreateTask(IdentityPrincipal actor, TaskCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<TaskRecord> TransitionTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<object?> DeleteTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string? idempotencyKey = null, string? traceId = null);
 
-    IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null);
+    IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null, string? cursor = null);
+    IdentityOperationResult<EventRecord> GetEvent(IdentityPrincipal actor, Guid eventId);
     IdentityOperationResult<EventRecord> CreateEvent(IdentityPrincipal actor, EventCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<EventRecord> TransitionEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string status, string? idempotencyKey = null, string? traceId = null);

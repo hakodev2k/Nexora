@@ -618,7 +618,7 @@ public sealed class SqlGoalService : IGoalService
             VALUES (@ActorUserId, @OwnerUserId, @ActionKey, @TargetType, @TargetId, 'Succeeded', @TraceId);
             """,
         ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
-        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
+        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
         ("@ActionKey", SqlDbType.NVarChar, actionKey, null),
         ("@TargetType", SqlDbType.NVarChar, targetType, null),
         ("@TargetId", SqlDbType.UniqueIdentifier, targetId, null),

@@ -13,10 +13,15 @@ public static class ProductivityEndpoints
         var api = app.MapGroup("/api/v1")
             .RequireCsrfForUnsafeMethods();
 
-        api.MapGet("/projects", (HttpContext context, int? limit, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+        api.MapGet("/projects", (HttpContext context, int? limit, string? cursor, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.ListProjects(principal, limit), value => new ProjectPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
+                service.ListProjects(principal, limit, cursor), value => new ProjectPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listProjects");
+
+        api.MapGet("/projects/{projectId:guid}", (HttpContext context, Guid projectId, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                service.GetProject(principal, projectId), ToResponse))
+            .WithName("getProject");
 
         api.MapPost("/projects", (HttpContext context, ProjectRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
@@ -38,19 +43,24 @@ public static class ProductivityEndpoints
                 service.DeleteProject(principal, projectId, context.Request.Headers.IfMatch.ToString(), IdempotencyKey(context), context.TraceIdentifier), _ => (object?)null))
             .WithName("deleteProject");
 
-        api.MapGet("/tasks", (HttpContext context, Guid? projectId, int? limit, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+        api.MapGet("/tasks", (HttpContext context, Guid? projectId, int? limit, string? cursor, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.ListTasks(principal, projectId, limit), value => new TaskPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
+                service.ListTasks(principal, projectId, limit, cursor), value => new TaskPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listTasks");
+
+        api.MapGet("/tasks/{taskId:guid}", (HttpContext context, Guid taskId, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                service.GetTask(principal, taskId), ToResponse))
+            .WithName("getTask");
 
         api.MapPost("/tasks", (HttpContext context, TaskRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.CreateTask(principal, new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.CreateTask(principal, new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds, ManageReminder: request.ManageReminder), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("createTask");
 
         api.MapPut("/tasks/{taskId:guid}", (HttpContext context, Guid taskId, TaskRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.UpdateTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.UpdateTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds, ManageReminder: request.ManageReminder), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("updateTask");
 
         api.MapPost("/tasks/{taskId:guid}/transition", (HttpContext context, Guid taskId, ProductivityTransitionRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
@@ -63,10 +73,15 @@ public static class ProductivityEndpoints
                 service.DeleteTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), IdempotencyKey(context), context.TraceIdentifier), _ => (object?)null))
             .WithName("deleteTask");
 
-        api.MapGet("/calendar/events", (HttpContext context, DateTimeOffset? from, DateTimeOffset? to, int? limit, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+        api.MapGet("/calendar/events", (HttpContext context, DateTimeOffset? from, DateTimeOffset? to, int? limit, string? cursor, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.ListEvents(principal, from, to, limit), value => new EventPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
+                service.ListEvents(principal, from, to, limit, cursor), value => new EventPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listEvents");
+
+        api.MapGet("/calendar/events/{eventId:guid}", (HttpContext context, Guid eventId, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                service.GetEvent(principal, eventId), ToResponse))
+            .WithName("getEvent");
 
         api.MapPost("/calendar/events", (HttpContext context, EventRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>

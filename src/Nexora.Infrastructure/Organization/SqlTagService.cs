@@ -361,7 +361,7 @@ public sealed class SqlTagService : ITagService
             VALUES (@ActorUserId, @OwnerUserId, @ActionKey, N'organization.Tag', @TargetId, 'Succeeded', @TraceId);
             """,
         ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId),
-        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.OwnerId),
+        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.UserId),
         ("@ActionKey", SqlDbType.NVarChar, actionKey),
         ("@TargetId", SqlDbType.UniqueIdentifier, targetId),
         ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));

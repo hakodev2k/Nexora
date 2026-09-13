@@ -1,6 +1,7 @@
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Bookmarks;
 using Nexora.Application.Identity;
@@ -57,6 +58,18 @@ public sealed class SqlBookmarkService : IBookmarkService
         return IdentityOperationResult<BookmarkPage>.Success(new BookmarkPage(items, null));
     }
 
+    public IdentityOperationResult<BookmarkRecord> Get(IdentityPrincipal actor, Guid bookmarkId)
+    {
+        if (!ModuleAvailable(actor, "FX21", "bookmarks.bookmark.read")) return ModuleUnavailable<BookmarkRecord>();
+        if (bookmarkId == Guid.Empty) return Failure<BookmarkRecord>("ResourceUnavailable", 404, "Bookmark unavailable.");
+        using var connection = _connections.Create();
+        connection.Open();
+        var bookmark = Read(connection, null, actor.OwnerId, bookmarkId, forUpdate: false);
+        return bookmark is null || bookmark.Status == "Deleted"
+            ? Failure<BookmarkRecord>("ResourceUnavailable", 404, "Bookmark unavailable.")
+            : IdentityOperationResult<BookmarkRecord>.Success(bookmark);
+    }
+
     public IdentityOperationResult<BookmarkRecord> Create(IdentityPrincipal actor, BookmarkCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
@@ -92,7 +105,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             var created = Read(connection, transaction, actor.OwnerId, id, forUpdate: false);
             if (created is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after creation."); }
             WriteAudit(connection, transaction, actor, id, "bookmarks.bookmark.create", traceId);
-            CompleteReceipt(connection, transaction, receipt, "BookmarkCreated");
+            CompleteReceipt(connection, transaction, receipt, "BookmarkCreated", 201, JsonSerializer.Serialize(created));
             transaction.Commit();
             return IdentityOperationResult<BookmarkRecord>.Success(created, 201, "BookmarkCreated");
         }
@@ -152,7 +165,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             var updated = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after update."); }
             WriteAudit(connection, transaction, actor, bookmarkId, "bookmarks.bookmark.update", traceId);
-            CompleteReceipt(connection, transaction, receipt, "BookmarkUpdated");
+            CompleteReceipt(connection, transaction, receipt, "BookmarkUpdated", 200, JsonSerializer.Serialize(updated));
             transaction.Commit();
             return IdentityOperationResult<BookmarkRecord>.Success(updated);
         }
@@ -209,7 +222,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             var updated = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after transition."); }
             WriteAudit(connection, transaction, actor, bookmarkId, action, traceId);
-            CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived");
+            CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived", 200, JsonSerializer.Serialize(updated));
             transaction.Commit();
             return IdentityOperationResult<BookmarkRecord>.Success(updated);
         }
@@ -264,7 +277,7 @@ public sealed class SqlBookmarkService : IBookmarkService
         reader.GetString(5), reader.IsDBNull(6) ? null : ToOffset(reader.GetDateTime(6)), reader.GetString(7),
         ToOffset(reader.GetDateTime(8)), ToOffset(reader.GetDateTime(9)), EncodeETag(reader.GetFieldValue<byte[]>(10)));
 
-    private static BookmarkRecord? Read(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid bookmarkId, bool forUpdate)
+    private static BookmarkRecord? Read(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid bookmarkId, bool forUpdate)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -282,16 +295,32 @@ public sealed class SqlBookmarkService : IBookmarkService
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
+        if (claim.IsInvalid)
+            return Failure<T>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay && claim.ResultStatusCode == 204)
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
+        if (claim.IsReplay && !string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            try
+            {
+                var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+                if (value is not null)
+                    return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+            }
+            catch (JsonException) { }
+            catch (NotSupportedException) { }
+        }
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? resultStatusCode = null, string? resultJson = null) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string actionKey, string? traceId) => Execute(connection, transaction,
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'knowledge.Bookmark', @Target, 'Succeeded', @TraceId);",
-        ("@Actor", SqlDbType.UniqueIdentifier, actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, actor.OwnerId),
+        ("@Actor", SqlDbType.UniqueIdentifier, actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, actor.UserId),
         ("@Action", SqlDbType.NVarChar, actionKey), ("@Target", SqlDbType.UniqueIdentifier, targetId),
         ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
 

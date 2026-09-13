@@ -44,7 +44,8 @@ public static class ReminderPolicy
         string? configType,
         DateTimeOffset? exactAt,
         DateTimeOffset sourceStartAt,
-        DateTimeOffset now)
+        DateTimeOffset now,
+        bool allowExpired = false)
     {
         var normalized = configType?.Trim();
         if (string.Equals(normalized, ReminderConfigurationTypes.None, StringComparison.Ordinal))
@@ -62,14 +63,14 @@ public static class ReminderPolicy
             }
 
             var dueAt = sourceStartAt.AddMinutes(-15);
-            return dueAt > now
+            return dueAt > now || allowExpired
                 ? Valid(dueAt)
                 : Invalid("ReminderPresetElapsed", "The preset reminder time has already passed.");
         }
 
         if (string.Equals(normalized, ReminderConfigurationTypes.Exact, StringComparison.Ordinal))
         {
-            return exactAt is { } value && value > now
+            return exactAt is { } value && (value > now || allowExpired)
                 ? Valid(value)
                 : Invalid("ReminderTimeInvalid", "An exact reminder time must be in the future.");
         }

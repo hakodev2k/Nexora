@@ -60,6 +60,7 @@ public sealed class SqlSearchService : ISearchService
 
         var candidates = new List<Candidate>();
         var providers = new List<SearchProviderStatus>();
+        var taskSourceAvailable = ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view");
         AddSource(connection, actor, normalizedType, "Project", "FX11", "projects.project.read", "projects.view",
             "/modules/FX11", """
             SELECT TOP (@Limit) p.[Id], p.[Name] AS [Title], p.[Description] AS [Snippet], p.[Status], p.[UpdatedAt],
@@ -91,12 +92,15 @@ public sealed class SqlSearchService : ISearchService
                    CONVERT(int, CASE WHEN e.[Title] = @Query THEN 0 WHEN e.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
             FROM [calendar].[Event] e WITH (NOLOCK)
+            LEFT JOIN [productivity].[Task] taskRow WITH (NOLOCK)
+              ON taskRow.[Id] = e.[TaskId] AND taskRow.[OwnerId] = e.[OwnerId]
             WHERE e.[OwnerId] = @OwnerId AND e.[Status] <> 'Deleted'
+              AND (e.[TaskId] IS NULL OR (@TaskSourceAvailable = 1 AND taskRow.[Id] IS NOT NULL AND taskRow.[Status] <> 'Deleted'))
               AND (@FromUtc IS NULL OR e.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR e.[UpdatedAt] < @ToUtc)
               AND (e.[Title] LIKE @Like ESCAPE N'\' OR e.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], e.[UpdatedAt] DESC, e.[Id] DESC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers, taskSourceAvailable);
         AddSource(connection, actor, normalizedType, "Document", "FX20", "documents.page.read", "documents.library.read",
             "/modules/FX20", """
             SELECT TOP (@Limit) p.[Id], p.[Title], LEFT(p.[Body], 512) AS [Snippet], p.[Status], p.[UpdatedAt],
@@ -166,7 +170,8 @@ public sealed class SqlSearchService : ISearchService
     private void AddSource(SqlConnection connection, IdentityPrincipal actor, string? requestedType,
         string resourceType, string moduleCode, string actionKey, string? legacyActionKey, string route,
         string sql, string query, string like, string starts, DateTime? fromUtc, DateTime? toUtc,
-        bool includeArchived, int limit, List<Candidate> candidates, List<SearchProviderStatus> providers)
+        bool includeArchived, int limit, List<Candidate> candidates, List<SearchProviderStatus> providers,
+        bool taskSourceAvailable = true)
     {
         if (requestedType is not null && !string.Equals(requestedType, resourceType, StringComparison.Ordinal))
             return;
@@ -190,6 +195,7 @@ public sealed class SqlSearchService : ISearchService
             Add(command, "@FromUtc", SqlDbType.DateTime2, (object?)fromUtc ?? DBNull.Value);
             Add(command, "@ToUtc", SqlDbType.DateTime2, (object?)toUtc ?? DBNull.Value);
             Add(command, "@IncludeArchived", SqlDbType.Bit, includeArchived);
+            Add(command, "@TaskSourceAvailable", SqlDbType.Bit, taskSourceAvailable);
             using var reader = command.ExecuteReader();
             var total = 0;
             while (reader.Read())
@@ -199,8 +205,9 @@ public sealed class SqlSearchService : ISearchService
                 var snippet = reader.IsDBNull(2) ? null : reader.GetString(2);
                 var status = reader.IsDBNull(3) ? null : reader.GetString(3);
                 var updatedAt = new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(4), DateTimeKind.Utc), TimeSpan.Zero);
-                candidates.Add(new Candidate(new SearchResult(reader.GetGuid(0), resourceType, moduleCode,
-                    title, SafeSnippet(snippet), status, updatedAt, route), reader.GetInt32(5)));
+                var resourceId = reader.GetGuid(0);
+                candidates.Add(new Candidate(new SearchResult(resourceId, resourceType, moduleCode,
+                    title, SafeSnippet(snippet), status, updatedAt, RouteFor(resourceType, resourceId)), reader.GetInt32(5)));
             }
             providers.Add(new SearchProviderStatus(resourceType, moduleCode, total == 0 ? "Empty" : "Ready", null, total));
         }
@@ -240,6 +247,9 @@ public sealed class SqlSearchService : ISearchService
             _ => null
         };
     }
+
+    private static string RouteFor(string resourceType, Guid resourceId) =>
+        $"/resources/{Uri.EscapeDataString(resourceType)}/{resourceId:N}";
 
     private static string EscapeLike(string value) => value
         .Replace("\\", "\\\\", StringComparison.Ordinal)

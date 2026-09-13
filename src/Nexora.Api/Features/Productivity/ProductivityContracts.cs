@@ -31,12 +31,13 @@ public sealed record TaskRequest(
     DateTimeOffset? DueAt,
     DateTimeOffset? StartAt = null,
     DateTimeOffset? EndAt = null,
-    string Priority = "P3",
+    string? Priority = null,
     string? TagsJson = null,
     string? AcceptanceCriteriaJson = null,
     int Rank = 0,
     DateTimeOffset? ReminderAt = null,
-    bool ConfirmProjectTimeBounds = false);
+    bool ConfirmProjectTimeBounds = false,
+    bool ManageReminder = false);
 
 public sealed record TaskResponse(
     Guid Id,
@@ -50,7 +51,7 @@ public sealed record TaskResponse(
     string ETag,
     DateTimeOffset? StartAt = null,
     DateTimeOffset? EndAt = null,
-    string Priority = "P3",
+    string? Priority = null,
     string? TagsJson = null,
     string? AcceptanceCriteriaJson = null,
     int Rank = 0,

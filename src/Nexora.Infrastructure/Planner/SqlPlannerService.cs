@@ -443,7 +443,7 @@ public sealed class SqlPlannerService : IPlannerService
             VALUES (@ActorUserId, @OwnerUserId, @ActionKey, @TargetType, @TargetId, 'Succeeded', @TraceId);
             """,
         ("@ActorUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
-        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
+        ("@OwnerUserId", SqlDbType.UniqueIdentifier, actor.UserId, null),
         ("@ActionKey", SqlDbType.NVarChar, actionKey, 160),
         ("@TargetType", SqlDbType.NVarChar, targetType, 100),
         ("@TargetId", SqlDbType.UniqueIdentifier, targetId, null),
