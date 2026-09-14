@@ -1,6 +1,14 @@
 # FX-14 — Reminders / Scheduling — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287`.
+
+Local implementation note — 2026-09-11: the bounded local slice is available
+at `/modules/FX14`. It offers a server-authorized source picker for active
+Tasks and manual Calendar Events, None/15-minute/exact configuration, source
+and reminder ETag conflict handling, and the local delivery-state projection.
+The picker is deliberately a module screen rather than an embedded source-form
+field for this batch; no provider delivery, standalone reminder, snooze or
+recurrence is implied. SQL/browser interaction evidence remains `Not run`.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
 

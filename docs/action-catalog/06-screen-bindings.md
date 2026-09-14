@@ -74,10 +74,10 @@
 | FX15-S01 — Daily planner | `/planner?view=day` | Current / per-action gate | `planner.plan.read`, `planner.plan.pin`, `planner.plan.unpin`, `planner.plan.reorder`, `planner.plan.notes` |
 | FX15-S02 — Weekly planner | `/planner?view=week` | Current / per-action gate | `planner.plan.read`, `planner.plan.reschedule` |
 | FX15-S03 — Plan Task picker | `/planner/add` | Current / per-action gate | `planner.plan.pin` |
-| FX16-S01 — Goal list | `/goals` | Current / per-action gate | `goals.goal.read`, `goals.goal.create`, `goals.goal.archive`, `goals.goal.unarchive`, `goals.goal.trash`, `goals.goal.restore`, `goals.goal.purge` |
-| FX16-S02 — Goal create / edit | `/goals/new; /goals/:goalId/edit` | Current / per-action gate | `goals.goal.create`, `goals.goal.update` |
-| FX16-S03 — Goal detail | `/goals/:goalId` | Current / per-action gate | `goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`, `goals.goal.reopen`, `goals.target.read`, `goals.target.create`, `goals.target.update`, `goals.target.remove`, `goals.target.link_task`, `goals.target.unlink_task`, `goals.progress.read`, `goals.goal.history`, `goals.target.record_progress` |
-| FX16-S04 — Progress update | `/goals/:goalId/progress` | Current / per-action gate | `goals.target.record_progress` |
+| FX16-S01 — Goal list | `/goals` | Local numeric slice / per-action gate | `goals.goal.read`, `goals.goal.create` (archive/trash rows remain gated) |
+| FX16-S02 — Goal create / edit | `/goals/new; /goals/:goalId/edit` | Local numeric slice / per-action gate | `goals.goal.create`, `goals.goal.update`, `goals.target.create` (numeric target only) |
+| FX16-S03 — Goal detail | `/goals/:goalId` | Local numeric slice / per-action gate | `goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`, `goals.goal.reopen`, `goals.target.read` |
+| FX16-S04 — Progress update | `/goals/:goalId/progress` | Local numeric slice / per-action gate | `goals.target.record_progress` |
 | FX17-S01 — Today habits | `/habits/today` | Current / per-action gate | `habits.habit.read`, `habits.checkin.record`, `habits.checkin.correct` |
 | FX17-S02 — Habit library | `/habits` | Current / per-action gate | `habits.habit.read`, `habits.habit.pause`, `habits.habit.resume`, `habits.habit.archive`, `habits.habit.unarchive`, `habits.habit.trash`, `habits.habit.restore`, `habits.habit.purge` |
 | FX17-S03 — Habit form | `/habits/new; /habits/:habitId/edit` | Current / per-action gate | `habits.habit.create`, `habits.habit.update`, `habits.habit.schedule`, `habits.habit.set_reminder` |
@@ -106,19 +106,19 @@
 | FX22-S01 — Snippet list | `/snippets` | Current / per-action gate | `snippets.snippet.read`, `snippets.snippet.create`, `snippets.snippet.archive`, `snippets.snippet.unarchive`, `snippets.snippet.trash`, `snippets.snippet.restore`, `snippets.snippet.purge` |
 | FX22-S02 — Snippet editor | `/snippets/new; /snippets/:snippetId/edit` | Current / per-action gate | `snippets.snippet.create`, `snippets.snippet.save` |
 | FX22-S03 — Snippet detail / history | `/snippets/:snippetId; /snippets/:snippetId/history` | Current / per-action gate | `snippets.snippet.read`, `snippets.snippet.history`, `snippets.snippet.restore_version`, `snippets.snippet.share`, `snippets.snippet.copy`, `snippets.snippet.export` |
-| FX23-S01 — Reading queue | `/read-later` | Current / per-action gate | `reading.queue.read`, `reading.item.save`, `reading.item.remove`, `reading.item.read`, `reading.item.unread` |
-| FX23-S02 — Reader | `/read-later/:itemId` | Current / per-action gate | `reading.queue.read`, `reading.item.read`, `reading.item.unread`, `reading.item.position` |
-| FX23-S03 — Unavailable reading sources | `/read-later?availability=unavailable` | Current / per-action gate | `reading.queue.read`, `reading.item.remove` |
-| FX24-S01 — Tag management | `/organize/tags?namespace=:namespace` | Current / per-action gate | `organization.tag.read`, `organization.tag.create`, `organization.tag.rename`, `organization.tag.remove`, `organization.tag.assign` |
+| FX23-S01 — Reading queue | `/read-later` | Local slice / per-action gate | `reading.queue.read`, `reading.item.save`, `reading.item.remove`, `reading.item.read`, `reading.item.unread`, `reading.item.position` |
+| FX23-S02 — Reader | `/read-later/:itemId` | Contract-gated; no body reader in local slice | `reading.queue.read`, `reading.item.read`, `reading.item.unread`, `reading.item.position` |
+| FX23-S03 — Unavailable reading sources | `/read-later?availability=unavailable` | Local queue projection / per-action gate | `reading.queue.read`, `reading.item.remove` |
+| FX24-S01 — Tag management | `/organize/tags?namespace=:namespace` | Local Tag catalog slice / per-action gate | `organization.tag.read`, `organization.tag.create`, `organization.tag.rename`, `organization.tag.remove`; assignment remains gated |
 | FX24-S02 — Collections | `/organize/collections` | Current / per-action gate | `organization.collection.read`, `organization.collection.create`, `organization.collection.update`, `organization.collection.delete` |
 | FX24-S03 — Collection detail | `/organize/collections/:collectionId` | Current / per-action gate | `organization.collection.add`, `organization.collection.remove`, `organization.collection.reorder`, `organization.collection.share` |
 | FX24-S04 — Templates | `/organize/templates` | Current / per-action gate | `organization.template.read`, `organization.template.create`, `organization.template.update`, `organization.template.archive`, `organization.template.unarchive`, `organization.template.trash`, `organization.template.restore`, `organization.template.purge` |
 | FX24-S05 — Template preview / apply | `/organize/templates/:templateId` | Current / per-action gate | `organization.template.instantiate` |
-| FX25-S01 — Global Search | `/search` | Current / per-action gate | `discovery.search.query` |
+| FX25-S01 — Global Search | `/search` | Local source-query search / per-action gate | `discovery.search.query` (implemented) |
 | FX25-S02 — Command palette | `/command-palette` | Current / per-action gate | `discovery.command.read`, `discovery.command.execute` |
-| FX25-S03 — Favorites / recents | `/favorites; /recent` | Current / per-action gate | `discovery.favorite.read`, `discovery.favorite.add`, `discovery.favorite.remove`, `discovery.favorite.reorder`, `discovery.recent.read`, `discovery.recent.clear` |
+| FX25-S03 — Favorites / recents | `/favorites; /recent` | Local Favorites typed-reference slice; Recents remain gated | `discovery.favorite.read`, `discovery.favorite.add`, `discovery.favorite.remove`, `discovery.favorite.reorder` (implemented); `discovery.recent.read`, `discovery.recent.clear` (gated) |
 | FX25-S04 — Saved searches | `/search/saved` | Current / per-action gate | `discovery.saved_search.read`, `discovery.saved_search.create`, `discovery.saved_search.update`, `discovery.saved_search.delete`, `discovery.saved_search.run` |
-| FX26-S01 — Home dashboard | `/` | Current / per-action gate | `dashboard.dashboard.read`, `dashboard.widget.refresh`, `dashboard.quick_create.open` |
+| FX26-S01 — Home dashboard | `/` | Local attention projection / per-action gate | `dashboard.dashboard.read` (implemented); `dashboard.widget.refresh`, `dashboard.quick_create.open` (gated) |
 | FX26-S02 — Dashboard configuration | `/settings/dashboard` | Current / per-action gate | `dashboard.layout.update`, `dashboard.layout.add_widget`, `dashboard.layout.configure_widget`, `dashboard.layout.remove_widget`, `dashboard.layout.reorder_widget` |
 | FX27-S01 — Finance overview | `/finance` | Historical advanced scope / Blocked | `finance.report.read` |
 | FX27-S02 — Accounts | `/finance/accounts` | Historical advanced scope / Blocked | `finance.account.read`, `finance.account.close` |
@@ -155,8 +155,8 @@
 | FX31-S05 — Sellers / merge | `/shopping/sellers; /shopping/sellers/:sellerId/merge` | Current / per-action gate | `shopping.seller.read`, `shopping.seller.create`, `shopping.seller.update`, `shopping.seller.merge` |
 | FX31-S06 — Warranty detail / claims | `/shopping/warranties/:warrantyId` | Current / per-action gate | `shopping.warranty.read`, `shopping.warranty.create`, `shopping.warranty.update`, `shopping.warranty.evidence` |
 | FX31-S07 — Create Asset handoff | `/shopping/orders/:orderId/create-asset` | Current / per-action gate | `shopping.purchase.create_asset` |
-| FX32-S01 — Tool catalog | `/developer/tools` | Current / per-action gate | `toolbox.catalog.read` |
-| FX32-S02 — Tool workbench | `/developer/tools/:toolCode` | Current / per-action gate | `toolbox.base64.run`, `toolbox.url_codec.run`, `toolbox.html_codec.run`, `toolbox.hash.run`, `toolbox.password.run`, `toolbox.uuid.run`, `toolbox.datetime.run`, `toolbox.json.run`, `toolbox.xml.run`, `toolbox.yaml.run`, `toolbox.csv.run`, `toolbox.data_convert.run`, `toolbox.regex.run`, `toolbox.text_diff.run`, `toolbox.color.run`, `toolbox.qr.run`, `toolbox.jwt.run`, `toolbox.cron.run`, `toolbox.markdown.run`, `toolbox.code_format.run`, `toolbox.url_parse.run`, `toolbox.headers.run`, `toolbox.certificate.run`, `toolbox.output.copy`, `toolbox.output.download`, `toolbox.output.save_snippet` |
+| FX32-S01 — Tool catalog | `/developer/tools` | Local slice / per-action gate | `toolbox.catalog.read` |
+| FX32-S02 — Tool workbench | `/developer/tools/:toolCode` | Local pure subset / per-action gate | `toolbox.base64.run`, `toolbox.url_codec.run`, `toolbox.html_codec.run`, `toolbox.hash.run`, `toolbox.password.run`, `toolbox.uuid.run`, `toolbox.json.run`, `toolbox.regex.run` |
 | FX32-S03 — Tool history / favorites | `/developer/tools/saved` | Current / per-action gate | `toolbox.history.read`, `toolbox.history.save`, `toolbox.history.delete` |
 | FX32-S04 — Network request preview | `/developer/tools/:toolCode/network-preview` | Current / per-action gate | `toolbox.network.http`, `toolbox.network.dns` |
 | FX33-S01 — Discovery feed | `/developer/github` | Current / per-action gate | `github.repository.search` |

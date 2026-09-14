@@ -1,45 +1,42 @@
 # Paused / blocked / gated register — pre-implementation
 
-2026-09-09 · Docs-only clarification layer. This document authorizes no application code, migration, runtime test, provider call, production deployment, production data access or secret access by itself.
+> **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
 
-This register clarifies the effective meaning of `Paused`, `Blocked`, `Gated`, `Resolved delegated`, and `Approved for M01` after `DEC-20260909-001` through `DEC-20260909-013`. If an older catalog row still says `Blocked Q-*`, `DEP-EXT-01 boundary needs clarification`, or `no implementation approved`, read that row through this register until the catalog is regenerated. This file may narrow availability; it never expands the approved implementation boundary.
+
+2026-09-10 · Current interpretation layer. DEC-20260909-014 permits local/simulated code when contracts are sufficient; this document authorizes no provider call, production deployment, production data access or secret access by itself. The current run is code-only and does not add tests/mock/demo data.
+
+This register clarifies the effective meaning of `Paused`, `Blocked`, `Gated`, `Resolved delegated`, and `Approved for M01` after `DEC-20260909-001` through `DEC-20260909-014`. If an older catalog row still says `Blocked Q-*`, `DEP-EXT-01 boundary needs clarification`, or `no implementation approved`, read that row through this register until the catalog is regenerated. DEC-014 permits local implementation after contract completion; it never expands real-provider or production permission.
 
 ## Status vocabulary
 
 | Status | Meaning | Implementation rule |
 | --- | --- | --- |
-| `APPROVED_FOR_M01` | Current PO approval covers the exact M01 story/action/acceptance set plus the supporting scaffold/scripts. | May be implemented now only when the change maps to `DEC-20260909-001` and M01 S00-S11. |
-| `DESIGN_RESOLVED_NOT_APPROVED_NOW` | The requirement/action contract is designed, but the current approval does not cover implementing it. | Keep docs as design authority; future code needs a bounded implementation approval. |
+| `APPROVED_FOR_M01` | Historical label for the exact M01 story/action/acceptance set. | Implementable locally; current execution/testing restrictions still apply. |
+| `DESIGN_RESOLVED_NOT_APPROVED_NOW` | The requirement/action contract is designed but incomplete for a safe slice. | Complete API/DB/UX/acceptance/security/evidence contract; DEC-014 then permits local code without repeated PO approval. |
 | `POLICY_APPROVED_IMPLEMENTATION_GATED` | Product policy is decided, but exact API/DB/UX/security/evidence contract or slice approval is still missing. | Do not code until the named implementation gate is closed. |
-| `PO_PAUSED` | Product Owner explicitly paused the capability. | No active UI, handler, worker, provider call, default enablement, alert or support surface. Resume requires explicit PO decision. |
+| `PO_PAUSED` | Product Owner explicitly paused real/provider execution. | Local/simulated/integration-safe code may exist under DEC-014, but no real provider call, worker side effect or default enablement. |
 | `NETWORK_GUARD_GATED` | Read-only outbound policy exists only for named capabilities and only under strict guard evidence. | Do not run outbound code until a future slice defines allowlist, SSRF, redirect/payload limits, timeouts, retries, rate limits and degraded states. |
 | `SENSITIVE_PROJECTION_GATED` | General sensitive-share/support policy is approved, but concrete field projections are not defined for the resource. | Do not expose share/support payloads until field-level allowlists and tests exist. |
 | `PRODUCTION_OPS_GATED` | The capability depends on production provider, capacity, RPO/RTO/SLA, backup/restore or operational approval. | Local docs/scaffold do not satisfy this; close Local Stable first, then run production Go/No-Go. |
 | `SUPERSEDED` | Historical or retired action kept for traceability. | No UI, handler or migration target should be created for it. |
 
-## Absolute implementation boundary before first code
+## Absolute implementation boundary
 
-Only `APPROVED_FOR_M01` is implementable now.
+Any exact Release 1 slice with a sufficient contract is implementable locally under DEC-014.
 
 Allowed now:
 
-- M01 stories S00-S11.
-- Backend scaffold required for M01.
-- React frontend scaffold required for M01.
-- Local scripts/runbook artifacts required for M01 evidence.
-- Synthetic local fixtures, local SQL Server, optional Redis cache and captured/simulated notification transports.
+- Local backend/frontend code, SQL migrations, scripts and captured/simulated transports.
+- A real local operator bootstrap; no demo business seed.
 
 Denied now:
 
-- Full Phase 1 or full Release 1.
 - Production deployment, public launch, provider spend, domain purchase, production secrets or production data.
-- Business modules outside M01.
-- Paused modules, paused workers and paused provider surfaces.
 - Real OAuth, provider writes, payments, executable third-party integrations, webhook runtime or n8n runtime.
 
 ## Effective PO-paused capabilities
 
-These are not blocked because of missing technical detail; they are intentionally paused by Product Owner.
+These are not eligible for real-provider execution because they are intentionally paused by Product Owner. DEC-014 allows only local/simulated/integration-safe implementation with disabled-by-default behavior.
 
 | Capability | Catalog rows | Effective state | Exact effect |
 | --- | ---: | --- | --- |
@@ -89,7 +86,7 @@ A future slice may convert a gated row to implementable only when all of these e
 4. DB/migration/transaction plan with owner isolation and rollback/restore effect.
 5. UX/screen flow and unavailable/denied/degraded states.
 6. Security/privacy review where the slice touches auth, secrets, support/share, outbound network, finance or personal data.
-7. Tests and evidence expectations before `Implemented`, `Verified locally` or `Production-ready` can be claimed.
+7. Evidence expectations before `Implemented`, `Verified locally` or `Production-ready` can be claimed. The current code-only run adds no new test suites; functional tests/QA remain owner-owned.
 
 ## Agent pre-flight checklist
 
@@ -108,7 +105,7 @@ If a module file and this register appear to disagree, use the stricter rule and
 | Scope | Status |
 | --- | --- |
 | M01 + backend/frontend scaffold + local scripts | Go for implementation after PR merge/branch usage, still requires runtime evidence. |
-| Full Phase 1 | No-go until later bounded approval and slice contracts. |
-| Full Release 1 | No-go until every committed capability has implementation approval, code and evidence or a PO scope revision. |
+| Full Phase 1 | Slice-by-slice local implementation allowed when contracts are sufficient; not verified by this code-only run. |
+| Full Release 1 | Local implementation may proceed slice-by-slice; no claim of complete/verified R1 until owner evidence exists for every committed capability. |
 | Production/public launch | No-go until Local Stable evidence plus production provider/capacity/RPO/RTO/SLA approval. |
-| FX30/FX34/FX35 | No-go; explicitly paused. |
+| FX30/FX34/FX35 real providers/workers | No-go; local-safe disabled code only. |

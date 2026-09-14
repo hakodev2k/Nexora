@@ -2,7 +2,7 @@
 
 Product phase: **P03** · Delivery: **RM09** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-22 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** Text/version subset `SLICE_IMPLEMENTED (local)`; history/export/share/advanced lifecycle chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-22 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Mục tiêu và bằng chứng chấp nhận
 
@@ -22,7 +22,8 @@ Product phase: **P03** · Delivery: **RM09** · Phase 8/RM16–RM22 kiểm chứ
 ## Traceability và kiểm chứng
 
 - [Feature/BR/AC nguồn](../../features/22-snippets.md) — đọc toàn bộ field/state/validation và trace requirements tại đó.
-- [Action contracts](../../action-catalog/modules/22-snippets.md) — exact action keys, contexts, prerequisites, status/gate; catalog có 14 rows: Resolved delegated: 14. Đây là inventory, không phải coverage đã pass.
+- [Action contracts](../../action-catalog/modules/22-snippets.md) — exact action keys, contexts, prerequisites, status/gate; five text/version rows are `SLICE_IMPLEMENTED (local)`, other rows remain gated. Đây là implementation status, không phải runtime coverage.
+- [Text/version slice evidence](../../implementation/snippets-text-slice.md) — API/DB/security/UI boundary and verification ownership.
 - [UX/screens](../../ux-ui/modules/22-snippets.md) — luồng màn hình, disabled/loading/error và interaction contracts.
 - [DB binding](../../design-database/16-action-catalog-binding.md), [DB integrity tests](../../design-database/13-query-and-invariant-tests.md), [field classification](../../design-database/15-field-classification.md).
 - AC hiện hành cần kế thừa: `FX-22-AC-001`, `FX-22-AC-002`, `FX-22-AC-003`. Cộng source requirement AC, POAC liên quan và [cross-module journeys](../04-cross-module-verification.md); danh sách này không thay test plan đầy đủ.

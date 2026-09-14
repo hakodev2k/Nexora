@@ -1,0 +1,34 @@
+name: Nexora local implementation checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  m01-s00:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify local implementation boundaries
+        run: bash scripts/dev/verify.sh
+      - name: Build API and local bootstrap utility
+        run: |
+          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release
+          dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release
+      - name: Run existing unit checks
+        run: dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release
+      - name: Build frontend (typecheck + production bundle)
+        run: npm ci --prefix web/Nexora.Web && npm run build --prefix web/Nexora.Web
