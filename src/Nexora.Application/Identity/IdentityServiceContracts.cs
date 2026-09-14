@@ -120,3 +120,39 @@ public interface IAccountMessageSink
 {
     void Publish(LocalAccountMessage message);
 }
+
+/// <summary>
+/// Effect boundary for the approved local account-message transport. A worker
+/// must present the SQL lease fence and a just-in-time authority check before
+/// a capture becomes visible. The ordinary sink interface remains available
+/// for source compatibility, but the durable worker uses this fenced contract.
+/// </summary>
+public interface IAccountMessageEffectSink
+{
+    LocalAccountMessagePublishOutcome Publish(
+        LocalAccountMessage message,
+        Guid effectFence,
+        Func<bool> isCurrent);
+
+    bool PromoteIfOwned(Guid messageId, Guid effectFence);
+
+    void RemoveIfOwned(Guid messageId, Guid effectFence);
+
+    void SweepExpired(DateTimeOffset now);
+
+    int ReconcilePending(Func<Guid, Guid, LocalAccountMessagePendingDisposition> resolve);
+}
+
+public enum LocalAccountMessagePublishOutcome
+{
+    AuthorityLost = 0,
+    Prepared = 1,
+    AlreadyCaptured = 2
+}
+
+public enum LocalAccountMessagePendingDisposition
+{
+    Remove = 0,
+    Keep = 1,
+    Promote = 2
+}

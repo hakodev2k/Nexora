@@ -142,7 +142,10 @@ public sealed class SqlAdminAccessService : IAdminAccessService
             command.Effect is not ("Allow" or "Deny"))
             return Failure<AdminUserAccess>("ValidationFailed", 422, "Action key and effect are invalid.");
         var decision = ActionGrantPolicy.CanGrantAllow(command.ActionKey);
-        if (command.Effect == "Allow" && !decision.Allowed)
+        // The same trusted manifest gates both effects. An explicit Deny is
+        // still an AdminPermission row and must not be used to assign a
+        // PUBLIC/CONTROL/SUPER/SYSTEM or otherwise non-grantable action.
+        if (!decision.Allowed)
             return Failure<AdminUserAccess>(decision.Code, 409, decision.Message);
         if (!TryETag(command.IfMatch, out var expectedVersion))
             return Failure<AdminUserAccess>("PreconditionRequired", 428, "If-Match is required and must be a quoted rowversion.");

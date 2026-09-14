@@ -14,7 +14,9 @@ if (args is ["read-account-messages"])
         return 2;
     }
 
-    foreach (var message in LocalAccountMessageSink.ReadCaptured(captureDirectory))
+    foreach (var message in LocalAccountMessageSink.ReadCaptured(
+                 captureDirectory,
+                 operatorSid: Environment.GetEnvironmentVariable("NEXORA_LOCAL_MESSAGE_OPERATOR_SID")))
     {
         Console.WriteLine($"{message.Purpose} {message.Id:N} expires {message.ExpiresAt:O} token {message.RawToken}");
     }

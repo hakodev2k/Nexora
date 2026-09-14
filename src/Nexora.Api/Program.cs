@@ -134,6 +134,8 @@ if (string.IsNullOrWhiteSpace(localMessageKey))
 var localMessageCaptureDirectory = builder.Configuration["Nexora:LocalAccountMessageCapturePath"]
     ?? Environment.GetEnvironmentVariable("NEXORA_LOCAL_MESSAGE_CAPTURE_PATH")
     ?? Path.Combine(builder.Environment.ContentRootPath, ".local-account-messages");
+var localMessageOperatorSid = builder.Configuration["Nexora:LocalAccountMessageOperatorSid"]
+    ?? Environment.GetEnvironmentVariable("NEXORA_LOCAL_MESSAGE_OPERATOR_SID");
 builder.Services.AddSingleton(new SqlConnectionFactory(resolvedSqlConnectionString));
 builder.Services.AddSingleton<SqlReadinessProbe>();
 builder.Services.AddSingleton(new LocalAccountMessageEnvelopeProtector(localMessageKey));
@@ -141,8 +143,11 @@ builder.Services.AddSingleton<LocalAccountMessageSink>(services =>
     new LocalAccountMessageSink(
         localMessageCaptureDirectory,
         builder.Environment.ContentRootPath,
-        services.GetRequiredService<ILogger<LocalAccountMessageSink>>()));
+        services.GetRequiredService<ILogger<LocalAccountMessageSink>>(),
+        localMessageOperatorSid));
 builder.Services.AddSingleton<IAccountMessageSink>(services =>
+    services.GetRequiredService<LocalAccountMessageSink>());
+builder.Services.AddSingleton<IAccountMessageEffectSink>(services =>
     services.GetRequiredService<LocalAccountMessageSink>());
 builder.Services.AddSingleton<IIdentityService>(services =>
     new SqlIdentityService(services.GetRequiredService<SqlConnectionFactory>(),

@@ -36,7 +36,12 @@ public sealed class SqlReadinessProbe
         "20260911_0021_core_sharing_support_files.sql",
         "20260911_0022_reminders_scheduling.sql",
         "20260911_0023_planner_habits.sql",
-        "20260912_0024_planner_habits_owner_integrity.sql"
+        "20260912_0024_planner_habits_owner_integrity.sql",
+        // The running M01 composition uses the review-hardening constraints
+        // and the durable local account-message envelope/lease columns. A
+        // journal ending at 0024 is therefore not ready for this binary.
+        "20260913_0025_review_hardening.sql",
+        "20260913_0026_identity_local_delivery.sql"
     ];
 
     private readonly SqlConnectionFactory _connections;

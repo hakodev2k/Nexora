@@ -244,6 +244,11 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 scope.");
         }
 
+        if (!AdminGrantableActions.Contains(actionKey))
+        {
+            return PolicyDecision.Deny("ActionNotGrantable", "Action is not assignable as an Admin grant in the current action manifest.");
+        }
+
         return PolicyDecision.Allow("GrantAllowed", "Action is approved for M01 grant mutation.");
     }
 
