@@ -23,14 +23,15 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     private static readonly UnixFileMode PrivateFileMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
 
     private readonly string _captureDirectory;
-    private readonly string? _operatorSid;
+    private readonly IReadOnlyList<SecurityIdentifier>? _allowedWindowsSids;
     private readonly ILogger<LocalAccountMessageSink> _logger;
 
     public LocalAccountMessageSink(
         string captureDirectory,
         string contentRootPath,
         ILogger<LocalAccountMessageSink> logger,
-        string? operatorSid = null)
+        string? operatorSid = null,
+        string? runtimeSid = null)
     {
         if (string.IsNullOrWhiteSpace(captureDirectory))
         {
@@ -51,7 +52,11 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             throw new ArgumentException("Local account-message capture must be outside the web root.", nameof(captureDirectory));
         }
 
-        _operatorSid = string.IsNullOrWhiteSpace(operatorSid) ? null : operatorSid.Trim();
+        _allowedWindowsSids = CreateWindowsAclPolicy(
+            runtimeSid,
+            operatorSid,
+            requireConfiguredRuntime: !string.IsNullOrWhiteSpace(operatorSid));
+        ValidateCurrentWindowsIdentity(_allowedWindowsSids);
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         var existed = Directory.Exists(_captureDirectory);
@@ -62,12 +67,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             // An upgrade must not silently bless a directory that was already
             // readable by another principal. The operator can repair it
             // explicitly, after which startup validates the resulting ACL.
-            ValidateDirectoryPermissions(_captureDirectory, _operatorSid);
+            ValidateDirectoryPermissions(_captureDirectory, _allowedWindowsSids);
         }
         else
         {
-            RestrictDirectoryPermissions(_captureDirectory, _operatorSid);
-            ValidateDirectoryPermissions(_captureDirectory, _operatorSid);
+            RestrictDirectoryPermissions(_captureDirectory, _allowedWindowsSids);
+            ValidateDirectoryPermissions(_captureDirectory, _allowedWindowsSids);
         }
     }
 
@@ -105,7 +110,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
 
         lock (CaptureGate)
         {
-            ValidateDirectoryPermissions(_captureDirectory, _operatorSid);
+            ValidateDirectoryPermissions(_captureDirectory, _allowedWindowsSids);
             SweepExpiredCore(now);
             var destination = MessagePath(message.Id);
             if (File.Exists(destination))
@@ -147,15 +152,31 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                            bufferSize: 4096,
                            options: FileOptions.WriteThrough))
                 {
-                    JsonSerializer.Serialize(stream, CapturedAccountMessage.From(message, effectFence));
-                    stream.Flush(flushToDisk: true);
+                    var locked = false;
+                    try
+                    {
+                        // FileShare.None protects this process/Windows. The
+                        // advisory lock also lets a Linux cleanup process
+                        // distinguish an active writer from an orphan.
+                        LockCaptureStream(stream);
+                        locked = true;
+                        JsonSerializer.Serialize(stream, CapturedAccountMessage.From(message, effectFence));
+                        stream.Flush(flushToDisk: true);
+                    }
+                    finally
+                    {
+                        if (locked)
+                        {
+                            UnlockCaptureStream(stream);
+                        }
+                    }
                 }
 
                 // The directory is private before the first byte is written;
                 // this file-level ACL/mode also prevents later permission
                 // inheritance from widening access.
-                RestrictFilePermissions(temporary, _operatorSid);
-                ValidateFilePermissions(temporary, _operatorSid);
+                RestrictFilePermissions(temporary, _allowedWindowsSids);
+                ValidateFilePermissions(temporary, _allowedWindowsSids);
 
                 // Recheck immediately before the atomic move into the private,
                 // non-readable pending area. The operator CLI only reads JSON.
@@ -239,7 +260,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         CaptureReadResult? capture;
         try
         {
-            ValidateFilePermissions(pending, _operatorSid);
+            ValidateFilePermissions(pending, _allowedWindowsSids);
             capture = ReadCapture(pending);
         }
         catch (IOException)
@@ -305,7 +326,8 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     public static IReadOnlyList<LocalAccountMessage> ReadCaptured(
         string captureDirectory,
         DateTimeOffset? now = null,
-        string? operatorSid = null)
+        string? operatorSid = null,
+        string? runtimeSid = null)
     {
         if (string.IsNullOrWhiteSpace(captureDirectory) || !Directory.Exists(captureDirectory))
         {
@@ -314,7 +336,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
 
         var directory = Path.GetFullPath(captureDirectory);
         RejectReparsePoint(directory);
-        ValidateDirectoryPermissions(directory, operatorSid);
+        var allowedWindowsSids = CreateWindowsAclPolicy(
+            runtimeSid,
+            operatorSid,
+            requireConfiguredRuntime: !string.IsNullOrWhiteSpace(operatorSid));
+        ValidateCurrentWindowsIdentity(allowedWindowsSids);
+        ValidateDirectoryPermissions(directory, allowedWindowsSids);
         var current = now ?? DateTimeOffset.UtcNow;
         var messages = new List<LocalAccountMessage>();
         var expired = new List<string>();
@@ -323,7 +350,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             try
             {
                 RejectReparsePoint(path);
-                ValidateFilePermissions(path, operatorSid);
+                ValidateFilePermissions(path, allowedWindowsSids);
                 var capture = ReadCapture(path);
                 if (capture is null)
                 {
@@ -350,7 +377,15 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
             catch (JsonException)
             {
-                // Ignore a malformed capture; it is not a valid transport message.
+                // A parse failure has no content-based ownership proof. The
+                // private directory plus the exact capture filename and a
+                // bounded age are the only cleanup authority available.
+                if (IsOwnedCaptureFile(path) &&
+                    IsOlderThan(path, current.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                    IsFileReadyForCleanup(path))
+                {
+                    expired.Add(path);
+                }
             }
         }
 
@@ -366,7 +401,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     {
         lock (CaptureGate)
         {
-            ValidateDirectoryPermissions(_captureDirectory, _operatorSid);
+            ValidateDirectoryPermissions(_captureDirectory, _allowedWindowsSids);
             SweepExpiredCore(now);
         }
     }
@@ -375,30 +410,38 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     {
         ArgumentNullException.ThrowIfNull(resolve);
         var reconciled = 0;
+        var now = DateTimeOffset.UtcNow;
         lock (CaptureGate)
         {
-            ValidateDirectoryPermissions(_captureDirectory, _operatorSid);
+            ValidateDirectoryPermissions(_captureDirectory, _allowedWindowsSids);
             foreach (var path in Directory.EnumerateFiles(_captureDirectory, ".*.pending", SearchOption.TopDirectoryOnly))
             {
                 try
                 {
                     RejectReparsePoint(path);
-                    ValidateFilePermissions(path, _operatorSid);
-                    var capture = ReadCapture(path);
-                    if (capture is null || capture.Value.DeliveryFence is not { } effectFence ||
-                        capture.Value.Message.Id == Guid.Empty)
+                    ValidateFilePermissions(path, _allowedWindowsSids);
+                    if (!TryGetOwnedPendingIdentity(path, out var fileMessageId, out var fileEffectFence))
                     {
                         continue;
                     }
 
-                    var disposition = resolve(capture.Value.Message.Id, effectFence);
+                    var capture = ReadCapture(path);
+                    if (capture is null || capture.Value.DeliveryFence is not { } effectFence ||
+                        capture.Value.Message.Id == Guid.Empty ||
+                        capture.Value.Message.Id != fileMessageId ||
+                        effectFence != fileEffectFence)
+                    {
+                        continue;
+                    }
+
+                    var disposition = resolve(fileMessageId, fileEffectFence);
                     if (disposition == LocalAccountMessagePendingDisposition.Promote)
                     {
-                        reconciled += PromoteIfOwnedCore(capture.Value.Message.Id, effectFence) ? 1 : 0;
+                        reconciled += PromoteIfOwnedCore(fileMessageId, fileEffectFence) ? 1 : 0;
                     }
                     else if (disposition == LocalAccountMessagePendingDisposition.Remove)
                     {
-                        RemoveIfOwnedCore(capture.Value.Message.Id, effectFence);
+                        RemoveIfOwnedCore(fileMessageId, fileEffectFence);
                         reconciled++;
                     }
                 }
@@ -408,7 +451,15 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                 }
                 catch (JsonException)
                 {
-                    // Retention handles malformed owned files after their grace period.
+                    if (IsOwnedPendingFile(path) &&
+                        IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                        IsFileReadyForCleanup(path))
+                    {
+                        if (TryDelete(path))
+                        {
+                            reconciled++;
+                        }
+                    }
                 }
             }
         }
@@ -424,7 +475,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             try
             {
                 RejectReparsePoint(path);
-                ValidateFilePermissions(path, _operatorSid);
+                ValidateFilePermissions(path, _allowedWindowsSids);
                 var capture = ReadCapture(path);
                 if ((capture is not null && capture.Value.Message.ExpiresAt <= now) ||
                     (capture is null && IsOwnedCaptureFile(path) &&
@@ -439,7 +490,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
             catch (JsonException)
             {
-                // A malformed capture is removed only after its bounded grace period.
+                if (IsOwnedCaptureFile(path) &&
+                    IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                    IsFileReadyForCleanup(path))
+                {
+                    deleteAfterClose.Add(path);
+                }
             }
         }
 
@@ -449,8 +505,10 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             try
             {
                 RejectReparsePoint(path);
-                ValidateFilePermissions(path, _operatorSid);
-                if (IsOwnedTemporaryFile(path) && File.GetLastWriteTimeUtc(path) <= temporaryCutoff)
+                ValidateFilePermissions(path, _allowedWindowsSids);
+                if (IsOwnedTemporaryFile(path) &&
+                    IsOlderThan(path, temporaryCutoff) &&
+                    IsFileReadyForCleanup(path))
                 {
                     deleteAfterClose.Add(path);
                 }
@@ -467,12 +525,23 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             try
             {
                 RejectReparsePoint(path);
-                ValidateFilePermissions(path, _operatorSid);
+                ValidateFilePermissions(path, _allowedWindowsSids);
+                if (!TryGetOwnedPendingIdentity(path, out var fileMessageId, out var fileEffectFence))
+                {
+                    continue;
+                }
+
                 var capture = ReadCapture(path);
-                if ((capture is not null && capture.Value.Message.ExpiresAt <= now) ||
-                    (capture is null && IsOwnedPendingFile(path) &&
-                     File.GetLastWriteTimeUtc(path) <= now.UtcDateTime.Subtract(MalformedCaptureGrace)) ||
-                    File.GetLastWriteTimeUtc(path) <= pendingCutoff)
+                var captureBelongsToPath = capture is
+                    {
+                        Message.Id: var storedMessageId,
+                        DeliveryFence: var storedEffectFence
+                    } &&
+                    storedMessageId == fileMessageId &&
+                    storedEffectFence == fileEffectFence;
+                if (((captureBelongsToPath && capture!.Value.Message.ExpiresAt <= now) ||
+                     IsOlderThan(path, pendingCutoff)) &&
+                    IsFileReadyForCleanup(path))
                 {
                     deleteAfterClose.Add(path);
                 }
@@ -483,7 +552,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
             catch (JsonException)
             {
-                // A malformed pending file is removed only after its bounded grace period.
+                if (IsOwnedPendingFile(path) &&
+                    IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                    IsFileReadyForCleanup(path))
+                {
+                    deleteAfterClose.Add(path);
+                }
             }
         }
 
@@ -513,7 +587,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
 
         try
         {
-            ValidateFilePermissions(path, _operatorSid);
+            ValidateFilePermissions(path, _allowedWindowsSids);
             var capture = ReadCapture(path);
             if (capture is { Message.Id: var storedId, DeliveryFence: var storedFence } &&
                 storedId == messageId && storedFence == effectFence)
@@ -536,7 +610,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     {
         try
         {
-            ValidateFilePermissions(path, _operatorSid);
+            ValidateFilePermissions(path, _allowedWindowsSids);
             var capture = ReadCapture(path);
             return capture is { Message.Id: var storedId, DeliveryFence: var storedFence } &&
                 storedId == messageId && storedFence == effectFence;
@@ -555,7 +629,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         }
     }
 
-    private void TryDelete(string path)
+    private bool TryDelete(string path)
     {
         try
         {
@@ -563,14 +637,18 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             {
                 File.Delete(path);
             }
+
+            return true;
         }
         catch (IOException)
         {
             _logger.LogWarning("Local account-message cleanup will retry after the file handle is released.");
+            return false;
         }
         catch (UnauthorizedAccessException)
         {
             _logger.LogWarning("Local account-message cleanup could not remove an owned capture file.");
+            return false;
         }
     }
 
@@ -582,11 +660,67 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         }
         catch (IOException)
         {
-            // The next explicit local sweep can retry without exposing content.
+            Console.Error.WriteLine("Local account-message cleanup will retry after the file handle is released.");
         }
         catch (UnauthorizedAccessException)
         {
-            // Fail closed for reading; never disclose capture content in an error.
+            Console.Error.WriteLine("Local account-message cleanup could not remove an owned capture file.");
+        }
+    }
+
+    private static bool IsOlderThan(string path, DateTime cutoff)
+    {
+        try
+        {
+            return File.GetLastWriteTimeUtc(path) <= cutoff;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsFileReadyForCleanup(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite,
+                bufferSize: 1,
+                options: FileOptions.SequentialScan);
+            var locked = false;
+            try
+            {
+                LockCaptureStream(stream);
+                locked = true;
+                return true;
+            }
+            finally
+            {
+                if (locked)
+                {
+                    UnlockCaptureStream(stream);
+                }
+            }
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
         }
     }
 
@@ -594,6 +728,11 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     {
         using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         using var document = JsonDocument.Parse(stream);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+        {
+            throw new JsonException("A local account-message capture must contain a JSON object.");
+        }
+
         if (document.RootElement.TryGetProperty("DeliveryFence", out _))
         {
             var capture = document.RootElement.Deserialize<CapturedAccountMessage>();
@@ -604,29 +743,87 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         return legacy is null ? null : new CaptureReadResult(legacy, null);
     }
 
+    private static void LockCaptureStream(FileStream stream)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            LockCaptureStreamCore(stream);
+            return;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            LockCaptureStreamCore(stream);
+            return;
+        }
+
+        throw new PlatformNotSupportedException("Local account-message capture supports Windows and Linux file locking only.");
+    }
+
+    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
+    private static void LockCaptureStreamCore(FileStream stream) => stream.Lock(0, 1);
+
+    private static void UnlockCaptureStream(FileStream stream)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            UnlockCaptureStreamCore(stream);
+            return;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            UnlockCaptureStreamCore(stream);
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
+    private static void UnlockCaptureStreamCore(FileStream stream) => stream.Unlock(0, 1);
+
     private static bool IsOwnedCaptureFile(string path) =>
         Guid.TryParseExact(Path.GetFileNameWithoutExtension(path), "N", out _);
 
     private static bool IsOwnedTemporaryFile(string path)
     {
+        return TryGetOwnedPendingIdentity(path, out _, out _);
+    }
+
+    private static bool TryGetOwnedPendingIdentity(
+        string path,
+        out Guid messageId,
+        out Guid effectFence)
+    {
+        messageId = Guid.Empty;
+        effectFence = Guid.Empty;
         var name = Path.GetFileNameWithoutExtension(path);
         var parts = name.Split('.', StringSplitOptions.None);
         return parts.Length == 3 && parts[0].Length == 0 &&
-            Guid.TryParseExact(parts[1], "N", out _) &&
-            Guid.TryParseExact(parts[2], "N", out _);
+            Guid.TryParseExact(parts[1], "N", out messageId) &&
+            Guid.TryParseExact(parts[2], "N", out effectFence) &&
+            messageId != Guid.Empty &&
+            effectFence != Guid.Empty;
     }
 
     private static bool IsOwnedPendingFile(string path) =>
         IsOwnedTemporaryFile(path);
 
-    private static void RestrictDirectoryPermissions(string path, string? operatorSid)
+    private static void RestrictDirectoryPermissions(
+        string path,
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
     {
         if (OperatingSystem.IsWindows())
         {
+            if (allowedWindowsSids is null)
+            {
+                throw new InvalidOperationException("The local account-message ACL policy is unavailable.");
+            }
+
             var security = new DirectoryInfo(path).GetAccessControl(AccessControlSections.Access);
             security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
             RemoveAccessRules(security);
-            foreach (var sid in AllowedWindowsSids(operatorSid))
+            foreach (var sid in allowedWindowsSids)
             {
                 security.AddAccessRule(new FileSystemAccessRule(
                     sid,
@@ -643,14 +840,21 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         File.SetUnixFileMode(path, PrivateDirectoryMode);
     }
 
-    private static void RestrictFilePermissions(string path, string? operatorSid)
+    private static void RestrictFilePermissions(
+        string path,
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
     {
         if (OperatingSystem.IsWindows())
         {
+            if (allowedWindowsSids is null)
+            {
+                throw new InvalidOperationException("The local account-message ACL policy is unavailable.");
+            }
+
             var security = new FileInfo(path).GetAccessControl(AccessControlSections.Access);
             security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
             RemoveAccessRules(security);
-            foreach (var sid in AllowedWindowsSids(operatorSid))
+            foreach (var sid in allowedWindowsSids)
             {
                 security.AddAccessRule(new FileSystemAccessRule(
                     sid,
@@ -667,24 +871,28 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         File.SetUnixFileMode(path, PrivateFileMode);
     }
 
-    private static void ValidateDirectoryPermissions(string path, string? operatorSid)
+    private static void ValidateDirectoryPermissions(
+        string path,
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
     {
         if (OperatingSystem.IsWindows())
         {
             var security = new DirectoryInfo(path).GetAccessControl(AccessControlSections.Access);
-            ValidateWindowsPermissions(security, operatorSid, isDirectory: true);
+            ValidateWindowsPermissions(security, allowedWindowsSids);
             return;
         }
 
         ValidateUnixPermissions(path, PrivateDirectoryMode);
     }
 
-    private static void ValidateFilePermissions(string path, string? operatorSid)
+    private static void ValidateFilePermissions(
+        string path,
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
     {
         if (OperatingSystem.IsWindows())
         {
             var security = new FileInfo(path).GetAccessControl(AccessControlSections.Access);
-            ValidateWindowsPermissions(security, operatorSid, isDirectory: false);
+            ValidateWindowsPermissions(security, allowedWindowsSids);
             return;
         }
 
@@ -713,15 +921,15 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     [SupportedOSPlatform("windows")]
     private static void ValidateWindowsPermissions(
         FileSystemSecurity security,
-        string? operatorSid,
-        bool isDirectory)
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
     {
+        var allowed = allowedWindowsSids
+            ?? throw new InvalidOperationException("The local account-message ACL policy is unavailable.");
         if (!security.AreAccessRulesProtected)
         {
             throw new InvalidOperationException("Local account-message capture ACL inheritance is not private.");
         }
 
-        var allowed = AllowedWindowsSids(operatorSid);
         var found = new HashSet<SecurityIdentifier>();
         foreach (FileSystemAccessRule rule in security.GetAccessRules(includeExplicit: true, includeInherited: true, typeof(SecurityIdentifier)))
         {
@@ -740,32 +948,90 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             throw new InvalidOperationException("Local account-message capture ACL is not private.");
         }
 
-        _ = isDirectory;
+    }
+
+    private static IReadOnlyList<SecurityIdentifier>? CreateWindowsAclPolicy(
+        string? runtimeSid,
+        string? operatorSid,
+        bool requireConfiguredRuntime)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return null;
+        }
+
+        return CreateWindowsAclPolicyCore(runtimeSid, operatorSid, requireConfiguredRuntime);
     }
 
     [SupportedOSPlatform("windows")]
-    private static IReadOnlyList<SecurityIdentifier> AllowedWindowsSids(string? operatorSid)
+    private static IReadOnlyList<SecurityIdentifier> CreateWindowsAclPolicyCore(
+        string? runtimeSid,
+        string? operatorSid,
+        bool requireConfiguredRuntime)
     {
-        var current = WindowsIdentity.GetCurrent().User
-            ?? throw new InvalidOperationException("The local account-message runtime identity is unavailable.");
-        var result = new List<SecurityIdentifier> { current };
-        if (!string.IsNullOrWhiteSpace(operatorSid))
+        var runtime = ParseWindowsSid(runtimeSid, "runtime");
+        if (runtime is null)
         {
-            try
+            if (requireConfiguredRuntime)
             {
-                var configured = new SecurityIdentifier(operatorSid.Trim());
-                if (!result.Any(sid => sid.Equals(configured)))
-                {
-                    result.Add(configured);
-                }
+                throw new InvalidOperationException(
+                    "A configured local account-message runtime identity is required when an operator identity is configured.");
             }
-            catch (ArgumentException exception)
-            {
-                throw new InvalidOperationException("The local account-message operator identity is invalid.", exception);
-            }
+
+            runtime = WindowsIdentity.GetCurrent().User
+                ?? throw new InvalidOperationException("The local account-message runtime identity is unavailable.");
+        }
+
+        var result = new List<SecurityIdentifier> { runtime };
+        var operatorIdentity = ParseWindowsSid(operatorSid, "operator");
+        if (operatorIdentity is not null && !result.Any(sid => sid.Equals(operatorIdentity)))
+        {
+            result.Add(operatorIdentity);
         }
 
         return result;
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static SecurityIdentifier? ParseWindowsSid(string? sidValue, string name)
+    {
+        if (string.IsNullOrWhiteSpace(sidValue))
+        {
+            return null;
+        }
+
+        try
+        {
+            return new SecurityIdentifier(sidValue.Trim());
+        }
+        catch (ArgumentException exception)
+        {
+            throw new InvalidOperationException($"The local account-message {name} identity is invalid.", exception);
+        }
+    }
+
+    private static void ValidateCurrentWindowsIdentity(IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        ValidateCurrentWindowsIdentityCore(
+            allowedWindowsSids
+            ?? throw new InvalidOperationException("The local account-message ACL policy is unavailable."));
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void ValidateCurrentWindowsIdentityCore(IReadOnlyList<SecurityIdentifier> allowedWindowsSids)
+    {
+        var current = WindowsIdentity.GetCurrent().User
+            ?? throw new InvalidOperationException("The local account-message caller identity is unavailable.");
+        if (!allowedWindowsSids.Any(sid => sid.Equals(current)))
+        {
+            throw new InvalidOperationException(
+                "The local account-message caller is not an authorized runtime or operator identity.");
+        }
     }
 
     [SupportedOSPlatform("windows")]

@@ -10,6 +10,7 @@ using Nexora.UnitTests;
 
 var runner = new TestRunner();
 ModulePolicyStoreTests.Register(runner);
+LocalAccountMessageSinkTests.Register(runner);
 
 runner.Add("email normalization trims and lowercases without provider alias rewriting", () =>
 {
