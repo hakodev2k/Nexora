@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Runtime.Versioning;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nexora.Application.Identity;
 using Nexora.Infrastructure.Identity;
@@ -11,13 +13,12 @@ internal static class LocalAccountMessageSinkTests
 {
     public static void Register(TestRunner runner)
     {
-        runner.Add("local capture retains stable configured runtime and operator ACL policy", () =>
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                RunWindowsAclPolicyAssertions();
-            }
-        });
+        runner.AddWindows("local capture retains stable configured runtime and operator ACL policy", RunWindowsAclPolicyAssertionsIfSupported);
+
+        runner.Skip(
+            "local capture verifies Windows A/B/C with actual process identities",
+            "requires a configured runtime process, operator process, and foreign principal; a SID argument in one process is not evidence of this boundary.",
+            "windows");
 
         runner.Add("local capture removes only old malformed owned JSON and keeps foreign names", () =>
         {
@@ -53,8 +54,11 @@ internal static class LocalAccountMessageSinkTests
                 var ownedForeignSource = Path.Combine(captureDirectory, $"{foreignId:N}.json");
                 var foreignPath = Path.Combine(captureDirectory, "operator-not-owned.json");
                 File.Move(ownedForeignSource, foreignPath);
-                File.WriteAllText(foreignPath, "{");
                 File.SetLastWriteTimeUtc(foreignPath, now.UtcDateTime.Subtract(TimeSpan.FromHours(25)));
+
+                var foreignMalformedPath = Path.Combine(captureDirectory, "operator-not-owned-malformed.json");
+                File.WriteAllText(foreignMalformedPath, "{");
+                File.SetLastWriteTimeUtc(foreignMalformedPath, now.UtcDateTime.Subtract(TimeSpan.FromHours(25)));
 
                 var messages = LocalAccountMessageSink.ReadCaptured(captureDirectory, now);
 
@@ -62,7 +66,50 @@ internal static class LocalAccountMessageSinkTests
                 AssertEx.True(File.Exists(recentPath), "A recent malformed capture must remain inside its grace period");
                 AssertEx.False(File.Exists(oldPath), "An old malformed owned capture must be removed");
                 AssertEx.False(File.Exists(nonObjectPath), "An old non-object JSON capture must be removed");
-                AssertEx.True(File.Exists(foreignPath), "A malformed file with an unowned name must not be removed");
+                AssertEx.True(File.Exists(foreignPath), "A valid capture with an unowned name must not be returned or removed");
+                AssertEx.True(File.Exists(foreignMalformedPath), "A malformed file with an unowned name must not be removed");
+            });
+        });
+
+        runner.Add("local capture rejects filename and payload identity mismatches without deleting them", () =>
+        {
+            WithCaptureDirectory((contentRoot, captureDirectory) =>
+            {
+                var sink = CreateSink(contentRoot, captureDirectory);
+                var payloadId = Guid.NewGuid();
+                var payloadFence = Guid.NewGuid();
+                PrepareCapture(sink, payloadId, payloadFence);
+                var ownedPath = Path.Combine(captureDirectory, $"{payloadId:N}.json");
+                var mismatchedId = Guid.NewGuid();
+                var mismatchPath = Path.Combine(captureDirectory, $"{mismatchedId:N}.json");
+                File.Move(ownedPath, mismatchPath);
+                File.SetLastWriteTimeUtc(mismatchPath, DateTime.UtcNow.Subtract(TimeSpan.FromHours(25)));
+
+                var emptyIdPath = Path.Combine(captureDirectory, $"{Guid.Empty:N}.json");
+                File.WriteAllText(emptyIdPath, JsonSerializer.Serialize(CreateMessage(Guid.NewGuid())));
+                File.SetLastWriteTimeUtc(emptyIdPath, DateTime.UtcNow.Subtract(TimeSpan.FromHours(25)));
+
+                var messages = LocalAccountMessageSink.ReadCaptured(captureDirectory, DateTimeOffset.UtcNow);
+                AssertEx.Equal(0, messages.Count, "Mismatched and empty-id filenames must not be returned");
+                sink.SweepExpired(DateTimeOffset.UtcNow.AddHours(1));
+                AssertEx.True(File.Exists(mismatchPath), "A valid payload under the wrong owned filename must not be deleted");
+                AssertEx.True(File.Exists(emptyIdPath), "An empty-id filename must not be deleted");
+            });
+        });
+
+        runner.Add("local capture preserves a matching legacy final JSON capture", () =>
+        {
+            WithCaptureDirectory((contentRoot, captureDirectory) =>
+            {
+                var message = CreateMessage(Guid.NewGuid());
+                var sink = CreateSink(contentRoot, captureDirectory);
+                PrepareCapture(sink, message.Id, Guid.NewGuid());
+                var path = Path.Combine(captureDirectory, $"{message.Id:N}.json");
+                File.WriteAllText(path, JsonSerializer.Serialize(message));
+
+                var messages = LocalAccountMessageSink.ReadCaptured(captureDirectory, DateTimeOffset.UtcNow);
+                AssertEx.Equal(1, messages.Count, "A matching legacy capture remains readable");
+                AssertEx.Equal(message.Id, messages[0].Id, "The legacy capture identity is preserved");
             });
         });
 
@@ -93,49 +140,80 @@ internal static class LocalAccountMessageSinkTests
             });
         });
 
-        runner.Add("local capture keeps an active temporary file until its handle is released", () =>
+        runner.Add("local capture disposes an actual orphan temporary file after the grace period", () =>
         {
-            if (!OperatingSystem.IsWindows())
-            {
-                return;
-            }
-
             WithCaptureDirectory((contentRoot, captureDirectory) =>
             {
                 var sink = CreateSink(contentRoot, captureDirectory);
                 var messageId = Guid.NewGuid();
                 var effectFence = Guid.NewGuid();
-                var outcome = sink.Publish(CreateMessage(messageId), effectFence, () => true);
-                AssertEx.Equal(LocalAccountMessagePublishOutcome.Prepared, outcome, "The synthetic pending capture should be prepared");
-
-                var pendingPath = Path.Combine(captureDirectory, $".{messageId:N}.{effectFence:N}.pending");
                 var temporaryPath = Path.Combine(captureDirectory, $".{messageId:N}.{effectFence:N}.tmp");
-                File.Move(pendingPath, temporaryPath);
+                File.WriteAllText(temporaryPath, "{\"Id\":");
+                SetPrivateFileMode(temporaryPath);
                 File.SetLastWriteTimeUtc(temporaryPath, DateTime.UtcNow.Subtract(TimeSpan.FromHours(1)));
-
-                using (var activeHandle = new FileStream(
-                           temporaryPath,
-                           FileMode.Open,
-                           FileAccess.Read,
-                           FileShare.None))
-                {
-                    sink.SweepExpired(DateTimeOffset.UtcNow.AddHours(1));
-                    AssertEx.True(File.Exists(temporaryPath), "An active temporary file must not be swept");
-                }
-
                 sink.SweepExpired(DateTimeOffset.UtcNow.AddHours(1));
-                AssertEx.False(File.Exists(temporaryPath), "A released orphan temporary file should be swept");
+                AssertEx.False(File.Exists(temporaryPath), "An old orphan temporary file should be swept without a completed capture rename");
+
+                var nextMessageId = Guid.NewGuid();
+                var nextOutcome = sink.Publish(CreateMessage(nextMessageId), Guid.NewGuid(), () => true);
+                AssertEx.Equal(LocalAccountMessagePublishOutcome.Prepared, nextOutcome, "A later message must still be deliverable after orphan cleanup");
             });
         });
 
-        runner.Add("local capture uses private Unix modes when running outside Windows", () =>
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                return;
-            }
+        runner.AddLinux("local capture uses private Unix modes when running on Linux", RunUnixModeAssertionsIfSupported);
 
-            RunUnixModeAssertions();
+        runner.AddLinux("local capture isolates an unsafe temporary file from later delivery", RunUnsafeTemporaryFileAssertionsIfSupported);
+
+        runner.AddLinux("local capture detects an active writer across processes", RunCrossProcessActiveWriterAssertion);
+    }
+
+    private static void RunWindowsAclPolicyAssertionsIfSupported()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        RunWindowsAclPolicyAssertions();
+    }
+
+    private static void RunUnixModeAssertionsIfSupported()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        RunUnixModeAssertions();
+    }
+
+    private static void RunUnsafeTemporaryFileAssertionsIfSupported()
+    {
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        RunUnsafeTemporaryFileAssertions();
+    }
+
+    [SupportedOSPlatform("linux")]
+    private static void RunUnsafeTemporaryFileAssertions()
+    {
+        WithCaptureDirectory((contentRoot, captureDirectory) =>
+        {
+            var sink = CreateSink(contentRoot, captureDirectory);
+            var orphanPath = Path.Combine(captureDirectory, $".{Guid.NewGuid():N}.{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(orphanPath, "{\"Id\":");
+            SetPrivateLinuxFileMode(orphanPath, includeOtherRead: true);
+            File.SetLastWriteTimeUtc(orphanPath, DateTime.UtcNow.Subtract(TimeSpan.FromHours(1)));
+
+            sink.SweepExpired(DateTimeOffset.UtcNow.AddHours(1));
+            AssertEx.True(File.Exists(orphanPath), "An unsafe orphan must remain fail-closed for operator recovery");
+
+            var nextMessageId = Guid.NewGuid();
+            var nextOutcome = sink.Publish(CreateMessage(nextMessageId), Guid.NewGuid(), () => true);
+            AssertEx.Equal(LocalAccountMessagePublishOutcome.Prepared, nextOutcome, "An unsafe orphan must not block later delivery");
         });
     }
 
@@ -195,6 +273,132 @@ internal static class LocalAccountMessageSinkTests
             "synthetic-r4-token",
             DateTimeOffset.UtcNow,
             DateTimeOffset.UtcNow.AddHours(2));
+
+    private static void SetPrivateFileMode(string path)
+    {
+        if (OperatingSystem.IsLinux())
+        {
+            SetPrivateLinuxFileMode(path);
+        }
+    }
+
+    [SupportedOSPlatform("linux")]
+    [SupportedOSPlatform("linux")]
+    private static void SetPrivateLinuxFileMode(string path) =>
+        SetPrivateLinuxFileMode(path, includeOtherRead: false);
+
+    [SupportedOSPlatform("linux")]
+    private static void SetPrivateLinuxFileMode(string path, bool includeOtherRead)
+    {
+        var mode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        if (includeOtherRead)
+        {
+            mode |= UnixFileMode.OtherRead;
+        }
+
+        File.SetUnixFileMode(path, mode);
+    }
+
+    private static void RunCrossProcessActiveWriterAssertion()
+    {
+        WithCaptureDirectory((contentRoot, captureDirectory) =>
+        {
+            var sink = CreateSink(contentRoot, captureDirectory);
+            var temporaryPath = Path.Combine(captureDirectory, $".{Guid.NewGuid():N}.{Guid.NewGuid():N}.tmp");
+            File.WriteAllText(temporaryPath, "{\"Id\":");
+            SetPrivateFileMode(temporaryPath);
+            File.SetLastWriteTimeUtc(temporaryPath, DateTime.UtcNow.Subtract(TimeSpan.FromHours(1)));
+
+            using var holder = StartCaptureHolder(temporaryPath);
+            sink.SweepExpired(DateTimeOffset.UtcNow.AddHours(1));
+            AssertEx.True(File.Exists(temporaryPath), "A separate process holding the advisory lock must prevent cleanup");
+
+            holder.StandardInput.WriteLine("release");
+            holder.StandardInput.Flush();
+            holder.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+            AssertEx.Equal(0, holder.ExitCode, "The active-writer probe must exit cleanly");
+
+            sink.SweepExpired(DateTimeOffset.UtcNow.AddHours(1));
+            AssertEx.False(File.Exists(temporaryPath), "The released orphan must be cleaned on the next pass");
+        });
+    }
+
+    private static Process StartCaptureHolder(string path)
+    {
+        var processPath = Environment.ProcessPath
+            ?? throw new InvalidOperationException("The test process path is unavailable.");
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = processPath,
+            UseShellExecute = false,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true
+        };
+        startInfo.ArgumentList.Add("--hold-capture");
+        startInfo.ArgumentList.Add(path);
+
+        var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("The active-writer probe could not start.");
+        try
+        {
+            var ready = process.StandardOutput.ReadLineAsync()
+                .WaitAsync(TimeSpan.FromSeconds(10))
+                .GetAwaiter()
+                .GetResult();
+            if (!string.Equals(ready, "ready", StringComparison.Ordinal))
+            {
+                process.Dispose();
+                throw new InvalidOperationException("The active-writer probe did not acquire its file lock.");
+            }
+
+            return process;
+        }
+        catch
+        {
+            if (!process.HasExited)
+            {
+                process.Kill(entireProcessTree: true);
+                process.WaitForExit();
+            }
+
+            process.Dispose();
+            throw;
+        }
+    }
+
+    public static int HoldCaptureProcess(string path)
+    {
+        if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
+        {
+            Console.Error.WriteLine("The active-writer probe supports Windows and Linux only.");
+            return 2;
+        }
+
+        return HoldCaptureProcessCore(path);
+    }
+
+    [SupportedOSPlatform("windows")]
+    [SupportedOSPlatform("linux")]
+    private static int HoldCaptureProcessCore(string path)
+    {
+        try
+        {
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            stream.Lock(0, 1);
+            Console.WriteLine("ready");
+            Console.Out.Flush();
+            _ = Console.ReadLine();
+            stream.Unlock(0, 1);
+            return 0;
+        }
+        catch
+        {
+            Console.Error.WriteLine("The active-writer probe could not hold the synthetic capture file.");
+            return 1;
+        }
+    }
 
     [UnsupportedOSPlatform("windows")]
     private static void RunUnixModeAssertions()

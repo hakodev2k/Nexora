@@ -11,19 +11,23 @@ if (string.IsNullOrWhiteSpace(supplied))
     return 2;
 }
 string? database = null;
+string? masterConnection = null;
 try
 {
     var builder = new SqlConnectionStringBuilder(LocalSqlTarget.Validate(supplied, "Development"));
-    if (!builder.InitialCatalog.StartsWith("Nexora_Test_", StringComparison.Ordinal))
-        throw new InvalidOperationException("Integration tests refuse development databases.");
     database = builder.InitialCatalog;
+    if (!database.StartsWith("Nexora_Test_", StringComparison.Ordinal) ||
+        !Guid.TryParseExact(database["Nexora_Test_".Length..], "N", out _))
+        throw new InvalidOperationException("Integration tests require a generated Nexora_Test_<GUID> database name.");
     builder.InitialCatalog = "master";
-    await using (var master = new SqlConnection(builder.ConnectionString))
+    masterConnection = builder.ConnectionString;
+    await using (var master = new SqlConnection(masterConnection))
     {
         await master.OpenAsync();
         await using var exists = new SqlCommand("SELECT DB_ID(@name)", master);
         exists.Parameters.AddWithValue("@name", database);
-        if (await exists.ExecuteScalarAsync() is not DBNull)
+        var existingDatabase = await exists.ExecuteScalarAsync();
+        if (existingDatabase is not null && existingDatabase is not DBNull)
             throw new InvalidOperationException("Integration target must not already exist.");
         // Identifier has already been restricted to a fixed prefix and a GUID.
         await using var create = new SqlCommand($"CREATE DATABASE [{database}]", master);
@@ -76,7 +80,7 @@ try
     await Execute("DELETE ur FROM [identity].[UserRole] ur JOIN [identity].[Role] r ON r.Id=ur.RoleId WHERE r.Code='SuperAdmin'");
     Require(await bootstrap.ExecuteAsync(command) == BootstrapOutcome.AlreadyBootstrapped, "Marker prevents bootstrap reopening");
     Console.WriteLine("PASS: bootstrap remains closed after role removal.");
-    Console.WriteLine($"SQL integration checks passed. Synthetic database retained: {database}");
+    Console.WriteLine("PASS: SQL integration checks completed against a disposable synthetic database.");
     return 0;
 
     async Task Execute(string statement)
@@ -92,10 +96,31 @@ try
 }
 catch (Exception error)
 {
-    Console.Error.WriteLine($"FAIL: SQL integration checks ({error.GetType().Name}); synthetic target: {database ?? "not created"}. No credentials logged.");
+    Console.Error.WriteLine($"FAIL: SQL integration checks ({error.GetType().Name}). No credentials logged.");
     return 1;
 }
+finally
+{
+    if (database is not null && masterConnection is not null)
+    {
+        try
+        {
+            await using var master = new SqlConnection(masterConnection);
+            await master.OpenAsync();
+            // The catalog is constrained to Nexora_Test_<GUID> before interpolation.
+            await using var drop = new SqlCommand(
+                $"IF DB_ID(@name) IS NOT NULL BEGIN ALTER DATABASE [{database}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{database}]; END;",
+                master);
+            drop.Parameters.AddWithValue("@name", database);
+            await drop.ExecuteNonQueryAsync();
+        }
+        catch (Exception)
+        {
+            Console.Error.WriteLine("WARN: Test-owned synthetic database cleanup failed.");
+        }
+    }
 
+}
 static void Require(bool result, string invariant)
 {
     if (!result) throw new InvalidOperationException(invariant);

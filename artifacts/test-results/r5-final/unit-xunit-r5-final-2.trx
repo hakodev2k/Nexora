@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="5aeb12bd-7aa4-4711-b639-102e936a0d6f" name="hakodev@DESKTOP-S5418DT 2026-09-19 19:52:32" runUser="DESKTOP-S5418DT\hakodev" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-19T19:52:32.8111958+07:00" queuing="2026-09-19T19:52:32.8111961+07:00" start="2026-09-19T19:52:29.9789682+07:00" finish="2026-09-19T19:52:33.4510610+07:00" />
+  <TestSettings name="default" id="afbc03ea-87cf-481d-8aa2-5fbb83a334b9">
+    <Deployment runDeploymentRoot="hakodev_DESKTOP-S5418DT_2026-09-19_19_52_32" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="07cf1ae7-51d6-43cf-beee-7eb51ccf533f" testId="773136f5-bc16-5f4e-c35f-8d139e6881a3" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.An_old_private_partial_temporary_capture_does_not_block_a_later_delivery" computerName="DESKTOP-S5418DT" duration="00:00:00.0058938" startTime="2026-09-19T19:52:32.7885378+07:00" endTime="2026-09-19T19:52:32.7885384+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="07cf1ae7-51d6-43cf-beee-7eb51ccf533f" />
+    <UnitTestResult executionId="f2fdf66d-c0b2-4185-bf59-baebdbfd5bec" testId="c7c59784-46ac-0ed6-d8c4-9fc46283a4d7" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Deleted, emailConfirmed: True, isDeleted: True, isDisabled: False, hasEnabledMfa: False, expectedCode: &quot;AccountUnavailable&quot;)" computerName="DESKTOP-S5418DT" duration="00:00:00.0000019" startTime="2026-09-19T19:52:32.2303299+07:00" endTime="2026-09-19T19:52:32.2303300+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f2fdf66d-c0b2-4185-bf59-baebdbfd5bec" />
+    <UnitTestResult executionId="5ada0fb0-2d15-47b1-8bbc-29bdc361b285" testId="54d2c8b3-6a3a-e9a6-e6e1-99b22f346f94" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Foreign_and_mismatched_final_JSON_are_neither_read_nor_deleted" computerName="DESKTOP-S5418DT" duration="00:00:00.5345067" startTime="2026-09-19T19:52:32.7596544+07:00" endTime="2026-09-19T19:52:32.7596545+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5ada0fb0-2d15-47b1-8bbc-29bdc361b285" />
+    <UnitTestResult executionId="f8d192e0-5c42-43f1-96d7-e5ff04bb291b" testId="d86b976c-d320-5a37-1dd8-6ee1790e981a" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: &quot;LoginAllowed&quot;)" computerName="DESKTOP-S5418DT" duration="00:00:00.0030223" startTime="2026-09-19T19:52:32.2292477+07:00" endTime="2026-09-19T19:52:32.2292478+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f8d192e0-5c42-43f1-96d7-e5ff04bb291b" />
+    <UnitTestResult executionId="f9a05cc4-9201-4c7b-93e9-53a52235e365" testId="3f6cd3ad-6cfc-3442-9f41-8baee20ce017" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: PendingVerification, emailConfirmed: False, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: &quot;EmailVerificationRequired&quot;)" computerName="DESKTOP-S5418DT" duration="00:00:00.0003106" startTime="2026-09-19T19:52:32.2299177+07:00" endTime="2026-09-19T19:52:32.2299177+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="f9a05cc4-9201-4c7b-93e9-53a52235e365" />
+    <UnitTestResult executionId="0c13e9fc-8db9-4e6a-a8db-e307c79b0602" testId="89674ada-26a3-8083-0ceb-cc5f56edb2e7" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Profile_and_registration_policy_reject_privileged_fields_and_invalid_preferences" computerName="DESKTOP-S5418DT" duration="00:00:00.0005689" startTime="2026-09-19T19:52:32.7603343+07:00" endTime="2026-09-19T19:52:32.7603345+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0c13e9fc-8db9-4e6a-a8db-e307c79b0602" />
+    <UnitTestResult executionId="0b70f6c8-a520-404e-9972-3a6b557b07d5" testId="564d90f7-5dfd-7da1-abbe-e5c54b067413" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Disabled, emailConfirmed: True, isDeleted: False, isDisabled: True, hasEnabledMfa: False, expectedCode: &quot;AccountUnavailable&quot;)" computerName="DESKTOP-S5418DT" duration="00:00:00.0000069" startTime="2026-09-19T19:52:32.2301148+07:00" endTime="2026-09-19T19:52:32.2301148+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0b70f6c8-a520-404e-9972-3a6b557b07d5" />
+    <UnitTestResult executionId="df377919-dd91-45ab-b1c8-e409247e2b62" testId="a7c81dab-2927-fa06-fa1f-d486d29360c3" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: True, expectedCode: &quot;MfaUnavailable&quot;)" computerName="DESKTOP-S5418DT" duration="00:00:00.0000048" startTime="2026-09-19T19:52:32.2305290+07:00" endTime="2026-09-19T19:52:32.2305291+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="df377919-dd91-45ab-b1c8-e409247e2b62" />
+    <UnitTestResult executionId="9e4b9234-6203-4728-9b3b-f3a9310475d5" testId="a3832e08-6f9a-412c-a2b0-dba773a1ad35" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Only_an_old_owned_malformed_final_capture_is_cleaned_after_grace" computerName="DESKTOP-S5418DT" duration="00:00:00.0120700" startTime="2026-09-19T19:52:32.7890404+07:00" endTime="2026-09-19T19:52:32.7890405+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="9e4b9234-6203-4728-9b3b-f3a9310475d5" />
+    <UnitTestResult executionId="8b3b9eef-98b8-49a2-9c52-2baae9dad36f" testId="894af106-b79a-05aa-6359-72c1e42e34e4" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Admin_grant_mutation_uses_the_explicit_admin_grantable_manifest" computerName="DESKTOP-S5418DT" duration="00:00:00.0054184" startTime="2026-09-19T19:52:32.2223160+07:00" endTime="2026-09-19T19:52:32.2223400+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="8b3b9eef-98b8-49a2-9c52-2baae9dad36f" />
+    <UnitTestResult executionId="fe0504fd-71c1-46ff-89d7-4debcd64b562" testId="d82ead35-2643-ad24-d031-2abffb2a6c00" testName="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Existing_partial_temporary_file_is_not_deleted_by_a_failed_new_create" computerName="DESKTOP-S5418DT" duration="00:00:00.0076153" startTime="2026-09-19T19:52:32.7680297+07:00" endTime="2026-09-19T19:52:32.7680301+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="fe0504fd-71c1-46ff-89d7-4debcd64b562" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: True, expectedCode: &quot;MfaUnavailable&quot;)" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="a7c81dab-2927-fa06-fa1f-d486d29360c3">
+      <Execution id="df377919-dd91-45ab-b1c8-e409247e2b62" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Login_policy_preserves_account_lifecycle_and_MFA_boundaries" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Deleted, emailConfirmed: True, isDeleted: True, isDisabled: False, hasEnabledMfa: False, expectedCode: &quot;AccountUnavailable&quot;)" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="c7c59784-46ac-0ed6-d8c4-9fc46283a4d7">
+      <Execution id="f2fdf66d-c0b2-4185-bf59-baebdbfd5bec" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Login_policy_preserves_account_lifecycle_and_MFA_boundaries" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: PendingVerification, emailConfirmed: False, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: &quot;EmailVerificationRequired&quot;)" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="3f6cd3ad-6cfc-3442-9f41-8baee20ce017">
+      <Execution id="f9a05cc4-9201-4c7b-93e9-53a52235e365" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Login_policy_preserves_account_lifecycle_and_MFA_boundaries" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Disabled, emailConfirmed: True, isDeleted: False, isDisabled: True, hasEnabledMfa: False, expectedCode: &quot;AccountUnavailable&quot;)" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="564d90f7-5dfd-7da1-abbe-e5c54b067413">
+      <Execution id="0b70f6c8-a520-404e-9972-3a6b557b07d5" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Login_policy_preserves_account_lifecycle_and_MFA_boundaries" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Admin_grant_mutation_uses_the_explicit_admin_grantable_manifest" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="894af106-b79a-05aa-6359-72c1e42e34e4">
+      <Execution id="8b3b9eef-98b8-49a2-9c52-2baae9dad36f" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Admin_grant_mutation_uses_the_explicit_admin_grantable_manifest" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Profile_and_registration_policy_reject_privileged_fields_and_invalid_preferences" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="89674ada-26a3-8083-0ceb-cc5f56edb2e7">
+      <Execution id="0c13e9fc-8db9-4e6a-a8db-e307c79b0602" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Profile_and_registration_policy_reject_privileged_fields_and_invalid_preferences" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Existing_partial_temporary_file_is_not_deleted_by_a_failed_new_create" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="d82ead35-2643-ad24-d031-2abffb2a6c00">
+      <Execution id="fe0504fd-71c1-46ff-89d7-4debcd64b562" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Existing_partial_temporary_file_is_not_deleted_by_a_failed_new_create" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Foreign_and_mismatched_final_JSON_are_neither_read_nor_deleted" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="54d2c8b3-6a3a-e9a6-e6e1-99b22f346f94">
+      <Execution id="5ada0fb0-2d15-47b1-8bbc-29bdc361b285" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Foreign_and_mismatched_final_JSON_are_neither_read_nor_deleted" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Only_an_old_owned_malformed_final_capture_is_cleaned_after_grace" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="a3832e08-6f9a-412c-a2b0-dba773a1ad35">
+      <Execution id="9e4b9234-6203-4728-9b3b-f3a9310475d5" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Only_an_old_owned_malformed_final_capture_is_cleaned_after_grace" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.An_old_private_partial_temporary_capture_does_not_block_a_later_delivery" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="773136f5-bc16-5f4e-c35f-8d139e6881a3">
+      <Execution id="07cf1ae7-51d6-43cf-beee-7eb51ccf533f" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="An_old_private_partial_temporary_capture_does_not_block_a_later_delivery" />
+    </UnitTest>
+    <UnitTest name="Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: &quot;LoginAllowed&quot;)" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.unittests\bin\release\net10.0\nexora.unittests.dll" id="d86b976c-d320-5a37-1dd8-6ee1790e981a">
+      <Execution id="f8d192e0-5c42-43f1-96d7-e5ff04bb291b" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.UnitTests\bin\Release\net10.0\Nexora.UnitTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.UnitTests.M01PolicyAndCaptureContractTests" name="Login_policy_preserves_account_lifecycle_and_MFA_boundaries" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="773136f5-bc16-5f4e-c35f-8d139e6881a3" executionId="07cf1ae7-51d6-43cf-beee-7eb51ccf533f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c7c59784-46ac-0ed6-d8c4-9fc46283a4d7" executionId="f2fdf66d-c0b2-4185-bf59-baebdbfd5bec" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="54d2c8b3-6a3a-e9a6-e6e1-99b22f346f94" executionId="5ada0fb0-2d15-47b1-8bbc-29bdc361b285" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d86b976c-d320-5a37-1dd8-6ee1790e981a" executionId="f8d192e0-5c42-43f1-96d7-e5ff04bb291b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="3f6cd3ad-6cfc-3442-9f41-8baee20ce017" executionId="f9a05cc4-9201-4c7b-93e9-53a52235e365" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="89674ada-26a3-8083-0ceb-cc5f56edb2e7" executionId="0c13e9fc-8db9-4e6a-a8db-e307c79b0602" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="564d90f7-5dfd-7da1-abbe-e5c54b067413" executionId="0b70f6c8-a520-404e-9972-3a6b557b07d5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a7c81dab-2927-fa06-fa1f-d486d29360c3" executionId="df377919-dd91-45ab-b1c8-e409247e2b62" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="a3832e08-6f9a-412c-a2b0-dba773a1ad35" executionId="9e4b9234-6203-4728-9b3b-f3a9310475d5" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="894af106-b79a-05aa-6359-72c1e42e34e4" executionId="8b3b9eef-98b8-49a2-9c52-2baae9dad36f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d82ead35-2643-ad24-d031-2abffb2a6c00" executionId="fe0504fd-71c1-46ff-89d7-4debcd64b562" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="11" executed="11" passed="11" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.07]   Discovering: Nexora.UnitTests&#xD;
+[xUnit.net 00:00:00.12]   Discovered:  Nexora.UnitTests&#xD;
+[xUnit.net 00:00:00.12]   Starting:    Nexora.UnitTests&#xD;
+Local account-message capture identity mismatch; file was not returned or removed.&#xD;
+[xUnit.net 00:00:00.73]   Finished:    Nexora.UnitTests&#xD;
+</StdOut>
+    </Output>
+    <CollectorDataEntries>
+      <Collector agentName="DESKTOP-S5418DT" uri="datacollector://microsoft/CoverletCodeCoverage/1.0" collectorDisplayName="XPlat code coverage">
+        <UriAttachments>
+          <UriAttachment>
+            <A href="DESKTOP-S5418DT\coverage.cobertura.xml"></A>
+          </UriAttachment>
+        </UriAttachments>
+      </Collector>
+    </CollectorDataEntries>
+  </ResultSummary>
+</TestRun>

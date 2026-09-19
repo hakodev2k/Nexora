@@ -391,7 +391,7 @@ function passwordError(password: string, t?: (key: string, fallback?: string) =>
   return undefined;
 }
 
-function dateTime(value: string, timeZoneId?: string, locale?: string): string {
+export function dateTime(value: string, timeZoneId?: string, locale?: string): string {
   try {
     const effectiveLocale = locale ?? (typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'vi');
     return new Intl.DateTimeFormat(effectiveLocale === 'en' ? 'en-US' : 'vi-VN', {
@@ -491,7 +491,7 @@ function FormCard({ title, description, children }: { title: string; description
   );
 }
 
-function RegisterScreen({
+export function RegisterScreen({
   navigate,
   onRegistered,
   notice,
@@ -2338,7 +2338,7 @@ type EventDraft = { title: string; description: string; startAt: string; endAt: 
 
 type ZonedDateParts = { year: number; month: number; day: number; hour: number; minute: number };
 
-function validTimeZone(timeZoneId: string | undefined): string {
+export function validTimeZone(timeZoneId: string | undefined): string {
   if (!timeZoneId?.trim()) return DEFAULT_TIME_ZONE;
   try {
     new Intl.DateTimeFormat('en-US', { timeZone: timeZoneId }).format();
@@ -2357,7 +2357,7 @@ function zonedDateParts(value: Date, timeZoneId: string): ZonedDateParts {
   return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') };
 }
 
-function localInputToIso(value: string, timeZoneId = currentTimeZone()): string | null {
+export function localInputToIso(value: string, timeZoneId = currentTimeZone()): string | null {
   if (!value.trim()) return null;
   const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value.trim());
   if (!match) return null;
@@ -2374,7 +2374,7 @@ function localInputToIso(value: string, timeZoneId = currentTimeZone()): string 
   return valid && !Number.isNaN(instant.valueOf()) ? instant.toISOString() : null;
 }
 
-function isoToLocalInput(value: string | null, timeZoneId = currentTimeZone()): string {
+export function isoToLocalInput(value: string | null, timeZoneId = currentTimeZone()): string {
   if (!value) return '';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) return '';
@@ -2383,13 +2383,13 @@ function isoToLocalInput(value: string | null, timeZoneId = currentTimeZone()): 
   return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
 }
 
-function localDateToIso(value: string, timeZoneId: string): string | null {
+export function localDateToIso(value: string, timeZoneId: string): string | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(value.trim())
     ? localInputToIso(`${value.trim()}T00:00`, timeZoneId)
     : null;
 }
 
-function isoToLocalDate(value: string | null, timeZoneId: string): string {
+export function isoToLocalDate(value: string | null, timeZoneId: string): string {
   if (!value) return '';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.valueOf())) return '';
@@ -4928,7 +4928,7 @@ function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Pr
   return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">{t('preferences')}</h2><p className="muted">{t('preferencesDescription')}</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{t('reload')}</button></div>{error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">{t('theme')}</label><select id="theme-mode" value={mode} onChange={(event) => { const next = event.target.value as ThemeMode; requestKey.current = null; setMode(next); onThemeChanged(next); }} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? t('saving') : t('savePreferences')}</button></div></section>;
 }
 
-function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
+export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
   const { locale, t } = useI18n();
   const [sessions, setSessions] = useState<SessionProjection[]>([]);
   const [loading, setLoading] = useState(true);

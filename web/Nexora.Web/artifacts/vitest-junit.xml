@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="6" failures="0" errors="0" time="1.3574226">
+    <testsuite name="src/App.test.tsx" timestamp="2026-09-19T12:46:51.810Z" hostname="DESKTOP-S5418DT" tests="6" failures="0" errors="0" skipped="1" time="1.3574226">
+        <testcase classname="src/App.test.tsx" name="registration renders English copy and exposes inline validation through accessible controls" time="0.2496647">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="registration keeps one idempotency request while submit is pending" time="1.061965">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="the HTTP boundary refreshes CSRF once and retains a single idempotency key after a pre-handler rejection" time="0.0045141">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="session metadata uses the profile IANA zone rather than the browser default" time="0.0353042">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="time helpers preserve a normal IANA instant and all-day date boundary" time="0.0019181">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="R2-10: DST valid-after-gap and fold disambiguation require the approved post-M01 time policy" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+</testsuites>

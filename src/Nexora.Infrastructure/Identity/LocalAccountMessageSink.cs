@@ -142,16 +142,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
 
             var temporary = Path.Combine(_captureDirectory, $".{message.Id:N}.{effectFence:N}.tmp");
+            var createdTemporary = false;
             try
             {
-                using (var stream = new FileStream(
-                           temporary,
-                           FileMode.CreateNew,
-                           FileAccess.Write,
-                           FileShare.None,
-                           bufferSize: 4096,
-                           options: FileOptions.WriteThrough))
+                using (var stream = CreateTemporaryCapture(temporary))
                 {
+                    createdTemporary = true;
                     var locked = false;
                     try
                     {
@@ -171,12 +167,6 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                         }
                     }
                 }
-
-                // The directory is private before the first byte is written;
-                // this file-level ACL/mode also prevents later permission
-                // inheritance from widening access.
-                RestrictFilePermissions(temporary, _allowedWindowsSids);
-                ValidateFilePermissions(temporary, _allowedWindowsSids);
 
                 // Recheck immediately before the atomic move into the private,
                 // non-readable pending area. The operator CLI only reads JSON.
@@ -217,8 +207,46 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
             finally
             {
-                TryDelete(temporary);
+                if (createdTemporary)
+                {
+                    TryDelete(temporary);
+                }
             }
+        }
+    }
+
+    private FileStream CreateTemporaryCapture(string path)
+    {
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.CreateNew,
+            Access = FileAccess.Write,
+            Share = FileShare.None,
+            BufferSize = 4096,
+            Options = FileOptions.WriteThrough
+        };
+
+        // FileStreamOptions applies the mode during open, before any bytes can
+        // exist. This closes the umask-022 window on Linux. Windows creation is
+        // also safe in the already validated private directory; the explicit
+        // ACL is applied before the first write below.
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = PrivateFileMode;
+        }
+
+        var stream = new FileStream(path, options);
+        try
+        {
+            RestrictFilePermissions(path, _allowedWindowsSids);
+            ValidateFilePermissions(path, _allowedWindowsSids);
+            return stream;
+        }
+        catch
+        {
+            stream.Dispose();
+            TryDelete(path);
+            throw;
         }
     }
 
@@ -347,6 +375,14 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         var expired = new List<string>();
         foreach (var path in Directory.EnumerateFiles(directory, "*.json", SearchOption.TopDirectoryOnly))
         {
+            // The filename is the first ownership boundary. Do not parse,
+            // validate, inspect timestamps, or delete a JSON file merely
+            // because its content happens to look like a capture.
+            if (!TryGetOwnedCaptureIdentity(path, out var fileMessageId))
+            {
+                continue;
+            }
+
             try
             {
                 RejectReparsePoint(path);
@@ -354,11 +390,19 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                 var capture = ReadCapture(path);
                 if (capture is null)
                 {
-                    if (IsOwnedCaptureFile(path) && File.GetLastWriteTimeUtc(path) <= current.UtcDateTime.Subtract(MalformedCaptureGrace))
+                    if (File.GetLastWriteTimeUtc(path) <= current.UtcDateTime.Subtract(MalformedCaptureGrace))
                     {
                         expired.Add(path);
                     }
 
+                    continue;
+                }
+
+                if (capture.Value.Message.Id != fileMessageId)
+                {
+                    // A valid JSON payload with the wrong identity is not a
+                    // capture and is intentionally left for operator review.
+                    Console.Error.WriteLine("Local account-message capture identity mismatch; file was not returned or removed.");
                     continue;
                 }
 
@@ -380,18 +424,35 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                 // A parse failure has no content-based ownership proof. The
                 // private directory plus the exact capture filename and a
                 // bounded age are the only cleanup authority available.
-                if (IsOwnedCaptureFile(path) &&
-                    IsOlderThan(path, current.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                if (IsOlderThan(path, current.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
                     IsFileReadyForCleanup(path))
                 {
                     expired.Add(path);
                 }
             }
+            catch (InvalidOperationException)
+            {
+                // A single unsafe/reparse/unsupported file is not allowed to
+                // abort the operator read or retention pass.
+                Console.Error.WriteLine("Local account-message capture permission or ownership validation failed; file was skipped.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine("Local account-message capture permission validation failed; file was skipped.");
+            }
         }
 
         foreach (var path in expired)
         {
-            TryDeleteSilently(path);
+            // A completed capture normally has no writer, but a file that was
+            // interrupted or altered outside this process must still pass the
+            // same cross-process readiness check as malformed/temporary data.
+            // The helper releases its handle before Delete, which keeps the
+            // Windows delete boundary valid.
+            if (IsFileReadyForCleanup(path))
+            {
+                TryDeleteSilently(path);
+            }
         }
 
         return messages.OrderByDescending(message => message.CreatedAt).ToArray();
@@ -451,8 +512,7 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                 }
                 catch (JsonException)
                 {
-                    if (IsOwnedPendingFile(path) &&
-                        IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                    if (IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
                         IsFileReadyForCleanup(path))
                     {
                         if (TryDelete(path))
@@ -460,6 +520,14 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                             reconciled++;
                         }
                     }
+                }
+                catch (InvalidOperationException)
+                {
+                    _logger.LogWarning("Local account-message pending capture validation failed; file was skipped.");
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    _logger.LogWarning("Local account-message pending capture permission validation failed; file was skipped.");
                 }
             }
         }
@@ -472,13 +540,26 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         var deleteAfterClose = new List<string>();
         foreach (var path in Directory.EnumerateFiles(_captureDirectory, "*.json", SearchOption.TopDirectoryOnly))
         {
+            // Never inspect or remove a final capture whose filename is not
+            // owned by this adapter. Content cannot establish ownership.
+            if (!TryGetOwnedCaptureIdentity(path, out var fileMessageId))
+            {
+                continue;
+            }
+
             try
             {
                 RejectReparsePoint(path);
                 ValidateFilePermissions(path, _allowedWindowsSids);
                 var capture = ReadCapture(path);
+                if (capture is not null && capture.Value.Message.Id != fileMessageId)
+                {
+                    _logger.LogWarning("Local account-message capture identity mismatch; file was left for operator review.");
+                    continue;
+                }
+
                 if ((capture is not null && capture.Value.Message.ExpiresAt <= now) ||
-                    (capture is null && IsOwnedCaptureFile(path) &&
+                    (capture is null &&
                      File.GetLastWriteTimeUtc(path) <= now.UtcDateTime.Subtract(MalformedCaptureGrace)))
                 {
                     deleteAfterClose.Add(path);
@@ -490,12 +571,19 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
             catch (JsonException)
             {
-                if (IsOwnedCaptureFile(path) &&
-                    IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
+                if (IsOlderThan(path, now.UtcDateTime.Subtract(MalformedCaptureGrace)) &&
                     IsFileReadyForCleanup(path))
                 {
                     deleteAfterClose.Add(path);
                 }
+            }
+            catch (InvalidOperationException)
+            {
+                _logger.LogWarning("Local account-message capture permission or ownership validation failed; file was skipped.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Local account-message capture permission validation failed; file was skipped.");
             }
         }
 
@@ -505,8 +593,18 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             try
             {
                 RejectReparsePoint(path);
-                ValidateFilePermissions(path, _allowedWindowsSids);
-                if (IsOwnedTemporaryFile(path) &&
+                if (!IsOwnedTemporaryFile(path))
+                {
+                    continue;
+                }
+
+                // A process can die between CreateNew and the file-level ACL
+                // call. On Windows the already-validated private directory
+                // makes its inherited ACL safe; on Unix UnixCreateMode makes
+                // the file private at creation. Any other ACL/mode is rejected
+                // per file and cannot stop delivery of later messages.
+                ValidateTemporaryFilePermissions(path, _allowedWindowsSids);
+                if (
                     IsOlderThan(path, temporaryCutoff) &&
                     IsFileReadyForCleanup(path))
                 {
@@ -516,6 +614,14 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             catch (IOException)
             {
                 // Leave a file that is still being written for the next sweep.
+            }
+            catch (InvalidOperationException)
+            {
+                _logger.LogWarning("Local account-message temporary capture permission validation failed; file was skipped.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Local account-message temporary capture permission validation failed; file was skipped.");
             }
         }
 
@@ -539,7 +645,13 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                     } &&
                     storedMessageId == fileMessageId &&
                     storedEffectFence == fileEffectFence;
-                if (((captureBelongsToPath && capture!.Value.Message.ExpiresAt <= now) ||
+                if (!captureBelongsToPath)
+                {
+                    _logger.LogWarning("Local account-message pending capture identity mismatch; file was left for operator review.");
+                    continue;
+                }
+
+                if ((capture!.Value.Message.ExpiresAt <= now ||
                      IsOlderThan(path, pendingCutoff)) &&
                     IsFileReadyForCleanup(path))
                 {
@@ -559,11 +671,25 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                     deleteAfterClose.Add(path);
                 }
             }
+            catch (InvalidOperationException)
+            {
+                _logger.LogWarning("Local account-message pending capture permission or ownership validation failed; file was skipped.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Local account-message pending capture permission validation failed; file was skipped.");
+            }
         }
 
         foreach (var path in deleteAfterClose.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            TryDelete(path);
+            // Recheck immediately before deletion. Earlier parsing has closed
+            // its handle, but another process can begin writing while a sweep
+            // is progressing; do not delete an active owned capture.
+            if (IsFileReadyForCleanup(path))
+            {
+                TryDelete(path);
+            }
         }
     }
 
@@ -581,6 +707,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     private void RemovePathIfOwned(string path, Guid messageId, Guid effectFence)
     {
         if (!File.Exists(path))
+        {
+            return;
+        }
+
+        if (Path.GetExtension(path).Equals(".json", StringComparison.OrdinalIgnoreCase) &&
+            (!TryGetOwnedCaptureIdentity(path, out var fileMessageId) || fileMessageId != messageId))
         {
             return;
         }
@@ -608,6 +740,11 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
 
     private bool IsCaptureForFence(string path, Guid messageId, Guid effectFence)
     {
+        if (!TryGetOwnedCaptureIdentity(path, out var fileMessageId) || fileMessageId != messageId)
+        {
+            return false;
+        }
+
         try
         {
             ValidateFilePermissions(path, _allowedWindowsSids);
@@ -783,7 +920,14 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     private static void UnlockCaptureStreamCore(FileStream stream) => stream.Unlock(0, 1);
 
     private static bool IsOwnedCaptureFile(string path) =>
-        Guid.TryParseExact(Path.GetFileNameWithoutExtension(path), "N", out _);
+        TryGetOwnedCaptureIdentity(path, out _);
+
+    private static bool TryGetOwnedCaptureIdentity(string path, out Guid messageId)
+    {
+        messageId = Guid.Empty;
+        return Guid.TryParseExact(Path.GetFileNameWithoutExtension(path), "N", out messageId) &&
+            messageId != Guid.Empty;
+    }
 
     private static bool IsOwnedTemporaryFile(string path)
     {
@@ -899,6 +1043,33 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         ValidateUnixPermissions(path, PrivateFileMode);
     }
 
+    private static void ValidateTemporaryFilePermissions(
+        string path,
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            ValidateFilePermissions(path, allowedWindowsSids);
+            return;
+        }
+
+        ValidateTemporaryWindowsFilePermissions(path, allowedWindowsSids);
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static void ValidateTemporaryWindowsFilePermissions(
+        string path,
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
+    {
+        var security = new FileInfo(path).GetAccessControl(AccessControlSections.Access);
+        // A crash can happen after CreateNew but before SetAccessControl. The
+        // parent directory was already validated as private, so an ACL made up
+        // solely of inherited full-control entries for the configured
+        // identities is safe for this temporary state. Any other inheritance or
+        // ACE remains fail-closed.
+        ValidateWindowsPermissions(security, allowedWindowsSids, allowSafeInheritedFile: true);
+    }
+
     [UnsupportedOSPlatform("windows")]
     private static void ValidateUnixPermissions(string path, UnixFileMode expectedOwnerMode)
     {
@@ -921,11 +1092,12 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
     [SupportedOSPlatform("windows")]
     private static void ValidateWindowsPermissions(
         FileSystemSecurity security,
-        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids,
+        bool allowSafeInheritedFile = false)
     {
         var allowed = allowedWindowsSids
             ?? throw new InvalidOperationException("The local account-message ACL policy is unavailable.");
-        if (!security.AreAccessRulesProtected)
+        if (!security.AreAccessRulesProtected && !allowSafeInheritedFile)
         {
             throw new InvalidOperationException("Local account-message capture ACL inheritance is not private.");
         }
@@ -933,7 +1105,9 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         var found = new HashSet<SecurityIdentifier>();
         foreach (FileSystemAccessRule rule in security.GetAccessRules(includeExplicit: true, includeInherited: true, typeof(SecurityIdentifier)))
         {
-            if (rule.IsInherited || rule.AccessControlType != AccessControlType.Allow ||
+            if ((!security.AreAccessRulesProtected && !rule.IsInherited) ||
+                (security.AreAccessRulesProtected && rule.IsInherited) ||
+                rule.AccessControlType != AccessControlType.Allow ||
                 rule.IdentityReference is not SecurityIdentifier sid || !allowed.Any(allowedSid => allowedSid.Equals(sid)) ||
                 (rule.FileSystemRights & FileSystemRights.FullControl) != FileSystemRights.FullControl)
             {

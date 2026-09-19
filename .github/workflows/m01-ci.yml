@@ -9,7 +9,84 @@ permissions:
   contents: read
 
 jobs:
-  m01-s00:
+  backend-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Verify local implementation boundaries
+        run: bash scripts/dev/verify.sh
+      - name: Build API and bootstrap utility
+        run: |
+          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release
+          dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release
+      - name: Run preserved custom unit checks
+        run: dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release
+      - name: Run xUnit unit checks with CI-readable results
+        run: dotnet test tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release --logger "trx;LogFileName=unit-xunit.trx" --results-directory artifacts/test-results --collect:"XPlat Code Coverage"
+      - name: Upload backend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-unit-${{ github.sha }}
+          path: artifacts/test-results
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned frontend dependencies
+        run: npm ci --prefix web/Nexora.Web
+      - name: Typecheck and bundle frontend
+        run: npm run build --prefix web/Nexora.Web
+      - name: Run component tests with JUnit and coverage evidence
+        run: npm run test:unit:coverage --prefix web/Nexora.Web
+      - name: Upload frontend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-unit-${{ github.sha }}
+          path: web/Nexora.Web/artifacts
+          if-no-files-found: warn
+          retention-days: 7
+
+  sql-api-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXORA_TEST_SQL_CONNECTION: ${{ secrets.NEXORA_TEST_SQL_CONNECTION }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run isolated real SQL Server and API middleware tests
+        run: bash scripts/dev/test-sql.sh
+      - name: Upload SQL/API test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sql-api-integration-${{ github.sha }}
+          path: artifacts/test-results
+          if-no-files-found: warn
+          retention-days: 7
+
+  filesystem-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -19,16 +96,52 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Run Linux capture mode and cross-process lock checks
+        run: bash scripts/dev/test-filesystem.sh linux
+
+  filesystem-windows-acl:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Require Windows capture ACL evidence
+        shell: pwsh
+        run: ./scripts/dev/test-filesystem.ps1 -RequireOs windows
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      NEXORA_E2E_BASE_URL: ${{ vars.NEXORA_E2E_BASE_URL }}
+      NEXORA_E2E_OPERATOR_CLI: ${{ vars.NEXORA_E2E_OPERATOR_CLI }}
+      NEXORA_E2E_RUN_ID: nexora-e2e-${{ github.run_id }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Verify local implementation boundaries
-        run: bash scripts/dev/verify.sh
-      - name: Build API and local bootstrap utility
+      - name: Install pinned frontend dependencies
+        run: npm ci --prefix web/Nexora.Web
+      - name: Require configured isolated local E2E target
         run: |
-          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release
-          dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release
-      - name: Run existing unit checks
-        run: dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release
-      - name: Build frontend (typecheck + production bundle)
-        run: npm ci --prefix web/Nexora.Web && npm run build --prefix web/Nexora.Web
+          test -n "${NEXORA_E2E_BASE_URL}" || { echo "BLOCKED: NEXORA_E2E_BASE_URL is required." >&2; exit 2; }
+          test -n "${NEXORA_E2E_OPERATOR_CLI}" || { echo "BLOCKED: NEXORA_E2E_OPERATOR_CLI is required." >&2; exit 2; }
+      - name: Install the Playwright browser matching the locked package
+        run: npm run test:e2e:install --prefix web/Nexora.Web
+      - name: Run browser journeys without sensitive capture artifacts
+        run: npm run test:e2e --prefix web/Nexora.Web
+      - name: Upload browser JUnit evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-${{ github.sha }}
+          path: web/Nexora.Web/artifacts
+          if-no-files-found: warn
+          retention-days: 7

@@ -8,6 +8,11 @@ using Nexora.Domain.Identity;
 using Nexora.Domain.Modules;
 using Nexora.UnitTests;
 
+if (args.Length == 2 && string.Equals(args[0], "--hold-capture", StringComparison.Ordinal))
+{
+    return LocalAccountMessageSinkTests.HoldCaptureProcess(args[1]);
+}
+
 var runner = new TestRunner();
 ModulePolicyStoreTests.Register(runner);
 LocalAccountMessageSinkTests.Register(runner);
@@ -222,4 +227,4 @@ runner.Add("runtime store prevents duplicate verification token replay", () =>
     AssertEx.Equal("TokenUnavailable", second.Code, "Replay should produce TokenUnavailable");
 });
 
-return runner.Run();
+return runner.Run(args);
