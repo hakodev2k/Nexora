@@ -404,6 +404,86 @@ export function dateTime(value: string, timeZoneId?: string, locale?: string): s
   }
 }
 
+const moduleNames: Record<string, { vi: string; en: string }> = {
+  FX01: { vi: 'Tài khoản và hồ sơ', en: 'Account and profile' },
+  FX02: { vi: 'Người dùng, vai trò và quyền', en: 'Users, roles and permissions' },
+  FX03: { vi: 'Nền tảng module', en: 'Module platform' },
+  FX04: { vi: 'Chia sẻ chỉ đọc', en: 'Read-only sharing' },
+  FX05: { vi: 'Hỗ trợ và truy cập khẩn cấp', en: 'Support and emergency access' },
+  FX06: { vi: 'Thông báo', en: 'Notifications' },
+  FX07: { vi: 'Tệp và đính kèm', en: 'Files and attachments' },
+  FX08: { vi: 'Thùng rác và nhật ký', en: 'Trash and activity' },
+  FX09: { vi: 'Cài đặt ứng dụng', en: 'Application settings' },
+  FX10: { vi: 'Nhập, xuất và sao lưu', en: 'Import, export and backup' },
+  FX11: { vi: 'Dự án', en: 'Projects' },
+  FX12: { vi: 'Công việc', en: 'Tasks' },
+  FX13: { vi: 'Lịch', en: 'Calendar' },
+  FX14: { vi: 'Nhắc việc và lịch biểu', en: 'Reminders and scheduling' },
+  FX15: { vi: 'Kế hoạch', en: 'Planner' },
+  FX16: { vi: 'Mục tiêu', en: 'Goals' },
+  FX17: { vi: 'Thói quen', en: 'Habits' },
+  FX18: { vi: 'Theo dõi thời gian', en: 'Time tracking' },
+  FX19: { vi: 'Pomodoro', en: 'Pomodoro' },
+  FX20: { vi: 'Tài liệu', en: 'Documents' },
+  FX21: { vi: 'Dấu trang', en: 'Bookmarks' },
+  FX22: { vi: 'Đoạn mã', en: 'Snippets' },
+  FX23: { vi: 'Đọc sau', en: 'Read later' },
+  FX24: { vi: 'Tổ chức và mẫu', en: 'Organization and templates' },
+  FX25: { vi: 'Tìm kiếm và yêu thích', en: 'Search and favorites' },
+  FX26: { vi: 'Trang tổng quan', en: 'Dashboard' },
+  FX27: { vi: 'Tài chính', en: 'Finance' },
+  FX28: { vi: 'Kho bảo mật', en: 'Vault' },
+  FX29: { vi: 'Tin tức và nguồn cấp', en: 'News and feeds' },
+  FX30: { vi: 'Theo dõi giá Shopee', en: 'Shopee price tracking' },
+  FX31: { vi: 'Bản ghi mua sắm', en: 'Shopping records' },
+  FX32: { vi: 'Công cụ phát triển', en: 'Developer toolbox' },
+  FX33: { vi: 'Khám phá GitHub', en: 'GitHub discovery' },
+  FX34: { vi: 'Tự động hóa và lịch chạy', en: 'Automation and scheduler' },
+  FX35: { vi: 'Tích hợp và webhook', en: 'Integrations and webhooks' },
+  FX36: { vi: 'Giám sát và vận hành jobs', en: 'Monitoring and job operations' },
+  FX37: { vi: 'Tài sản cá nhân', en: 'Personal assets' },
+  FX38: { vi: 'Tài sản số', en: 'Digital assets' },
+  FX39: { vi: 'Nghề nghiệp và hồ sơ', en: 'Career and resumes' },
+  FX40: { vi: 'Học tập và nhật ký công việc', en: 'Learning and work log' }
+};
+
+const moduleScreenCodes = new Set([
+  'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
+  'FX17', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX32'
+]);
+
+function moduleDisplayName(code: string, locale: string): string {
+  const normalized = code.toUpperCase();
+  const name = moduleNames[normalized];
+  if (name) {
+    return locale === 'en' ? name.en : name.vi;
+  }
+
+  return locale === 'en' ? 'Additional capability' : 'Chức năng bổ sung';
+}
+
+function hasModuleScreen(code: string): boolean {
+  return moduleScreenCodes.has(code.toUpperCase());
+}
+
+function moduleAvailabilityMessage(reason: string | null, t: (key: string, fallback?: string) => string): string {
+  switch (reason?.trim().toUpperCase()) {
+    case 'PO_PAUSED':
+    case 'PAUSED':
+      return t('modulePaused');
+    case 'NOT_GRANTED':
+    case 'PERMISSION_DENIED':
+      return t('moduleNotGranted');
+    case 'SYSTEM_DISABLED':
+    case 'DISABLED':
+      return t('moduleDisabled');
+    case 'NOT_READY':
+      return t('moduleNotReady');
+    default:
+      return t('moduleUnavailable');
+  }
+}
+
 function Notice({ kind, children, onDismiss }: { kind: NoticeKind; children: React.ReactNode; onDismiss?: () => void }) {
   const { t } = useI18n();
   return (
@@ -943,7 +1023,7 @@ function Shell({
   const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
   const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
   const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
-  const navigableModules = profile.modules.filter((module) => !['FX04', 'FX05', 'FX07', 'FX15', 'FX16', 'FX17', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
+  const navigableModules = profile.modules.filter((module) => hasModuleScreen(module.code) && !['FX04', 'FX05', 'FX07', 'FX15', 'FX16', 'FX17', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
     setLogoutBusy(true);
@@ -988,7 +1068,7 @@ function Shell({
               const active = location.screen === 'module' && location.moduleCode === module.code.toUpperCase();
               return (
                 <button key={module.code} className={active ? 'nav-item active' : 'nav-item'} type="button" aria-current={active ? 'page' : undefined} disabled={!enabled} title={enabled ? undefined : module.unavailableReason ?? t('moduleUnavailable')} onClick={() => navigate('module', module.code.toUpperCase())}>
-                  <span className="module-dot" aria-hidden="true">{enabled ? '●' : '○'}</span><span>{module.code}</span>
+                  <span className="module-dot" aria-hidden="true">{enabled ? '●' : '○'}</span><span>{moduleDisplayName(module.code, profile.locale)}</span><small className="module-code">{module.code}</small>{!enabled && <small className="module-unavailable-reason">{moduleAvailabilityMessage(module.unavailableReason, t)}</small>}
                 </button>
               );
             })
@@ -2254,6 +2334,7 @@ function FavoritesScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<v
 }
 
 function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string) => void; onAuthLost: () => Promise<void> }) {
+  const { t } = useI18n();
   const enabledModules = profile.modules.filter((module) => module.enabled);
   const [dashboard, setDashboard] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -2288,13 +2369,13 @@ function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileRespons
       </div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {loading ? <div className="loading-state" role="status">Đang tải các widget…</div> : dashboard && <section className="module-section" aria-labelledby="dashboard-attention-title">
-        <div className="section-heading"><div><h2 id="dashboard-attention-title">Attention</h2><p className="muted">Nguồn dữ liệu giữ nguyên owner và timezone của PersonalSpace.</p></div><span className="muted">{new Date(dashboard.generatedAt).toLocaleString()}</span></div>
+        <div className="section-heading"><div><h2 id="dashboard-attention-title">Attention</h2><p className="muted">Nguồn dữ liệu giữ nguyên owner và timezone của PersonalSpace.</p></div><span className="muted">{dateTime(dashboard.generatedAt, profile.timeZoneId, profile.locale)}</span></div>
         <div className="module-grid">
           {dashboard.widgets.map((widget) => (
             <article key={widget.id} className={widget.state === 'Unavailable' ? 'module-card unavailable' : 'module-card'}>
               <div className="module-card-heading"><h3>{widget.title}</h3><span className={widget.state === 'Ready' ? 'state-pill state-active' : 'state-pill'}>{widget.state}</span></div>
               <p>{widget.message ?? `${widget.count} item${widget.count === 1 ? '' : 's'}`}</p>
-              {widget.items.length === 0 ? <p className="muted">Không có mục cần chú ý.</p> : <ul className="grant-list">{widget.items.map((item) => <li key={item.id}><span><strong>{item.title}</strong><small>{item.status ?? item.kind}{item.at ? ` · ${new Date(item.at).toLocaleString()}` : ''}</small></span></li>)}</ul>}
+              {widget.items.length === 0 ? <p className="muted">Không có mục cần chú ý.</p> : <ul className="grant-list">{widget.items.map((item) => <li key={item.id}><span><strong>{item.title}</strong><small>{item.status ?? item.kind}{item.at ? ` · ${dateTime(item.at, profile.timeZoneId, profile.locale)}` : ''}</small></span></li>)}</ul>}
             </article>
           ))}
         </div>
@@ -4775,12 +4856,19 @@ function ProfileScreen({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [serverVersion, setServerVersion] = useState<ProfileResponse | null>(null);
+  const [leaveContinuation, setLeaveContinuation] = useState<DirtyLeaveContinuation | null>(null);
   const requestKey = useRef<string | null>(null);
+  const profileForm = useRef<HTMLFormElement>(null);
+  const pendingLeaveContinuation = useRef<DirtyLeaveContinuation | null>(null);
+
 
   useEffect(() => {
     requestKey.current = null;
     setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
     setConflict(false);
+    setServerVersion(null);
+    setLeaveContinuation(null);
   }, [profile]);
 
   function changeDraft(patch: ProfilePatch) {
@@ -4797,6 +4885,27 @@ function ProfileScreen({
       onProfileUpdated(latest);
       setDraft({ displayName: latest.displayName, timeZoneId: latest.timeZoneId, locale: latest.locale });
       setConflict(false);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function inspectServerVersion() {
+    setLoading(true);
+    setError(null);
+    try {
+      // getMe refreshes the revision held by the API boundary, but this
+      // deliberately does not update the parent profile or replace the local
+      // draft. A later save is an explicit new user action, never a retry.
+      const latest = normalizeProfile(await getMe());
+      setServerVersion(latest);
+      setConflict(true);
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -4829,6 +4938,13 @@ function ProfileScreen({
       requestKey.current = null;
       onProfileUpdated(updated);
       setDraft({ displayName: updated.displayName, timeZoneId: updated.timeZoneId, locale: updated.locale });
+      setServerVersion(null);
+      const continuation = pendingLeaveContinuation.current;
+      pendingLeaveContinuation.current = null;
+      if (continuation) {
+        setLeaveContinuation(null);
+        continuation();
+      }
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -4843,16 +4959,56 @@ function ProfileScreen({
   }
 
   const changed = draft.displayName !== profile.displayName || draft.timeZoneId !== profile.timeZoneId || draft.locale !== profile.locale;
+
+  useEffect(() => {
+    if (!changed) {
+      return;
+    }
+
+    const preventUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', preventUnload);
+    return () => window.removeEventListener('beforeunload', preventUnload);
+  }, [changed]);
+
+  useEffect(() => {
+    const guard: DirtyLeaveGuard = (continuation) => {
+      if (!changed) {
+        return false;
+      }
+
+      setLeaveContinuation(() => continuation);
+      return true;
+    };
+    dirtyLeaveGuard.current = guard;
+    return () => {
+      if (dirtyLeaveGuard.current === guard) {
+        dirtyLeaveGuard.current = null;
+      }
+    };
+  }, [changed]);
+
   return (
     <section className="content-section" aria-labelledby="profile-title">
       <div className="content-heading"><div><p className="eyebrow">{t('settingsProfile')}</p><h1 id="profile-title">{t('profileTitle')}</h1><p className="lead">{t('profileLead')}</p></div><span className="state-pill state-active">{profile.state}</span></div>
       {conflict && (
         <Notice kind="error">
           <span>{t('profileChanged')}</span>
-          <button className="inline-button" type="button" onClick={reload} disabled={loading}>{loading ? t('loading') : t('reloadRevision')}</button>
+          <button className="inline-button" type="button" onClick={() => void inspectServerVersion()} disabled={loading}>{loading ? t('loading') : t('reviewServerVersion')}</button>
+          {serverVersion && <div className="profile-conflict-review" role="status">
+            <p>{t('serverVersionAvailable')}</p>
+            <dl>
+              <dt>{t('serverVersionDisplayName')}</dt><dd>{serverVersion.displayName}</dd>
+              <dt>{t('serverVersionTimezone')}</dt><dd>{serverVersion.timeZoneId}</dd>
+              <dt>{t('serverVersionLocale')}</dt><dd>{serverVersion.locale}</dd>
+            </dl>
+            <button className="secondary-button" type="button" onClick={() => void reload()} disabled={loading || busy}>{loading ? t('loading') : t('useServerVersion')}</button>
+          </div>}
         </Notice>
       )}
-      <form className="profile-form" onSubmit={submit} noValidate>
+      <form ref={profileForm} className="profile-form" onSubmit={submit} noValidate>
         <div className="form-panel">
           <div className="field-group"><label htmlFor="profile-email">{t('email')}</label><input id="profile-email" type="email" value={profile.email} readOnly aria-describedby="profile-email-help" /><p className="field-help" id="profile-email-help">{t('profileEmailHelp')}</p></div>
           <div className="field-group"><label htmlFor="profile-display-name">{t('displayName')}</label><input id="profile-display-name" type="text" maxLength={100} value={draft.displayName ?? ''} onChange={(event) => changeDraft({ displayName: event.target.value })} required aria-describedby="profile-display-name-error" /><FieldError id="profile-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} /></div>
@@ -4862,6 +5018,32 @@ function ProfileScreen({
           <div className="form-actions"><button className="secondary-button" type="button" onClick={() => { requestKey.current = null; setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale }); }} disabled={!changed || busy}>{t('cancelChanges')}</button><SubmitButton busy={busy}>{t('saveProfile')}</SubmitButton></div>
         </div>
       </form>
+      {leaveContinuation && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-unsaved-title" aria-describedby="profile-unsaved-description">
+            <h2 id="profile-unsaved-title">{t('unsavedChangesTitle')}</h2>
+            <p id="profile-unsaved-description">{t('unsavedChangesDescription')}</p>
+            <div className="form-actions">
+              <button className="secondary-button" type="button" onClick={() => {
+                pendingLeaveContinuation.current = null;
+                setLeaveContinuation(null);
+              }} disabled={busy}>{t('keepEditing')}</button>
+              <button className="danger-button" type="button" onClick={() => {
+                const continuation = leaveContinuation;
+                pendingLeaveContinuation.current = null;
+                requestKey.current = null;
+                setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
+                setLeaveContinuation(null);
+                continuation();
+              }} disabled={busy}>{t('discardChanges')}</button>
+              <button className="primary-button" type="button" onClick={() => {
+                pendingLeaveContinuation.current = leaveContinuation;
+                profileForm.current?.requestSubmit();
+              }} disabled={busy}>{busy ? t('saving') : t('saveAndContinue')}</button>
+            </div>
+          </section>
+        </div>
+      )}
       <PreferencesPanel onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />
     </section>
   );
@@ -4936,6 +5118,8 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmAll, setConfirmAll] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const [hasLoadedSuccessfully, setHasLoadedSuccessfully] = useState(false);
+  const [staleData, setStaleData] = useState(false);
   const actionKeys = useRef<Record<string, string>>({});
 
   async function load() {
@@ -4944,8 +5128,11 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
     try {
       const page = await listSessions();
       setSessions(Array.isArray(page.items) ? page.items : []);
+      setHasLoadedSuccessfully(true);
+      setStaleData(false);
     } catch (requestError) {
       const apiError = asApiError(requestError);
+      setStaleData(hasLoadedSuccessfully);
       setError(apiError);
       if (apiError.status === 401) {
         await onAuthLost();
@@ -5007,7 +5194,8 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
       <div className="content-heading"><div><p className="eyebrow">{t('securityEyebrow')}</p><h1 id="security-title">{t('securityTitle')}</h1><p className="lead">{t('securityLead')}</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{loading ? t('loading') : t('reload')}</button></div>
       <div className="security-policy"><strong>{t('mfaRecovery')}</strong><span>{t('mfaRecoveryDescription')}</span></div>
       {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-       {loading ? <div className="loading-state" role="status">{t('loadingSessions')}</div> : sessions.length === 0 ? <div className="empty-state"><h2>{t('noSessions')}</h2><p>{t('noSessionsDescription')}</p></div> : <div className="table-wrap"><table><caption>{t('sessionList')}</caption><thead><tr><th scope="col">{t('device')}</th><th scope="col">{t('lastActivity')}</th><th scope="col">{t('expires')}</th><th scope="col"><span className="sr-only">{t('actions')}</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">{t('currentSession')}</span>}<span className="muted">{t('created')} {dateTime(session.createdAt, timeZoneId, locale)}</span></td><td>{dateTime(session.lastSeenAt, timeZoneId, locale)}</td><td>{dateTime(session.expiresAt, timeZoneId, locale)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>{t('revokeThisSession')}</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>{t('cancel')}</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>{t('revoke')}</button>}</td></tr>)}</tbody></table></div>}
+      {staleData && <p className="stale-state" role="status">{t('sessionsStale')}</p>}
+       {loading ? <div className="loading-state" role="status">{t('loadingSessions')}</div> : !hasLoadedSuccessfully ? null : sessions.length === 0 ? <div className="empty-state"><h2>{t('noSessions')}</h2><p>{t('noSessionsDescription')}</p></div> : <div className="table-wrap"><table><caption>{t('sessionList')}</caption><thead><tr><th scope="col">{t('device')}</th><th scope="col">{t('lastActivity')}</th><th scope="col">{t('expires')}</th><th scope="col"><span className="sr-only">{t('actions')}</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">{t('currentSession')}</span>}<span className="muted">{t('created')} {dateTime(session.createdAt, timeZoneId, locale)}</span></td><td>{dateTime(session.lastSeenAt, timeZoneId, locale)}</td><td>{dateTime(session.expiresAt, timeZoneId, locale)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>{t('revokeThisSession')}</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>{t('cancel')}</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>{t('revoke')}</button>}</td></tr>)}</tbody></table></div>}
       <div className="danger-zone"><div><h2>{t('revokeAllTitle')}</h2><p>{t('revokeAllDescription')}</p></div>{confirmAll ? <div className="confirm-actions"><span>{t('revokeAllQuestion')}</span><button className="danger-button" type="button" onClick={revokeEverywhere} disabled={busyId === 'all'}>{busyId === 'all' ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmAll(false)} disabled={busyId === 'all'}>{t('cancel')}</button></div> : <button className="danger-button" type="button" onClick={() => setConfirmAll(true)} disabled={busyId !== null || loading}>{t('revokeAll')}</button>}</div>
     </section>
   );

@@ -217,6 +217,11 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
 
     private FileStream CreateTemporaryCapture(string path)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            return CreateWindowsTemporaryCapture(path);
+        }
+
         var options = new FileStreamOptions
         {
             Mode = FileMode.CreateNew,
@@ -239,6 +244,33 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         try
         {
             RestrictFilePermissions(path, _allowedWindowsSids);
+            ValidateFilePermissions(path, _allowedWindowsSids);
+            return stream;
+        }
+        catch
+        {
+            stream.Dispose();
+            TryDelete(path);
+            throw;
+        }
+    }
+
+    [SupportedOSPlatform("windows")]
+    private FileStream CreateWindowsTemporaryCapture(string path)
+    {
+        var security = CreatePrivateWindowsFileSecurity(_allowedWindowsSids);
+        var stream = new FileInfo(path).Create(
+            FileMode.CreateNew,
+            FileSystemRights.FullControl,
+            FileShare.None,
+            bufferSize: 4096,
+            FileOptions.WriteThrough,
+            security);
+        try
+        {
+            // The ACL is supplied to Create rather than set after opening.
+            // A process crash between creation and the first write therefore
+            // cannot leave a plaintext temporary capture with inherited ACLs.
             ValidateFilePermissions(path, _allowedWindowsSids);
             return stream;
         }
@@ -598,6 +630,47 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
                     continue;
                 }
 
+                // A legacy Windows crash can leave an ACL that prevents the
+                // advisory-lock probe. Validate it separately so an old,
+                // exact adapter temporary does not prevent a later delivery
+                // from reaching its own claim/effect path. This branch never
+                // reads its contents and File.Delete remains blocked by an
+                // active writer that omitted FileShare.Delete.
+                if (OperatingSystem.IsWindows() && IsOlderThan(path, temporaryCutoff))
+                {
+                    try
+                    {
+                        ValidateTemporaryFilePermissions(path, _allowedWindowsSids);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        if (!TryDisposeUntrustedTemporaryOrphan(path, temporaryCutoff))
+                        {
+                            _logger.LogWarning("Local account-message temporary capture validation failed; the owned candidate remains quarantined for operator recovery.");
+                        }
+
+                        continue;
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        if (!TryDisposeUntrustedTemporaryOrphan(path, temporaryCutoff))
+                        {
+                            _logger.LogWarning("Local account-message temporary capture permission validation failed; the owned candidate remains quarantined for operator recovery.");
+                        }
+
+                        continue;
+                    }
+                }
+
+                // Do not let an invalid legacy file ACL poison delivery. An
+                // adapter-owned temporary candidate must first be stale and
+                // demonstrably inactive; only then can a failed ACL check
+                // take the bounded terminal-recovery path in the catch block.
+                if (!IsOlderThan(path, temporaryCutoff) || !IsFileReadyForCleanup(path))
+                {
+                    continue;
+                }
+
                 // A process can die between CreateNew and the file-level ACL
                 // call. On Windows the already-validated private directory
                 // makes its inherited ACL safe; on Unix UnixCreateMode makes
@@ -617,10 +690,20 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             }
             catch (InvalidOperationException)
             {
+                if (TryDisposeUntrustedTemporaryOrphan(path, temporaryCutoff))
+                {
+                    continue;
+                }
+
                 _logger.LogWarning("Local account-message temporary capture permission validation failed; file was skipped.");
             }
             catch (UnauthorizedAccessException)
             {
+                if (TryDisposeUntrustedTemporaryOrphan(path, temporaryCutoff))
+                {
+                    continue;
+                }
+
                 _logger.LogWarning("Local account-message temporary capture permission validation failed; file was skipped.");
             }
         }
@@ -785,6 +868,56 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         catch (UnauthorizedAccessException)
         {
             _logger.LogWarning("Local account-message cleanup could not remove an owned capture file.");
+            return false;
+        }
+    }
+
+    private bool TryDisposeUntrustedTemporaryOrphan(string path, DateTime cutoff)
+    {
+        try
+        {
+            // This deliberately never reads or parses an untrusted file. The
+            // only deletion authority is the already validated private parent
+            // directory plus the exact adapter temporary name, non-reparse
+            // target, orphan age and inactive-writer check. Foreign names,
+            // pending/final JSON and active writers remain untouched.
+            RejectReparsePoint(path);
+            if (!IsOwnedTemporaryFile(path) || !IsOlderThan(path, cutoff))
+            {
+                return false;
+            }
+
+            if (OperatingSystem.IsLinux() && !IsFileReadyForCleanup(path))
+            {
+                return false;
+            }
+
+            // On Windows File.Delete fails while a writer omitted FileShare.Delete.
+            // That is the cross-process active-writer boundary when the unsafe
+            // ACL prevents opening the old orphan for an advisory lock.
+            if (!OperatingSystem.IsWindows() && !IsFileReadyForCleanup(path))
+            {
+                return false;
+            }
+
+            if (!TryDelete(path))
+            {
+                return false;
+            }
+
+            _logger.LogWarning("Disposed a stale untrusted local account-message temporary capture candidate after bounded orphan recovery.");
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
             return false;
         }
     }
@@ -1047,6 +1180,14 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
         string path,
         IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
     {
+        if (OperatingSystem.IsWindows())
+        {
+            // New temporaries have a protected ACL at CreateNew time. An
+            // inherited legacy ACL is not a trusted temporary capture.
+            ValidateFilePermissions(path, allowedWindowsSids);
+            return;
+        }
+
         if (!OperatingSystem.IsWindows())
         {
             ValidateFilePermissions(path, allowedWindowsSids);
@@ -1122,6 +1263,27 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
             throw new InvalidOperationException("Local account-message capture ACL is not private.");
         }
 
+    }
+
+    [SupportedOSPlatform("windows")]
+    private static FileSecurity CreatePrivateWindowsFileSecurity(
+        IReadOnlyList<SecurityIdentifier>? allowedWindowsSids)
+    {
+        var allowed = allowedWindowsSids
+            ?? throw new InvalidOperationException("The local account-message ACL policy is unavailable.");
+        var security = new FileSecurity();
+        security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+        foreach (var sid in allowed)
+        {
+            security.AddAccessRule(new FileSystemAccessRule(
+                sid,
+                FileSystemRights.FullControl,
+                InheritanceFlags.None,
+                PropagationFlags.None,
+                AccessControlType.Allow));
+        }
+
+        return security;
     }
 
     private static IReadOnlyList<SecurityIdentifier>? CreateWindowsAclPolicy(
