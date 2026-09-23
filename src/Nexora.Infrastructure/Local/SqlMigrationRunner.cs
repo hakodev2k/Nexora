@@ -8,8 +8,13 @@ namespace Nexora.Infrastructure.Local;
 
 public sealed class SqlMigrationRunner
 {
-    public async Task ApplyAsync(string connectionString, string directory, CancellationToken cancellationToken = default)
+    public async Task ApplyAsync(
+        string connectionString,
+        string directory,
+        IReadOnlyCollection<string> migrationFileNames,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(migrationFileNames);
         var target = LocalSqlTarget.Validate(connectionString, "Development");
         await using var connection = new SqlConnection(target);
         await connection.OpenAsync(cancellationToken);
@@ -26,7 +31,7 @@ public sealed class SqlMigrationRunner
             """);
         try
         {
-            foreach (var file in Directory.GetFiles(directory, "*.sql").Order(StringComparer.Ordinal))
+            foreach (var file in ResolveMigrationFiles(directory, migrationFileNames))
             {
                 var name = Path.GetFileName(file);
                 var content = await File.ReadAllTextAsync(file, cancellationToken);
@@ -60,5 +65,40 @@ public sealed class SqlMigrationRunner
             await using var command = new SqlCommand(sql, connection) { CommandTimeout = 60 };
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
+    }
+
+    private static IReadOnlyList<string> ResolveMigrationFiles(
+        string directory,
+        IReadOnlyCollection<string> migrationFileNames)
+    {
+        if (string.IsNullOrWhiteSpace(directory))
+            throw new ArgumentException("A migration directory is required.", nameof(directory));
+        if (migrationFileNames.Count == 0)
+            throw new ArgumentException("At least one reviewed migration is required.", nameof(migrationFileNames));
+
+        var fullDirectory = Path.GetFullPath(directory);
+        if (!Directory.Exists(fullDirectory))
+            throw new DirectoryNotFoundException("The reviewed migration directory does not exist.");
+
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        var files = new List<string>(migrationFileNames.Count);
+        foreach (var name in migrationFileNames)
+        {
+            if (string.IsNullOrWhiteSpace(name) ||
+                !name.EndsWith(".sql", StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(Path.GetFileName(name), name, StringComparison.Ordinal) ||
+                !names.Add(name))
+            {
+                throw new ArgumentException("Migration selections must be unique SQL file names.", nameof(migrationFileNames));
+            }
+
+            var file = Path.Combine(fullDirectory, name);
+            if (!File.Exists(file))
+                throw new FileNotFoundException("A reviewed migration file is missing.", file);
+
+            files.Add(file);
+        }
+
+        return files.Order(StringComparer.Ordinal).ToArray();
     }
 }

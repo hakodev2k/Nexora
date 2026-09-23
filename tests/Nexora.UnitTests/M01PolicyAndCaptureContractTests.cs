@@ -4,12 +4,28 @@ using Nexora.Application.Identity;
 using Nexora.Domain.Access;
 using Nexora.Domain.Identity;
 using Nexora.Infrastructure.Identity;
+using Nexora.Infrastructure.Local;
 using Xunit;
 
 namespace Nexora.UnitTests;
 
 public sealed class M01PolicyAndCaptureContractTests
 {
+    [Fact]
+    public void M01_migration_manifest_contains_only_the_reviewed_M01_files()
+    {
+        Assert.Equal(
+            [
+                "20260909_0001_m01_identity_platform.sql",
+                "20260909_0002_bootstrap_closure.sql",
+                "20260913_0026_identity_local_delivery.sql",
+                "20260922_0027_sanitize_session_device_labels.sql"
+            ],
+            M01MigrationManifest.RequiredFileNames);
+        Assert.DoesNotContain(M01MigrationManifest.RequiredFileNames,
+            name => name.StartsWith("20260910_", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(UserState.PendingVerification, false, false, false, false, "EmailVerificationRequired")]
     [InlineData(UserState.Active, true, false, false, false, "LoginAllowed")]

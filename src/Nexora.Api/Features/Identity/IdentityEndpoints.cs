@@ -96,17 +96,6 @@ public static class IdentityEndpoints
             return ToHttp(context, result, value => ToProfile(value.Profile));
         }).WithName("updateMe");
 
-        api.MapDelete("/me", (HttpContext context, DeleteAccountRequest request, IIdentityService service, SessionCookieService cookies) =>
-        {
-            var result = service.SoftDelete(cookies.ReadRawHandle(context.Request), request.Confirmation, request.Password, IdempotencyKey(context), context.TraceIdentifier);
-            if (result.Succeeded)
-            {
-                cookies.Clear(context.Response);
-            }
-
-            return ToHttp(context, result);
-        }).WithName("softDeleteAccount");
-
         api.MapGet("/me/sessions", (HttpContext context, IIdentityService service, SessionCookieService cookies) =>
             ToHttp(context, service.ListSessions(cookies.ReadRawHandle(context.Request)), value =>
                 new SessionPage(value.Items.Select(session => new SessionProjection(session.Id, session.DeviceLabel, session.CreatedAt, session.LastSeenAt, session.ExpiresAt, session.IsCurrent)).ToArray(), value.NextCursor)))

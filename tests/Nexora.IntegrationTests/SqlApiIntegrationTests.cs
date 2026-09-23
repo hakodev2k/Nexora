@@ -21,13 +21,13 @@ public sealed class SqlApiIntegrationTests
     {
         _fixture.RequireAvailable();
 
-        Assert.NotNull(_fixture.ReadinessAt0024);
-        Assert.Equal("NotReady", _fixture.ReadinessAt0024!.Status);
-        Assert.Equal("MissingRequired", _fixture.ReadinessAt0024.Dependencies["requiredMigrations"]);
+        Assert.NotNull(_fixture.ReadinessBeforeM01Completion);
+        Assert.Equal("NotReady", _fixture.ReadinessBeforeM01Completion!.Status);
+        Assert.Equal("MissingRequired", _fixture.ReadinessBeforeM01Completion.Dependencies["requiredMigrations"]);
 
-        Assert.NotNull(_fixture.ReadinessAfterFullMigration);
-        Assert.Equal("NotReady", _fixture.ReadinessAfterFullMigration!.Status);
-        Assert.Equal("Ready", _fixture.ReadinessAfterFullMigration.Dependencies["requiredMigrations"]);
+        Assert.NotNull(_fixture.ReadinessAfterM01Migration);
+        Assert.Equal("NotReady", _fixture.ReadinessAfterM01Migration!.Status);
+        Assert.Equal("Ready", _fixture.ReadinessAfterM01Migration.Dependencies["requiredMigrations"]);
 
         Assert.NotNull(_fixture.ReadinessAfterBootstrap);
         Assert.True(_fixture.ReadinessAfterBootstrap!.Ready);

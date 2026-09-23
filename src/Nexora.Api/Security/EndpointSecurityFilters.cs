@@ -53,20 +53,6 @@ public static class EndpointSecurityFilters
                     });
             }
 
-            var idempotencyKey = http.Request.Headers["Idempotency-Key"].ToString();
-            if (!Guid.TryParse(idempotencyKey, out _))
-            {
-                return Results.Problem(
-                    title: "Idempotency-Key must be a UUID.",
-                    statusCode: StatusCodes.Status422UnprocessableEntity,
-                    type: "/problems/IdempotencyKeyRequired",
-                    extensions: new Dictionary<string, object?>
-                    {
-                        ["code"] = "IdempotencyKeyRequired",
-                        ["traceId"] = http.TraceIdentifier
-                    });
-            }
-
             var path = http.Request.Path.Value ?? string.Empty;
             var limit = LimitFor(path);
             if (limit is { } rate && !RequestRateLimiter.Allow(ClientKey(http) + ":" + path, rate.MaxRequests, rate.Window, out var retryAfter))
@@ -89,7 +75,21 @@ public static class EndpointSecurityFilters
             var requestToken = http.Request.Headers["X-CSRF-Token"].ToString();
             if (csrf.Validate(cookieSecret, requestToken))
             {
-                return await next(invocationContext);
+                if (!RequiresIdempotencyKey(http.Request.Method, path) ||
+                    Guid.TryParse(http.Request.Headers["Idempotency-Key"].ToString(), out _))
+                {
+                    return await next(invocationContext);
+                }
+
+                return Results.Problem(
+                    title: "Idempotency-Key must be a UUID.",
+                    statusCode: StatusCodes.Status422UnprocessableEntity,
+                    type: "/problems/IdempotencyKeyRequired",
+                    extensions: new Dictionary<string, object?>
+                    {
+                        ["code"] = "IdempotencyKeyRequired",
+                        ["traceId"] = http.TraceIdentifier
+                    });
             }
 
             return Results.Problem(
@@ -139,6 +139,32 @@ public static class EndpointSecurityFilters
         if (path.EndsWith("/auth/registrations", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("/auth/reauth", StringComparison.OrdinalIgnoreCase)) return (10, TimeSpan.FromMinutes(5));
         return null;
+    }
+
+    private static bool RequiresIdempotencyKey(string method, string path)
+    {
+        if (HttpMethods.IsPatch(method) && string.Equals(path, "/api/v1/me", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (HttpMethods.IsPost(method))
+        {
+            return string.Equals(path, "/api/v1/auth/registrations", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(path, "/api/v1/auth/verifications", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(path, "/api/v1/auth/verifications/resend", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(path, "/api/v1/auth/password-resets", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(path, "/api/v1/auth/password-resets/confirm", StringComparison.OrdinalIgnoreCase);
+        }
+
+        if (!HttpMethods.IsPut(method))
+        {
+            return false;
+        }
+
+        return path.StartsWith("/api/v1/admin/users/", StringComparison.OrdinalIgnoreCase) ||
+               (path.StartsWith("/api/v1/admin/modules/", StringComparison.OrdinalIgnoreCase) &&
+                path.EndsWith("/policy", StringComparison.OrdinalIgnoreCase));
     }
 
 }

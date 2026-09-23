@@ -58,9 +58,9 @@ public sealed class SqlApiFixture : IAsyncLifetime
 
     public string? ConnectionString { get; private set; }
 
-    public SqlReadinessResult? ReadinessAt0024 { get; private set; }
+    public SqlReadinessResult? ReadinessBeforeM01Completion { get; private set; }
 
-    public SqlReadinessResult? ReadinessAfterFullMigration { get; private set; }
+    public SqlReadinessResult? ReadinessAfterM01Migration { get; private set; }
 
     public SqlReadinessResult? ReadinessAfterBootstrap { get; private set; }
 
@@ -101,33 +101,39 @@ public sealed class SqlApiFixture : IAsyncLifetime
             ConnectionString = LocalSqlTarget.Validate(database.ConnectionString, "Development");
 
             var sourceMigrations = Path.Combine(AppContext.BaseDirectory, "migrations");
-            var stagedMigrations = Path.Combine(_runRoot, "migrations-0024");
+            var stagedMigrations = Path.Combine(_runRoot, "migrations-before-m01-completion");
             Directory.CreateDirectory(stagedMigrations);
-            foreach (var migration in Directory.EnumerateFiles(sourceMigrations, "*.sql", SearchOption.TopDirectoryOnly)
-                         .Where(path => !Path.GetFileName(path).StartsWith("20260913_0025_", StringComparison.Ordinal) &&
-                                        !Path.GetFileName(path).StartsWith("20260913_0026_", StringComparison.Ordinal)))
+            var stagedMigrationNames = M01MigrationManifest.RequiredFileNames
+                .Take(M01MigrationManifest.RequiredFileNames.Count - 1)
+                .ToArray();
+            foreach (var migrationName in stagedMigrationNames)
             {
-                File.Copy(migration, Path.Combine(stagedMigrations, Path.GetFileName(migration)));
+                File.Copy(
+                    Path.Combine(sourceMigrations, migrationName),
+                    Path.Combine(stagedMigrations, migrationName));
             }
 
             var migrations = new SqlMigrationRunner();
-            await migrations.ApplyAsync(ConnectionString, stagedMigrations);
-            ReadinessAt0024 = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
+            await migrations.ApplyAsync(ConnectionString, stagedMigrations, stagedMigrationNames);
+            ReadinessBeforeM01Completion = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
             Require(
-                !ReadinessAt0024.Ready &&
-                string.Equals(ReadinessAt0024.Dependencies["requiredMigrations"], "MissingRequired", StringComparison.Ordinal),
-                "A journal ending at 0024 must be not ready for the M01 binary.");
+                !ReadinessBeforeM01Completion.Ready &&
+                string.Equals(ReadinessBeforeM01Completion.Dependencies["requiredMigrations"], "MissingRequired", StringComparison.Ordinal),
+                "A journal missing an approved M01 migration must not be ready for the M01 binary.");
 
-            await migrations.ApplyAsync(ConnectionString, sourceMigrations);
-            await migrations.ApplyAsync(ConnectionString, sourceMigrations);
-            var expectedMigrationCount = Directory.GetFiles(sourceMigrations, "*.sql").Length;
+            await migrations.ApplyAsync(ConnectionString, sourceMigrations, M01MigrationManifest.RequiredFileNames);
+            await migrations.ApplyAsync(ConnectionString, sourceMigrations, M01MigrationManifest.RequiredFileNames);
+            var expectedMigrationCount = M01MigrationManifest.RequiredFileNames.Count;
             Require(
                 await ScalarIntAsync("SELECT COUNT(*) FROM dbo.NexoraMigration;") == expectedMigrationCount,
                 "Migration replay must not add journal rows.");
-            ReadinessAfterFullMigration = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
             Require(
-                !ReadinessAfterFullMigration.Ready &&
-                string.Equals(ReadinessAfterFullMigration.Dependencies["requiredMigrations"], "Ready", StringComparison.Ordinal),
+                await ScalarIntAsync("SELECT COUNT(*) FROM dbo.NexoraMigration WHERE [Name] LIKE '20260910_%';") == 0,
+                "The M01 runner must not journal R1 migrations.");
+            ReadinessAfterM01Migration = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
+            Require(
+                !ReadinessAfterM01Migration.Ready &&
+                string.Equals(ReadinessAfterM01Migration.Dependencies["requiredMigrations"], "Ready", StringComparison.Ordinal),
                 "A fully migrated but unbootstrapped database must remain not ready.");
 
             await AssertJournalChecksumGuardAsync(migrations, sourceMigrations);
@@ -425,16 +431,15 @@ public sealed class SqlApiFixture : IAsyncLifetime
     {
         var checksumDirectory = Path.Combine(_runRoot, "journal-checksum");
         Directory.CreateDirectory(checksumDirectory);
-        var source = Directory.EnumerateFiles(sourceMigrations, "*.sql", SearchOption.TopDirectoryOnly)
-            .Order(StringComparer.Ordinal)
-            .First();
-        var destination = Path.Combine(checksumDirectory, Path.GetFileName(source));
+        var sourceName = M01MigrationManifest.RequiredFileNames[0];
+        var source = Path.Combine(sourceMigrations, sourceName);
+        var destination = Path.Combine(checksumDirectory, sourceName);
         await File.WriteAllTextAsync(destination, await File.ReadAllTextAsync(source) + Environment.NewLine + "-- synthetic checksum probe");
 
         var rejected = false;
         try
         {
-            await migrations.ApplyAsync(RequireConnectionString(), checksumDirectory);
+            await migrations.ApplyAsync(RequireConnectionString(), checksumDirectory, [sourceName]);
         }
         catch (InvalidOperationException)
         {

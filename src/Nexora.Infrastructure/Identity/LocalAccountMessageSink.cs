@@ -874,6 +874,16 @@ public sealed class LocalAccountMessageSink : IAccountMessageSink, IAccountMessa
 
     private bool TryDisposeUntrustedTemporaryOrphan(string path, DateTime cutoff)
     {
+        // Unix mode validation is authoritative. A stale temporary with an
+        // unsafe mode must remain quarantined for operator recovery rather
+        // than being deleted merely because its adapter-shaped file name is
+        // old. The bounded recovery path below exists only for legacy Windows
+        // ACLs where the validated private parent provides the safe boundary.
+        if (!OperatingSystem.IsWindows())
+        {
+            return false;
+        }
+
         try
         {
             // This deliberately never reads or parses an untrusted file. The

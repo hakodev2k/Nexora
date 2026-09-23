@@ -39,10 +39,12 @@ try
     await sql.OpenAsync();
     var migrations = new SqlMigrationRunner();
     var migrationDirectory = Path.Combine(AppContext.BaseDirectory, "migrations");
-    var expectedMigrationCount = Directory.GetFiles(migrationDirectory, "*.sql").Length;
-    await migrations.ApplyAsync(connection, migrationDirectory);
-    await migrations.ApplyAsync(connection, migrationDirectory);
+    var expectedMigrationCount = M01MigrationManifest.RequiredFileNames.Count;
+    await migrations.ApplyAsync(connection, migrationDirectory, M01MigrationManifest.RequiredFileNames);
+    await migrations.ApplyAsync(connection, migrationDirectory, M01MigrationManifest.RequiredFileNames);
     Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration") == expectedMigrationCount, "Migrations journal once on replay");
+    Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration WHERE Name LIKE '20260910_%'") == 0,
+        "M01 migration runner must not apply R1 migrations");
     Console.WriteLine("PASS: empty database migration and journal replay.");
 
     var bootstrap = new SqlBootstrapSuperAdmin(connection);

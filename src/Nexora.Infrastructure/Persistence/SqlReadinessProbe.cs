@@ -1,5 +1,6 @@
 using System.Data;
 using Microsoft.Data.SqlClient;
+using Nexora.Infrastructure.Local;
 
 namespace Nexora.Infrastructure.Persistence;
 
@@ -10,39 +11,7 @@ namespace Nexora.Infrastructure.Persistence;
 /// </summary>
 public sealed class SqlReadinessProbe
 {
-    private static readonly string[] RequiredMigrations =
-    [
-        "20260909_0001_m01_identity_platform.sql",
-        "20260909_0002_bootstrap_closure.sql",
-        "20260910_0002_r1_catalog_and_productivity.sql",
-        "20260910_0003_productivity_lifecycle.sql",
-        "20260910_0004_notifications_inbox.sql",
-        "20260910_0005_preferences.sql",
-        "20260910_0006_documents_pages.sql",
-        "20260910_0007_action_catalog_alignment.sql",
-        "20260910_0008_finance_manual_records.sql",
-        "20260910_0009_bookmarks_manual.sql",
-        "20260910_0010_snippets_manual.sql",
-        "20260910_0011_reading_queue_bookmarks.sql",
-        "20260910_0012_organization_tags.sql",
-        "20260910_0013_developer_toolbox_pure.sql",
-        "20260910_0014_goals_numeric.sql",
-        "20260910_0015_dashboard_attention.sql",
-        "20260910_0016_global_search_source_query.sql",
-        "20260910_0017_favorites_refs.sql",
-        "20260910_0018_local_runtime_catalog_gate.sql",
-        "20260910_0019_productivity_contract_alignment.sql",
-        "20260910_0020_task_calendar_projection.sql",
-        "20260911_0021_core_sharing_support_files.sql",
-        "20260911_0022_reminders_scheduling.sql",
-        "20260911_0023_planner_habits.sql",
-        "20260912_0024_planner_habits_owner_integrity.sql",
-        // The running M01 composition uses the review-hardening constraints
-        // and the durable local account-message envelope/lease columns. A
-        // journal ending at 0024 is therefore not ready for this binary.
-        "20260913_0025_review_hardening.sql",
-        "20260913_0026_identity_local_delivery.sql"
-    ];
+    private static readonly IReadOnlyList<string> RequiredMigrations = M01MigrationManifest.RequiredFileNames;
 
     private readonly SqlConnectionFactory _connections;
 
@@ -140,8 +109,8 @@ public sealed class SqlReadinessProbe
         CancellationToken cancellationToken)
     {
         await using var command = connection.CreateCommand();
-        var names = new string[RequiredMigrations.Length];
-        for (var index = 0; index < RequiredMigrations.Length; index++)
+        var names = new string[RequiredMigrations.Count];
+        for (var index = 0; index < RequiredMigrations.Count; index++)
         {
             var parameterName = "@migration" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
             names[index] = parameterName;

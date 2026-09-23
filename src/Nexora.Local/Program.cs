@@ -65,8 +65,11 @@ try
         if (!Path.IsPathRooted(migrationDirectory))
             migrationDirectory = Path.GetFullPath(migrationDirectory);
 
-        await new SqlMigrationRunner().ApplyAsync(connection, migrationDirectory);
-        Console.WriteLine("Local migrations applied and checksums verified.");
+        await new SqlMigrationRunner().ApplyAsync(
+            connection,
+            migrationDirectory,
+            M01MigrationManifest.RequiredFileNames);
+        Console.WriteLine("Approved M01 migrations applied and checksums verified.");
         return 0;
     }
     if (Console.IsInputRedirected || Console.IsOutputRedirected)
