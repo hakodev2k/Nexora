@@ -2,7 +2,7 @@
 
 > Current specification · reconciled 2026-09-09. [Previous version](../history/20260908/snapshot/docs/architecture/README.md) is historical evidence, not implementation input.
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation review only; no schema, migrations or application code were executed by that review. On 2026-09-09, Product Owner approved M01 + backend/frontend scaffold + local scripts for implementation through `DEC-20260909-001`; architecture conclusions outside that slice remain design authority, not runtime evidence.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation review only; no schema, migrations or application code were executed by that review. `DEC-20260909-014` is the current implementation authority: contract-complete Release 1 slices may proceed locally beyond M01, while this document remains design authority rather than runtime evidence.
 
 Repository baseline was documentation-only. This review upgrades the **proposed architecture**, not existing application code. It keeps the chosen stack and personal-only model, and introduces enforceable module boundaries, owner-scoped contracts and transaction semantics derived from the database design.
 
@@ -21,7 +21,7 @@ Status: technical design reviewed at document level. Product gates are tracked i
 
 ## Action catalog v1
 
-[714 operation contracts /40 feature scopes](../action-catalog/README.md), [screen bindings](../action-catalog/06-screen-bindings.md), and [database binding](../design-database/16-action-catalog-binding.md). Docs/action contracts are design authority; implementation is currently approved only for the M01 package unless a later PO decision approves another slice.
+[714 operation contracts /40 feature scopes](../action-catalog/README.md), [screen bindings](../action-catalog/06-screen-bindings.md), and [database binding](../design-database/16-action-catalog-binding.md). Docs/action contracts are design authority; implementation is approved for contract-complete local Release 1 slices under `DEC-20260909-014`, with production/provider execution still gated.
 
 ## Current PO decision revision
 

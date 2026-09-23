@@ -2,7 +2,17 @@
 
 FX-26 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Current PR #4 implements the bounded local read-only attention slice; layout/configuration and quick-create remain gated.
+
+## Current PR #4 implementation overlay
+
+`FX26-S01` is implemented locally as `GET /api/v1/dashboard` with the
+`getDashboard` operation. The SQL-backed projection returns owner-scoped
+Tasks due/overdue, Calendar Events for the owner's local day, recent
+Draft/Published Documents and unread Notifications. Each widget has an
+independent `Ready`, `Empty`, `Unavailable` or `Degraded` state and source
+capability checks. `FX26-S02` layout persistence, widget configuration,
+refresh mutation and quick-create remain contract-gated.
 
 ## Phạm vi và tham chiếu
 

@@ -296,6 +296,8 @@ Unified personal reading queue over existing source. Profile **R**. Status: **Te
 
 **Integrity / transaction:** Exactly one source type. No duplicate article body ownership. Provider disappearance gives degraded original-link fallback; source private lifecycle still enforced.
 
+**PR #4 local implementation note:** Migration `20260910_0011_reading_queue_bookmarks.sql` uses the equivalent typed bridge `[SourceType]` + `[SourceId]` and currently permits `SourceType='Bookmark'` only. The future Resource registry/News `PublicArticleReference` binding is not silently inferred; it remains a separate contract before those source types are enabled.
+
 **Lifecycle / classification:** All writes check RowVersion; lifecycle guard also applies to import, automation, bulk and restore. Same-owner FK(OwnerId,Id) to Resource registry identity; payload and registry lifecycle commit atomically. Payload classification defaults Private owner; credential/encrypted/hash columns are never list/search/log data. [Per-field classification](15-field-classification.md#knowledge-readingitem). No ON DELETE CASCADE; approved purge service orders dependencies, rejects live references, preserves minimal audit. User-owned Trash retention is not inferred from job-log retention.
 
 <a id="organization-tag"></a>

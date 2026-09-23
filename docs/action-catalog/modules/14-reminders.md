@@ -1,6 +1,17 @@
 # FX-14 — Reminders / Scheduling: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07 · New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+
+## Local implementation binding — 2026-09-11
+
+Migration `20260911_0022_reminders_scheduling.sql` registers the six listed
+keys and enables FX14 for the local runtime only. `SqlReminderService` binds
+the three SELF actions to owner-scoped Task/manual Calendar Event configuration;
+`ReminderDispatchWorker` is the SYSTEM shell. The worker rechecks source
+revision/lifecycle and SQL module grants before it writes a deduplicated local
+InApp projection. It never calls an Email or BrowserPush provider: those two
+delivery rows are explicit unavailable/permission-limited local state. SQL and
+browser evidence remains `Not run`, so this binding is not runtime acceptance.
 
 ## Sources và phạm vi
 

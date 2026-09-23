@@ -1,8 +1,11 @@
 # Nexora — Goals cho code, test và phát hành
 
+> **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
+
+
 Ngày: 2026-09-09 · Nguồn chốt đọc: `e95a4b0c20f5677bada6a65ffbc1acbfd8735523` trên `main`.
 
-**Mục đích:** giữ outcome và logic nhất quán từ discovery tới Public SaaS, để agent biết mình phải đạt điều gì, không được đổi điều gì và cần bằng chứng nào. Đây là tài liệu tổng hợp/traceability theo yêu cầu PO; **không cấp approval implement, mở paused scope, mua hạ tầng hoặc deploy**. Chưa có goal runtime nào được đánh dấu hoàn thành.
+**Mục đích:** giữ outcome và logic nhất quán từ discovery tới Public SaaS, để agent biết mình phải đạt điều gì, không được đổi điều gì và cần bằng chứng nào. Đây là tài liệu tổng hợp/traceability theo yêu cầu PO; không cấp approval deploy/provider thật. DEC-20260909-014 cho phép local code khi contract đủ; current code-only run không thêm test/mock/demo data. Chưa có goal runtime nào được đánh dấu hoàn thành.
 
 ## Đọc theo task
 

@@ -2,7 +2,19 @@
 
 FX-25 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Current PR #4 implements the bounded FX25-S01 source-query search and FX25-S03 owner-scoped Favorites slices; Saved Search, Recents and Command Palette remain gated.
+
+## Current PR #4 implementation overlay
+
+`FX25-S01` is implemented locally as `GET /api/v1/search` (`search`). It
+queries owner-scoped Projects, Tasks, Calendar Events, Documents, Bookmarks,
+Snippets and Goals with bounded query/type/date/archive filters, safe previews,
+deterministic ranking and per-source availability states. No persisted search
+index or cross-user/share/support projection is introduced. `FX25-S03` is
+implemented locally as typed owner references through `GET/POST/DELETE/PUT
+/api/v1/favorites...`; source access, lifecycle and active Trash are rechecked,
+unavailable references expose no stale metadata, and rank mutations use ETag /
+If-Match. Recents, Saved Search and Command Palette remain gated.
 
 ## Phạm vi và tham chiếu
 
@@ -16,7 +28,9 @@ Global Search xuyên module, saved queries, favorite/recent và commands.
 
 **Áp dụng cho Nexora:** Notion/Raindrop tham chiếu search/navigation; không thay local Documents Title/Tag-only search.
 
-**Màn hình:** `/search, /favorites, Ctrl/Cmd+K`. Routes là thiết kế đề xuất; không phải endpoint đã implement.
+**Màn hình:** `/search, /favorites, Ctrl/Cmd+K`. `/search` và `/favorites`
+được triển khai trong các local slices hiện tại; Command Palette và các route
+Saved Search/Recents vẫn là thiết kế đề xuất/gated.
 
 ## Luồng sử dụng
 

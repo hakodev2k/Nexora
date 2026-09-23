@@ -1,6 +1,9 @@
 # Nexora — Current delivery specification
 
-Ngày review: 2026-09-09. Baseline: `1ca717a241cb084263de97adfba949d924ebf1ec`. **M01 + backend/frontend scaffold + local scripts đã được Product Owner approve để implement local-first theo `DEC-20260909-001`; các phần ngoài slice này vẫn cần approval riêng.**
+> **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
+
+
+Ngày review: 2026-09-10. **DEC-20260909-014** mở rộng approval cho full local Release 1 implementation slice-by-slice khi contract đủ; production, provider thật, secrets/data thật và paid services vẫn bị chặn. Current run là code-only: functional testing/QA/fixtures/runtime verification do owner thực hiện.
 
 Đọc theo thứ tự: [phạm vi hiện hành](01-current-scope.md) → [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) → [paused/blocked/gated register](04-paused-blocked-gate-register.md) → [milestone đầu tiên](milestone-01/README.md) → stories → API → DB/transactions → UX/acceptance → môi trường/evidence. Một action có thiết kế không đồng nghĩa có handler, endpoint đang chạy, hoặc được phép phát hành.
 
@@ -21,13 +24,13 @@ Ngày review: 2026-09-09. Baseline: `1ca717a241cb084263de97adfba949d924ebf1ec`. 
 - Requirement ID giữ ổn định. ID bị thay thế được ghi retired + trỏ tới contract mới, không tái sử dụng ID cho nghĩa khác.
 - `Approved` chỉ cho lời PO; `Resolved delegated` cho quyết định trong quyền đã giao; `Proposed` cho thay đổi business/security còn cần PO; `Blocked` có phạm vi cụ thể; `Paused` chỉ resume khi PO yêu cầu.
 - Specification-ready, implementation-approved, implemented, runtime-verified và production-approved là năm trạng thái độc lập.
-- `DEC-20260909-001` chỉ approve M01 + scaffold/local scripts. Không lấy approval này để ship full Phase1/R1, bật module paused, deploy production hoặc dùng production secrets/data.
+- `DEC-20260909-014` supersedes the older M01-only implementation boundary for local code. Không lấy approval này để deploy production, bật real provider calls, dùng production secrets/data hoặc làm external destructive actions.
 - Trước khi code, mọi action chạm tới phải được phân loại bằng [paused/blocked/gated register](04-paused-blocked-gate-register.md). Nếu module file và register mâu thuẫn, dùng rule chặt hơn và sửa docs trước khi code capability đó.
 
 ## Kết quả của lượt này
 
-Chuẩn hóa các quyết định PO ngày 2026-09-09 để unblock implementation cho M01 + scaffold. Các gate lớn đã được phân loại lại: một số policy đã Approved, một số advanced/module-specific contracts vẫn phải có ADR/field projection/story package trước khi code từng slice. R1 và production không được kết luận hoàn tất từ M01.
+Chuẩn hóa các quyết định PO ngày 2026-09-09 và DEC-014 để unblock local implementation theo dependency order. Advanced/module-specific capability chỉ được code sau khi API/DB/UX/AC/security/evidence contract đủ; R1 và production không được kết luận hoàn tất chỉ từ code.
 
 ## Goals và acceptance trace
 
-[Goals](../goals/README.md) nối current scope/M01 với P00–P08, RM00–RM22 và từng FX; [task/evidence template](../goals/05-task-and-evidence-template.md) yêu cầu trace goal tới source AC/action và actual test evidence. Goals không thay story contracts, không cấp quyền ngoài `DEC-20260909-001`, không biến `Not run` thành `Pass`.
+[Goals](../goals/README.md) nối current scope với P00–P08, RM00–RM22 và từng FX; [task/evidence template](../goals/05-task-and-evidence-template.md) yêu cầu trace goal tới source AC/action và actual evidence. Goals không thay story contracts, không biến `Not run` thành `Pass`; code-only run hiện tại không thêm test/mock/demo data.

@@ -2,7 +2,7 @@
 
 > Current specification · reconciled 2026-09-09. [Previous version](../history/20260908/snapshot/docs/design-review/README.md) is historical evidence, not implementation input.
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation review only; no schema, migrations or application code were executed by that review. On 2026-09-09, Product Owner approved M01 + backend/frontend scaffold + local scripts for implementation through `DEC-20260909-001`; all runtime evidence remains future implementation output.
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation review only; no schema, migrations or application code were executed by that review. `DEC-20260909-014` now permits contract-complete Release 1 local slices beyond M01; all runtime evidence remains future implementation output.
 
 Đã thực hiện review tài liệu theo thứ tự baseline → database → kiến trúc → global UX →40feature UX → consistency. Repository tại baseline chưa có application code, vì vậy kết luận kiến trúc là **design fit review**, không phải code review/test runtime.
 
@@ -16,4 +16,4 @@ Deliverables: [database](../design-database/README.md), [architecture](../archit
 
 ## Clarified decisions and milestone impact
 
-[Concrete status, options, trade-offs and affected capabilities](../delivery/02-decision-proposals.md) replace broad whole-project blocking. Technical contracts are resolved separately; only M01 + scaffold has implementation approval now. No production/public-launch approval is implied.
+[Concrete status, options, trade-offs and affected capabilities](../delivery/02-decision-proposals.md) replace broad whole-project blocking. Technical contracts are resolved separately; DEC-014 permits local implementation when the affected slice contract is complete. No production/public-launch approval is implied.

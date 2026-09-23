@@ -1,0 +1,5403 @@
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import {
+  BookmarkRecord,
+  CalendarEventRecord,
+  DocumentRecord,
+  DocumentSummary,
+  FinanceCategoryRecord,
+  FinanceManualRecord,
+  FinanceSummary,
+  GoalDetail,
+  GoalRecord,
+  GoalTargetRecord,
+  DashboardSnapshot,
+  SearchPage,
+  FavoritePage,
+  AdminUserAccess,
+  AdminUserRecord,
+  NotificationRecord,
+  PreferenceRecord,
+  ReadingItemRecord,
+  TagRecord,
+  ToolboxTool,
+  ToolboxRunResult,
+  TrashItemRecord,
+  NexoraApiError,
+  ProjectRecord,
+  ProfilePatch,
+  ProfileResponse,
+  SessionProjection,
+  SnippetRecord,
+  TaskRecord,
+  FileRecord,
+  ShareLinkRecord,
+  SharedResource,
+  SupportGrantRecord,
+  SupportSessionRecord,
+  ReminderSourceView,
+  PlannerPinRecord,
+  PlannerPlan,
+  HabitDetail,
+  HabitRecord,
+  clearProfileRevision,
+  confirmPasswordReset,
+  createBookmark,
+  createCalendarEvent,
+  createDocument,
+  createFinanceCategory,
+  createFinanceRecord,
+  createIdempotencyKey,
+  createProject,
+  createTask,
+  deleteCalendarEvent,
+  deleteProject,
+  deleteTask,
+  deleteNotifications,
+  disableAdminUser,
+  getCsrf,
+  getMe,
+  getDashboard,
+  searchResources,
+  listFavorites,
+  addFavorite,
+  removeFavorite,
+  reorderFavorite,
+  getDocument,
+  getProject,
+  getTask,
+  getCalendarEvent,
+  getBookmark,
+  getSnippet,
+  getGoal,
+  getAdminUserAccess,
+  listCalendarEvents,
+  listDocuments,
+  listFinanceCategories,
+  listFinanceRecords,
+  listNotifications,
+  listPreferences,
+  listAdminUsers,
+  listBookmarks,
+  listReadingQueue,
+  listProjects,
+  listSessions,
+  listSnippets,
+  listTasks,
+  login,
+  markAllNotificationsRead,
+  markNotificationRead,
+  listTrash,
+  purgeTrashBatch,
+  restoreTrashBatch,
+  setAdminModuleGrant,
+  setAdminActionGrant,
+  setAdminUserRole,
+  saveDocument,
+  saveSnippet,
+  transitionDocument,
+  updatePreference,
+  logout,
+  registerUser,
+  requestPasswordReset,
+  resendVerification,
+  revokeAllSessions,
+  revokeSession,
+  updateCalendarEvent,
+  updateMe,
+  updateProject,
+  updateTask,
+  verifyEmail,
+  transitionProject,
+  transitionCalendarEvent,
+  transitionBookmark,
+  transitionSnippet,
+  listShareLinks,
+  createShareLink,
+  revokeShareLink,
+  listSupportGrants,
+  grantSupportConsent,
+  revokeSupportConsent,
+  listSupportSessions,
+  endSupportSession,
+  listFiles,
+  initiateFileUpload,
+  completeFileUpload,
+  renameFile,
+  fileContentUrl,
+  trashFile,
+  resolveShareLink,
+  getReminderSource,
+  setReminder,
+  removeReminder,
+  removeFinanceCategory,
+  updateFinanceCategory,
+  updateFinanceRecord,
+  updateBookmark,
+  createSnippet,
+  saveReadingItem,
+  removeReadingItem,
+  updateReadingItem,
+  listOrganizationTags,
+  createOrganizationTag,
+  renameOrganizationTag,
+  removeOrganizationTag,
+  listDeveloperTools,
+  runDeveloperTool,
+  listGoals,
+  createGoal,
+  updateGoal,
+  recordGoalProgress,
+  transitionGoal,
+  listPlanner,
+  pinPlannerTask,
+  updatePlannerPin,
+  reorderPlanner,
+  unpinPlannerTask,
+  listHabits,
+  getHabit,
+  createHabit,
+  updateHabit,
+  setHabitSchedule,
+  recordHabitCheckIn,
+  transitionHabit
+} from './api';
+import { LocaleContext, useI18n } from './i18n';
+
+type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
+type ThemeMode = 'System' | 'Light' | 'Dark';
+type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
+type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
+type NoticeKind = 'info' | 'success' | 'error';
+type DirtyLeaveContinuation = () => void;
+type DirtyLeaveGuard = (continueAction: DirtyLeaveContinuation) => boolean;
+
+const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
+const DEFAULT_TIME_ZONE = 'UTC';
+const dirtyLeaveGuard: { current: DirtyLeaveGuard | null } = { current: null };
+const RESOURCE_TYPES = new Set<ResourceType>(['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal']);
+
+function safeReturnPath(value: string | null | undefined): string | undefined {
+  if (!value || value.length > 320) return undefined;
+  const candidate = value.trim();
+  if (!candidate.startsWith('/') || candidate.startsWith('//') || candidate.includes('\\')) return undefined;
+  try {
+    const parsed = new URL(candidate, window.location.origin);
+    if (parsed.origin !== window.location.origin || parsed.username || parsed.password || parsed.hash || parsed.search) return undefined;
+    const route = routeFromPath(parsed.pathname);
+    return route.screen === 'resource' && route.resourceType && route.resourceId
+      ? pathForLocation(route)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function decodeRouteSegment(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function routeFromPath(pathname: string, search = ''): LocationState {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  switch (path) {
+    case '/register':
+      return { screen: 'register' };
+    case '/verify-email':
+      return { screen: 'verify' };
+    case '/password/forgot':
+      return { screen: 'forgot' };
+    case '/password/reset':
+      return { screen: 'reset' };
+    case '/settings/profile':
+      return { screen: 'profile' };
+    case '/settings/security':
+      return { screen: 'security' };
+    case '/search':
+      return { screen: 'search' };
+    case '/favorites':
+      return { screen: 'favorites' };
+    case '/notifications':
+      return { screen: 'notifications' };
+    case '/trash':
+      return { screen: 'trash' };
+    case '/admin/access':
+      return { screen: 'admin' };
+    case '/finance':
+      return { screen: 'finance' };
+    case '/bookmarks':
+      return { screen: 'bookmarks' };
+    case '/snippets':
+      return { screen: 'snippets' };
+    case '/read-later':
+      return { screen: 'readLater' };
+    case '/organize/tags':
+      return { screen: 'tags' };
+    case '/developer/tools':
+      return { screen: 'tools' };
+    case '/goals':
+      return { screen: 'goals' };
+    case '/planner':
+      return { screen: 'planner' };
+    case '/habits':
+      return { screen: 'habits' };
+    case '/sharing':
+      return { screen: 'sharing' };
+    case '/support':
+      return { screen: 'support' };
+    case '/files':
+      return { screen: 'files' };
+    case '/login':
+      return { screen: 'login', returnTo: safeReturnPath(new URLSearchParams(search).get('returnTo')) };
+    case '/':
+      return { screen: 'home' };
+    default:
+      if (path.startsWith('/share/')) {
+        return { screen: 'shared', token: decodeRouteSegment(path.slice('/share/'.length)) };
+      }
+      if (path.startsWith('/modules/')) {
+        return { screen: 'module', moduleCode: decodeRouteSegment(path.slice('/modules/'.length)).toUpperCase() };
+      }
+      if (path.startsWith('/resources/')) {
+        const segments = path.slice('/resources/'.length).split('/');
+        const resourceType = decodeRouteSegment(segments[0] ?? '') as ResourceType;
+        const resourceId = decodeRouteSegment(segments[1] ?? '');
+        const canonicalResourceType = [...RESOURCE_TYPES].find((value) => value.toLowerCase() === resourceType.toLowerCase());
+        if (segments.length === 2 && canonicalResourceType && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(resourceId)) {
+          return { screen: 'resource', resourceType: canonicalResourceType, resourceId };
+        }
+      }
+      return { screen: 'home' };
+  }
+}
+
+function pathForLocation(location: LocationState): string {
+  switch (location.screen) {
+    case 'register':
+      return '/register';
+    case 'verify':
+      return '/verify-email';
+    case 'forgot':
+      return '/password/forgot';
+    case 'reset':
+      return '/password/reset';
+    case 'profile':
+      return '/settings/profile';
+    case 'security':
+      return '/settings/security';
+    case 'search':
+      return '/search';
+    case 'favorites':
+      return '/favorites';
+    case 'notifications':
+      return '/notifications';
+    case 'trash':
+      return '/trash';
+    case 'admin':
+      return '/admin/access';
+    case 'finance':
+      return '/finance';
+    case 'bookmarks':
+      return '/bookmarks';
+    case 'snippets':
+      return '/snippets';
+    case 'readLater':
+      return '/read-later';
+    case 'tags':
+      return '/organize/tags';
+    case 'tools':
+      return '/developer/tools';
+    case 'goals':
+      return '/goals';
+    case 'planner':
+      return '/planner';
+    case 'habits':
+      return '/habits';
+    case 'sharing':
+      return '/sharing';
+    case 'support':
+      return '/support';
+    case 'files':
+      return '/files';
+    case 'shared':
+      return `/share/${encodeURIComponent(location.token ?? '')}`;
+    case 'login':
+      return location.returnTo ? `/login?returnTo=${encodeURIComponent(location.returnTo)}` : '/login';
+    case 'module':
+      return `/modules/${encodeURIComponent(location.moduleCode ?? '')}`;
+    case 'resource':
+      return `/resources/${encodeURIComponent(location.resourceType ?? '')}/${encodeURIComponent(location.resourceId ?? '')}`;
+    default:
+      return '/';
+  }
+}
+
+function normalizeProfile(profile: ProfileResponse): ProfileResponse {
+  return {
+    ...profile,
+    role: profile.role || 'User',
+    modules: Array.isArray(profile.modules) ? profile.modules : []
+  };
+}
+
+function currentTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIME_ZONE;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+function asApiError(error: unknown): NexoraApiError {
+  if (error instanceof NexoraApiError) {
+    return error;
+  }
+  if (error instanceof Error) {
+    return new NexoraApiError(error.message, 0, 'ClientError');
+  }
+  return new NexoraApiError('Yêu cầu không thành công.', 0, 'UnknownError');
+}
+
+function localizedError(error: NexoraApiError, t: (key: string, fallback?: string) => string): string {
+  const code = error.code?.toLowerCase();
+  const key = code === 'validationfailed' ? 'errorValidation'
+    : code === 'permissiondenied' || code === 'forbidden' ? 'errorPermission'
+      : code === 'authenticationrequired' || code === 'invalidcredentials' || code === 'accountunavailable' ? 'errorAuthentication'
+        : code === 'persistenceunavailable' || code === 'serviceunavailable' ? 'errorUnavailable'
+          : error.status === 412 || code === 'revisionconflict' ? 'errorConflict'
+            : code === 'csrfinvalid' ? 'errorCsrf'
+              : code === 'requestbodytoolarge' ? 'errorTooLarge'
+                : code === 'tokenunavailable' ? 'errorTokenUnavailable'
+                  : undefined;
+  return key ? t(key, error.message) : error.message;
+}
+
+function firstFieldError(error: NexoraApiError, field: string): string | undefined {
+  const match = Object.entries(error.fieldErrors).find(([key]) => key.toLowerCase() === field.toLowerCase());
+  return match?.[1][0];
+}
+
+function passwordError(password: string, t?: (key: string, fallback?: string) => string): string | undefined {
+  const length = Array.from(password).length;
+  if (length < 15) {
+    return t?.('passwordMinimum') ?? 'Mật khẩu cần ít nhất 15 ký tự Unicode.';
+  }
+  if (length > 128) {
+    return t?.('passwordMaximum') ?? 'Mật khẩu không được vượt quá 128 ký tự Unicode.';
+  }
+  return undefined;
+}
+
+export function dateTime(value: string, timeZoneId?: string, locale?: string): string {
+  try {
+    const effectiveLocale = locale ?? (typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'vi');
+    return new Intl.DateTimeFormat(effectiveLocale === 'en' ? 'en-US' : 'vi-VN', {
+      dateStyle: 'medium', timeStyle: 'short', timeZone: validTimeZone(timeZoneId ?? currentTimeZone())
+    }).format(new Date(value));
+  } catch {
+    return locale === 'en' || (locale === undefined && typeof document !== 'undefined' && document.documentElement.lang === 'en')
+      ? 'Unknown'
+      : 'Không xác định';
+  }
+}
+
+const moduleNames: Record<string, { vi: string; en: string }> = {
+  FX01: { vi: 'Tài khoản và hồ sơ', en: 'Account and profile' },
+  FX02: { vi: 'Người dùng, vai trò và quyền', en: 'Users, roles and permissions' },
+  FX03: { vi: 'Nền tảng module', en: 'Module platform' },
+  FX04: { vi: 'Chia sẻ chỉ đọc', en: 'Read-only sharing' },
+  FX05: { vi: 'Hỗ trợ và truy cập khẩn cấp', en: 'Support and emergency access' },
+  FX06: { vi: 'Thông báo', en: 'Notifications' },
+  FX07: { vi: 'Tệp và đính kèm', en: 'Files and attachments' },
+  FX08: { vi: 'Thùng rác và nhật ký', en: 'Trash and activity' },
+  FX09: { vi: 'Cài đặt ứng dụng', en: 'Application settings' },
+  FX10: { vi: 'Nhập, xuất và sao lưu', en: 'Import, export and backup' },
+  FX11: { vi: 'Dự án', en: 'Projects' },
+  FX12: { vi: 'Công việc', en: 'Tasks' },
+  FX13: { vi: 'Lịch', en: 'Calendar' },
+  FX14: { vi: 'Nhắc việc và lịch biểu', en: 'Reminders and scheduling' },
+  FX15: { vi: 'Kế hoạch', en: 'Planner' },
+  FX16: { vi: 'Mục tiêu', en: 'Goals' },
+  FX17: { vi: 'Thói quen', en: 'Habits' },
+  FX18: { vi: 'Theo dõi thời gian', en: 'Time tracking' },
+  FX19: { vi: 'Pomodoro', en: 'Pomodoro' },
+  FX20: { vi: 'Tài liệu', en: 'Documents' },
+  FX21: { vi: 'Dấu trang', en: 'Bookmarks' },
+  FX22: { vi: 'Đoạn mã', en: 'Snippets' },
+  FX23: { vi: 'Đọc sau', en: 'Read later' },
+  FX24: { vi: 'Tổ chức và mẫu', en: 'Organization and templates' },
+  FX25: { vi: 'Tìm kiếm và yêu thích', en: 'Search and favorites' },
+  FX26: { vi: 'Trang tổng quan', en: 'Dashboard' },
+  FX27: { vi: 'Tài chính', en: 'Finance' },
+  FX28: { vi: 'Kho bảo mật', en: 'Vault' },
+  FX29: { vi: 'Tin tức và nguồn cấp', en: 'News and feeds' },
+  FX30: { vi: 'Theo dõi giá Shopee', en: 'Shopee price tracking' },
+  FX31: { vi: 'Bản ghi mua sắm', en: 'Shopping records' },
+  FX32: { vi: 'Công cụ phát triển', en: 'Developer toolbox' },
+  FX33: { vi: 'Khám phá GitHub', en: 'GitHub discovery' },
+  FX34: { vi: 'Tự động hóa và lịch chạy', en: 'Automation and scheduler' },
+  FX35: { vi: 'Tích hợp và webhook', en: 'Integrations and webhooks' },
+  FX36: { vi: 'Giám sát và vận hành jobs', en: 'Monitoring and job operations' },
+  FX37: { vi: 'Tài sản cá nhân', en: 'Personal assets' },
+  FX38: { vi: 'Tài sản số', en: 'Digital assets' },
+  FX39: { vi: 'Nghề nghiệp và hồ sơ', en: 'Career and resumes' },
+  FX40: { vi: 'Học tập và nhật ký công việc', en: 'Learning and work log' }
+};
+
+const moduleScreenCodes = new Set([
+  'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
+  'FX17', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX32'
+]);
+
+function moduleDisplayName(code: string, locale: string): string {
+  const normalized = code.toUpperCase();
+  const name = moduleNames[normalized];
+  if (name) {
+    return locale === 'en' ? name.en : name.vi;
+  }
+
+  return locale === 'en' ? 'Additional capability' : 'Chức năng bổ sung';
+}
+
+function hasModuleScreen(code: string): boolean {
+  return moduleScreenCodes.has(code.toUpperCase());
+}
+
+function moduleAvailabilityMessage(reason: string | null, t: (key: string, fallback?: string) => string): string {
+  switch (reason?.trim().toUpperCase()) {
+    case 'PO_PAUSED':
+    case 'PAUSED':
+      return t('modulePaused');
+    case 'NOT_GRANTED':
+    case 'PERMISSION_DENIED':
+      return t('moduleNotGranted');
+    case 'SYSTEM_DISABLED':
+    case 'DISABLED':
+      return t('moduleDisabled');
+    case 'NOT_READY':
+      return t('moduleNotReady');
+    default:
+      return t('moduleUnavailable');
+  }
+}
+
+function Notice({ kind, children, onDismiss }: { kind: NoticeKind; children: React.ReactNode; onDismiss?: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className={`notice notice-${kind}`} role={kind === 'error' ? 'alert' : 'status'} aria-live="polite">
+      <span>{children}</span>
+      {onDismiss && (
+        <button className="icon-button" type="button" aria-label={t('closeNotice')} onClick={onDismiss}>
+          ×
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FieldError({ id, message }: { id: string; message?: string }) {
+  if (!message) {
+    return null;
+  }
+  return (
+    <p className="field-error" id={id}>
+      {message}
+    </p>
+  );
+}
+
+function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <button className="primary-button" type="submit" disabled={busy}>
+      {busy ? t('processing') : children}
+    </button>
+  );
+}
+
+function PublicFrame({
+  children,
+  navigate,
+  notice,
+  onDismissNotice
+}: {
+  children: React.ReactNode;
+  navigate: (screen: Screen) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="public-layout">
+      <header className="public-header">
+        <button className="brand" type="button" onClick={() => navigate('login')} aria-label={`Nexora — ${t('signIn').toLowerCase()}`}>
+          <span className="brand-mark" aria-hidden="true">N</span>
+          <span>Nexora</span>
+        </button>
+        <span className="environment-label">{t('localApplication')}</span>
+      </header>
+      <main className="public-main">
+        {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
+        {children}
+      </main>
+      <footer className="public-footer">{t('authFooter')}</footer>
+    </div>
+  );
+}
+
+function AuthLinks({ navigate, current }: { navigate: (screen: Screen) => void; current: Screen }) {
+  const { t } = useI18n();
+  return (
+    <nav className="auth-links" aria-label={t('accountNavigation')}>
+      {current !== 'login' && <button className="link-button" type="button" onClick={() => navigate('login')}>{t('signIn')}</button>}
+      {current !== 'register' && <button className="link-button" type="button" onClick={() => navigate('register')}>{t('createAccount')}</button>}
+      {current !== 'forgot' && current !== 'reset' && <button className="link-button" type="button" onClick={() => navigate('forgot')}>{t('forgotPassword')}</button>}
+    </nav>
+  );
+}
+
+function FormCard({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+  const { t } = useI18n();
+  return (
+    <section className="form-card" aria-labelledby="form-title">
+      <p className="eyebrow">{t('accountEyebrow')}</p>
+      <h1 id="form-title">{title}</h1>
+      <p className="lead">{description}</p>
+      {children}
+    </section>
+  );
+}
+
+export function RegisterScreen({
+  navigate,
+  onRegistered,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  onRegistered: (email: string) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [password, setPassword] = useState('');
+  const [timeZoneId, setTimeZoneId] = useState(currentTimeZone);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [clientError, setClientError] = useState<string>();
+  const requestKey = useRef<string | null>(null);
+
+  function resetRequestKey() {
+    requestKey.current = null;
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setClientError(undefined);
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setClientError(t('validEmail'));
+      return;
+    }
+    const passwordIssue = passwordError(password, t);
+    if (passwordIssue) {
+      setClientError(passwordIssue);
+      return;
+    }
+    if (!timeZoneId.trim()) {
+      setClientError(t('timezoneRequired'));
+      return;
+    }
+    if (displayName.trim().length > 100) {
+      setClientError(t('displayNameMaximum'));
+      return;
+    }
+
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await registerUser(trimmedEmail, password, timeZoneId.trim(), displayName.trim(), requestKey.current);
+      requestKey.current = null;
+      onRegistered(trimmedEmail);
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title={t('createAccountTitle')} description={t('createAccountDescription')}>
+        <form className="stack-form" onSubmit={submit} noValidate>
+          <div className="field-group">
+            <label htmlFor="register-email">{t('email')}</label>
+            <input id="register-email" type="email" autoComplete="email" value={email} onChange={(event) => { resetRequestKey(); setEmail(event.target.value); }} required aria-describedby="register-email-help register-email-error" />
+            <p className="field-help" id="register-email-help">{t('emailVerificationHelp')}</p>
+            <FieldError id="register-email-error" message={error ? firstFieldError(error, 'email') : undefined} />
+          </div>
+          <div className="field-group">
+            <label htmlFor="register-display-name">{t('displayName')} <span className="optional">({t('optional')})</span></label>
+            <input id="register-display-name" type="text" autoComplete="name" maxLength={100} value={displayName} onChange={(event) => { resetRequestKey(); setDisplayName(event.target.value); }} aria-describedby="register-display-name-error" />
+            <FieldError id="register-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} />
+          </div>
+          <div className="field-group">
+            <label htmlFor="register-password">{t('password')}</label>
+            <input id="register-password" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={password} onChange={(event) => { resetRequestKey(); setPassword(event.target.value); }} aria-describedby="register-password-help register-password-error" required />
+            <p className="field-help" id="register-password-help">{t('passwordHelp')}</p>
+            <FieldError id="register-password-error" message={error ? firstFieldError(error, 'password') : undefined} />
+          </div>
+          <div className="field-group">
+            <label htmlFor="register-timezone">{t('timezone')}</label>
+            <input id="register-timezone" type="text" autoComplete="off" value={timeZoneId} onChange={(event) => { resetRequestKey(); setTimeZoneId(event.target.value); }} aria-describedby="register-timezone-help register-timezone-error" required />
+            <p className="field-help" id="register-timezone-help">{t('timezoneHelp')} <code>Asia/Ho_Chi_Minh</code>.</p>
+            <FieldError id="register-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} />
+          </div>
+          {(clientError || error) && <Notice kind="error">{clientError ?? (error ? localizedError(error, t) : t('createAccountFailed'))}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>{t('submitCreateAccount')}</SubmitButton>
+        </form>
+        <AuthLinks navigate={navigate} current="register" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function VerifyScreen({
+  email,
+  setEmail,
+  navigate,
+  onVerified,
+  notice,
+  onDismissNotice
+}: {
+  email: string;
+  setEmail: (email: string) => void;
+  navigate: (screen: Screen) => void;
+  onVerified: () => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  const [token, setToken] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [resendBusy, setResendBusy] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [resendUntil, setResendUntil] = useState(0);
+  const [clock, setClock] = useState(() => Date.now());
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [resendError, setResendError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+  const resendKey = useRef<string | null>(null);
+  const secondsRemaining = Math.max(0, Math.ceil((resendUntil - clock) / 1000));
+
+  useEffect(() => {
+    if (resendUntil <= Date.now()) {
+      return undefined;
+    }
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [resendUntil]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!token.trim()) {
+      setError(new NexoraApiError(t('tokenRequired'), 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await verifyEmail(token.trim(), requestKey.current);
+      requestKey.current = null;
+      setVerified(true);
+      onVerified();
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resend() {
+    setResendError(null);
+    if (!email.trim()) {
+      setResendError(new NexoraApiError(t('requiredEmail'), 422, 'ValidationFailed'));
+      return;
+    }
+    resendKey.current ??= createIdempotencyKey();
+    setResendBusy(true);
+    try {
+      await resendVerification(email.trim(), resendKey.current);
+      resendKey.current = null;
+      setResendUntil(Date.now() + 60_000);
+      setClock(Date.now());
+    } catch (requestError) {
+      setResendError(asApiError(requestError));
+    } finally {
+      setResendBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title={t('verifyEmailTitle')} description={t('verifyDescription')}>
+        {verified ? (
+          <div className="success-panel">
+            <h2>{t('emailVerified')}</h2>
+            <p>{t('personalSpaceCreated')}</p>
+            <button className="primary-button" type="button" onClick={() => navigate('login')}>{t('goToLogin')}</button>
+          </div>
+        ) : (
+          <>
+            <form className="stack-form" onSubmit={submit} noValidate>
+              <div className="field-group">
+                <label htmlFor="verify-email">{t('email')}</label>
+                <input id="verify-email" type="email" autoComplete="email" value={email} onChange={(event) => { setEmail(event.target.value); requestKey.current = null; resendKey.current = null; }} required />
+              </div>
+              <div className="field-group">
+                <label htmlFor="verify-token">{t('emailVerificationCode')}</label>
+                <input id="verify-token" type="text" inputMode="text" autoComplete="one-time-code" value={token} onChange={(event) => { setToken(event.target.value); requestKey.current = null; }} required aria-describedby="verify-token-help" />
+                <p className="field-help" id="verify-token-help">{t('tokenHelp')}</p>
+              </div>
+              {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+              <SubmitButton busy={busy}>{t('submitVerify')}</SubmitButton>
+            </form>
+            <div className="secondary-action">
+              <button className="secondary-button" type="button" disabled={resendBusy || secondsRemaining > 0} onClick={resend}>
+                {resendBusy ? t('sending') : secondsRemaining > 0 ? t('resendAfter').replace('{seconds}', String(secondsRemaining)) : t('resendVerification')}
+              </button>
+              {resendError && <Notice kind="error">{localizedError(resendError, t)}</Notice>}
+            </div>
+          </>
+        )}
+        <div className="auth-links">
+          <button className="link-button" type="button" onClick={() => navigate('register')}>{t('backToRegister')}</button>
+          <button className="link-button" type="button" onClick={() => navigate('login')}>{t('signIn')}</button>
+        </div>
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function LoginScreen({
+  navigate,
+  onAuthenticated,
+  onPendingVerification,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  onAuthenticated: (profile: ProfileResponse) => void;
+  onPendingVerification: (email: string) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!email.trim() || !password) {
+      setError(new NexoraApiError(t('credentialsRequired'), 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      const response = await login(email.trim(), password, requestKey.current);
+      requestKey.current = null;
+      onAuthenticated(normalizeProfile(response.profile));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.code?.toLowerCase().includes('verification')) {
+        onPendingVerification(email.trim());
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title={t('signIn')} description={t('loginDescription')}>
+        <form className="stack-form" onSubmit={submit} noValidate>
+          <div className="field-group">
+            <label htmlFor="login-email">{t('email')}</label>
+            <input id="login-email" type="email" autoComplete="email" value={email} onChange={(event) => { requestKey.current = null; setEmail(event.target.value); }} required />
+          </div>
+          <div className="field-group">
+            <label htmlFor="login-password">{t('password')}</label>
+            <input id="login-password" type="password" autoComplete="current-password" value={password} onChange={(event) => { requestKey.current = null; setPassword(event.target.value); }} required />
+          </div>
+          {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>{t('submitLogin')}</SubmitButton>
+        </form>
+        <AuthLinks navigate={navigate} current="login" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function ForgotPasswordScreen({
+  navigate,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    if (!email.trim() || !email.includes('@')) {
+      setError(new NexoraApiError(t('validEmail'), 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await requestPasswordReset(email.trim(), requestKey.current);
+      requestKey.current = null;
+      setAccepted(true);
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title={t('forgotTitle')} description={t('forgotDescription')}>
+        {accepted ? (
+          <div className="success-panel">
+            <h2>{t('requestAccepted')}</h2>
+            <p>{t('resetInstructions')}</p>
+            <button className="primary-button" type="button" onClick={() => navigate('reset')}>{t('enterResetCode')}</button>
+          </div>
+        ) : (
+          <form className="stack-form" onSubmit={submit} noValidate>
+            <div className="field-group">
+              <label htmlFor="forgot-email">{t('email')}</label>
+              <input id="forgot-email" type="email" autoComplete="email" value={email} onChange={(event) => { requestKey.current = null; setEmail(event.target.value); }} required />
+            </div>
+            {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+            <SubmitButton busy={busy}>{t('submitResetRequest')}</SubmitButton>
+          </form>
+        )}
+        <AuthLinks navigate={navigate} current="forgot" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function ResetPasswordScreen({
+  navigate,
+  notice,
+  onDismissNotice
+}: {
+  navigate: (screen: Screen) => void;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  const [token, setToken] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [clientError, setClientError] = useState<string>();
+  const requestKey = useRef<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setClientError(undefined);
+    const passwordIssue = passwordError(password, t);
+    if (!token.trim()) {
+      setClientError(t('resetRequired'));
+      return;
+    }
+    if (passwordIssue) {
+      setClientError(passwordIssue);
+      return;
+    }
+    if (password !== confirmation) {
+      setClientError(t('passwordsMismatch'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      await confirmPasswordReset(token.trim(), password, requestKey.current);
+      requestKey.current = null;
+      navigate('login');
+    } catch (requestError) {
+      setError(asApiError(requestError));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <PublicFrame navigate={navigate} notice={notice} onDismissNotice={onDismissNotice}>
+      <FormCard title={t('resetTitle')} description={t('resetDescription')}>
+        <form className="stack-form" onSubmit={submit} noValidate>
+          <div className="field-group">
+            <label htmlFor="reset-token">{t('resetCode')}</label>
+            <input id="reset-token" type="text" autoComplete="one-time-code" value={token} onChange={(event) => { requestKey.current = null; setToken(event.target.value); }} required />
+          </div>
+          <div className="field-group">
+            <label htmlFor="reset-password">{t('newPassword')}</label>
+            <input id="reset-password" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={password} onChange={(event) => { requestKey.current = null; setPassword(event.target.value); }} required />
+            <p className="field-help">{t('passwordHelp').split('. ')[0]}.</p>
+          </div>
+          <div className="field-group">
+            <label htmlFor="reset-confirmation">{t('confirmNewPassword')}</label>
+            <input id="reset-confirmation" type="password" autoComplete="new-password" minLength={15} maxLength={128} value={confirmation} onChange={(event) => { requestKey.current = null; setConfirmation(event.target.value); }} required />
+          </div>
+          {(clientError || error) && <Notice kind="error">{clientError ?? (error ? localizedError(error, t) : t('resetFailed'))}{error?.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <SubmitButton busy={busy}>{t('submitReset')}</SubmitButton>
+        </form>
+        <AuthLinks navigate={navigate} current="reset" />
+      </FormCard>
+    </PublicFrame>
+  );
+}
+
+function Shell({
+  profile,
+  location,
+  navigate,
+  onLogout,
+  onProfileUpdated,
+  onThemeChanged,
+  onAuthLost,
+  notice,
+  onDismissNotice
+}: {
+  profile: ProfileResponse;
+  location: LocationState;
+  navigate: (screen: Screen, moduleCode?: string) => void;
+  onLogout: () => Promise<void>;
+  onProfileUpdated: (profile: ProfileResponse) => void;
+  onThemeChanged: (mode: ThemeMode) => void;
+  onAuthLost: () => Promise<void>;
+  notice?: { kind: NoticeKind; text: string };
+  onDismissNotice?: () => void;
+}) {
+  const { t } = useI18n();
+  const [logoutBusy, setLogoutBusy] = useState(false);
+  const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
+  const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
+  const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
+  const canSnippets = profile.modules.some((module) => module.code.toUpperCase() === 'FX22' && module.enabled);
+  const canReadLater = profile.modules.some((module) => module.code.toUpperCase() === 'FX23' && module.enabled);
+  const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
+  const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
+  const canGoals = profile.modules.some((module) => module.code.toUpperCase() === 'FX16' && module.enabled);
+  const canPlanner = profile.modules.some((module) => module.code.toUpperCase() === 'FX15' && module.enabled);
+  const canHabits = profile.modules.some((module) => module.code.toUpperCase() === 'FX17' && module.enabled);
+  const canSearch = profile.modules.some((module) => module.code.toUpperCase() === 'FX25' && module.enabled);
+  const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
+  const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
+  const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
+  const navigableModules = profile.modules.filter((module) => hasModuleScreen(module.code) && !['FX04', 'FX05', 'FX07', 'FX15', 'FX16', 'FX17', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
+
+  async function signOut() {
+    setLogoutBusy(true);
+    try {
+      await onLogout();
+    } finally {
+      setLogoutBusy(false);
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar" aria-label="Nexora navigation">
+        <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
+        <nav className="primary-nav" aria-label={t('primaryNavigation')}>
+          <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>{t('home')}</span></button>
+          {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>{t('search')}</span></button>}
+          {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}>★ <span>{t('favorites')}</span></button>}
+          {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>{t('finance')}</span></button>}
+          {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>{t('bookmarks')}</span></button>}
+          {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>{t('snippets')}</span></button>}
+          {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>{t('readLater')}</span></button>}
+          {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>{t('tags')}</span></button>}
+          {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>{t('developerTools')}</span></button>}
+          {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>{t('goals')}</span></button>}
+          {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}>▤ <span>{t('planner')}</span></button>}
+          {canHabits && <button className={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'page' : undefined} onClick={() => navigate('habits')}>◌ <span>{t('habits')}</span></button>}
+          {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}>↗ <span>{t('sharing')}</span></button>}
+          {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}>◈ <span>{t('supportAccess')}</span></button>}
+          {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}>▧ <span>{t('files')}</span></button>}
+          <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>{t('notifications')}</span></button>
+          <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>{t('trash')}</span></button>
+          {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>{t('adminAccess')}</span></button>}
+          <p className="nav-section-label">{t('modules')}</p>
+          {profile.modules.length === 0 ? (
+            <p className="nav-empty">{t('noModules')}</p>
+          ) : navigableModules.length === 0 ? (
+            <p className="nav-empty">{t('noOtherModules')}</p>
+          ) : (
+            navigableModules.map((module) => {
+              const enabled = module.enabled;
+              const active = location.screen === 'module' && location.moduleCode === module.code.toUpperCase();
+              return (
+                <button key={module.code} className={active ? 'nav-item active' : 'nav-item'} type="button" aria-current={active ? 'page' : undefined} disabled={!enabled} title={enabled ? undefined : module.unavailableReason ?? t('moduleUnavailable')} onClick={() => navigate('module', module.code.toUpperCase())}>
+                  <span className="module-dot" aria-hidden="true">{enabled ? '●' : '○'}</span><span>{moduleDisplayName(module.code, profile.locale)}</span><small className="module-code">{module.code}</small>{!enabled && <small className="module-unavailable-reason">{moduleAvailabilityMessage(module.unavailableReason, t)}</small>}
+                </button>
+              );
+            })
+          )}
+        </nav>
+        <nav className="utility-nav" aria-label={t('accountSettings')}>
+          <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}>⚙ <span>{t('profile')}</span></button>
+          <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}>▣ <span>{t('securitySessions')}</span></button>
+          <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}>↪ <span>{logoutBusy ? t('loggingOut') : t('logout')}</span></button>
+        </nav>
+      </aside>
+      <div className="shell-content">
+        <header className="shell-header">
+          <div>
+            <p className="eyebrow">{t('personalSpace')}</p>
+            <p className="signed-in">{profile.email}</p>
+          </div>
+          <button className="mobile-logout" type="button" onClick={signOut} disabled={logoutBusy}>{logoutBusy ? t('loggingOut') : t('logout')}</button>
+        </header>
+        <main className="shell-main">
+          {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
+          {location.screen === 'resource' && <ResourceScreen resourceType={location.resourceType} resourceId={location.resourceId} navigate={navigate} onAuthLost={onAuthLost} />}
+          {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'favorites' && (canSearch ? <FavoritesScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />}
+          {location.screen === 'security' && <SecurityScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />}
+          {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'trash' && <TrashScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'sharing' && (canSharing ? <SharingScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX04" />)}
+          {location.screen === 'support' && (canSupport ? <SupportScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX05" />)}
+          {location.screen === 'files' && (canFiles ? <FilesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX07" />)}
+          {location.screen === 'admin' && <AdminAccessScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'finance' && <FinanceScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'snippets' && <SnippetsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'readLater' && <ReadLaterScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'goals' && <GoalsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
+          {location.screen === 'habits' && (canHabits ? <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
+          {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
+          {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function SharedResourceScreen({ token }: { token?: string }) {
+  const [resource, setResource] = useState<SharedResource | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      setResource(null);
+      if (!token) {
+        setError(new NexoraApiError('Shared resource unavailable.', 404, 'ResourceUnavailable'));
+        setLoading(false);
+        return;
+      }
+      try {
+        const value = await resolveShareLink(token);
+        if (!cancelled) setResource(value);
+      } catch (requestError) {
+        if (!cancelled) setError(asApiError(requestError));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [token]);
+
+  return (
+    <div className="full-page-state shared-resource-page">
+      <div className="loading-mark" aria-hidden="true">N</div>
+      {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p><a className="secondary-button" href="/login" rel="noreferrer">Đăng nhập</a></> : resource?.project ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / PROJECT</p><h1>{resource.project.name}</h1><p>{resource.project.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.project.status} · {dateTime(resource.project.startAt)} – {dateTime(resource.project.endAt)}</p><h2>Tasks</h2>{resource.project.tasks.length === 0 ? <p>Project chưa có Task.</p> : <div className="table-wrap"><table><caption>Task detail được phép chia sẻ</caption><thead><tr><th scope="col">Task</th><th scope="col">Trạng thái</th><th scope="col">Due</th></tr></thead><tbody>{resource.project.tasks.map((task) => <tr key={task.id}><td><strong>{task.title}</strong>{task.description && <span className="muted">{task.description}</span>}</td><td>{task.status}{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}</td><td>{task.dueAt ? dateTime(task.dueAt) : '—'}</td></tr>)}</tbody></table></div>}<p className="field-help">Chế độ read-only: không có history, reason, reminder, private notes hoặc thao tác chỉnh sửa.</p></article> : resource?.document ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / DOCUMENT</p><h1>{resource.document.title}</h1><p className="muted">{resource.document.status} · version {resource.document.versionNumber} · cập nhật {dateTime(resource.document.updatedAt)}</p><pre className="shared-document-body">{resource.document.body}</pre><p className="field-help">Nội dung được render như text, không diễn giải HTML/script.</p></article> : <><h1>Không có nội dung</h1><p>Server không trả projection được phép.</p></>}
+    </div>
+  );
+}
+
+function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [links, setLinks] = useState<ShareLinkRecord[]>([]);
+  const [resourceType, setResourceType] = useState<'Project' | 'Document'>('Project');
+  const [resourceId, setResourceId] = useState('');
+  const [mode, setMode] = useState('PublicLink');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [noExpiry, setNoExpiry] = useState(false);
+  const [audience, setAudience] = useState('');
+  const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listShareLinks();
+      setLinks(page.items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function create(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    const id = resourceId.trim();
+    if (!id) {
+      setError(new NexoraApiError('Resource ID là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    const users = mode === 'RestrictedUsers' ? audience.split(',').map((value) => value.trim()).filter(Boolean) : [];
+    setBusy('create');
+    try {
+      const created = await createShareLink(resourceType, id, mode, expiresAt ? new Date(expiresAt).toISOString() : null, users, noExpiry);
+      setLinks((current) => [created, ...current]);
+      setCreatedToken(created.token);
+      setResourceId('');
+      setAudience('');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revoke(link: ShareLinkRecord) {
+    if (!window.confirm('Thu hồi link này? Link cũ sẽ không được hồi sinh khi bật lại sharing.')) return;
+    setBusy(link.id);
+    setError(null);
+    try {
+      await revokeShareLink(link.id, link.etag);
+      setLinks((current) => current.filter((candidate) => candidate.id !== link.id));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return <section className="content-section" aria-labelledby="sharing-title"><div className="content-heading"><div><p className="eyebrow">FX04 / SHARING</p><h1 id="sharing-title">Read-only sharing</h1><p className="lead">Chỉ Project và Published Document có projection cố định. Token chỉ hiển thị sau khi tạo và không được lưu vào browser storage.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}{createdToken && <div className="success-panel"><h2>Link đã được tạo</h2><p>Hãy lưu token/link này ngay; server chỉ lưu hash và giao diện không giữ nó sau khi tải lại.</p><code className="secret-output">{createdToken}</code><a href={`/share/${encodeURIComponent(createdToken)}`} rel="noreferrer" referrerPolicy="no-referrer">Mở projection read-only</a></div>}<form className="form-panel" onSubmit={create} noValidate><div className="section-heading"><h2>Tạo link</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="share-resource-type">Loại resource</label><select id="share-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value as 'Project' | 'Document')}><option value="Project">Project</option><option value="Document">Document</option></select></div><div className="field-group"><label htmlFor="share-resource-id">Resource ID</label><input id="share-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID từ server" required /></div></div><div className="form-grid"><div className="field-group"><label htmlFor="share-mode">Chế độ truy cập</label><select id="share-mode" value={mode} onChange={(event) => setMode(event.target.value)}><option value="PublicLink">Public link</option><option value="AuthenticatedLink">Authenticated account</option><option value="RestrictedUsers">Restricted users</option></select></div><div className="field-group"><label htmlFor="share-expiry">Hết hạn <span className="optional">(mặc định 7 ngày)</span></label><input id="share-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={noExpiry} /><label className="checkbox-row"><input type="checkbox" checked={noExpiry} onChange={(event) => { setNoExpiry(event.target.checked); if (event.target.checked) setExpiresAt(""); }} /> Không hết hạn</label></div></div>{mode === 'RestrictedUsers' && <div className="field-group"><label htmlFor="share-audience">Verified user IDs</label><input id="share-audience" value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="UUID, UUID" required /><p className="field-help">Server sẽ kiểm tra từng user là active và đã verified.</p></div>}<SubmitButton busy={busy === 'create'}>Tạo read-only link</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Link của PersonalSpace</h2><span className="muted">{links.length} link</span></div>{loading ? <div className="loading-state" role="status">Đang tải link…</div> : links.length === 0 ? <div className="empty-state"><h3>Chưa có link</h3><p>Tạo link từ resource ID đã được server cấp.</p></div> : <div className="resource-cards">{links.map((link) => <article className="resource-card" key={link.id}><div><h3>{link.resourceType}</h3><p className="muted">{link.resourceId} · {link.mode}</p><span className={link.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{link.isActive ? 'Active' : 'Expired / invalidated'}</span></div><button className="danger-button" type="button" onClick={() => void revoke(link)} disabled={busy !== null}>Thu hồi</button></article>)}</div>}</div></section>;
+}
+
+function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [grants, setGrants] = useState<SupportGrantRecord[]>([]);
+  const [sessions, setSessions] = useState<SupportSessionRecord[]>([]);
+  const [moduleCode, setModuleCode] = useState('FX11');
+  const [durationMode, setDurationMode] = useState('24Hours');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const [grantPage, sessionPage] = await Promise.all([listSupportGrants(), listSupportSessions()]);
+      setGrants(grantPage.items);
+      setSessions(sessionPage.items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function grant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy('grant');
+    setError(null);
+    try {
+      const created = await grantSupportConsent(moduleCode.trim().toUpperCase(), durationMode, durationMode === 'Custom' && expiresAt ? new Date(expiresAt).toISOString() : null);
+      setGrants((current) => [created, ...current]);
+      setExpiresAt('');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revoke(grantRecord: SupportGrantRecord) {
+    if (!window.confirm(`Thu hồi consent support cho ${grantRecord.moduleCode}?`)) return;
+    setBusy(grantRecord.id);
+    try {
+      await revokeSupportConsent(grantRecord.id, grantRecord.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  async function end(session: SupportSessionRecord) {
+    setBusy(session.id);
+    try {
+      await endSupportSession(session.id, session.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  return <section className="content-section" aria-labelledby="support-title"><div className="content-heading"><div><p className="eyebrow">FX05 / SUPPORT</p><h1 id="support-title">Support access</h1><p className="lead">Bạn cấp consent cho đúng một module và có thể revoke bất kỳ lúc nào. Admin chỉ nhận session read-only scoped; không có impersonation, export hay secret reveal.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={grant} noValidate><div className="section-heading"><h2>Cấp consent</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="support-module">Module code</label><input id="support-module" value={moduleCode} onChange={(event) => setModuleCode(event.target.value.toUpperCase())} maxLength={64} required /></div><div className="field-group"><label htmlFor="support-duration">Thời hạn</label><select id="support-duration" value={durationMode} onChange={(event) => setDurationMode(event.target.value)}><option value="24Hours">24 giờ</option><option value="Custom">Tùy chỉnh</option><option value="UntilRevoked">Cho đến khi revoke</option></select></div></div>{durationMode === 'Custom' && <div className="field-group"><label htmlFor="support-expires">Hết hạn</label><input id="support-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} required /></div>}<SubmitButton busy={busy === 'grant'}>Cấp support consent</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Consent hiện tại</h2><span className="muted">{grants.length} grant</span></div>{grants.map((grantRecord) => <article className="resource-card" key={grantRecord.id}><div><h3>{grantRecord.moduleCode}</h3><p className="muted">{grantRecord.durationMode} · {grantRecord.expiresAt ? `hết hạn ${dateTime(grantRecord.expiresAt)}` : 'không tự hết hạn'}</p><span className={grantRecord.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{grantRecord.isActive ? 'Active' : 'Inactive'}</span></div><button className="danger-button" type="button" onClick={() => void revoke(grantRecord)} disabled={busy !== null || !grantRecord.isActive}>Revoke</button></article>)}</div><div className="resource-list"><div className="section-heading"><h2>Sessions</h2></div>{sessions.length === 0 ? <div className="empty-state"><p>Chưa có support session nào hiển thị.</p></div> : sessions.map((session) => <article className="resource-card" key={session.id}><div><h3>{session.mode} · {session.moduleCode}</h3><p className="muted">Target {session.targetUserId} · hết hạn {dateTime(session.expiresAt)}</p></div><button className="secondary-button" type="button" onClick={() => void end(session)} disabled={busy !== null || session.endedAt !== null}>{session.endedAt ? 'Đã kết thúc' : 'Kết thúc'}</button></article>)}</div></section>;
+}
+
+function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [files, setFiles] = useState<FileRecord[]>([]);
+  const [selected, setSelected] = useState<File | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listFiles();
+      setFiles(page.items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function upload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) {
+      setError(new NexoraApiError('Chọn một file trước khi upload.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (selected.size > 25 * 1024 * 1024) {
+      setError(new NexoraApiError('File tối đa 25 MiB.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('upload');
+    setError(null);
+    try {
+      const session = await initiateFileUpload(selected.name, browserMediaType(selected), selected.size);
+      await completeFileUpload(session, selected);
+      setSelected(null);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  async function rename(file: FileRecord) {
+    const nextName = window.prompt('Tên file mới', file.originalName);
+    if (!nextName || nextName.trim() === file.originalName) return;
+    setBusy(file.id);
+    try {
+      const updated = await renameFile(file.id, file.etag, nextName.trim());
+      setFiles((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  async function trash(file: FileRecord) {
+    if (!window.confirm('Đưa file vào Trash? File còn reference sẽ bị server từ chối.')) return;
+    setBusy(file.id);
+    try {
+      await trashFile(file.id, file.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
+  return <section className="content-section" aria-labelledby="files-title"><div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload được staging và scan local trước khi attach. Storage private; mỗi download kiểm tra lại owner, lifecycle và scan state.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={upload} noValidate><div className="field-group"><label htmlFor="file-upload">Chọn file</label><input id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => setSelected(event.target.files?.[0] ?? null)} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>{selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}<SubmitButton busy={busy === 'upload'}>Upload và scan</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file</span></div>{loading ? <div className="loading-state" role="status">Đang tải file…</div> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Chưa có binary nào được server đánh dấu Clean.</p></div> : <div className="resource-cards">{files.map((file) => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}<button className="secondary-button" type="button" onClick={() => void rename(file)} disabled={busy !== null || file.lifecycle === 'Purged'}>Đổi tên</button>{file.lifecycle === 'Active' && <button className="danger-button" type="button" onClick={() => void trash(file)} disabled={busy !== null}>Trash</button>}</div></article>)}</div>}</div></section>;
+}
+
+function browserMediaType(file: File): string {
+  if (file.type) return file.type;
+  const extension = file.name.toLowerCase().split('.').pop();
+  return extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : extension === 'md' || extension === 'markdown' ? 'text/markdown' : extension === 'csv' ? 'text/csv' : extension === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : extension === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/plain';
+}
+
+function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<NotificationRecord[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const markAllRequestRef = useRef<{ signature: string; key: string } | null>(null);
+  const deleteRequestRef = useRef<{ signature: string; key: string } | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listNotifications(unreadOnly, 100);
+      setItems(page.items);
+      setUnreadCount(page.unreadCount);
+      setSelected(new Set());
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [unreadOnly]);
+
+  async function toggleRead(item: NotificationRecord) {
+    setBusy(item.id);
+    setError(null);
+    try {
+      const updated = await markNotificationRead(item.id, item.etag, item.readAt === null);
+      setItems((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
+      setUnreadCount((current) => Math.max(0, current + (item.readAt === null ? -1 : 1)));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function markAll() {
+    const signature = `mark-all:${unreadOnly}`;
+    if (markAllRequestRef.current?.signature !== signature) {
+      markAllRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
+    setBusy('all');
+    setError(null);
+    try {
+      await markAllNotificationsRead(markAllRequestRef.current.key);
+      markAllRequestRef.current = null;
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeSelected() {
+    if (selected.size === 0) return;
+    const signature = Array.from(selected).sort().join(',');
+    if (deleteRequestRef.current?.signature !== signature) {
+      deleteRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
+    setBusy('delete');
+    setError(null);
+    try {
+      await deleteNotifications(Array.from(selected), deleteRequestRef.current.key);
+      deleteRequestRef.current = null;
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function select(id: string, checked: boolean) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id); else next.delete(id);
+      return next;
+    });
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="notifications-title">
+      <div className="content-heading"><div><p className="eyebrow">FX06 / INBOX</p><h1 id="notifications-title">Notifications</h1><p className="lead">Thông báo thuộc PersonalSpace hiện tại; delivery state được hiển thị đúng theo SQL projection.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
+      <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={busy !== null || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><button className="danger-button" type="button" onClick={() => void removeSelected()} disabled={busy !== null || selected.size === 0}>Xóa mục đã chọn</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải thông báo…</div> : items.length === 0 ? <div className="empty-state"><h2>Inbox trống</h2><p>Không có thông báo phù hợp trong projection hiện tại.</p></div> : <div className="notification-list">{items.map((item) => <article className={item.readAt ? 'notification-card read' : 'notification-card'} key={item.id}><label className="notification-select"><input type="checkbox" checked={selected.has(item.id)} onChange={(event) => select(item.id, event.target.checked)} aria-label={`Chọn ${item.title}`} /></label><div className="notification-content"><div className="notification-heading"><h2>{item.title}</h2><span className="state-pill">{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span></div><p>{item.body}</p><span className="muted">{item.kind} · {dateTime(item.createdAt)}</span><div className="delivery-summary">{item.deliveries.map((delivery) => <span key={delivery.channel} title={delivery.lastErrorCode ?? undefined}>{delivery.channel}: {delivery.state}</span>)}</div></div><button className="secondary-button" type="button" onClick={() => void toggleRead(item)} disabled={busy !== null}>{item.readAt ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></article>)}</div>}
+    </section>
+  );
+}
+
+function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<TrashItemRecord[]>([]);
+  const [confirmation, setConfirmation] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKeys = useRef<Record<string, string>>({});
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      setItems((await listTrash(200)).items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function restore(batchId: string) {
+    const requestKey = requestKeys.current[`restore:${batchId}`] ?? createIdempotencyKey();
+    requestKeys.current[`restore:${batchId}`] = requestKey;
+    setBusy(batchId);
+    setError(null);
+    try {
+      await restoreTrashBatch(batchId, requestKey);
+      delete requestKeys.current[`restore:${batchId}`];
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function purge(batchId: string) {
+    if (confirmation[batchId] !== 'PURGE') return;
+    const requestKey = requestKeys.current[`purge:${batchId}`] ?? createIdempotencyKey();
+    requestKeys.current[`purge:${batchId}`] = requestKey;
+    setBusy(batchId);
+    setError(null);
+    try {
+      await purgeTrashBatch(batchId, confirmation[batchId], requestKey);
+      delete requestKeys.current[`purge:${batchId}`];
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const batches = Array.from(items.reduce((groups, item) => {
+    const group = groups.get(item.deletionBatchId) ?? [];
+    group.push(item);
+    groups.set(item.deletionBatchId, group);
+    return groups;
+  }, new Map<string, TrashItemRecord[]>()).entries());
+
+  return (
+    <section className="content-section" aria-labelledby="trash-title">
+      <div className="content-heading"><div><p className="eyebrow">FX08 / LIFECYCLE</p><h1 id="trash-title">Trash</h1><p className="lead">Restore theo deletion batch đã ghi trong SQL. Calendar event không vào Trash; thao tác xóa Calendar là Cancel.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải Trash…</div> : batches.length === 0 ? <div className="empty-state"><h2>Trash trống</h2><p>Không có Project hoặc Task đang chờ restore/purge.</p></div> : <div className="notification-list">{batches.map(([batchId, batch]) => <article className="resource-card" key={batchId}><div><h2>Batch {batchId.slice(0, 8)}</h2><p>{batch.length} item · xóa lúc {dateTime(batch[0].deletedAt)}</p><ul className="trash-members">{batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void restore(batchId)} disabled={busy !== null}>Restore batch</button><label className="purge-confirm"><span className="sr-only">Nhập PURGE để xóa vĩnh viễn batch</span><input value={confirmation[batchId] ?? ''} onChange={(event) => setConfirmation((current) => ({ ...current, [batchId]: event.target.value }))} placeholder="Nhập PURGE" autoComplete="off" /><button className="danger-button" type="button" onClick={() => void purge(batchId)} disabled={busy !== null || confirmation[batchId] !== 'PURGE'}>Purge</button></label></div></article>)}</div>}
+    </section>
+  );
+}
+
+function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<DocumentSummary[]>([]);
+  const [selected, setSelected] = useState<DocumentRecord | null>(null);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [documentType, setDocumentType] = useState('');
+  const [editorMode, setEditorMode] = useState('');
+  const [documentView, setDocumentView] = useState<'grid' | 'table'>('grid');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState<DocumentRecord | null>(null);
+  const [leavePrompt, setLeavePrompt] = useState<{ continueAction: DirtyLeaveContinuation } | null>(null);
+  const leaveDialogRef = useRef<HTMLDivElement | null>(null);
+  const leaveReturnFocusRef = useRef<HTMLElement | null>(null);
+  const saveRequestRef = useRef<{ signature: string; key: string } | null>(null);
+  const transitionRequestRef = useRef<{ signature: string; key: string } | null>(null);
+
+  const isDirty = selected
+    ? title !== selected.title || body !== selected.body
+    : Boolean(title || body || documentType || editorMode);
+
+  useEffect(() => {
+    dirtyLeaveGuard.current = (continueAction) => {
+      if (!isDirty) return false;
+      setLeavePrompt({ continueAction });
+      return true;
+    };
+    return () => {
+      dirtyLeaveGuard.current = null;
+    };
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (!leavePrompt) return;
+    leaveReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = leaveDialogRef.current;
+    const focusable = dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+      : [];
+    focusable[0]?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setLeavePrompt(null);
+        return;
+      }
+      if (event.key !== 'Tab' || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    dialog?.addEventListener('keydown', onKeyDown);
+    return () => {
+      dialog?.removeEventListener('keydown', onKeyDown);
+      if (leaveReturnFocusRef.current && document.contains(leaveReturnFocusRef.current)) leaveReturnFocusRef.current.focus();
+      leaveReturnFocusRef.current = null;
+    };
+  }, [Boolean(leavePrompt)]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      setItems((await listDocuments(undefined, 100)).items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function clearEditor() {
+    setSelected(null);
+    setTitle('');
+    setBody('');
+    setDocumentType('');
+    setEditorMode('');
+    setConflict(null);
+    setError(null);
+  }
+
+  function requestDirtyAction(action: () => void | Promise<void>) {
+    if (!isDirty) {
+      void action();
+      return;
+    }
+    setLeavePrompt({ continueAction: () => { void action(); } });
+  }
+
+  function startNew() {
+    requestDirtyAction(clearEditor);
+  }
+
+  async function openDocumentNow(item: DocumentSummary) {
+    setBusy(`open:${item.id}`);
+    setError(null);
+    setConflict(null);
+    try {
+      const document = await getDocument(item.id);
+      setSelected(document);
+      setTitle(document.title);
+      setBody(document.body);
+      setDocumentType(document.documentType);
+      setEditorMode(document.editorMode);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function openDocument(item: DocumentSummary) {
+    requestDirtyAction(() => openDocumentNow(item));
+  }
+
+  async function saveDraft(): Promise<boolean> {
+    if (!title.trim() || !documentType || !editorMode) {
+      setError(new NexoraApiError('Tiêu đề, Document type và Editor mode là bắt buộc khi tạo page.', 422, 'ValidationFailed'));
+      return false;
+    }
+    const signature = `save:${selected?.id ?? 'new'}:${selected?.etag ?? ''}:${title}:${body}`;
+    if (saveRequestRef.current?.signature !== signature) {
+      saveRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
+    setBusy('save');
+    setError(null);
+    try {
+      const saved = selected
+        ? await saveDocument(selected.id, selected.etag, title.trim(), body, null, saveRequestRef.current.key)
+        : await createDocument(title.trim(), documentType, editorMode, body, saveRequestRef.current.key);
+      saveRequestRef.current = null;
+      setSelected(saved);
+      setTitle(saved.title);
+      setBody(saved.body);
+      setConflict(null);
+      setItems((current) => selected
+        ? current.map((candidate) => candidate.id === saved.id ? saved : candidate)
+        : [saved, ...current]);
+      return true;
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412 && selected) {
+        saveRequestRef.current = null;
+        try {
+          setConflict(await getDocument(selected.id));
+        } catch (reloadError) {
+          setError(asApiError(reloadError));
+        }
+      }
+      return false;
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await saveDraft();
+  }
+
+  async function saveAndContinue() {
+    if (!leavePrompt) return;
+    const continueAction = leavePrompt.continueAction;
+    if (!await saveDraft()) return;
+    setLeavePrompt(null);
+    continueAction();
+  }
+
+  function discardAndContinue() {
+    if (!leavePrompt) return;
+    const continueAction = leavePrompt.continueAction;
+    setLeavePrompt(null);
+    continueAction();
+  }
+
+  async function transition(status: string) {
+    if (!selected) return;
+    const signature = `transition:${selected.id}:${selected.etag}:${status}`;
+    if (transitionRequestRef.current?.signature !== signature) {
+      transitionRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
+    setBusy('transition');
+    setError(null);
+    try {
+      const saved = await transitionDocument(selected.id, selected.etag, status, transitionRequestRef.current.key);
+      transitionRequestRef.current = null;
+      setSelected(saved);
+      setTitle(saved.title);
+      setBody(saved.body);
+      setItems((current) => current.map((candidate) => candidate.id === saved.id ? saved : candidate));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) {
+        transitionRequestRef.current = null;
+        try {
+          setConflict(await getDocument(selected.id));
+        } catch (reloadError) {
+          setError(asApiError(reloadError));
+        }
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="documents-title">
+      <div className="content-heading"><div><p className="eyebrow">FX20 / KNOWLEDGE</p><h1 id="documents-title">Documents</h1><p className="lead">Page thuộc PersonalSpace hiện tại; Save tạo version SQL mới và body chỉ xuất hiện ở detail của owner.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {leavePrompt && <div className="dialog-backdrop" role="presentation"><div ref={leaveDialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="unsaved-changes-title"><h2 id="unsaved-changes-title">Unsaved changes</h2><p>Document hiện có thay đổi chưa lưu. Bạn muốn lưu thay đổi, bỏ draft hay tiếp tục chỉnh sửa?</p><div className="form-actions"><button className="primary-button" type="button" onClick={() => void saveAndContinue()} disabled={busy !== null}>Save changes</button><button className="danger-button" type="button" onClick={discardAndContinue} disabled={busy !== null}>Discard changes</button><button className="link-button" type="button" onClick={() => setLeavePrompt(null)} disabled={busy !== null}>Keep editing</button></div></div></div>}
+      {conflict && <div className="conflict-panel" role="alert" aria-labelledby="document-conflict-title"><div><h2 id="document-conflict-title">Document đã thay đổi trên server</h2><p>Draft hiện tại vẫn giữ nguyên trong memory. Revision server là v{conflict.versionNumber}; chọn cách xử lý trước khi lưu tiếp.</p><details><summary>So sánh bản server</summary><p><strong>Tiêu đề:</strong> {conflict.title}</p><p><strong>Trạng thái:</strong> {conflict.status}</p><pre className="conflict-preview">{conflict.body}</pre></details></div><div className="form-actions"><button className="secondary-button" type="button" onClick={() => { setSelected(conflict); setTitle(conflict.title); setBody(conflict.body); setDocumentType(conflict.documentType); setEditorMode(conflict.editorMode); setConflict(null); setError(null); }}>Tải bản server</button><button className="primary-button" type="button" onClick={() => { setSelected(conflict); setConflict(null); setError(null); }}>Giữ draft và áp dụng lại</button><button className="link-button" type="button" onClick={() => setConflict(null)}>Hủy xử lý</button></div></div>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew}>Tạo mới</button>}</div>
+          <div className="field-group"><label htmlFor="document-title">Tiêu đề</label><input id="document-title" value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} required /></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={selected !== null} required><option value="">Chọn Document type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={selected !== null} required><option value="">Chọn Editor mode</option><option value="Markdown">Markdown</option><option value="Block">Block</option></select></div></div>
+          <div className="field-group"><label htmlFor="document-body">Body <span className="optional">(tối đa 1 MiB)</span></label><textarea id="document-body" value={body} onChange={(event) => setBody(event.target.value)} rows={12} maxLength={1048576} disabled={selected?.status === 'Archived'} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={startNew} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{selected ? 'Save version' : 'Tạo page'}</SubmitButton></div>
+          {selected && <div className="form-actions"><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : selected.status === 'Published' ? 'Archived' : selected.preArchiveStatus ?? 'Draft')} disabled={busy !== null}>{selected.status === 'Draft' ? 'Publish' : selected.status === 'Published' ? 'Archive' : 'Unarchive'}</button><span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
+        </form>
+        <div className="resource-list"><div className="section-heading"><div><h2>Page của bạn</h2><span className="muted">{items.length} bản ghi</span></div><div className="module-tabs" role="tablist" aria-label="Document views"><button className={documentView === 'grid' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'grid'} onClick={() => setDocumentView('grid')}>Grid</button><button className={documentView === 'table' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'table'} onClick={() => setDocumentView('table')}>Table</button></div></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : items.length === 0 ? <div className="empty-state"><h3>Chưa có page</h3><p>Tạo Document, Note hoặc Knowledge page đầu tiên.</p></div> : documentView === 'grid' ? <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></article>)}</div> : <div className="table-wrapper"><table><caption>Document pages</caption><thead><tr><th>Title</th><th>Type / editor</th><th>Status</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.title}</strong><span className="muted">Version {item.versionNumber}</span></td><td>{item.documentType} · {item.editorMode}</td><td>{item.status}</td><td>{dateTime(item.updatedAt)}</td><td><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></td></tr>)}</tbody></table></div>}</div>
+      </div>
+    </section>
+  );
+}
+
+function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const actionKeys = useRef<Record<string, string>>({});
+  const { t } = useI18n();
+  const [users, setUsers] = useState<AdminUserRecord[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [access, setAccess] = useState<AdminUserAccess | null>(null);
+  const [role, setRole] = useState('User');
+  const [actionKey, setActionKey] = useState('');
+  const [effect, setEffect] = useState('Allow');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function loadUsers() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listAdminUsers();
+      setUsers(page.items);
+      if (selectedId && page.items.some((user) => user.id === selectedId)) return;
+      if (page.items[0]) {
+        setSelectedId(page.items[0].id);
+        await selectUser(page.items[0]);
+      } else {
+        setSelectedId('');
+        setAccess(null);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function selectUser(user: AdminUserRecord) {
+    setSelectedId(user.id);
+    setBusy(`load:${user.id}`);
+    setError(null);
+    try {
+      const loaded = await getAdminUserAccess(user.id);
+      setAccess(loaded);
+      setRole(loaded.user.role);
+      delete actionKeys.current.role;
+      delete actionKeys.current.roleIntent;
+      delete actionKeys.current.permission;
+      delete actionKeys.current.permissionIntent;
+      delete actionKeys.current.disable;
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  useEffect(() => { void loadUsers(); }, []);
+
+  async function saveRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!access) return;
+    setBusy('role');
+    setError(null);
+    const roleIntent = `${access.user.id}|${access.user.etag}|${role}`;
+    if (actionKeys.current.roleIntent !== roleIntent) {
+      actionKeys.current.roleIntent = roleIntent;
+      actionKeys.current.role = createIdempotencyKey();
+    }
+    actionKeys.current.role ??= createIdempotencyKey();
+    try {
+      const updated = await setAdminUserRole(access.user.id, access.user.etag, role, actionKeys.current.role);
+      delete actionKeys.current.role;
+      delete actionKeys.current.roleIntent;
+      if (!updated) {
+        // A self-demotion is a successful 204 and revokes the current
+        // authority/session. Clear the privileged projection before the
+        // shell re-authenticates; never retain the pre-change DTO in state.
+        setAccess(null);
+        setSelectedId('');
+        await onAuthLost();
+        return;
+      }
+      setAccess(updated);
+      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await selectUser(access.user);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveGrant(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!access || !actionKey.trim()) return;
+    setBusy('permission');
+    setError(null);
+    const permissionIntent = `${access.user.id}|${access.user.etag}|${actionKey.trim()}|${effect}`;
+    if (actionKeys.current.permissionIntent !== permissionIntent) {
+      actionKeys.current.permissionIntent = permissionIntent;
+      actionKeys.current.permission = createIdempotencyKey();
+    }
+    actionKeys.current.permission ??= createIdempotencyKey();
+    try {
+      const updated = await setAdminActionGrant(access.user.id, access.user.etag, actionKey.trim(), effect, actionKeys.current.permission);
+      delete actionKeys.current.permission;
+      delete actionKeys.current.permissionIntent;
+      setAccess(updated);
+      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+      setActionKey('');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleModule(code: string, enabled: boolean) {
+    if (!access) return;
+    setBusy(`module:${code}`);
+    setError(null);
+    const keyName = `module:${code}:${enabled ? 'on' : 'off'}`;
+    actionKeys.current[keyName] ??= createIdempotencyKey();
+    try {
+      const updated = await setAdminModuleGrant(access.user.id, access.user.etag, code, enabled, actionKeys.current[keyName]);
+      delete actionKeys.current[keyName];
+      setAccess(updated);
+      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function disable() {
+    if (!access || access.user.state === 'Disabled') return;
+    setBusy('disable');
+    setError(null);
+    actionKeys.current.disable ??= createIdempotencyKey();
+    try {
+      await disableAdminUser(access.user.id, access.user.etag, actionKeys.current.disable);
+      delete actionKeys.current.disable;
+      await loadUsers();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="admin-access-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">{t('adminAccessEyebrow')}</p>
+          <h1 id="admin-access-title">{t('adminAccessTitle')}</h1>
+          <p className="lead">{t('adminAccessLead')}</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={loadUsers} disabled={loading}>{t('reloadUsers')}</button>
+      </div>
+      {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? (
+        <div className="loading-state" role="status">{t('loadingUsers')}</div>
+      ) : users.length === 0 ? (
+        <div className="empty-state"><h2>{t('noAccounts')}</h2><p>{t('noUserProjection')}</p></div>
+      ) : (
+        <div className="admin-layout">
+          <div className="admin-user-list">
+            <h2>{t('users')}</h2>
+            {users.map((user) => <button key={user.id} type="button" className={selectedId === user.id ? 'admin-user-row active' : 'admin-user-row'} onClick={() => void selectUser(user)} disabled={busy !== null}>
+              <strong>{user.displayName}</strong><span>{user.email}</span><span>{user.role} · {user.state}</span>
+            </button>)}
+          </div>
+          <div className="admin-detail">
+            {!access ? <div className="empty-state"><h2>{t('selectUser')}</h2></div> : <>
+              <div className="section-heading">
+                <div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div>
+                <button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>{t('disableUser')}</button>
+              </div>
+              <form className="form-panel" onSubmit={saveRole}>
+                <div className="field-group"><label htmlFor="admin-role">{t('role')}</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div>
+                <button className="primary-button" type="submit" disabled={busy !== null}>{t('saveRole')}</button>
+              </form>
+              <form className="form-panel" onSubmit={saveGrant}>
+                <div className="section-heading"><h3>{t('actionGrant')}</h3><span className="muted">{t('allowPolicy')}</span></div>
+                <div className="form-grid"><div className="field-group"><label htmlFor="admin-action">{t('actionKey')}</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">{t('effect')}</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div>
+                <button className="secondary-button" type="submit" disabled={busy !== null}>{t('updateGrant')}</button>
+              </form>
+              <div className="form-panel">
+                <div className="section-heading"><h3>{t('moduleGrants')}</h3><span className="muted">{t('serverRechecks')}</span></div>
+                <div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ` · ${t('systemDisabled')}`}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div>
+              </div>
+              <div className="form-panel"><h3>{t('currentActionGrants')}</h3>{access.actionGrants.length === 0 ? <p className="muted">{t('noExplicitGrants')}</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div>
+            </>}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void }) {
+  const [query, setQuery] = useState('');
+  const [resourceType, setResourceType] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [page, setPage] = useState<SearchPage | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function run(event?: FormEvent) {
+    event?.preventDefault();
+    if (!query.trim()) {
+      setPage(null);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      setPage(await searchResources(query, resourceType, from, to, includeArchived));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="search-title">
+      <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="search-title">Global Search</h1><p className="lead">Tìm trong các nguồn đã được cấp quyền. Search không tạo authority mới và không trả Vault/secret payload.</p></div></div>
+      <form className="form-panel" onSubmit={(event) => void run(event)}>
+        <div className="form-grid">
+          <div className="field-group"><label htmlFor="global-search-query">Query</label><input id="global-search-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={500} placeholder="Tiêu đề, mô tả hoặc nội dung…" autoComplete="off" /></div>
+          <div className="field-group"><label htmlFor="global-search-type">Resource type</label><select id="global-search-type" value={resourceType} onChange={(event) => setResourceType(event.target.value)}><option value="">All enabled sources</option><option value="Project">Projects</option><option value="Task">Tasks</option><option value="Event">Calendar events</option><option value="Document">Documents</option><option value="Bookmark">Bookmarks</option><option value="Snippet">Snippets</option><option value="Goal">Goals</option></select></div>
+          <div className="field-group"><label htmlFor="global-search-from">Updated from</label><input id="global-search-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></div>
+          <div className="field-group"><label htmlFor="global-search-to">Updated to</label><input id="global-search-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} /></div>
+        </div>
+        <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} /> Include archived source records</label>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={loading || !query.trim()}>{loading ? 'Đang tìm…' : 'Tìm kiếm'}</button></div>
+      </form>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {page && <>
+        {page.providers.some((provider) => provider.state === 'Degraded' || provider.state === 'Unavailable') && <Notice kind="info">Một số nguồn không khả dụng; kết quả hiện tại là partial và không đại diện cho toàn bộ dữ liệu.</Notice>}
+        <div className="section-heading"><h2>Kết quả cho “{page.query}”</h2><span className="muted">{page.items.length} kết quả hiển thị</span></div>
+        <div className="module-grid">
+          {page.items.length === 0 ? <div className="empty-state"><h3>Không có kết quả</h3><p>Thử từ khóa khác hoặc xóa bộ lọc.</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {dateTime(item.updatedAt)}</p><button className="secondary-button" type="button" onClick={() => navigate('resource', item.resourceType, false, item.id)}>Mở nguồn</button></article>)}
+        </div>
+        <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
+      </>}
+      {!page && !loading && <div className="empty-state"><h3>Bắt đầu tìm kiếm</h3><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
+    </section>
+  );
+}
+
+function ModuleUnavailableScreen({ moduleCode }: { moduleCode: string }) {
+  return (
+    <section className="content-section" aria-labelledby="module-unavailable-title">
+      <p className="eyebrow">{moduleCode}</p>
+      <h1 id="module-unavailable-title">Module không khả dụng</h1>
+      <p className="lead">Server hiện không cấp module này cho PersonalSpace hoặc module đang bị disable.</p>
+    </section>
+  );
+}
+
+type ResourceView = {
+  resourceType: ResourceType;
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  updatedAt: string;
+  body?: string;
+  startAt?: string;
+  endAt?: string;
+  timeZoneId?: string;
+  isAllDay?: boolean;
+  language?: string;
+  versionNumber?: number;
+  parentId?: string;
+};
+
+function ResourceScreen({ resourceType, resourceId, navigate, onAuthLost }: {
+  resourceType?: ResourceType;
+  resourceId?: string;
+  navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  const [resource, setResource] = useState<ResourceView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!resourceType || !resourceId) {
+        setError(new NexoraApiError('Resource unavailable.', 404, 'ResourceUnavailable'));
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        let next: ResourceView;
+        switch (resourceType) {
+          case 'Project': {
+            const item = await getProject(resourceId);
+            next = { resourceType, id: item.id, title: item.name, description: item.description, status: item.status, updatedAt: item.updatedAt };
+            break;
+          }
+          case 'Task': {
+            const item = await getTask(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, startAt: item.startAt, endAt: item.endAt, parentId: item.projectId };
+            break;
+          }
+          case 'Event': {
+            const item = await getCalendarEvent(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, startAt: item.startAt, endAt: item.endAt, timeZoneId: item.timeZoneId, isAllDay: item.isAllDay, parentId: item.taskId ?? undefined };
+            break;
+          }
+          case 'Document': {
+            const item = await getDocument(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: null, status: item.status, updatedAt: item.updatedAt, body: item.body, versionNumber: item.versionNumber };
+            break;
+          }
+          case 'Bookmark': {
+            const item = await getBookmark(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt };
+            break;
+          }
+          case 'Snippet': {
+            const item = await getSnippet(resourceId);
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, body: item.body, language: item.language, versionNumber: item.versionNumber };
+            break;
+          }
+          case 'Goal': {
+            const item = await getGoal(resourceId);
+            next = { resourceType, id: item.goal.id, title: item.goal.title, description: item.goal.description, status: item.goal.status, updatedAt: item.goal.updatedAt };
+            break;
+          }
+        }
+        if (!cancelled) setResource(next);
+      } catch (requestError) {
+        if (cancelled) return;
+        const apiError = asApiError(requestError);
+        setResource(null);
+        setError(apiError);
+        if (apiError.status === 401) await onAuthLost();
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    void load();
+    return () => { cancelled = true; };
+  }, [resourceType, resourceId, onAuthLost]);
+
+  if (loading) return <section className="content-section"><div className="loading-state" role="status">Đang mở {resourceType ?? 'resource'}…</div></section>;
+  if (error || !resource) return <section className="content-section"><div className="empty-state"><h1>Không thể mở resource</h1><p>{error?.status === 404 || error?.status === 403 ? 'Resource không tồn tại, đã bị ẩn hoặc quyền hiện tại không còn hợp lệ.' : error?.message ?? 'Server không trả projection được phép.'}</p></div></section>;
+
+  const moduleCode = ({ Project: 'FX11', Task: 'FX12', Event: 'FX13', Document: 'FX20', Bookmark: 'FX21', Snippet: 'FX22', Goal: 'FX16' } as const)[resource.resourceType];
+  return <section className="content-section" aria-labelledby="resource-title"><div className="content-heading"><div><p className="eyebrow">RESOURCE / {resource.resourceType.toUpperCase()}</p><h1 id="resource-title">{resource.title}</h1><p className="lead">Detail resolver đã kiểm tra owner, module gate và lifecycle ở source.</p></div><button className="secondary-button" type="button" onClick={() => navigate('module', moduleCode)}>Mở module nguồn</button></div><article className="resource-card resource-detail-card"><div><p>{resource.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.status} · cập nhật {dateTime(resource.updatedAt, resource.timeZoneId)}</p>{resource.startAt && resource.endAt && <p className="muted">{dateTime(resource.startAt, resource.timeZoneId)} — {dateTime(resource.endAt, resource.timeZoneId)}{resource.timeZoneId ? ` · ${resource.timeZoneId}` : ''}{resource.isAllDay ? ' · All-day' : ''}</p>}{resource.parentId && <p className="muted">Parent source: {resource.parentId}</p>}{resource.language && <p className="muted">Language: {resource.language}{resource.versionNumber ? ` · version ${resource.versionNumber}` : ''}</p>}{resource.body !== undefined && <pre className="resource-body-preview">{resource.body}</pre>}</div></article></section>;
+}
+
+const FAVORITE_RESOURCE_TYPES = ['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal'];
+
+function FavoritesScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void }) {
+  const [page, setPage] = useState<FavoritePage | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [resourceType, setResourceType] = useState('Project');
+  const [resourceId, setResourceId] = useState('');
+  const [rankDraft, setRankDraft] = useState<Record<string, string>>({});
+  const [cursor, setCursor] = useState('');
+  const addRequestRef = useRef<{ signature: string; key: string } | null>(null);
+  const requestKeys = useRef<Record<string, string>>({});
+
+  async function load(nextCursor = '') {
+    setLoading(true);
+    setError(null);
+    try {
+      const next = await listFavorites('', 100, nextCursor);
+      setPage((current) => nextCursor && current ? {
+        items: [...current.items, ...next.items],
+        nextCursor: next.nextCursor
+      } : next);
+      setCursor(next.nextCursor ?? '');
+      setRankDraft((current) => ({
+        ...current,
+        ...Object.fromEntries(next.items.map((item) => [item.id, String(item.rank)]))
+      }));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function add(event: FormEvent) {
+    event.preventDefault();
+    const trimmedId = resourceId.trim();
+    if (!trimmedId) {
+      setError(new NexoraApiError('Resource id là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    const signature = `add:${resourceType}:${trimmedId}`;
+    if (addRequestRef.current?.signature !== signature) {
+      addRequestRef.current = { signature, key: createIdempotencyKey() };
+    }
+    setBusy('add');
+    setError(null);
+    try {
+      await addFavorite(resourceType, trimmedId, addRequestRef.current.key);
+      addRequestRef.current = null;
+      setResourceId('');
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(item: FavoritePage['items'][number]) {
+    const requestKey = requestKeys.current[`remove:${item.id}`] ?? createIdempotencyKey();
+    requestKeys.current[`remove:${item.id}`] = requestKey;
+    setBusy(`remove:${item.id}`);
+    setError(null);
+    try {
+      await removeFavorite(item.id, item.etag, requestKey);
+      delete requestKeys.current[`remove:${item.id}`];
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) {
+        delete requestKeys.current[`remove:${item.id}`];
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reorder(item: FavoritePage['items'][number]) {
+    const value = Number(rankDraft[item.id] ?? item.rank);
+    if (!Number.isFinite(value) || value < 0 || value > 1_000_000_000 || Math.round(value * 100_000_000) !== value * 100_000_000) {
+      setError(new NexoraApiError('Rank phải từ 0 đến 1000000000 và tối đa 8 chữ số thập phân.', 422, 'ValidationFailed'));
+      return;
+    }
+    const requestKey = requestKeys.current[`rank:${item.id}`] ?? createIdempotencyKey();
+    requestKeys.current[`rank:${item.id}`] = requestKey;
+    setBusy(`rank:${item.id}`);
+    setError(null);
+    try {
+      await reorderFavorite(item.id, item.etag, value, requestKey);
+      delete requestKeys.current[`rank:${item.id}`];
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) {
+        delete requestKeys.current[`rank:${item.id}`];
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function openSource(route: string | null) {
+    const match = route?.match(/^\/resources\/([^/]+)\/([0-9a-f-]{36})$/i);
+    if (!match) return;
+    const resourceType = decodeRouteSegment(match[1]) as ResourceType;
+    if (RESOURCE_TYPES.has(resourceType)) navigate('resource', resourceType, false, match[2]);
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="favorites-title">
+      <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="favorites-title">Favorites</h1><p className="lead">Favorites chỉ lưu typed reference theo PersonalSpace. Server recheck quyền và trạng thái nguồn mỗi lần đọc.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>Tải lại</button></div>
+      <form className="form-panel" onSubmit={(event) => void add(event)}>
+        <div className="section-heading"><h2>Thêm favorite</h2><span className="muted">Không nhập title hoặc owner; server tự resolve nguồn</span></div>
+        <div className="form-grid"><div className="field-group"><label htmlFor="favorite-resource-type">Resource type</label><select id="favorite-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value)}>{FAVORITE_RESOURCE_TYPES.map((type) => <option key={type}>{type}</option>)}</select></div><div className="field-group"><label htmlFor="favorite-resource-id">Resource id</label><input id="favorite-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID của resource đã có quyền đọc" maxLength={36} required /></div></div>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={busy !== null || !resourceId.trim()}>{busy === 'add' ? 'Đang thêm…' : 'Thêm favorite'}</button></div>
+      </form>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải favorites…</div> : !page || page.items.length === 0 ? <div className="empty-state"><h2>Chưa có favorite</h2><p>Thêm một resource id thuộc nguồn bạn đang được cấp quyền.</p></div> : <><div className="resource-cards">{page.items.map((item) => item.state === 'Unavailable' ? <article key={item.id} className="resource-card source-unavailable"><div><h3>Unavailable source</h3><p className="source-unavailable-message">{item.resourceType} · {item.resourceId}</p><p className="muted">Nguồn đã bị xóa, trash, archive, disable hoặc quyền đọc đã thay đổi. Không hiển thị snapshot cũ.</p></div><button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang xóa…' : 'Xóa favorite'}</button></article> : <article key={item.id} className="resource-card"><div><div className="module-card-heading"><h3>{item.title ?? item.resourceType}</h3><span className="state-pill state-active">Available</span></div><p className="muted">{item.resourceType}{item.status ? ` · ${item.status}` : ''}{item.updatedAt ? ` · Cập nhật ${dateTime(item.updatedAt)}` : ''}</p><p className="muted">Favorite id: <code>{item.id}</code></p></div><div className="resource-actions"><label className="field-group"><span className="sr-only">Rank</span><input aria-label={`Rank cho ${item.title ?? item.resourceType}`} inputMode="decimal" value={rankDraft[item.id] ?? String(item.rank)} onChange={(event) => setRankDraft((current) => ({ ...current, [item.id]: event.target.value }))} /></label><button className="secondary-button" type="button" onClick={() => void reorder(item)} disabled={busy !== null}>{busy === `rank:${item.id}` ? 'Đang lưu…' : 'Lưu rank'}</button>{item.route && <button className="secondary-button" type="button" onClick={() => openSource(item.route)}>Mở nguồn</button>}<button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang xóa…' : 'Xóa'}</button></div></article>)}</div>{page.nextCursor && <div className="form-actions"><button className="secondary-button" type="button" onClick={() => void load(cursor)} disabled={loading || busy !== null}>Tải thêm</button></div>}</>}
+    </section>
+  );
+}
+
+function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string) => void; onAuthLost: () => Promise<void> }) {
+  const { t } = useI18n();
+  const enabledModules = profile.modules.filter((module) => module.enabled);
+  const [dashboard, setDashboard] = useState<DashboardSnapshot | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getDashboard().then((result) => {
+      if (!cancelled) setDashboard(result);
+    }).catch((requestError) => {
+      if (cancelled) return;
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) void onAuthLost();
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [profile.id, onAuthLost]);
+
+  return (
+    <section className="content-section" aria-labelledby="home-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">HOME</p>
+          <h1 id="home-title">Xin chào, {profile.displayName}</h1>
+          <p className="lead">Đây là PersonalSpace riêng của bạn. Shell chỉ hiển thị các capability server đã cấp.</p>
+        </div>
+        <span className="state-pill state-active">{profile.state}</span>
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải các widget…</div> : dashboard && <section className="module-section" aria-labelledby="dashboard-attention-title">
+        <div className="section-heading"><div><h2 id="dashboard-attention-title">Attention</h2><p className="muted">Nguồn dữ liệu giữ nguyên owner và timezone của PersonalSpace.</p></div><span className="muted">{dateTime(dashboard.generatedAt, profile.timeZoneId, profile.locale)}</span></div>
+        <div className="module-grid">
+          {dashboard.widgets.map((widget) => (
+            <article key={widget.id} className={widget.state === 'Unavailable' ? 'module-card unavailable' : 'module-card'}>
+              <div className="module-card-heading"><h3>{widget.title}</h3><span className={widget.state === 'Ready' ? 'state-pill state-active' : 'state-pill'}>{widget.state}</span></div>
+              <p>{widget.message ?? `${widget.count} item${widget.count === 1 ? '' : 's'}`}</p>
+              {widget.items.length === 0 ? <p className="muted">Không có mục cần chú ý.</p> : <ul className="grant-list">{widget.items.map((item) => <li key={item.id}><span><strong>{item.title}</strong><small>{item.status ?? item.kind}{item.at ? ` · ${dateTime(item.at, profile.timeZoneId, profile.locale)}` : ''}</small></span></li>)}</ul>}
+            </article>
+          ))}
+        </div>
+      </section>}
+      <div className="info-grid">
+        <article className="info-card">
+          <p className="card-label">Locale</p>
+          <strong>{profile.locale === 'vi' ? 'Tiếng Việt' : 'English'}</strong>
+          <span>{profile.timeZoneId}</span>
+        </article>
+        <article className="info-card">
+          <p className="card-label">Module availability</p>
+          <strong>{enabledModules.length} enabled</strong>
+          <span>{profile.modules.length} server projections</span>
+        </article>
+      </div>
+      <section className="module-section" aria-labelledby="available-modules-title">
+        <div className="section-heading"><h2 id="available-modules-title">Module catalog</h2><span className="muted">No client-side authority</span></div>
+        {profile.modules.length === 0 ? (
+          <div className="empty-state"><h3>Chưa có module được cấp</h3><p>Server chưa trả projection module cho PersonalSpace này.</p></div>
+        ) : (
+          <div className="module-grid">
+            {profile.modules.map((module) => (
+              <article key={module.code} className={module.enabled ? 'module-card' : 'module-card unavailable'}>
+                <div className="module-card-heading"><h3>{module.code}</h3><span className="state-pill">{module.enabled ? 'Available' : 'Unavailable'}</span></div>
+                <p>{module.enabled ? 'Module đã được server bật cho phiên này.' : module.unavailableReason ?? 'Module chưa khả dụng trong policy hiện tại.'}</p>
+                {module.enabled && <button className="secondary-button" type="button" onClick={() => navigate('module', module.code)}>Mở module</button>}
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </section>
+  );
+}
+
+type ProductivityModuleCode = 'FX11' | 'FX12' | 'FX13';
+type ProjectDraft = { name: string; description: string; startAt: string; endAt: string; priority: string; tagsJson: string; notes: string };
+type TaskDraft = { projectId: string; title: string; description: string; status: string; dueAt: string; startAt: string; endAt: string; priority: string; tagsJson: string; acceptanceCriteriaJson: string; reminderAt: string };
+type EventDraft = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string; isAllDay: boolean };
+
+type ZonedDateParts = { year: number; month: number; day: number; hour: number; minute: number };
+
+export function validTimeZone(timeZoneId: string | undefined): string {
+  if (!timeZoneId?.trim()) return DEFAULT_TIME_ZONE;
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timeZoneId }).format();
+    return timeZoneId;
+  } catch {
+    return DEFAULT_TIME_ZONE;
+  }
+}
+
+function zonedDateParts(value: Date, timeZoneId: string): ZonedDateParts {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: validTimeZone(timeZoneId),
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+  }).formatToParts(value);
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
+  return { year: get('year'), month: get('month'), day: get('day'), hour: get('hour'), minute: get('minute') };
+}
+
+export function localInputToIso(value: string, timeZoneId = currentTimeZone()): string | null {
+  if (!value.trim()) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(value.trim());
+  if (!match) return null;
+  const [, year, month, day, hour, minute] = match;
+  const naiveUtc = Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute));
+  if (Number.isNaN(naiveUtc)) return null;
+  const zone = validTimeZone(timeZoneId);
+  const represented = zonedDateParts(new Date(naiveUtc), zone);
+  const representedUtc = Date.UTC(represented.year, represented.month - 1, represented.day, represented.hour, represented.minute);
+  const instant = new Date(naiveUtc - (representedUtc - naiveUtc));
+  const roundTrip = zonedDateParts(instant, zone);
+  const valid = roundTrip.year === Number(year) && roundTrip.month === Number(month) && roundTrip.day === Number(day)
+    && roundTrip.hour === Number(hour) && roundTrip.minute === Number(minute);
+  return valid && !Number.isNaN(instant.valueOf()) ? instant.toISOString() : null;
+}
+
+export function isoToLocalInput(value: string | null, timeZoneId = currentTimeZone()): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return '';
+  const parts = zonedDateParts(parsed, timeZoneId);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hour)}:${pad(parts.minute)}`;
+}
+
+export function localDateToIso(value: string, timeZoneId: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value.trim())
+    ? localInputToIso(`${value.trim()}T00:00`, timeZoneId)
+    : null;
+}
+
+export function isoToLocalDate(value: string | null, timeZoneId: string): string {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.valueOf())) return '';
+  const parts = zonedDateParts(parsed, timeZoneId);
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}`;
+}
+
+function allDayLabel(event: CalendarEventRecord): string {
+  const start = isoToLocalDate(event.startAt, event.timeZoneId);
+  const exclusiveEnd = isoToLocalDate(event.endAt, event.timeZoneId);
+  const end = exclusiveEnd ? addDateDays(exclusiveEnd, -1) : '';
+  return start && end ? `${start} — ${end}` : 'All-day';
+}
+
+function calendarVisibleRange(view: 'day' | 'week' | 'month' | 'agenda', timeZoneId: string): { from: string; to: string } {
+  const today = todayDateInput(timeZoneId);
+  let from = today;
+  let days = view === 'day' ? 1 : view === 'week' ? 7 : view === 'month' ? 31 : 31;
+  if (view === 'week') {
+    const weekday = new Date(`${today}T00:00:00Z`).getUTCDay();
+    from = addDateDays(today, -weekday);
+    days = 7;
+  } else if (view === 'month') {
+    from = `${today.slice(0, 7)}-01`;
+    const monthStart = new Date(`${from}T00:00:00Z`);
+    monthStart.setUTCMonth(monthStart.getUTCMonth() + 1);
+    const nextMonth = monthStart.toISOString().slice(0, 10);
+    return { from: localInputToIso(`${from}T00:00`, timeZoneId) ?? `${from}T00:00:00.000Z`, to: localInputToIso(`${nextMonth}T00:00`, timeZoneId) ?? `${nextMonth}T00:00:00.000Z` };
+  }
+  const to = addDateDays(from, days);
+  return { from: localInputToIso(`${from}T00:00`, timeZoneId) ?? `${from}T00:00:00.000Z`, to: localInputToIso(`${to}T00:00`, timeZoneId) ?? `${to}T00:00:00.000Z` };
+}
+
+function ProductivityScreen({
+  profile,
+  moduleCode,
+  navigate,
+  onAuthLost
+}: {
+  profile: ProfileResponse;
+  moduleCode: ProductivityModuleCode;
+  navigate: (screen: Screen, moduleCode?: string) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [events, setEvents] = useState<CalendarEventRecord[]>([]);
+  const [projectNextCursor, setProjectNextCursor] = useState<string | null>(null);
+  const [taskNextCursor, setTaskNextCursor] = useState<string | null>(null);
+  const [eventNextCursor, setEventNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectRecord | null>(null);
+  const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
+  const [editingEvent, setEditingEvent] = useState<CalendarEventRecord | null>(null);
+  const [projectDraft, setProjectDraft] = useState<ProjectDraft>({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
+  const [taskDraft, setTaskDraft] = useState<TaskDraft>({ projectId: '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+  const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
+  const [taskReminderChanged, setTaskReminderChanged] = useState(false);
+  const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
+  const projectRequestKey = useRef<string | null>(null);
+  const taskRequestKey = useRef<string | null>(null);
+  const eventRequestKey = useRef<string | null>(null);
+  const actionRequestKeys = useRef<Record<string, { signature: string; key: string }>>({});
+
+  function getActionRequestKey(operation: string, signature: string): string {
+    const current = actionRequestKeys.current[operation];
+    if (!current || current.signature !== signature) {
+      const next = { signature, key: createIdempotencyKey() };
+      actionRequestKeys.current[operation] = next;
+      return next.key;
+    }
+    return current.key;
+  }
+
+  function clearActionRequestKey(operation: string, signature: string): void {
+    if (actionRequestKeys.current[operation]?.signature === signature) {
+      delete actionRequestKeys.current[operation];
+    }
+  }
+
+  const canProjects = profile.modules.some((module) => module.code.toUpperCase() === 'FX11' && module.enabled);
+  const canTasks = profile.modules.some((module) => module.code.toUpperCase() === 'FX12' && module.enabled);
+  const canCalendar = profile.modules.some((module) => module.code.toUpperCase() === 'FX13' && module.enabled);
+
+  const calendarRange = calendarVisibleRange(calendarView, profile.timeZoneId);
+  const calendarRangeStart = new Date(calendarRange.from).getTime();
+  const calendarRangeEnd = new Date(calendarRange.to).getTime();
+  const calendarEventsForView = events.filter((item) => {
+    const start = new Date(item.startAt).getTime();
+    const end = new Date(item.endAt).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && start < calendarRangeEnd && end > calendarRangeStart;
+  });
+
+  async function load(append = false) {
+    setLoading(true);
+    setError(null);
+    try {
+      const [projectPage, taskPage, eventPage] = await Promise.all([
+        canProjects || canTasks ? listProjects(25, append && moduleCode === 'FX11' ? projectNextCursor ?? '' : '') : Promise.resolve(null),
+        canTasks ? listTasks(undefined, 25, append && moduleCode === 'FX12' ? taskNextCursor ?? '' : '') : Promise.resolve(null),
+        canCalendar ? listCalendarEvents(calendarRange.from, calendarRange.to, 25, append && moduleCode === 'FX13' ? eventNextCursor ?? '' : '') : Promise.resolve(null)
+      ]);
+      if (projectPage) {
+        const items = Array.isArray(projectPage.items) ? projectPage.items : [];
+        setProjects((current) => append && moduleCode === 'FX11' ? [...current, ...items] : items);
+        setProjectNextCursor(projectPage.nextCursor ?? null);
+      }
+      if (taskPage) {
+        const items = Array.isArray(taskPage.items) ? taskPage.items : [];
+        setTasks((current) => append && moduleCode === 'FX12' ? [...current, ...items] : items);
+        setTaskNextCursor(taskPage.nextCursor ?? null);
+      }
+      if (eventPage) {
+        const items = Array.isArray(eventPage.items) ? eventPage.items : [];
+        setEvents((current) => append && moduleCode === 'FX13' ? [...current, ...items] : items);
+        setEventNextCursor(eventPage.nextCursor ?? null);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, [moduleCode, calendarView, profile.timeZoneId]);
+
+  useEffect(() => { projectRequestKey.current = null; }, [projectDraft]);
+  useEffect(() => { taskRequestKey.current = null; }, [taskDraft, taskReminderChanged]);
+  useEffect(() => { eventRequestKey.current = null; }, [eventDraft]);
+
+  function resetProject() {
+    projectRequestKey.current = null;
+    setEditingProject(null);
+    setProjectDraft({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
+  }
+
+  function resetTask() {
+    taskRequestKey.current = null;
+    setEditingTask(null);
+    setTaskReminderChanged(false);
+    setTaskDraft({ projectId: projects[0]?.id ?? '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+  }
+
+  function resetEvent() {
+    eventRequestKey.current = null;
+    setEditingEvent(null);
+    setEventDraft({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
+  }
+
+  function beginProjectEdit(project: ProjectRecord) {
+    projectRequestKey.current = null;
+    setEditingProject(project);
+    setProjectDraft({ name: project.name, description: project.description ?? '', startAt: isoToLocalInput(project.startAt, profile.timeZoneId), endAt: isoToLocalInput(project.endAt, profile.timeZoneId), priority: project.priority, tagsJson: project.tagsJson, notes: project.notes ?? '' });
+  }
+
+  function beginTaskEdit(task: TaskRecord) {
+    taskRequestKey.current = null;
+    setEditingTask(task);
+    setTaskReminderChanged(false);
+    setTaskDraft({ projectId: task.projectId, title: task.title, description: task.description ?? '', status: task.status, dueAt: isoToLocalInput(task.dueAt, profile.timeZoneId), startAt: isoToLocalInput(task.startAt, profile.timeZoneId), endAt: isoToLocalInput(task.endAt, profile.timeZoneId), priority: task.priority ?? '', tagsJson: task.tagsJson, acceptanceCriteriaJson: task.acceptanceCriteriaJson, reminderAt: isoToLocalInput(task.reminderAt, profile.timeZoneId) });
+  }
+
+  function beginEventEdit(event: CalendarEventRecord) {
+    eventRequestKey.current = null;
+    setEditingEvent(event);
+    setEventDraft({
+      title: event.title,
+      description: event.description ?? '',
+      startAt: event.isAllDay ? isoToLocalDate(event.startAt, event.timeZoneId) : isoToLocalInput(event.startAt, event.timeZoneId),
+      endAt: event.isAllDay ? addDateDays(isoToLocalDate(event.endAt, event.timeZoneId), -1) : isoToLocalInput(event.endAt, event.timeZoneId),
+      timeZoneId: event.timeZoneId,
+      isAllDay: event.isAllDay
+    });
+  }
+
+  async function saveProject(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const startAt = localInputToIso(projectDraft.startAt, profile.timeZoneId);
+    const endAt = localInputToIso(projectDraft.endAt, profile.timeZoneId);
+    const description = projectDraft.description.trim();
+    if (!projectDraft.name.trim() || !description || !startAt || !endAt) {
+      setError(new NexoraApiError('Project cần Title, Description, Start và End.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('project');
+    setError(null);
+    const requestKey = projectRequestKey.current ??= createIdempotencyKey();
+    try {
+      let saved = editingProject
+        ? await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey)
+        : await createProject(projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey);
+      setProjects((current) => editingProject ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+      resetProject();
+      if (!editingProject && !taskDraft.projectId) setTaskDraft((current) => ({ ...current, projectId: saved.id }));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (editingProject && apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Một hoặc nhiều Task nằm ngoài khung thời gian mới. Lưu Project mà không tự dời Task?')) {
+        try {
+          const saved = await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey, true);
+          setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
+          resetProject();
+          return;
+        } catch (retryError) {
+          const retryApiError = asApiError(retryError);
+          setError(retryApiError);
+          if (retryApiError.status === 401) await onAuthLost();
+          return;
+        }
+      }
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeProject(project: ProjectRecord) {
+    if (!window.confirm(`Đưa Project “${project.name}” và các Task vào Trash?`)) return;
+    setBusy(`project:${project.id}`);
+    setError(null);
+    const signature = `${project.id}:${project.etag}`;
+    const requestKey = getActionRequestKey('project.delete', signature);
+    try {
+      await deleteProject(project.id, project.etag, requestKey);
+      clearActionRequestKey('project.delete', signature);
+      setProjects((current) => current.filter((item) => item.id !== project.id));
+      setTasks((current) => current.filter((item) => item.projectId !== project.id));
+      if (editingProject?.id === project.id) resetProject();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function closeProject(project: ProjectRecord, status: 'Completed' | 'Skipped') {
+    const reason = window.prompt(`Lý do chuyển Project sang ${status}:`, 'Hoàn tất theo kế hoạch');
+    if (reason === null) return;
+    if (!window.confirm(`Xác nhận ${status} Project? Sau thao tác này Project sẽ chỉ-đọc vĩnh viễn.`)) return;
+    setBusy(`project:${project.id}`);
+    setError(null);
+    const signature = `${project.id}:${project.etag}:${status}:${reason.trim()}`;
+    const requestKey = getActionRequestKey('project.transition', signature);
+    try {
+      const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null, requestKey, true);
+      clearActionRequestKey('project.transition', signature);
+      setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (apiError.status === 412) clearActionRequestKey('project.transition', signature);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveTask(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const dueAt = taskDraft.dueAt ? localInputToIso(taskDraft.dueAt, profile.timeZoneId) : null;
+    const startAt = localInputToIso(taskDraft.startAt, profile.timeZoneId);
+    const endAt = localInputToIso(taskDraft.endAt, profile.timeZoneId);
+    const reminderAt = taskDraft.reminderAt ? localInputToIso(taskDraft.reminderAt, profile.timeZoneId) : null;
+    if (!taskDraft.projectId || !taskDraft.title.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Project và tiêu đề Task là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    if ((taskDraft.dueAt && !dueAt) || (taskDraft.reminderAt && !reminderAt)) {
+      setError(new NexoraApiError('Due date không hợp lệ.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('task');
+    setError(null);
+    const requestKey = taskRequestKey.current ??= createIdempotencyKey();
+    try {
+      const saved = editingTask
+        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, false, taskReminderChanged)
+        : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, false, true);
+      setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+      resetTask();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Task nằm ngoài khung thời gian Project. Lưu Task mà không thay đổi Project?')) {
+        try {
+          const saved = editingTask
+             ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, taskReminderChanged)
+             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, true);
+          setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+          resetTask();
+          return;
+        } catch (retryError) {
+          const retryApiError = asApiError(retryError);
+          setError(retryApiError);
+          if (retryApiError.status === 401) await onAuthLost();
+          return;
+        }
+      }
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeTask(task: TaskRecord) {
+    if (!window.confirm(`Xóa Task “${task.title}”?`)) return;
+    setBusy(`task:${task.id}`);
+    setError(null);
+    const signature = `${task.id}:${task.etag}`;
+    const requestKey = getActionRequestKey('task.delete', signature);
+    try {
+      await deleteTask(task.id, task.etag, requestKey);
+      clearActionRequestKey('task.delete', signature);
+      setTasks((current) => current.filter((item) => item.id !== task.id));
+      if (editingTask?.id === task.id) resetTask();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveEvent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const startAt = eventDraft.isAllDay
+      ? localDateToIso(eventDraft.startAt, eventDraft.timeZoneId)
+      : localInputToIso(eventDraft.startAt, eventDraft.timeZoneId);
+    const endAt = eventDraft.isAllDay
+      ? localDateToIso(addDateDays(eventDraft.endAt, 1), eventDraft.timeZoneId)
+      : localInputToIso(eventDraft.endAt, eventDraft.timeZoneId);
+    if (!eventDraft.title.trim() || !eventDraft.description.trim() || !startAt || !endAt) {
+      setError(new NexoraApiError('Event cần Title, Description, Start và End.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('event');
+    setError(null);
+    const requestKey = eventRequestKey.current ??= createIdempotencyKey();
+    try {
+      const saved = editingEvent
+        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey)
+        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey);
+      setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+      resetEvent();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeEvent(item: CalendarEventRecord) {
+    if (!window.confirm(`Xóa lịch “${item.title}”?`)) return;
+    setBusy(`event:${item.id}`);
+    setError(null);
+    const signature = `${item.id}:${item.etag}`;
+    const requestKey = getActionRequestKey('calendar.event.delete', signature);
+    try {
+      await deleteCalendarEvent(item.id, item.etag, requestKey);
+      clearActionRequestKey('calendar.event.delete', signature);
+      setEvents((current) => current.filter((eventItem) => eventItem.id !== item.id));
+      if (editingEvent?.id === item.id) resetEvent();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function completeEvent(item: CalendarEventRecord) {
+    const signature = `${item.id}:${item.etag}:Completed`;
+    const requestKey = getActionRequestKey('calendar.event.transition', signature);
+    setBusy(`event:${item.id}`);
+    setError(null);
+    try {
+      const saved = await transitionCalendarEvent(item.id, item.etag, 'Completed', requestKey);
+      clearActionRequestKey('calendar.event.transition', signature);
+      setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (apiError.status === 412) clearActionRequestKey('calendar.event.transition', signature);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const title = moduleCode === 'FX11' ? 'Projects' : moduleCode === 'FX12' ? 'Tasks' : 'Calendar';
+  if (loading) {
+    return <section className="content-section"><div className="loading-state" role="status">Đang tải {title}…</div></section>;
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="productivity-title">
+      <div className="content-heading">
+        <div><p className="eyebrow">{moduleCode} / PERSONAL PRODUCTIVITY</p><h1 id="productivity-title">{title}</h1><p className="lead">Dữ liệu được lọc theo PersonalSpace hiện tại; server giữ quyền sở hữu, lifecycle và revision.</p></div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={busy !== null}>Tải lại</button>
+      </div>
+      <div className="module-tabs" role="tablist" aria-label="Productivity modules">
+        {canProjects && <button className={moduleCode === 'FX11' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX11'} onClick={() => navigate('module', 'FX11')}>Projects</button>}
+        {canTasks && <button className={moduleCode === 'FX12' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX12'} onClick={() => navigate('module', 'FX12')}>Tasks</button>}
+        {canCalendar && <button className={moduleCode === 'FX13' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX13'} onClick={() => navigate('module', 'FX13')}>Calendar</button>}
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}{error.status === 412 && ' Hãy tải lại revision rồi áp dụng lại thay đổi.'}</Notice>}
+
+      {moduleCode === 'FX11' && canProjects && (
+        <div className="resource-layout">
+          <form className="form-panel resource-form" onSubmit={saveProject} noValidate>
+            <div className="section-heading"><h2>{editingProject ? 'Sửa Project' : 'Tạo Project'}</h2>{editingProject && <button className="link-button" type="button" onClick={resetProject}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="project-name">Title</label><input id="project-name" value={projectDraft.name} maxLength={200} onChange={(event) => setProjectDraft({ ...projectDraft, name: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="project-description">Description</label><textarea id="project-description" value={projectDraft.description} maxLength={20000} onChange={(event) => setProjectDraft({ ...projectDraft, description: event.target.value })} rows={4} required /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="project-start">Bắt đầu</label><input id="project-start" type="datetime-local" value={projectDraft.startAt} onChange={(event) => setProjectDraft({ ...projectDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="project-end">Kết thúc</label><input id="project-end" type="datetime-local" value={projectDraft.endAt} onChange={(event) => setProjectDraft({ ...projectDraft, endAt: event.target.value })} required /></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="project-priority">Ưu tiên</label><select id="project-priority" value={projectDraft.priority} onChange={(event) => setProjectDraft({ ...projectDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div><div className="field-group"><label htmlFor="project-tags">Tags JSON <span className="optional">(mảng)</span></label><input id="project-tags" value={projectDraft.tagsJson} onChange={(event) => setProjectDraft({ ...projectDraft, tagsJson: event.target.value })} /></div></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetProject} disabled={busy === 'project'}>Làm mới</button><SubmitButton busy={busy === 'project'}>{editingProject ? 'Lưu Project' : 'Tạo Project'}</SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Projects của bạn</h2><span className="muted">{projects.length} bản ghi</span></div>{projects.length === 0 ? <div className="empty-state"><h3>Chưa có Project</h3><p>Tạo Project đầu tiên để bắt đầu gom Task.</p></div> : <div className="resource-cards">{projects.map((project) => <article className="resource-card" key={project.id}><div><h3>{project.name}</h3><p>{project.description || 'Không có mô tả.'}</p><span className="muted">{dateTime(project.startAt)} — {dateTime(project.endAt)} · {project.priority} · {project.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginProjectEdit(project)} disabled={busy !== null || project.status === 'Completed' || project.status === 'Skipped'}>Sửa</button>{(project.status === 'NotStarted' || project.status === 'InProgress') && <><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Completed')} disabled={busy !== null}>Hoàn tất</button><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Skipped')} disabled={busy !== null}>Bỏ qua</button></>}<button className="danger-button" type="button" onClick={() => void removeProject(project)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}{projectNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Project</button>}</div>
+        </div>
+      )}
+
+      {moduleCode === 'FX12' && canTasks && (
+        <div className="resource-layout">
+          <form className="form-panel resource-form" onSubmit={saveTask} noValidate>
+            <div className="section-heading"><h2>{editingTask ? 'Sửa Task' : 'Tạo Task'}</h2>{editingTask && <button className="link-button" type="button" onClick={resetTask}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>
+            <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={200} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="task-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="task-description" value={taskDraft.description} maxLength={4000} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} rows={3} /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên <span className="optional">(tùy chọn)</span></label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="">Không đặt</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-start">Bắt đầu</label><input id="task-start" type="datetime-local" value={taskDraft.startAt} onChange={(event) => setTaskDraft({ ...taskDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="task-end">Kết thúc</label><input id="task-end" type="datetime-local" value={taskDraft.endAt} onChange={(event) => setTaskDraft({ ...taskDraft, endAt: event.target.value })} required /></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => { setTaskReminderChanged(true); setTaskDraft({ ...taskDraft, reminderAt: event.target.value }); }} /><p className="field-help">Để trống để gỡ nhắc khi đang sửa; mốc nhắc có thể nằm trước Start theo policy.</p></div></div>
+            {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}{taskNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Task</button>}</div>
+        </div>
+      )}
+
+      {moduleCode === 'FX13' && canCalendar && (
+        <div className="resource-layout">
+          <form className="form-panel resource-form" onSubmit={saveEvent} noValidate>
+            <div className="section-heading"><h2>{editingEvent ? 'Sửa sự kiện' : 'Tạo sự kiện'}</h2>{editingEvent && <button className="link-button" type="button" onClick={resetEvent}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="event-title">Title</label><input id="event-title" value={eventDraft.title} maxLength={200} onChange={(event) => setEventDraft({ ...eventDraft, title: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="event-description">Description</label><textarea id="event-description" value={eventDraft.description} maxLength={20000} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows={3} required /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="event-start">{eventDraft.isAllDay ? 'Ngày bắt đầu' : 'Bắt đầu'}</label><input id="event-start" type={eventDraft.isAllDay ? 'date' : 'datetime-local'} value={eventDraft.startAt} onChange={(event) => setEventDraft({ ...eventDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="event-end">{eventDraft.isAllDay ? 'Ngày kết thúc (bao gồm)' : 'Kết thúc'}</label><input id="event-end" type={eventDraft.isAllDay ? 'date' : 'datetime-local'} value={eventDraft.endAt} onChange={(event) => setEventDraft({ ...eventDraft, endAt: event.target.value })} required /></div></div>
+            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft((current) => { const nextZone = event.target.value; if (current.isAllDay || !nextZone.trim() || !current.timeZoneId.trim()) return { ...current, timeZoneId: nextZone }; const startIso = localInputToIso(current.startAt, current.timeZoneId); const endIso = localInputToIso(current.endAt, current.timeZoneId); return { ...current, timeZoneId: nextZone, startAt: startIso ? isoToLocalInput(startIso, nextZone) : current.startAt, endAt: endIso ? isoToLocalInput(endIso, nextZone) : current.endAt }; })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft((current) => event.target.checked ? { ...current, startAt: current.startAt.slice(0, 10), endAt: current.endAt.slice(0, 10), isAllDay: true } : { ...current, startAt: current.startAt ? `${current.startAt.slice(0, 10)}T00:00` : '', endAt: current.endAt ? `${addDateDays(current.endAt.slice(0, 10), 1)}T00:00` : '', isAllDay: false })} /> All-day</label><p className="field-help">Timed values preserve the instant. All-day values use date-only input, store the end boundary exclusively, and resolve both boundaries in this IANA timezone.</p></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEvent} disabled={busy === 'event'}>Làm mới</button><SubmitButton busy={busy === 'event'}>{editingEvent ? 'Lưu sự kiện' : 'Tạo sự kiện'}</SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{item.isAllDay ? allDayLabel(item) : `${dateTime(item.startAt, item.timeZoneId, profile.locale)} — ${dateTime(item.endAt, item.timeZoneId, profile.locale)}`}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void completeEvent(item)} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Hủy</button></div></article>)}</div>}{eventNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm sự kiện</button>}</div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+type ReminderSourceOption = {
+  key: string;
+  sourceType: 'Task' | 'CalendarEvent';
+  id: string;
+  title: string;
+  startAt: string;
+  detail: string;
+};
+
+function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [sources, setSources] = useState<ReminderSourceOption[]>([]);
+  const [selectedKey, setSelectedKey] = useState('');
+  const [source, setSource] = useState<ReminderSourceView | null>(null);
+  const [configType, setConfigType] = useState<'None' | 'BeforeStart15m' | 'Exact'>('BeforeStart15m');
+  const [exactAt, setExactAt] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<{ signature: string; key: string } | null>(null);
+  const removeRequestKey = useRef<string | null>(null);
+
+  async function loadSources() {
+    setLoading(true);
+    setError(null);
+    try {
+      const [taskPage, eventPage] = await Promise.all([listTasks(undefined, 100), listCalendarEvents(undefined, undefined, 100)]);
+      const taskSources = (taskPage.items ?? [])
+        .filter((task) => !['Completed', 'Skipped', 'Deleted'].includes(task.status))
+        .map((task): ReminderSourceOption => ({ key: `Task:${task.id}`, sourceType: 'Task', id: task.id, title: task.title, startAt: task.startAt, detail: 'Task' }));
+      const eventSources = (eventPage.items ?? [])
+        .filter((event) => event.status === 'Scheduled' && event.sourceKind === 'Manual' && event.taskId === null)
+        .map((event): ReminderSourceOption => ({ key: `CalendarEvent:${event.id}`, sourceType: 'CalendarEvent', id: event.id, title: event.title, startAt: event.startAt, detail: 'Calendar Event' }));
+      const nextSources = [...taskSources, ...eventSources].sort((left, right) => left.startAt.localeCompare(right.startAt));
+      setSources(nextSources);
+      setSelectedKey((current) => nextSources.some((item) => item.key === current) ? current : nextSources[0]?.key ?? '');
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadSource(option: ReminderSourceOption) {
+    setSourceLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const view = await getReminderSource(option.sourceType, option.id);
+      setSource(view);
+      setConfigType(view.reminder?.configType === 'Exact' ? 'Exact' : view.reminder?.configType === 'None' ? 'None' : 'BeforeStart15m');
+      setExactAt(isoToLocalInput(view.reminder?.exactAt ?? null, view.timeZoneId));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setSource(null);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setSourceLoading(false);
+    }
+  }
+
+  useEffect(() => { void loadSources(); }, []);
+
+  useEffect(() => {
+    const option = sources.find((item) => item.key === selectedKey);
+    if (option) {
+      void loadSource(option);
+    } else {
+      setSource(null);
+    }
+  }, [selectedKey, sources]);
+
+  function handleSourceChange(value: string) {
+    requestKey.current = null;
+    removeRequestKey.current = null;
+    setSelectedKey(value);
+    setError(null);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!source) {
+      setError(new NexoraApiError('Chọn một Task hoặc Calendar Event đang hoạt động trước khi lưu.', 422, 'ValidationFailed'));
+      return;
+    }
+    const exactIso = configType === 'Exact' ? localInputToIso(exactAt, source.timeZoneId) : null;
+    if (configType === 'Exact' && !exactIso) {
+      setError(new NexoraApiError('Chọn thời điểm nhắc hợp lệ trong tương lai.', 422, 'ReminderTimeInvalid'));
+      return;
+    }
+    const signature = `set:${source.sourceType}:${source.sourceId}:${source.sourceETag}:${source.reminder?.etag ?? ''}:${configType}:${exactIso ?? ''}`;
+    if (requestKey.current?.signature !== signature) {
+      requestKey.current = { signature, key: createIdempotencyKey() };
+    }
+    setBusy('save');
+    setError(null);
+    setConflict(false);
+    try {
+      const saved = await setReminder(source.sourceType as 'Task' | 'CalendarEvent', source.sourceId, configType,
+        exactIso, source.sourceETag, source.reminder?.etag ?? null, requestKey.current.key);
+      requestKey.current = null;
+      setSource(saved);
+      setExactAt(isoToLocalInput(saved.reminder?.exactAt ?? null, saved.timeZoneId));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412 || apiError.status === 428) {
+        setConflict(true);
+        const option = sources.find((item) => item.key === selectedKey);
+        if (option) await loadSource(option);
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove() {
+    if (!source?.reminder) return;
+    if (!window.confirm(`Gỡ reminder cho “${source.sourceTitle}”?`)) return;
+    removeRequestKey.current ??= createIdempotencyKey();
+    setBusy('remove');
+    setError(null);
+    setConflict(false);
+    try {
+      await removeReminder(source.sourceType as 'Task' | 'CalendarEvent', source.sourceId, source.sourceETag,
+        source.reminder.etag, removeRequestKey.current);
+      removeRequestKey.current = null;
+      const option = sources.find((item) => item.key === selectedKey);
+      if (option) await loadSource(option);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412 || apiError.status === 428) {
+        removeRequestKey.current = null;
+        setConflict(true);
+        const option = sources.find((item) => item.key === selectedKey);
+        if (option) await loadSource(option);
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="reminders-title">
+      <div className="content-heading">
+        <div><p className="eyebrow">FX14 / LOCAL SCHEDULING</p><h1 id="reminders-title">Reminders</h1><p className="lead">Mỗi Task hoặc Calendar Event thủ công có tối đa một reminder trong PersonalSpace hiện tại. Email và browser push không được gọi; khi đến hạn, local worker chỉ tạo in-app projection và báo rõ provider unavailable.</p></div>
+        <button className="secondary-button" type="button" onClick={() => void loadSources()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Reminder hoặc nguồn đã thay đổi ở nơi khác. Đã tải lại revision hiện tại.</span></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải Task và Calendar Event khả dụng…</div> : sources.length === 0 ? <div className="empty-state"><h2>Chưa có nguồn có thể nhắc</h2><p>Tạo Task đang hoạt động hoặc Calendar Event thủ công trong tương lai trước khi đặt reminder.</p></div> : <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>Cấu hình reminder</h2><span className="muted">ETag-protected</span></div>
+          <div className="field-group"><label htmlFor="reminder-source">Nguồn</label><select id="reminder-source" value={selectedKey} onChange={(event) => handleSourceChange(event.target.value)} disabled={sourceLoading || busy !== null}>{sources.map((item) => <option key={item.key} value={item.key}>{item.detail}: {item.title} · {dateTime(item.startAt)}</option>)}</select></div>
+          {sourceLoading ? <div className="loading-state" role="status">Đang tải revision reminder…</div> : source && <>
+            <div className="field-group"><label htmlFor="reminder-config">Kiểu reminder</label><select id="reminder-config" value={configType} onChange={(event) => { requestKey.current = null; setConfigType(event.target.value as 'None' | 'BeforeStart15m' | 'Exact'); setError(null); }} disabled={busy !== null}><option value="BeforeStart15m">15 phút trước khi bắt đầu</option><option value="Exact">Thời điểm chính xác</option><option value="None">Không lên lịch</option></select></div>
+            {configType === 'Exact' && <div className="field-group"><label htmlFor="reminder-exact-at">Nhắc lúc</label><input id="reminder-exact-at" type="datetime-local" value={exactAt} onChange={(event) => { requestKey.current = null; setExactAt(event.target.value); setError(null); }} required disabled={busy !== null} /></div>}
+            <div className="security-policy"><strong>Scheduling metadata</strong><span>Nguồn bắt đầu {dateTime(source.sourceStartAt)} · timezone {source.timeZoneId}. Thay đổi lifecycle/revision của nguồn sẽ được kiểm tra lại trước local delivery.</span></div>
+            <div className="form-actions"><SubmitButton busy={busy === 'save'}>{source.reminder ? 'Lưu thay đổi' : 'Đặt reminder'}</SubmitButton>{source.reminder && <button className="danger-button" type="button" onClick={() => void remove()} disabled={busy !== null}>{busy === 'remove' ? 'Đang gỡ…' : 'Gỡ reminder'}</button>}</div>
+          </>}
+        </form>
+        <div className="content-section">
+          <div className="section-heading"><h2>Trạng thái local delivery</h2><span className="muted">Không có provider ngoài</span></div>
+          {!source || sourceLoading ? <div className="empty-state"><h3>Chọn nguồn</h3><p>Trạng thái reminder sẽ xuất hiện sau khi server trả source revision.</p></div> : !source.reminder ? <div className="empty-state"><h3>Chưa có reminder</h3><p>Chọn preset hoặc thời điểm chính xác để tạo intent bền vững trong SQL.</p></div> : <article className="resource-card"><div><h3>{source.reminder.configType}</h3><p>State: <span className="state-pill">{source.reminder.state}</span></p><p>{source.reminder.dueAt ? `Due ${dateTime(source.reminder.dueAt)}` : 'Không có due time đang hoạt động.'}</p><span className="muted">Source revision {source.reminder.sourceRevision} · cập nhật {dateTime(source.reminder.updatedAt)}</span></div><div className="resource-actions"><span className="muted">{source.reminder.deliveries.length === 0 ? 'Chưa có lần dispatch local.' : ''}</span></div></article>}
+          {source?.reminder && source.reminder.deliveries.length > 0 && <div className="resource-cards">{source.reminder.deliveries.map((delivery) => <article className="resource-card" key={delivery.channel}><div><h3>{delivery.channel}</h3><p>{delivery.state}{delivery.lastErrorCode ? ` · ${delivery.lastErrorCode}` : ''}</p><span className="muted">Attempts: {delivery.attempts}</span></div></article>)}</div>}
+        </div>
+      </div>}
+    </section>
+  );
+}
+
+type FinanceRecordDraft = {
+  categoryId: string;
+  amount: string;
+  currencyCode: string;
+  occurredOn: string;
+  note: string;
+};
+
+type FinanceFilters = {
+  categoryId?: string;
+  currencyCode?: string;
+  from?: string;
+  to?: string;
+  query?: string;
+};
+
+function todayDateInput(timeZoneId?: string): string {
+  const now = new Date();
+  return timeZoneId ? dateInputForTimeZone(now, timeZoneId) : localDateInput(now);
+}
+
+function tomorrowDateInput(timeZoneId?: string): string {
+  return addDateDays(todayDateInput(timeZoneId), 1);
+}
+
+function dateInputForTimeZone(value: Date, timeZoneId: string): string {
+  try {
+    const parts = Intl.DateTimeFormat('en-CA', {
+      timeZone: timeZoneId,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(value);
+    const part = (type: string) => parts.find((item) => item.type === type)?.value;
+    const year = part('year');
+    const month = part('month');
+    const day = part('day');
+    if (year && month && day) return `${year}-${month}-${day}`;
+  } catch {
+    // The API remains authoritative when a browser cannot format this IANA zone.
+  }
+  return localDateInput(value);
+}
+
+function addDateDays(value: string, days: number): string {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return value;
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function dateRangeInputs(from: string, to: string): string[] {
+  const start = new Date(`${from}T00:00:00Z`);
+  const end = new Date(`${to}T00:00:00Z`);
+  const dayCount = Math.floor((end.getTime() - start.getTime()) / 86400000) + 1;
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || dayCount < 1 || dayCount > 31) return [];
+  return Array.from({ length: dayCount }, (_, index) => addDateDays(from, index));
+}
+
+function localDateInput(value: Date): string {
+  const pad = (part: number) => String(part).padStart(2, '0');
+  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+}
+
+type BookmarkDraft = {
+  url: string;
+  title: string;
+  description: string;
+};
+
+function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<BookmarkRecord[]>([]);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [query, setQuery] = useState('');
+  const [queryDraft, setQueryDraft] = useState('');
+  const [draft, setDraft] = useState<BookmarkDraft>({ url: '', title: '', description: '' });
+  const [editing, setEditing] = useState<BookmarkRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived) {
+    setLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const page = await listBookmarks(nextIncludeArchived, nextQuery, 100);
+      setItems(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [query, includeArchived]);
+
+  function resetEditor() {
+    setEditing(null);
+    setDraft({ url: '', title: '', description: '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function beginEdit(item: BookmarkRecord) {
+    setEditing(item);
+    setDraft({ url: item.url, title: item.title, description: item.description ?? '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const url = draft.url.trim();
+    const title = draft.title.trim();
+    const description = draft.description.trim() || null;
+    if (!url || !/^https?:\/\//i.test(url)) {
+      setError(new NexoraApiError('URL phải là địa chỉ HTTP(S) đầy đủ.', 422, 'ValidationFailed', null, { url: ['URL phải là địa chỉ HTTP(S) đầy đủ.'] }));
+      return;
+    }
+    if (!title || title.length > 200) {
+      setError(new NexoraApiError('Tiêu đề là bắt buộc và tối đa 200 ký tự.', 422, 'ValidationFailed', null, { title: ['Tiêu đề là bắt buộc và tối đa 200 ký tự.'] }));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      if (editing) {
+        await updateBookmark(editing.id, editing.etag, url, title, description, requestKey.current);
+      } else {
+        await createBookmark(url, title, description, requestKey.current);
+      }
+      requestKey.current = null;
+      resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(item: BookmarkRecord) {
+    const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
+    if (!window.confirm(`${nextStatus === 'Archived' ? 'Archive' : 'Unarchive'} bookmark “${item.title}”?`)) return;
+    const key = createIdempotencyKey();
+    setBusy(`transition:${item.id}`);
+    setError(null);
+    try {
+      await transitionBookmark(item.id, item.etag, nextStatus, key);
+      await load();
+      if (editing?.id === item.id) resetEditor();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applySearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setQuery(queryDraft.trim());
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="bookmarks-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX21 / KNOWLEDGE</p>
+          <h1 id="bookmarks-title">Bookmarks</h1>
+          <p className="lead">Lưu URL và metadata thủ công trong PersonalSpace hiện tại. URL chỉ là dữ liệu bất hoạt; Nexora không tự fetch, nhúng hoặc mở provider bên ngoài.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={save} noValidate>
+            <div className="section-heading"><h2>{editing ? 'Sửa bookmark' : 'Bookmark mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="bookmark-url">URL</label><input id="bookmark-url" type="url" value={draft.url} maxLength={2048} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, url: event.target.value }); setError(null); }} placeholder="https://example.test/path" required aria-describedby="bookmark-url-error" /><FieldError id="bookmark-url-error" message={error ? firstFieldError(error, 'url') : undefined} /></div>
+            <div className="field-group"><label htmlFor="bookmark-title">Tiêu đề</label><input id="bookmark-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="bookmark-title-error" /><FieldError id="bookmark-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
+            <div className="field-group"><label htmlFor="bookmark-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="bookmark-description" value={draft.description} maxLength={20000} rows={4} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
+          </form>
+          <div className="security-policy"><strong>Provider boundary</strong><span>Health chỉ là trạng thái metadata hiện tại; refresh, external navigation, sharing, tags và collections chưa nằm trong slice này.</span></div>
+        </div>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={applySearch} noValidate>
+            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="bookmark-query">Tìm theo tiêu đề, URL hoặc mô tả</label><input id="bookmark-query" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị bookmark đã archive</span></label>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+          </form>
+          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null}>Sửa</button><button className={item.status === 'Archived' ? 'secondary-button' : 'danger-button'} type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : item.status === 'Archived' ? 'Unarchive' : 'Archive'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type SnippetDraft = {
+  title: string;
+  language: string;
+  body: string;
+  description: string;
+};
+
+function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<SnippetRecord[]>([]);
+  const [includeArchived, setIncludeArchived] = useState(false);
+  const [query, setQuery] = useState('');
+  const [queryDraft, setQueryDraft] = useState('');
+  const [draft, setDraft] = useState<SnippetDraft>({ title: '', language: 'plaintext', body: '', description: '' });
+  const [editing, setEditing] = useState<SnippetRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived) {
+    setLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const page = await listSnippets(nextIncludeArchived, nextQuery, 100);
+      setItems(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [query, includeArchived]);
+
+  function resetEditor() {
+    setEditing(null);
+    setDraft({ title: '', language: 'plaintext', body: '', description: '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function beginEdit(item: SnippetRecord) {
+    setEditing(item);
+    setDraft({ title: item.title, language: item.language, body: item.body, description: item.description ?? '' });
+    requestKey.current = null;
+    setConflict(false);
+    setError(null);
+  }
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const title = draft.title.trim();
+    const language = draft.language.trim();
+    const body = draft.body;
+    const description = draft.description.trim() || null;
+    if (!title || title.length > 200) {
+      setError(new NexoraApiError('Tiêu đề là bắt buộc và tối đa 200 ký tự.', 422, 'ValidationFailed', null, { title: ['Tiêu đề là bắt buộc và tối đa 200 ký tự.'] }));
+      return;
+    }
+    if (!language || !/^[A-Za-z0-9][A-Za-z0-9+.#_-]{0,49}$/.test(language)) {
+      setError(new NexoraApiError('Language phải là nhãn text hợp lệ tối đa 50 ký tự.', 422, 'ValidationFailed', null, { language: ['Language không hợp lệ.'] }));
+      return;
+    }
+    if (!body || new TextEncoder().encode(body).length > 1024 * 1024) {
+      setError(new NexoraApiError('Source code là bắt buộc và tối đa 1 MiB UTF-8.', 422, 'ValidationFailed', null, { body: ['Source code không hợp lệ.'] }));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      if (editing) {
+        await saveSnippet(editing.id, editing.etag, title, language, body, description, requestKey.current);
+      } else {
+        await createSnippet(title, language, body, description, requestKey.current);
+      }
+      requestKey.current = null;
+      resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(item: SnippetRecord) {
+    const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
+    if (!window.confirm(`${nextStatus === 'Archived' ? 'Archive' : 'Unarchive'} snippet “${item.title}”?`)) return;
+    setBusy(`transition:${item.id}`);
+    setError(null);
+    try {
+      await transitionSnippet(item.id, item.etag, nextStatus, createIdempotencyKey());
+      await load();
+      if (editing?.id === item.id) resetEditor();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function copySnippet(item: SnippetRecord) {
+    setBusy(`copy:${item.id}`);
+    setError(null);
+    try {
+      if (!navigator.clipboard) throw new Error('ClipboardUnavailable');
+      await navigator.clipboard.writeText(item.body);
+      setCopiedId(item.id);
+      window.setTimeout(() => setCopiedId((current) => current === item.id ? null : current), 1800);
+    } catch {
+      setError(new NexoraApiError('Clipboard không khả dụng; source vẫn chỉ được hiển thị dạng text.', 409, 'ClipboardUnavailable'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applySearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setQuery(queryDraft.trim());
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="snippets-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX22 / KNOWLEDGE</p>
+          <h1 id="snippets-title">Code snippets</h1>
+          <p className="lead">Lưu code/text cá nhân dưới dạng dữ liệu escaped. Nexora không chạy, compile, gửi AI/lint service hoặc publish source.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Snippet đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; tải revision mới trước khi áp dụng lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={save} noValidate>
+            <div className="section-heading"><h2>{editing ? 'Sửa snippet' : 'Snippet mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="snippet-title">Tiêu đề</label><input id="snippet-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="snippet-title-error" /><FieldError id="snippet-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
+            <div className="field-group"><label htmlFor="snippet-language">Language</label><input id="snippet-language" value={draft.language} maxLength={50} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, language: event.target.value }); setError(null); }} placeholder="plaintext" required aria-describedby="snippet-language-error" /><FieldError id="snippet-language-error" message={error ? firstFieldError(error, 'language') : undefined} /></div>
+            <div className="field-group"><label htmlFor="snippet-body">Source code / text</label><textarea id="snippet-body" value={draft.body} maxLength={1024 * 1024} rows={13} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, body: event.target.value }); setError(null); }} spellCheck={false} required aria-describedby="snippet-body-help snippet-body-error" /><p className="field-help" id="snippet-body-help">Tối đa 1 MiB UTF-8; shell/HTML/script chỉ được lưu và hiển thị như text.</p><FieldError id="snippet-body-error" message={error ? firstFieldError(error, 'body') : undefined} /></div>
+            <div className="field-group"><label htmlFor="snippet-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="snippet-description" value={draft.description} maxLength={20000} rows={3} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu version' : 'Tạo snippet'}</SubmitButton></div>
+          </form>
+          <div className="security-policy"><strong>Safety boundary</strong><span>Version cũ được giữ append-only trong SQL; Archive là readonly. Copy chỉ xảy ra khi người dùng bấm rõ ràng và không ghi source vào audit.</span></div>
+        </div>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={applySearch} noValidate>
+            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="snippet-query">Tìm theo tiêu đề, language, mô tả hoặc source</label><input id="snippet-query" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị snippet đã archive</span></label>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+          </form>
+          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button><button className={item.status === 'Archived' ? 'secondary-button' : 'danger-button'} type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : item.status === 'Archived' ? 'Unarchive' : 'Archive'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type ReadingState = 'Unread' | 'Reading' | 'Read' | 'Archived';
+
+function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<ReadingItemRecord[]>([]);
+  const [bookmarks, setBookmarks] = useState<BookmarkRecord[]>([]);
+  const [stateFilter, setStateFilter] = useState('');
+  const [selectedBookmarkId, setSelectedBookmarkId] = useState('');
+  const [positionDraft, setPositionDraft] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [sourceError, setSourceError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextState = stateFilter) {
+    setLoading(true);
+    setError(null);
+    setSourceError(null);
+    setConflict(false);
+    try {
+      const page = await listReadingQueue(nextState, 100);
+      const nextItems = Array.isArray(page.items) ? page.items : [];
+      setItems(nextItems);
+      setPositionDraft((current) => {
+        const next = { ...current };
+        nextItems.forEach((item) => { next[item.id] ??= String(item.progress); });
+        return next;
+      });
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    }
+    try {
+      const page = await listBookmarks(true, '', 100);
+      setBookmarks(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setSourceError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [stateFilter]);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    if (!selectedBookmarkId) {
+      setError(new NexoraApiError('Chọn một bookmark trước khi lưu vào Read Later.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      await saveReadingItem('Bookmark', selectedBookmarkId, requestKey.current);
+      requestKey.current = null;
+      setSelectedBookmarkId('');
+      await load();
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function changeState(item: ReadingItemRecord, state: Exclude<ReadingState, 'Archived'>, progress?: number) {
+    if (!item.sourceAvailable) return;
+    const key = createIdempotencyKey();
+    setBusy(`state:${item.id}`);
+    setError(null);
+    setConflict(false);
+    try {
+      await updateReadingItem(item.id, item.etag, state, progress, key);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function savePosition(item: ReadingItemRecord) {
+    const raw = positionDraft[item.id] ?? String(item.progress);
+    const progress = Number(raw);
+    if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
+      setError(new NexoraApiError('Position phải là số từ 0 đến 1.', 422, 'ValidationFailed'));
+      return;
+    }
+    await changeState(item, 'Reading', progress);
+  }
+
+  async function remove(item: ReadingItemRecord) {
+    if (!window.confirm(`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later? Bookmark nguồn sẽ không bị xóa.`)) return;
+    setBusy(`remove:${item.id}`);
+    setError(null);
+    setConflict(false);
+    try {
+      await removeReadingItem(item.id, item.etag, createIdempotencyKey());
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const selectableBookmarks = bookmarks.filter((bookmark) => bookmark.status === 'Active' || bookmark.status === 'Archived');
+  return (
+    <section className="content-section" aria-labelledby="read-later-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX23 / KNOWLEDGE</p>
+          <h1 id="read-later-title">Read Later</h1>
+          <p className="lead">Queue chỉ lưu tham chiếu Bookmark và snapshot title/URL an toàn. Không copy body, không tự fetch hoặc mở provider bên ngoài.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Reading item đã thay đổi ở nơi khác. Hãy tải revision mới rồi thực hiện lại thao tác.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {sourceError && <Notice kind="info">Không tải được danh sách Bookmark nguồn; queue hiện có vẫn được hiển thị, nhưng không thể lưu nguồn mới. {sourceError.message}</Notice>}
+      <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={save} noValidate>
+            <div className="section-heading"><h2>Lưu source</h2></div>
+            <div className="field-group">
+              <label htmlFor="read-later-source">Bookmark nguồn</label>
+              <select id="read-later-source" value={selectedBookmarkId} onChange={(event) => { requestKey.current = null; setSelectedBookmarkId(event.target.value); setError(null); }} disabled={loading || busy !== null || selectableBookmarks.length === 0}>
+                <option value="">{selectableBookmarks.length === 0 ? 'Không có bookmark khả dụng' : 'Chọn bookmark'}</option>
+                {selectableBookmarks.map((bookmark) => <option key={bookmark.id} value={bookmark.id}>{bookmark.title} · {bookmark.url}</option>)}
+              </select>
+              <p className="field-help">Save retry cùng source chỉ giữ một queue entry theo owner; source Archived vẫn chỉ là metadata được phép đọc.</p>
+            </div>
+            <div className="form-actions"><SubmitButton busy={busy === 'save'}>Lưu vào Read Later</SubmitButton></div>
+          </form>
+          <div className="security-policy"><strong>Source boundary</strong><span>Xóa queue không xóa Bookmark. Khi source bị xóa, disabled hoặc không còn quyền đọc, UI chỉ giữ snapshot an toàn và không hiển thị body cache.</span></div>
+        </div>
+        <div className="content-section">
+          <div className="form-panel">
+            <div className="section-heading"><h2>Queue của bạn</h2><span className="muted">{items.length} mục</span></div>
+            <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} disabled={loading || busy !== null}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
+          </div>
+          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <div className="reading-position"><label htmlFor={`reading-position-${item.id}`}>Position metadata (0–1)</label><input id={`reading-position-${item.id}`} type="number" min="0" max="1" step="0.01" value={positionDraft[item.id] ?? String(item.progress)} onChange={(event) => setPositionDraft({ ...positionDraft, [item.id]: event.target.value })} disabled={busy !== null} /><button className="secondary-button" type="button" onClick={() => void savePosition(item)} disabled={busy !== null}>{busy === `state:${item.id}` ? 'Đang lưu…' : 'Lưu vị trí'}</button></div> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || busy !== null || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || busy !== null}>Đang đọc</button>}<button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const LOCAL_TAG_NAMESPACES = ['projects', 'documents', 'bookmarks', 'snippets'] as const;
+
+function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<TagRecord[]>([]);
+  const [tagNamespace, setTagNamespace] = useState<(typeof LOCAL_TAG_NAMESPACES)[number]>('projects');
+  const [queryDraft, setQueryDraft] = useState('');
+  const [query, setQuery] = useState('');
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('');
+  const [editing, setEditing] = useState<TagRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(nextNamespace = tagNamespace, nextQuery = query) {
+    setLoading(true);
+    setError(null);
+    setConflict(false);
+    try {
+      const page = await listOrganizationTags(nextNamespace, nextQuery, 100);
+      setItems(Array.isArray(page.items) ? page.items : []);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [tagNamespace, query]);
+
+  function resetEditor() {
+    setEditing(null);
+    setName('');
+    setColor('');
+    requestKey.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  function beginEdit(tag: TagRecord) {
+    setEditing(tag);
+    setTagNamespace(tag.namespace as (typeof LOCAL_TAG_NAMESPACES)[number]);
+    setName(tag.name);
+    setColor(tag.color ?? '');
+    requestKey.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmedName = name.trim();
+    const trimmedColor = color.trim();
+    if (!trimmedName || trimmedName.length > 50) {
+      setError(new NexoraApiError('Tên tag phải từ 1 đến 50 ký tự.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (trimmedColor && !/^#[0-9a-f]{6}$/i.test(trimmedColor)) {
+      setError(new NexoraApiError('Màu tag phải có dạng #RRGGBB.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    setError(null);
+    setConflict(false);
+    try {
+      if (editing) {
+        await renameOrganizationTag(editing.id, editing.etag, trimmedName, trimmedColor || null, requestKey.current);
+      } else {
+        await createOrganizationTag(tagNamespace, trimmedName, trimmedColor || null, requestKey.current);
+      }
+      requestKey.current = null;
+      resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(tag: TagRecord) {
+    if (tag.usageCount > 0 || !window.confirm(`Xóa tag “${tag.name}” khỏi namespace ${tag.namespace}?`)) return;
+    setBusy(`remove:${tag.id}`);
+    setError(null);
+    setConflict(false);
+    try {
+      await removeOrganizationTag(tag.id, tag.etag);
+      if (editing?.id === tag.id) resetEditor();
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load();
+      }
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applySearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setQuery(queryDraft.trim());
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="organization-tags-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX24 / ORGANIZATION</p>
+          <h1 id="organization-tags-title">Tag management</h1>
+          <p className="lead">Tag là nhãn cá nhân theo namespace. Slice này chỉ quản lý catalog; chưa gắn tag vào resource và tag không cấp quyền.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{editing ? 'Đổi tên tag' : 'Tag mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+          <div className="field-group"><label htmlFor="organization-tag-namespace">Namespace</label><select id="organization-tag-namespace" value={tagNamespace} onChange={(event) => { requestKey.current = null; setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); setError(null); }} disabled={editing !== null || busy !== null}>{LOCAL_TAG_NAMESPACES.map((value) => <option key={value} value={value}>{value}</option>)}</select><p className="field-help">Projects và Tasks dùng chung namespace; các provider khác giữ namespace riêng.</p></div>
+          <div className="field-group"><label htmlFor="organization-tag-name">Tên tag</label><input id="organization-tag-name" value={name} maxLength={50} onChange={(event) => { requestKey.current = null; setName(event.target.value); setError(null); }} required /></div>
+          <div className="field-group"><label htmlFor="organization-tag-color">Màu <span className="optional">(#RRGGBB, tùy chọn)</span></label><input id="organization-tag-color" value={color} maxLength={7} placeholder="#2F67D8" onChange={(event) => { requestKey.current = null; setColor(event.target.value); setError(null); }} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu tag' : 'Tạo tag'}</SubmitButton></div>
+        </form>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={applySearch} noValidate>
+            <div className="section-heading"><h2>Tags của bạn</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+          </form>
+          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><button className="danger-button" type="button" onClick={() => void remove(tag)} disabled={busy !== null || tag.usageCount > 0}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</button></div></article>)}</div></div>}
+        </div>
+      </div>
+      <div className="security-policy"><strong>Boundary</strong><span>Assignment vào Project/Task/Document/Bookmark/Snippet, Collections, Templates và sharing chưa nằm trong slice; server vẫn giữ action gate riêng cho các capability đó.</span></div>
+    </section>
+  );
+}
+
+type ToolboxOptions = Record<string, string>;
+
+function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [tools, setTools] = useState<ToolboxTool[]>([]);
+  const [selectedCode, setSelectedCode] = useState('base64');
+  const [input, setInput] = useState('');
+  const [operation, setOperation] = useState('encode');
+  const [algorithm, setAlgorithm] = useState('SHA-256');
+  const [count, setCount] = useState('1');
+  const [length, setLength] = useState('24');
+  const [indent, setIndent] = useState(true);
+  const [pattern, setPattern] = useState('');
+  const [ignoreCase, setIgnoreCase] = useState(false);
+  const [output, setOutput] = useState<ToolboxRunResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+
+  async function loadCatalog() {
+    setLoading(true);
+    setError(null);
+    try {
+      const catalog = await listDeveloperTools();
+      setTools(Array.isArray(catalog.items) ? catalog.items : []);
+      if (catalog.items?.length > 0 && !catalog.items.some((tool) => tool.code === selectedCode)) {
+        setSelectedCode(catalog.items[0].code);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void loadCatalog(); }, []);
+
+  const selectedTool = tools.find((tool) => tool.code === selectedCode);
+
+  function optionsForTool(): ToolboxOptions {
+    switch (selectedCode) {
+      case 'base64':
+      case 'url-codec':
+      case 'html-codec':
+        return { operation };
+      case 'hash':
+        return { algorithm };
+      case 'uuid':
+        return { count };
+      case 'password':
+        return { length };
+      case 'json':
+        return { indent: String(indent) };
+      case 'regex':
+        return { pattern, ignoreCase: String(ignoreCase) };
+      default:
+        return {};
+    }
+  }
+
+  async function run(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setCopied(false);
+    if (new TextEncoder().encode(input).length > 1024 * 1024) {
+      setError(new NexoraApiError('Input tối đa 1 MiB UTF-8.', 422, 'InputTooLarge'));
+      return;
+    }
+    if (selectedCode === 'regex' && !pattern.trim()) {
+      setError(new NexoraApiError('Regex pattern là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy(true);
+    try {
+      setOutput(await runDeveloperTool(selectedCode, input, optionsForTool()));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyOutput() {
+    if (!output) return;
+    try {
+      await navigator.clipboard.writeText(output.output);
+      setCopied(true);
+    } catch {
+      setError(new NexoraApiError('Không thể truy cập clipboard; hãy chọn và copy thủ công.', 0, 'ClipboardUnavailable'));
+    }
+  }
+
+  function clearWorkbench() {
+    setInput('');
+    setOutput(null);
+    setError(null);
+    setCopied(false);
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="developer-tools-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX32 / DEVELOPER TOOLBOX</p>
+          <h1 id="developer-tools-title">Developer tools</h1>
+          <p className="lead">Pure utilities chạy local trong memory. Không chạy code, không gọi network và không tự lưu input/output.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void loadCatalog()} disabled={loading || busy}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading ? <div className="loading-state" role="status">Đang tải danh mục tool…</div> : tools.length === 0 ? <div className="empty-state"><h2>Chưa có tool khả dụng</h2><p>Module hoặc action grant hiện không khả dụng trong PersonalSpace này.</p></div> : <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={run} noValidate>
+          <div className="section-heading"><h2>Workbench</h2><span className="state-pill state-active">Local only</span></div>
+          <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={(event) => { setSelectedCode(event.target.value); setOutput(null); setError(null); }} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
+          {selectedTool && <div className="security-policy"><strong>{selectedTool.description}</strong><span>Action: {selectedTool.actionKey} · {selectedTool.executionMode}</span></div>}
+          {(selectedCode === 'base64' || selectedCode === 'url-codec' || selectedCode === 'html-codec') && <div className="field-group"><label htmlFor="tool-operation">Operation</label><select id="tool-operation" value={operation} onChange={(event) => setOperation(event.target.value)} disabled={busy}><option value="encode">Encode</option><option value="decode">Decode</option></select></div>}
+          {selectedCode === 'hash' && <div className="field-group"><label htmlFor="tool-algorithm">Algorithm</label><select id="tool-algorithm" value={algorithm} onChange={(event) => setAlgorithm(event.target.value)} disabled={busy}><option>SHA-256</option><option>SHA-384</option><option>SHA-512</option><option>MD5</option><option>SHA-1</option></select></div>}
+          {selectedCode === 'uuid' && <div className="field-group"><label htmlFor="tool-count">Số UUID (1–20)</label><input id="tool-count" inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value)} min={1} max={20} disabled={busy} /></div>}
+          {selectedCode === 'password' && <div className="field-group"><label htmlFor="tool-length">Độ dài password (15–128)</label><input id="tool-length" inputMode="numeric" value={length} onChange={(event) => setLength(event.target.value)} min={15} max={128} disabled={busy} /></div>}
+          {selectedCode === 'json' && <label className="check-row"><input type="checkbox" checked={indent} onChange={(event) => setIndent(event.target.checked)} disabled={busy} /><span>Indent output</span></label>}
+          {selectedCode === 'regex' && <><div className="field-group"><label htmlFor="tool-pattern">Regex pattern</label><input id="tool-pattern" value={pattern} onChange={(event) => setPattern(event.target.value)} maxLength={10000} disabled={busy} required /></div><label className="check-row"><input type="checkbox" checked={ignoreCase} onChange={(event) => setIgnoreCase(event.target.checked)} disabled={busy} /><span>Ignore case</span></label></>}
+          <div className="field-group"><label htmlFor="tool-input">Input <span className="optional">(tối đa 1 MiB)</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); }} rows={12} maxLength={1024 * 1024} disabled={busy} spellCheck={false} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={clearWorkbench} disabled={busy}>Xóa</button><SubmitButton busy={busy}>Chạy tool</SubmitButton></div>
+        </form>
+        <div className="resource-list">
+          <div className="section-heading"><h2>Output</h2>{output && <button className="secondary-button" type="button" onClick={() => void copyOutput()}>{copied ? 'Đã copy' : 'Copy output'}</button>}</div>
+          {!output ? <div className="empty-state"><h3>Chưa có output</h3><p>Nhập dữ liệu và bấm “Chạy tool”. Output chỉ tồn tại trong memory của phiên trình duyệt.</p></div> : <div className="form-panel"><div className="delivery-summary"><span>{output.durationMilliseconds} ms</span><span>UTF-8 · memory-only</span>{output.warning && <span>{output.warning}</span>}</div>{output.errorPath && <Notice kind="error">Vị trí lỗi: {output.errorPath}</Notice>}<pre className="snippet-code" aria-label="Tool output">{output.output}</pre></div>}
+          <div className="security-policy"><strong>Safety boundary</strong><span>Network HTTP/DNS, code formatter execution, QR navigation, history persistence và Save to Snippet chưa nằm trong local slice này.</span></div>
+        </div>
+      </div>}
+    </section>
+  );
+}
+
+type GoalFormDraft = {
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  targetTitle: string;
+  initialValue: string;
+  currentValue: string;
+  targetValue: string;
+};
+
+function emptyGoalDraft(): GoalFormDraft {
+  return { title: '', description: '', startDate: '', endDate: '', targetTitle: '', initialValue: '0', currentValue: '0', targetValue: '' };
+}
+
+function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<GoalRecord[]>([]);
+  const [selected, setSelected] = useState<GoalDetail | null>(null);
+  const [editing, setEditing] = useState<GoalRecord | null>(null);
+  const [draft, setDraft] = useState<GoalFormDraft>(emptyGoalDraft);
+  const [progressValue, setProgressValue] = useState('');
+  const [progressNote, setProgressNote] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load(selectedId?: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listGoals('', '', 100);
+      const nextItems = Array.isArray(page.items) ? page.items : [];
+      setItems(nextItems);
+      const id = selectedId ?? selected?.goal.id;
+      if (id && nextItems.some((item) => item.id === id)) {
+        setSelected(await getGoal(id));
+      } else if (!id || !nextItems.some((item) => item.id === id)) {
+        setSelected(null);
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function resetEditor() {
+    setEditing(null);
+    setDraft(emptyGoalDraft());
+    requestKey.current = null;
+    setConflict(false);
+  }
+
+  function beginEdit(goal: GoalRecord) {
+    setEditing(goal);
+    setDraft({
+      title: goal.title,
+      description: goal.description ?? '',
+      startDate: goal.startDate ?? '',
+      endDate: goal.endDate ?? '',
+      targetTitle: '',
+      initialValue: '0',
+      currentValue: '0',
+      targetValue: ''
+    });
+    requestKey.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const title = draft.title.trim();
+    if (!title || title.length > 200) {
+      setError(new NexoraApiError('Tên goal phải từ 1 đến 200 ký tự.', 422, 'ValidationFailed'));
+      return;
+    }
+    if (draft.startDate && draft.endDate && draft.endDate < draft.startDate) {
+      setError(new NexoraApiError('Ngày kết thúc không được trước ngày bắt đầu.', 422, 'ValidationFailed'));
+      return;
+    }
+    let numericTarget: { title: string; initialValue: number; currentValue: number; targetValue: number } | null = null;
+    const targetFields = [draft.targetTitle.trim(), draft.initialValue.trim(), draft.currentValue.trim(), draft.targetValue.trim()];
+    if (!editing && targetFields.some(Boolean)) {
+      const initialValue = Number(draft.initialValue);
+      const currentValue = Number(draft.currentValue);
+      const targetValue = Number(draft.targetValue);
+      if (!draft.targetTitle.trim() || !Number.isFinite(initialValue) || !Number.isFinite(currentValue) || !Number.isFinite(targetValue) || targetValue <= initialValue) {
+        setError(new NexoraApiError('Numeric target cần title hợp lệ và target lớn hơn initial.', 422, 'ValidationFailed'));
+        return;
+      }
+      numericTarget = { title: draft.targetTitle.trim(), initialValue, currentValue, targetValue };
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save');
+    try {
+      const result = editing
+        ? await updateGoal(editing.id, editing.etag, title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, requestKey.current)
+        : await createGoal(title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, numericTarget, requestKey.current);
+      requestKey.current = null;
+      setSelected(result);
+      resetEditor();
+      await load(result.goal.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load(editing?.id);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function selectGoal(id: string) {
+    setBusy(`load:${id}`);
+    setError(null);
+    try {
+      setSelected(await getGoal(id));
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function transition(status: string) {
+    if (!selected) return;
+    setBusy(`transition:${status}`);
+    setError(null);
+    setConflict(false);
+    try {
+      const result = await transitionGoal(selected.goal.id, selected.goal.etag, status);
+      setSelected(result);
+      await load(result.goal.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load(selected.goal.id);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function recordProgress(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const target = selected.targets.find((item) => item.kind === 'Numeric');
+    const value = Number(progressValue);
+    if (!target || !Number.isFinite(value)) {
+      setError(new NexoraApiError('Nhập một giá trị numeric hợp lệ.', 422, 'ValidationFailed'));
+      return;
+    }
+    setBusy('progress');
+    setError(null);
+    setConflict(false);
+    try {
+      const result = await recordGoalProgress(selected.goal.id, target.id, selected.goal.etag, value, progressNote.trim() || null);
+      setSelected(result);
+      setProgressValue('');
+      setProgressNote('');
+      await load(result.goal.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) {
+        setConflict(true);
+        await load(selected.goal.id);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const numericTarget = selected?.targets.find((item) => item.kind === 'Numeric');
+  const percent = selected ? Math.round(Math.max(0, Math.min(1, selected.goal.progress)) * 100) : 0;
+  return (
+    <section className="content-section" aria-labelledby="goals-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX16 / GOALS</p>
+          <h1 id="goals-title">Goals</h1>
+          <p className="lead">Goal và numeric target thuộc PersonalSpace hiện tại. Progress được ghi thành event SQL; không tự liên kết Task hay provider ngoài.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {conflict && <Notice kind="error"><span>Goal đã thay đổi ở nơi khác. Draft vẫn giữ trong memory; hãy tải revision mới trước khi lưu.</span><button className="inline-button" type="button" onClick={() => void load(selected?.goal.id)} disabled={loading}>Tải revision</button></Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{editing ? 'Sửa goal' : 'Goal mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+          <div className="field-group"><label htmlFor="goal-title">Tên goal</label><input id="goal-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); }} required /></div>
+          <div className="field-group"><label htmlFor="goal-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="goal-description" value={draft.description} maxLength={20000} rows={3} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); }} /></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="goal-start">Bắt đầu</label><input id="goal-start" type="date" value={draft.startDate} onChange={(event) => setDraft({ ...draft, startDate: event.target.value })} /></div><div className="field-group"><label htmlFor="goal-end">Kết thúc</label><input id="goal-end" type="date" value={draft.endDate} onChange={(event) => setDraft({ ...draft, endDate: event.target.value })} /></div></div>
+          {!editing && <div className="form-panel nested-panel"><div className="section-heading"><h3>Numeric target <span className="optional">(tùy chọn)</span></h3></div><div className="field-group"><label htmlFor="goal-target-title">Tên target</label><input id="goal-target-title" value={draft.targetTitle} maxLength={200} onChange={(event) => setDraft({ ...draft, targetTitle: event.target.value })} /></div><div className="form-grid"><div className="field-group"><label htmlFor="goal-target-initial">Initial</label><input id="goal-target-initial" type="number" step="any" value={draft.initialValue} onChange={(event) => setDraft({ ...draft, initialValue: event.target.value })} /></div><div className="field-group"><label htmlFor="goal-target-current">Current</label><input id="goal-target-current" type="number" step="any" value={draft.currentValue} onChange={(event) => setDraft({ ...draft, currentValue: event.target.value })} /></div><div className="field-group"><label htmlFor="goal-target-value">Target</label><input id="goal-target-value" type="number" step="any" value={draft.targetValue} onChange={(event) => setDraft({ ...draft, targetValue: event.target.value })} /></div></div><p className="field-help">Target phải lớn hơn initial; các giá trị được lưu tối đa 8 chữ số thập phân.</p></div>}
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu goal' : 'Tạo goal'}</SubmitButton></div>
+        </form>
+        <div className="content-section">
+          <div className="section-heading"><h2>Goals của bạn</h2><span className="muted">{items.length} goal</span></div>
+          {loading ? <div className="loading-state" role="status">Đang tải goals…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có goal</h2><p>Tạo goal đầu tiên để theo dõi một kết quả có thể đo lường.</p></div> : <div className="resource-cards">{items.map((goal) => { const itemPercent = Math.round(Math.max(0, Math.min(1, goal.progress)) * 100); return <article className={selected?.goal.id === goal.id ? 'resource-card selected-card' : 'resource-card'} key={goal.id}><button className="resource-card-button" type="button" onClick={() => void selectGoal(goal.id)} disabled={busy !== null}><span><strong>{goal.title}</strong><span className="muted">{goal.status} · {goal.targetCount} target · {itemPercent}%</span></span><span className="goal-progress"><progress max={100} value={itemPercent} aria-label={`Tiến độ ${goal.title}`} /></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(goal)} disabled={busy !== null || goal.status === 'Completed' || goal.status === 'Abandoned'}>Sửa</button></div></article>; })}</div>}
+        </div>
+      </div>
+      {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED GOAL</p><h2>{selected.goal.title}</h2></div><span className="state-pill state-active">{selected.goal.status}</span></div><p>{selected.goal.description || 'Không có mô tả.'}</p><div className="goal-progress-summary"><strong>{percent}%</strong><progress max={100} value={percent} aria-label="Tiến độ goal" /><span className="muted">{selected.goal.targetCount} target · cập nhật {dateTime(selected.goal.updatedAt)}</span></div><div className="form-actions">{selected.goal.status === 'Draft' && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Bắt đầu</button>}{selected.goal.status === 'Active' && <><button className="secondary-button" type="button" onClick={() => void transition('Completed')} disabled={busy !== null}>Hoàn thành</button><button className="secondary-button" type="button" onClick={() => void transition('Abandoned')} disabled={busy !== null}>Bỏ goal</button></>}{(selected.goal.status === 'Completed' || selected.goal.status === 'Abandoned') && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Mở lại</button>}</div>{numericTarget && <form className="nested-panel" onSubmit={recordProgress} noValidate><div className="section-heading"><h3>{numericTarget.title}</h3><span className="muted">{numericTarget.currentValue} / {numericTarget.targetValue}</span></div><div className="form-grid"><div className="field-group"><label htmlFor="goal-progress-value">Current value</label><input id="goal-progress-value" type="number" step="any" value={progressValue} onChange={(event) => setProgressValue(event.target.value)} required /></div><div className="field-group"><label htmlFor="goal-progress-note">Note <span className="optional">(tùy chọn)</span></label><input id="goal-progress-note" value={progressNote} maxLength={2000} onChange={(event) => setProgressNote(event.target.value)} /></div></div><button className="primary-button" type="submit" disabled={busy !== null}>{busy === 'progress' ? 'Đang ghi…' : 'Ghi progress'}</button></form>}</div>}
+      <div className="security-policy"><strong>Boundary</strong><span>Slice này chỉ có Goal CRUD, numeric target và explicit progress/status. Task-linked targets, habits, reminders, planner, history/trash và automation chưa được bật.</span></div>
+    </section>
+  );
+}
+
+function plannerRange(date: string, view: 'day' | 'week'): { from: string; to: string } {
+  if (view === 'day') return { from: date, to: date };
+  const selected = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(selected.getTime())) return { from: date, to: date };
+  const mondayOffset = (selected.getUTCDay() + 6) % 7;
+  const from = addDateDays(date, -mondayOffset);
+  return { from, to: addDateDays(from, 6) };
+}
+
+function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
+  const [planDate, setPlanDate] = useState(() => todayDateInput(timeZoneId));
+  const [view, setView] = useState<'day' | 'week'>('day');
+  const [plan, setPlan] = useState<PlannerPlan | null>(null);
+  const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [taskId, setTaskId] = useState('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const range = plannerRange(planDate, view);
+      const [planner, taskPage] = await Promise.all([listPlanner(range.from, range.to), listTasks(undefined, 100)]);
+      setPlan(planner);
+      setTasks((taskPage.items ?? []).filter((task) => task.status === 'NotStarted' || task.status === 'InProgress'));
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { setPlanDate(todayDateInput(timeZoneId)); }, [timeZoneId]);
+  useEffect(() => { void load(); }, [planDate, timeZoneId, view]);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  async function pin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!taskId) {
+      setError(new NexoraApiError('Chọn một Task đang hoạt động.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('pin');
+    setConflict(false);
+    setError(null);
+    try {
+      await pinPlannerTask(taskId, planDate, notes.trim() || null, requestKey.current);
+      requestKey.current = null;
+      setTaskId('');
+      setNotes('');
+      await load();
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function remove(pin: PlannerPinRecord) {
+    setBusy(`remove:${pin.id}`);
+    setConflict(false);
+    setError(null);
+    try {
+      await unpinPlannerTask(pin.id, pin.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(); }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function move(pin: PlannerPinRecord, offset: number) {
+    const nextDate = addDateDays(pin.planDate, offset);
+    setBusy(`move:${pin.id}`);
+    setConflict(false);
+    setError(null);
+    try {
+      await updatePlannerPin(pin.id, pin.etag, nextDate, pin.notes);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(); }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reorder(date: string, pins: PlannerPinRecord[], index: number, direction: -1 | 1) {
+    const swap = index + direction;
+    if (swap < 0 || swap >= pins.length) return;
+    setBusy(`reorder:${date}`);
+    setConflict(false);
+    setError(null);
+    try {
+      const dayPlan = await listPlanner(date, date);
+      const ids = [...pins];
+      [ids[index], ids[swap]] = [ids[swap], ids[index]];
+      await reorderPlanner(date, ids.map((pin) => pin.id), dayPlan.etag);
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(); }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const days = plan ? dateRangeInputs(plan.from, plan.to) : [];
+  return (
+    <section className="content-section" aria-labelledby="planner-title">
+      <div className="content-heading"><div><p className="eyebrow">FX15 / PLANNER</p><h1 id="planner-title">Daily & weekly planner</h1><p className="lead">Planner chỉ pin tham chiếu Task theo ngày. Nó không clone Task, không đổi Start/End, status, reminder hoặc tạo Calendar Event.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      {conflict && <Notice kind="error">Plan đã đổi ở nơi khác. Đã tải lại revision hiện tại.</Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={pin} noValidate>
+          <div className="section-heading"><h2>Pin existing Task</h2><span className="state-pill state-active">Task lens</span></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="planner-date">Ngày plan</label><input id="planner-date" type="date" value={planDate} onChange={(event) => { setPlanDate(event.target.value); requestKey.current = null; }} required /></div><div className="field-group"><label htmlFor="planner-view">View</label><select id="planner-view" value={view} onChange={(event) => setView(event.target.value as 'day' | 'week')}><option value="day">Day</option><option value="week">Week (Monday start)</option></select></div></div>
+          <div className="field-group"><label htmlFor="planner-task">Task đang hoạt động</label><select id="planner-task" value={taskId} onChange={(event) => { setTaskId(event.target.value); requestKey.current = null; }} disabled={loading || busy !== null} required><option value="">Chọn Task</option>{tasks.map((task) => <option key={task.id} value={task.id}>{task.title} · {task.status}</option>)}</select></div>
+          <div className="field-group"><label htmlFor="planner-notes">Planning note <span className="optional">(tùy chọn)</span></label><textarea id="planner-notes" value={notes} maxLength={2000} rows={3} onChange={(event) => { setNotes(event.target.value); requestKey.current = null; }} /></div>
+          <SubmitButton busy={busy === 'pin'}>Pin vào plan</SubmitButton>
+          <p className="field-help">Task terminal hoặc Project terminal sẽ bị server từ chối; cross-user Task không được tiết lộ.</p>
+        </form>
+          <div className="content-section"><div className="section-heading"><h2>{view === 'day' ? 'Daily plan' : 'Weekly plan'}</h2><span className="muted">{plan?.pins.length ?? 0} pin</span></div>{loading ? <div className="loading-state" role="status">Đang tải planner và Task có thể pin…</div> : !plan || plan.pins.length === 0 ? <div className="empty-state"><h2>Chưa có pin</h2><p>Không có auto-carryover. Chọn một Task hiện có nếu bạn muốn đưa nó vào ngày này.</p></div> : <div className="resource-cards">{days.map((day) => { const pins = plan.pins.filter((pin) => pin.planDate === day); return <article className="form-panel" key={day}><div className="section-heading"><h3>{day}</h3><span className="muted">{pins.length} Task</span></div>{pins.length === 0 ? <p className="muted">Không có Task được pin.</p> : <div className="resource-cards">{pins.map((pin, index) => <article className="resource-card" key={pin.id}><div><strong>{pin.taskTitle}</strong><span className="muted">{pin.projectName} · {pin.taskStatus} · {dateTime(pin.startAt)}</span>{pin.notes && <p>{pin.notes}</p>}{!pin.sourceAvailable && <span className="state-pill state-warning">Source unavailable / readonly</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, -1)} disabled={busy !== null || !pin.sourceAvailable || index === 0}>↑</button><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, 1)} disabled={busy !== null || !pin.sourceAvailable || index === pins.length - 1}>↓</button><button className="secondary-button" type="button" onClick={() => void move(pin, -1)} disabled={busy !== null || !pin.sourceAvailable}>← Ngày trước</button><button className="secondary-button" type="button" onClick={() => void move(pin, 1)} disabled={busy !== null || !pin.sourceAvailable}>Ngày sau →</button><button className="danger-button" type="button" onClick={() => void remove(pin)} disabled={busy !== null}>Unpin</button></div></article>)}</div>}</article>; })}</div>}</div>
+      </div>
+      <div className="security-policy"><strong>Boundary</strong><span>Planner không share riêng, không có workspace/team behavior và không là đường tắt để sửa nguồn Task hoặc Calendar.</span></div>
+    </section>
+  );
+}
+
+type HabitDraft = {
+  title: string; kind: 'Boolean' | 'Count'; targetCount: string; unit: string; effectiveFrom: string;
+  weekdayMask: number; timeZoneId: string; reminderLocalTime: string;
+};
+
+function emptyHabitDraft(timeZoneId = currentTimeZone()): HabitDraft {
+  return { title: '', kind: 'Boolean', targetCount: '1', unit: '', effectiveFrom: todayDateInput(timeZoneId), weekdayMask: 127, timeZoneId, reminderLocalTime: '' };
+}
+
+const WEEKDAYS = [{ label: 'Mon', bit: 1 }, { label: 'Tue', bit: 2 }, { label: 'Wed', bit: 4 }, { label: 'Thu', bit: 8 }, { label: 'Fri', bit: 16 }, { label: 'Sat', bit: 32 }, { label: 'Sun', bit: 64 }];
+
+function HabitsScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
+  const [items, setItems] = useState<HabitRecord[]>([]);
+  const [selected, setSelected] = useState<HabitDetail | null>(null);
+  const [editing, setEditing] = useState<HabitRecord | null>(null);
+  const [draft, setDraft] = useState<HabitDraft>(() => emptyHabitDraft(timeZoneId));
+  const [checkInDate, setCheckInDate] = useState(() => todayDateInput(timeZoneId));
+  const [checkInCount, setCheckInCount] = useState('1');
+  const [checkInNote, setCheckInNote] = useState('');
+  const [scheduleDate, setScheduleDate] = useState(() => tomorrowDateInput(timeZoneId));
+  const [scheduleMask, setScheduleMask] = useState(127);
+  const [scheduleTarget, setScheduleTarget] = useState('1');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const requestKey = useRef<string | null>(null);
+  const checkInRequestKey = useRef<string | null>(null);
+  const checkInRequestSignature = useRef<string | null>(null);
+
+  async function load(selectedId?: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listHabits('', '', 100);
+      const next = page.items ?? [];
+      setItems(next);
+      const id = selectedId ?? selected?.habit.id;
+      if (id && next.some((item) => item.id === id)) setSelected(await getHabit(id));
+      else if (!id || !next.some((item) => item.id === id)) setSelected(null);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  function resetEditor() { setEditing(null); setDraft(emptyHabitDraft(timeZoneId)); requestKey.current = null; checkInRequestKey.current = null; checkInRequestSignature.current = null; setConflict(false); }
+
+  function beginEdit(habit: HabitRecord) {
+    const localToday = todayDateInput(habit.timeZoneId);
+    setEditing(habit);
+    setDraft({ title: habit.title, kind: habit.kind === 'Count' ? 'Count' : 'Boolean', targetCount: String(habit.targetCount ?? 1), unit: habit.unit ?? '', effectiveFrom: localToday, weekdayMask: habit.currentSchedule?.weekdayMask ?? 127, timeZoneId: habit.timeZoneId, reminderLocalTime: habit.reminderLocalTime?.slice(0, 5) ?? '' });
+    setScheduleMask(habit.currentSchedule?.weekdayMask ?? 127);
+    setScheduleTarget(String(habit.currentSchedule?.targetCount ?? habit.targetCount ?? 1));
+    setCheckInDate(localToday);
+    setScheduleDate(addDateDays(localToday, 1));
+    checkInRequestKey.current = null;
+    checkInRequestSignature.current = null;
+    setError(null);
+    setConflict(false);
+  }
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = draft.title.trim();
+    const target = draft.kind === 'Count' ? Number(draft.targetCount) : null;
+    if (!title || title.length > 100 || (draft.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0)) || !draft.weekdayMask || !draft.timeZoneId.trim()) {
+      setError(new NexoraApiError('Kiểm tra title, count target, weekdays và timezone.', 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy('save'); setError(null); setConflict(false);
+    try {
+      const result = editing
+        ? await updateHabit(editing.id, editing.etag, { title, unit: draft.unit.trim() || null, reminderLocalTime: draft.reminderLocalTime || null, timeZoneId: draft.timeZoneId.trim() }, requestKey.current)
+        : await createHabit({ title, kind: draft.kind, targetCount: target, unit: draft.unit.trim() || null, effectiveFrom: draft.effectiveFrom, weekdayMask: draft.weekdayMask, timeZoneId: draft.timeZoneId.trim(), reminderLocalTime: draft.reminderLocalTime || null }, requestKey.current);
+      requestKey.current = null;
+      setCheckInDate(todayDateInput(result.habit.timeZoneId));
+      setScheduleDate(tomorrowDateInput(result.habit.timeZoneId));
+      setSelected(result);
+      resetEditor();
+      await load(result.habit.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(editing?.id); }
+    } finally { setBusy(null); }
+  }
+
+  async function selectHabit(id: string) {
+    setBusy(`load:${id}`); setError(null);
+    try {
+      const result = await getHabit(id);
+      setSelected(result);
+      const localToday = todayDateInput(result.habit.timeZoneId);
+      setCheckInDate(localToday);
+      setScheduleDate(addDateDays(localToday, 1));
+      checkInRequestKey.current = null;
+      checkInRequestSignature.current = null;
+    } catch (requestError) { showError(requestError); } finally { setBusy(null); }
+  }
+
+  async function recordCheckIn(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const count = Number(checkInCount);
+    if (!Number.isInteger(count) || count < 0) { setError(new NexoraApiError('Check-in count phải là số nguyên không âm.', 422, 'ValidationFailed')); return; }
+    const note = checkInNote.trim() || null;
+    const requestSignature = `${checkInDate}|${count}|${note ?? ''}`;
+    if (checkInRequestSignature.current !== requestSignature) {
+      checkInRequestSignature.current = requestSignature;
+      checkInRequestKey.current = createIdempotencyKey();
+    }
+    const requestKeyValue = checkInRequestKey.current ?? createIdempotencyKey();
+    checkInRequestKey.current = requestKeyValue;
+    setBusy('checkin'); setError(null); setConflict(false);
+    try {
+      const result = await recordHabitCheckIn(selected.habit.id, selected.habit.etag, { localDate: checkInDate, count, note }, requestKeyValue);
+      checkInRequestKey.current = null;
+      checkInRequestSignature.current = null;
+      setSelected(result); setCheckInNote(''); await load(result.habit.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { checkInRequestKey.current = null; checkInRequestSignature.current = null; setConflict(true); await load(selected.habit.id); }
+    } finally { setBusy(null); }
+  }
+
+  async function saveSchedule(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selected) return;
+    const target = selected.habit.kind === 'Count' ? Number(scheduleTarget) : null;
+    if (!scheduleMask || (selected.habit.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0))) { setError(new NexoraApiError('Chọn weekdays và count target hợp lệ.', 422, 'ValidationFailed')); return; }
+    setBusy('schedule'); setError(null); setConflict(false);
+    try {
+      const result = await setHabitSchedule(selected.habit.id, selected.habit.etag, { effectiveFrom: scheduleDate, weekdayMask: scheduleMask, targetCount: target });
+      setSelected(result); await load(result.habit.id);
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); }
+    } finally { setBusy(null); }
+  }
+
+  async function transition(state: 'Active' | 'Paused' | 'Archived' | 'Unarchive') {
+    if (!selected) return;
+    setBusy(`transition:${state}`); setError(null); setConflict(false);
+    try { const result = await transitionHabit(selected.habit.id, selected.habit.etag, state); setSelected(result); await load(result.habit.id); }
+    catch (requestError) { const apiError = showError(requestError); if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); } }
+    finally { setBusy(null); }
+  }
+
+  function toggleWeekday(bit: number, target: 'draft' | 'schedule') {
+    if (target === 'draft') setDraft({ ...draft, weekdayMask: draft.weekdayMask ^ bit });
+    else setScheduleMask(scheduleMask ^ bit);
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="habits-title">
+      <div className="content-heading"><div><p className="eyebrow">FX17 / HABITS</p><h1 id="habits-title">Habit tracker</h1><p className="lead">Habit và check-in chỉ thuộc PersonalSpace hiện tại. Schedule dùng ngày local theo timezone lưu trên Habit; lịch sử không bị relabel khi đổi timezone.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      {conflict && <Notice kind="error">Habit đã thay đổi ở nơi khác. Đã tải revision hiện tại.</Notice>}
+      {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="resource-layout">
+        <form className="form-panel resource-form" onSubmit={save} noValidate>
+          <div className="section-heading"><h2>{editing ? 'Sửa Habit' : 'Habit mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+          <div className="field-group"><label htmlFor="habit-title">Title</label><input id="habit-title" value={draft.title} maxLength={100} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); requestKey.current = null; }} required /></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="habit-kind">Mode</label><select id="habit-kind" value={draft.kind} disabled={!!editing} onChange={(event) => setDraft({ ...draft, kind: event.target.value as 'Boolean' | 'Count' })}><option value="Boolean">Boolean</option><option value="Count">Count</option></select></div>{draft.kind === 'Count' && <div className="field-group"><label htmlFor="habit-target">Target count</label><input id="habit-target" type="number" min={1} step={1} value={draft.targetCount} onChange={(event) => setDraft({ ...draft, targetCount: event.target.value })} required /></div>}</div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="habit-unit">Unit <span className="optional">(tùy chọn)</span></label><input id="habit-unit" value={draft.unit} maxLength={50} onChange={(event) => setDraft({ ...draft, unit: event.target.value })} /></div><div className="field-group"><label htmlFor="habit-zone">IANA timezone</label><input id="habit-zone" value={draft.timeZoneId} maxLength={128} onChange={(event) => setDraft({ ...draft, timeZoneId: event.target.value })} required /></div></div>
+          {!editing && <><div className="field-group"><label htmlFor="habit-effective">Schedule effective from</label><input id="habit-effective" type="date" value={draft.effectiveFrom} onChange={(event) => setDraft({ ...draft, effectiveFrom: event.target.value })} required /></div><WeekdayPicker value={draft.weekdayMask} onToggle={(bit) => toggleWeekday(bit, 'draft')} /></>}
+          <div className="field-group"><label htmlFor="habit-reminder">Reminder local time <span className="optional">(metadata only)</span></label><input id="habit-reminder" type="time" value={draft.reminderLocalTime} onChange={(event) => setDraft({ ...draft, reminderLocalTime: event.target.value })} /><p className="field-help">Không enqueue hoặc gọi email/browser push provider trong slice này.</p></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu Habit' : 'Tạo Habit'}</SubmitButton></div>
+        </form>
+        <div className="content-section"><div className="section-heading"><h2>Habits của bạn</h2><span className="muted">{items.length} habit</span></div>{loading ? <div className="loading-state" role="status">Đang tải habits…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có Habit</h2><p>Tạo thói quen đầu tiên với ngày schedule rõ ràng.</p></div> : <div className="resource-cards">{items.map((habit) => <article className={selected?.habit.id === habit.id ? 'resource-card selected-card' : 'resource-card'} key={habit.id}><button className="resource-card-button" type="button" onClick={() => void selectHabit(habit.id)} disabled={busy !== null}><span><strong>{habit.title}</strong><span className="muted">{habit.kind} · {habit.state} · streak {habit.currentStreak}</span></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(habit)} disabled={busy !== null || habit.state !== 'Active'}>Sửa</button></div></article>)}</div>}</div>
+      </div>
+      {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED HABIT</p><h2>{selected.habit.title}</h2></div><span className="state-pill state-active">{selected.habit.state}</span></div><p className="muted">{selected.habit.kind}{selected.habit.targetCount ? ` · target ${selected.habit.targetCount}${selected.habit.unit ? ` ${selected.habit.unit}` : ''}` : ''} · {selected.habit.timeZoneId} · streak {selected.habit.currentStreak}</p><div className="form-actions">{selected.habit.state === 'Active' && <><button className="secondary-button" type="button" onClick={() => void transition('Paused')} disabled={busy !== null}>Pause</button><button className="secondary-button" type="button" onClick={() => void transition('Archived')} disabled={busy !== null}>Archive</button></>}{selected.habit.state === 'Paused' && <><button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Resume</button><button className="secondary-button" type="button" onClick={() => void transition('Archived')} disabled={busy !== null}>Archive</button></>}{selected.habit.state === 'Archived' && <button className="secondary-button" type="button" onClick={() => void transition('Unarchive')} disabled={busy !== null}>Unarchive</button>}</div>{selected.habit.state === 'Active' && <div className="resource-layout"><form className="nested-panel" onSubmit={recordCheckIn} noValidate><div className="section-heading"><h3>Check-in</h3><span className="muted">one record per local date</span></div><div className="form-grid"><div className="field-group"><label htmlFor="habit-check-date">Local date</label><input id="habit-check-date" type="date" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} required /></div><div className="field-group"><label htmlFor="habit-check-count">{selected.habit.kind === 'Count' ? 'Count' : 'Completed (1) / correction (0)'}</label><input id="habit-check-count" type="number" min={0} max={selected.habit.kind === 'Boolean' ? 1 : undefined} step={1} value={checkInCount} onChange={(event) => setCheckInCount(event.target.value)} required /></div></div><div className="field-group"><label htmlFor="habit-check-note">Note <span className="optional">(tùy chọn)</span></label><input id="habit-check-note" value={checkInNote} maxLength={1000} onChange={(event) => setCheckInNote(event.target.value)} /></div><SubmitButton busy={busy === 'checkin'}>Record check-in</SubmitButton></form><form className="nested-panel" onSubmit={saveSchedule} noValidate><div className="section-heading"><h3>Future schedule</h3><span className="muted">past records are preserved</span></div><div className="field-group"><label htmlFor="habit-schedule-date">Effective from</label><input id="habit-schedule-date" type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} required /></div><WeekdayPicker value={scheduleMask} onToggle={(bit) => toggleWeekday(bit, 'schedule')} />{selected.habit.kind === 'Count' && <div className="field-group"><label htmlFor="habit-schedule-target">Target count</label><input id="habit-schedule-target" type="number" min={1} step={1} value={scheduleTarget} onChange={(event) => setScheduleTarget(event.target.value)} required /></div>}<SubmitButton busy={busy === 'schedule'}>Save schedule</SubmitButton></form></div>}<div className="nested-panel"><div className="section-heading"><h3>Recent local-date history</h3><span className="muted">{selected.checkIns.length} record</span></div>{selected.checkIns.length === 0 ? <p className="muted">Chưa có check-in trong khoảng hiện tại.</p> : <div className="resource-cards">{selected.checkIns.map((checkIn) => <article className="resource-card" key={checkIn.id}><div><strong>{checkIn.localDate}</strong><span className="muted">Count {checkIn.count} · schedule {checkIn.scheduleId.slice(0, 8)}</span>{checkIn.note && <p>{checkIn.note}</p>}</div></article>)}</div>}</div></div>}
+      <div className="security-policy"><strong>Boundary</strong><span>Không có social/team tracking, Calendar Event tự tạo, reminder dispatch, Trash/purge hay provider execution trong local slice này.</span></div>
+    </section>
+  );
+}
+
+function WeekdayPicker({ value, onToggle }: { value: number; onToggle: (bit: number) => void }) {
+  return <fieldset className="field-group"><legend>Scheduled weekdays</legend><div className="check-grid">{WEEKDAYS.map((day) => <label className="check-row" key={day.bit}><input type="checkbox" checked={(value & day.bit) !== 0} onChange={() => onToggle(day.bit)} /><span>{day.label}</span></label>)}</div></fieldset>;
+}
+
+function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
+  const [records, setRecords] = useState<FinanceManualRecord[]>([]);
+  const [summaries, setSummaries] = useState<FinanceSummary[]>([]);
+  const [filters, setFilters] = useState<FinanceFilters>({});
+  const [filterDraft, setFilterDraft] = useState<FinanceFilters>({});
+  const [categoryTitle, setCategoryTitle] = useState('');
+  const [editingCategory, setEditingCategory] = useState<FinanceCategoryRecord | null>(null);
+  const [editingRecord, setEditingRecord] = useState<FinanceManualRecord | null>(null);
+  const [recordDraft, setRecordDraft] = useState<FinanceRecordDraft>({
+    categoryId: '', amount: '', currencyCode: 'VND', occurredOn: todayDateInput(), note: ''
+  });
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const categoryRequestKey = useRef<string | null>(null);
+  const recordRequestKey = useRef<string | null>(null);
+
+  async function load(nextFilters: FinanceFilters = filters) {
+    setLoading(true);
+    setError(null);
+    try {
+      const [categoryPage, recordPage] = await Promise.all([
+        listFinanceCategories('', 100),
+        listFinanceRecords({ ...nextFilters, limit: 100 })
+      ]);
+      const nextCategories = Array.isArray(categoryPage.items) ? categoryPage.items : [];
+      setCategories(nextCategories);
+      setRecords(Array.isArray(recordPage.items) ? recordPage.items : []);
+      setSummaries(Array.isArray(recordPage.summaries) ? recordPage.summaries : []);
+      setRecordDraft((current) => current.categoryId || nextCategories.length === 0
+        ? current
+        : { ...current, categoryId: nextCategories[0].id });
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  function showError(requestError: unknown) {
+    const apiError = asApiError(requestError);
+    setError(apiError);
+    if (apiError.status === 401) void onAuthLost();
+    return apiError;
+  }
+
+  function resetCategory() {
+    setEditingCategory(null);
+    setCategoryTitle('');
+    categoryRequestKey.current = null;
+    setError(null);
+  }
+
+  function beginCategoryEdit(category: FinanceCategoryRecord) {
+    setEditingCategory(category);
+    setCategoryTitle(category.title);
+    categoryRequestKey.current = null;
+    setError(null);
+  }
+
+  async function saveCategory(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const title = categoryTitle.trim();
+    if (!title) {
+      setError(new NexoraApiError('Tên category là bắt buộc.', 422, 'ValidationFailed', null, { title: ['Tên category là bắt buộc.'] }));
+      return;
+    }
+    categoryRequestKey.current ??= createIdempotencyKey();
+    setBusy('category');
+    setError(null);
+    try {
+      if (editingCategory) {
+        await updateFinanceCategory(editingCategory.id, editingCategory.etag, title, categoryRequestKey.current);
+      } else {
+        await createFinanceCategory(title, categoryRequestKey.current);
+      }
+      categoryRequestKey.current = null;
+      resetCategory();
+      await load();
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function removeCategory(category: FinanceCategoryRecord) {
+    if (category.usageCount > 0 || !window.confirm(`Xóa category “${category.title}”?`)) return;
+    setBusy(`category:${category.id}`);
+    setError(null);
+    try {
+      await removeFinanceCategory(category.id, category.etag);
+      if (editingCategory?.id === category.id) resetCategory();
+      await load();
+    } catch (requestError) {
+      showError(requestError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function resetRecord() {
+    setEditingRecord(null);
+    setRecordDraft((current) => ({ categoryId: categories[0]?.id ?? '', amount: '', currencyCode: current.currencyCode || 'VND', occurredOn: todayDateInput(), note: '' }));
+    recordRequestKey.current = null;
+    setError(null);
+  }
+
+  function beginRecordEdit(record: FinanceManualRecord) {
+    setEditingRecord(record);
+    setRecordDraft({ categoryId: record.categoryId, amount: record.amount, currencyCode: record.currencyCode, occurredOn: record.occurredOn, note: record.note ?? '' });
+    recordRequestKey.current = null;
+    setError(null);
+  }
+
+  async function saveRecord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!recordDraft.categoryId || !recordDraft.amount.trim() || !recordDraft.currencyCode.trim() || !recordDraft.occurredOn) {
+      setError(new NexoraApiError('Category, amount, currency và ngày phát sinh là bắt buộc.', 422, 'ValidationFailed'));
+      return;
+    }
+    recordRequestKey.current ??= createIdempotencyKey();
+    setBusy('record');
+    setError(null);
+    const input = {
+      categoryId: recordDraft.categoryId,
+      amount: recordDraft.amount.trim(),
+      currencyCode: recordDraft.currencyCode.trim().toUpperCase(),
+      occurredOn: recordDraft.occurredOn,
+      note: recordDraft.note.trim() || null
+    };
+    try {
+      if (editingRecord) {
+        await updateFinanceRecord(editingRecord.id, editingRecord.etag, input, recordRequestKey.current);
+      } else {
+        await createFinanceRecord(input, recordRequestKey.current);
+      }
+      recordRequestKey.current = null;
+      resetRecord();
+      await load();
+    } catch (requestError) {
+      const apiError = showError(requestError);
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function applyFilters(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const next: FinanceFilters = {
+      categoryId: filterDraft.categoryId || undefined,
+      currencyCode: filterDraft.currencyCode?.trim().toUpperCase() || undefined,
+      from: filterDraft.from || undefined,
+      to: filterDraft.to || undefined,
+      query: filterDraft.query?.trim() || undefined
+    };
+    setFilters(next);
+    void load(next);
+  }
+
+  function clearFilters() {
+    setFilters({});
+    setFilterDraft({});
+    void load({});
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="finance-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">FX27 / FINANCE</p>
+          <h1 id="finance-title">Finance records</h1>
+          <p className="lead">Ghi nhận thủ công trong PersonalSpace hiện tại. Currency và số tiền được giữ nguyên theo dữ liệu SQL; chưa có ledger, thanh toán hay provider thật.</p>
+        </div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>Tải lại</button>
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {summaries.length > 0 && <div className="info-grid" aria-label="Tổng theo currency">{summaries.map((summary) => <article className="info-card" key={summary.currencyCode}><p className="card-label">Tổng {summary.currencyCode}</p><strong>{summary.amount}</strong><span>theo bộ lọc hiện tại</span></article>)}</div>}
+      {loading ? <div className="loading-state" role="status">Đang tải dữ liệu Finance…</div> : <div className="resource-layout">
+        <div className="content-section">
+          <form className="form-panel" onSubmit={saveCategory} noValidate>
+            <div className="section-heading"><h2>{editingCategory ? 'Sửa category' : 'Category mới'}</h2>{editingCategory && <button className="link-button" type="button" onClick={resetCategory}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="finance-category-title">Tên category</label><input id="finance-category-title" value={categoryTitle} maxLength={100} onChange={(event) => { setCategoryTitle(event.target.value); setError(null); }} required /><FieldError id="finance-category-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetCategory} disabled={busy === 'category'}>Làm mới</button><SubmitButton busy={busy === 'category'}>{editingCategory ? 'Lưu category' : 'Tạo category'}</SubmitButton></div>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Categories</h2><span className="muted">{categories.length} bản ghi</span></div>{categories.length === 0 ? <div className="empty-state"><h3>Chưa có category</h3><p>Tạo category trước khi ghi nhận một khoản thủ công.</p></div> : <div className="resource-cards">{categories.map((category) => <article className="resource-card" key={category.id}><div><h3>{category.title}</h3><span className="muted">{category.usageCount} record · cập nhật {dateTime(category.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginCategoryEdit(category)} disabled={busy !== null}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeCategory(category)} disabled={busy !== null || category.usageCount > 0}>{category.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</button></div></article>)}</div>}</div>
+        </div>
+        <div className="content-section">
+          <form className="form-panel" onSubmit={saveRecord} noValidate>
+            <div className="section-heading"><h2>{editingRecord ? 'Sửa record' : 'Record mới'}</h2>{editingRecord && <button className="link-button" type="button" onClick={resetRecord}>Hủy sửa</button>}</div>
+            <div className="field-group"><label htmlFor="finance-record-category">Category</label><select id="finance-record-category" value={recordDraft.categoryId} onChange={(event) => { setRecordDraft({ ...recordDraft, categoryId: event.target.value }); setError(null); }} disabled={categories.length === 0} required><option value="">{categories.length === 0 ? 'Tạo category trước' : 'Chọn category'}</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.title}</option>)}</select></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="finance-record-amount">Amount</label><input id="finance-record-amount" inputMode="decimal" value={recordDraft.amount} onChange={(event) => { setRecordDraft({ ...recordDraft, amount: event.target.value }); setError(null); }} placeholder="0.00" maxLength={29} required /></div><div className="field-group"><label htmlFor="finance-record-currency">Currency</label><input id="finance-record-currency" value={recordDraft.currencyCode} onChange={(event) => { setRecordDraft({ ...recordDraft, currencyCode: event.target.value.toUpperCase() }); setError(null); }} maxLength={3} required /></div></div>
+            <div className="field-group"><label htmlFor="finance-record-date">Ngày phát sinh</label><input id="finance-record-date" type="date" value={recordDraft.occurredOn} onChange={(event) => setRecordDraft({ ...recordDraft, occurredOn: event.target.value })} required /></div>
+            <div className="field-group"><label htmlFor="finance-record-note">Ghi chú <span className="optional">(tùy chọn)</span></label><textarea id="finance-record-note" value={recordDraft.note} maxLength={2000} onChange={(event) => setRecordDraft({ ...recordDraft, note: event.target.value })} rows={3} /></div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetRecord} disabled={busy === 'record'}>Làm mới</button><SubmitButton busy={busy === 'record'}>{editingRecord ? 'Lưu record' : 'Tạo record'}</SubmitButton></div>
+          </form>
+          <form className="form-panel" onSubmit={applyFilters} noValidate>
+            <div className="section-heading"><h2>Lọc records</h2><button className="link-button" type="button" onClick={clearFilters} disabled={loading}>Xóa lọc</button></div>
+            <div className="field-group"><label htmlFor="finance-filter-query">Tìm theo category hoặc ghi chú</label><input id="finance-filter-query" value={filterDraft.query ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, query: event.target.value })} /></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="finance-filter-currency">Currency</label><input id="finance-filter-currency" value={filterDraft.currencyCode ?? ''} maxLength={3} onChange={(event) => setFilterDraft({ ...filterDraft, currencyCode: event.target.value.toUpperCase() })} /></div><div className="field-group"><label htmlFor="finance-filter-category">Category</label><select id="finance-filter-category" value={filterDraft.categoryId ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, categoryId: event.target.value })}><option value="">Tất cả</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.title}</option>)}</select></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="finance-filter-from">Từ ngày</label><input id="finance-filter-from" type="date" value={filterDraft.from ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, from: event.target.value })} /></div><div className="field-group"><label htmlFor="finance-filter-to">Đến ngày</label><input id="finance-filter-to" type="date" value={filterDraft.to ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, to: event.target.value })} /></div></div>
+            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng bộ lọc</button>
+          </form>
+          <div className="resource-list"><div className="section-heading"><h2>Records của bạn</h2><span className="muted">{records.length} bản ghi</span></div>{records.length === 0 ? <div className="empty-state"><h3>Chưa có record</h3><p>Không có khoản nào phù hợp với bộ lọc hiện tại.</p></div> : <div className="resource-cards">{records.map((record) => <article className="resource-card" key={record.id}><div><h3>{record.amount} {record.currencyCode}</h3><p>{record.categoryTitle} · {record.occurredOn}</p>{record.note && <p>{record.note}</p>}<span className="muted">Cập nhật {dateTime(record.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginRecordEdit(record)} disabled={busy !== null}>Sửa</button></div></article>)}</div>}</div>
+        </div>
+      </div>}
+    </section>
+  );
+}
+
+function ModuleScreen({
+  profile,
+  module,
+  navigate,
+  onAuthLost
+}: {
+  profile: ProfileResponse;
+  module?: ProfileResponse['modules'][number];
+  navigate: (screen: Screen, moduleCode?: string) => void;
+  onAuthLost: () => Promise<void>;
+}) {
+  if (!module) {
+    return (
+      <section className="content-section" aria-labelledby="module-missing-title">
+        <p className="eyebrow">MODULE</p>
+        <h1 id="module-missing-title">Module không khả dụng</h1>
+        <p className="lead">Module này không có trong projection của server cho PersonalSpace hiện tại.</p>
+        <button className="secondary-button" type="button" onClick={() => navigate('home')}>Về Home</button>
+      </section>
+    );
+  }
+
+  const normalizedCode = module.code.toUpperCase();
+  if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
+    return <ProductivityScreen profile={profile} moduleCode={normalizedCode} navigate={navigate} onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX20') {
+    return <DocumentsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX27') {
+    return <FinanceScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX21') {
+    return <BookmarksScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX22') {
+    return <SnippetsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX23') {
+    return <ReadLaterScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX24') {
+    return <OrganizationTagsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX32') {
+    return <DeveloperToolsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX16') {
+    return <GoalsScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX15') {
+    return <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX17') {
+    return <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX14') {
+    return <RemindersScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX04') {
+    return <SharingScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX05') {
+    return <SupportScreen onAuthLost={onAuthLost} />;
+  }
+  if (module.enabled && normalizedCode === 'FX07') {
+    return <FilesScreen onAuthLost={onAuthLost} />;
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="module-title">
+      <div className="content-heading">
+        <div>
+          <p className="eyebrow">{module.code}</p>
+          <h1 id="module-title">Module entry</h1>
+          <p className="lead">Server đã cấp module này cho {profile.displayName}; UI feature CRUD của module này chưa nằm trong slice frontend hiện tại.</p>
+        </div>
+        <span className="state-pill state-active">{module.enabled ? 'Available' : 'Unavailable'}</span>
+      </div>
+      <div className="empty-state honest-placeholder">
+        <h2>Chưa có dữ liệu hiển thị</h2>
+        <p>Không dùng demo data hoặc client-side mock. Module này sẽ được nối vào API owner-scoped sau khi backend contract tương ứng được triển khai.</p>
+        <button className="secondary-button" type="button" onClick={() => navigate('home')}>Về Home</button>
+      </div>
+    </section>
+  );
+}
+
+function ProfileScreen({
+  profile,
+  onProfileUpdated,
+  onAuthLost,
+  onThemeChanged
+}: {
+  profile: ProfileResponse;
+  onProfileUpdated: (profile: ProfileResponse) => void;
+  onAuthLost: () => Promise<void>;
+  onThemeChanged: (mode: ThemeMode) => void;
+}) {
+  const { t } = useI18n();
+  const [draft, setDraft] = useState<ProfilePatch>({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [serverVersion, setServerVersion] = useState<ProfileResponse | null>(null);
+  const [leaveContinuation, setLeaveContinuation] = useState<DirtyLeaveContinuation | null>(null);
+  const requestKey = useRef<string | null>(null);
+  const profileForm = useRef<HTMLFormElement>(null);
+  const pendingLeaveContinuation = useRef<DirtyLeaveContinuation | null>(null);
+
+
+  useEffect(() => {
+    requestKey.current = null;
+    setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
+    setConflict(false);
+    setServerVersion(null);
+    setLeaveContinuation(null);
+  }, [profile]);
+
+  function changeDraft(patch: ProfilePatch) {
+    requestKey.current = null;
+    setDraft((current) => ({ ...current, ...patch }));
+  }
+
+  async function reload() {
+    setLoading(true);
+    setError(null);
+    try {
+      const latest = normalizeProfile(await getMe());
+      requestKey.current = null;
+      onProfileUpdated(latest);
+      setDraft({ displayName: latest.displayName, timeZoneId: latest.timeZoneId, locale: latest.locale });
+      setConflict(false);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function inspectServerVersion() {
+    setLoading(true);
+    setError(null);
+    try {
+      // getMe refreshes the revision held by the API boundary, but this
+      // deliberately does not update the parent profile or replace the local
+      // draft. A later save is an explicit new user action, never a retry.
+      const latest = normalizeProfile(await getMe());
+      setServerVersion(latest);
+      setConflict(true);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setConflict(false);
+    const displayName = (draft.displayName ?? '').trim();
+    const timeZoneId = (draft.timeZoneId ?? '').trim();
+    if (!displayName || displayName.length > 100) {
+      setError(new NexoraApiError(t('displayNameRange'), 422, 'ValidationFailed'));
+      return;
+    }
+    if (!timeZoneId) {
+      setError(new NexoraApiError(t('timezoneRequired'), 422, 'ValidationFailed'));
+      return;
+    }
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    try {
+      const updated = normalizeProfile(await updateMe({ displayName, timeZoneId, locale: draft.locale }, requestKey.current));
+      requestKey.current = null;
+      onProfileUpdated(updated);
+      setDraft({ displayName: updated.displayName, timeZoneId: updated.timeZoneId, locale: updated.locale });
+      setServerVersion(null);
+      const continuation = pendingLeaveContinuation.current;
+      pendingLeaveContinuation.current = null;
+      if (continuation) {
+        setLeaveContinuation(null);
+        continuation();
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 412) {
+        setConflict(true);
+      } else if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const changed = draft.displayName !== profile.displayName || draft.timeZoneId !== profile.timeZoneId || draft.locale !== profile.locale;
+
+  useEffect(() => {
+    if (!changed) {
+      return;
+    }
+
+    const preventUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', preventUnload);
+    return () => window.removeEventListener('beforeunload', preventUnload);
+  }, [changed]);
+
+  useEffect(() => {
+    const guard: DirtyLeaveGuard = (continuation) => {
+      if (!changed) {
+        return false;
+      }
+
+      setLeaveContinuation(() => continuation);
+      return true;
+    };
+    dirtyLeaveGuard.current = guard;
+    return () => {
+      if (dirtyLeaveGuard.current === guard) {
+        dirtyLeaveGuard.current = null;
+      }
+    };
+  }, [changed]);
+
+  return (
+    <section className="content-section" aria-labelledby="profile-title">
+      <div className="content-heading"><div><p className="eyebrow">{t('settingsProfile')}</p><h1 id="profile-title">{t('profileTitle')}</h1><p className="lead">{t('profileLead')}</p></div><span className="state-pill state-active">{profile.state}</span></div>
+      {conflict && (
+        <Notice kind="error">
+          <span>{t('profileChanged')}</span>
+          <button className="inline-button" type="button" onClick={() => void inspectServerVersion()} disabled={loading}>{loading ? t('loading') : t('reviewServerVersion')}</button>
+          {serverVersion && <div className="profile-conflict-review" role="status">
+            <p>{t('serverVersionAvailable')}</p>
+            <dl>
+              <dt>{t('serverVersionDisplayName')}</dt><dd>{serverVersion.displayName}</dd>
+              <dt>{t('serverVersionTimezone')}</dt><dd>{serverVersion.timeZoneId}</dd>
+              <dt>{t('serverVersionLocale')}</dt><dd>{serverVersion.locale}</dd>
+            </dl>
+            <button className="secondary-button" type="button" onClick={() => void reload()} disabled={loading || busy}>{loading ? t('loading') : t('useServerVersion')}</button>
+          </div>}
+        </Notice>
+      )}
+      <form ref={profileForm} className="profile-form" onSubmit={submit} noValidate>
+        <div className="form-panel">
+          <div className="field-group"><label htmlFor="profile-email">{t('email')}</label><input id="profile-email" type="email" value={profile.email} readOnly aria-describedby="profile-email-help" /><p className="field-help" id="profile-email-help">{t('profileEmailHelp')}</p></div>
+          <div className="field-group"><label htmlFor="profile-display-name">{t('displayName')}</label><input id="profile-display-name" type="text" maxLength={100} value={draft.displayName ?? ''} onChange={(event) => changeDraft({ displayName: event.target.value })} required aria-describedby="profile-display-name-error" /><FieldError id="profile-display-name-error" message={error ? firstFieldError(error, 'displayName') : undefined} /></div>
+          <div className="field-group"><label htmlFor="profile-timezone">{t('timezone')}</label><input id="profile-timezone" type="text" value={draft.timeZoneId ?? ''} onChange={(event) => changeDraft({ timeZoneId: event.target.value })} required aria-describedby="profile-timezone-error" /><FieldError id="profile-timezone-error" message={error ? firstFieldError(error, 'timeZoneId') : undefined} /></div>
+          <div className="field-group"><label htmlFor="profile-locale">{t('interfaceLanguage')}</label><select id="profile-locale" value={draft.locale ?? profile.locale} onChange={(event) => changeDraft({ locale: event.target.value as 'vi' | 'en' })}><option value="vi">{t('vietnamese')}</option><option value="en">{t('english')}</option></select><FieldError id="profile-locale-error" message={error ? firstFieldError(error, 'locale') : undefined} /></div>
+          {error && !conflict && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={() => { requestKey.current = null; setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale }); }} disabled={!changed || busy}>{t('cancelChanges')}</button><SubmitButton busy={busy}>{t('saveProfile')}</SubmitButton></div>
+        </div>
+      </form>
+      {leaveContinuation && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-unsaved-title" aria-describedby="profile-unsaved-description">
+            <h2 id="profile-unsaved-title">{t('unsavedChangesTitle')}</h2>
+            <p id="profile-unsaved-description">{t('unsavedChangesDescription')}</p>
+            <div className="form-actions">
+              <button className="secondary-button" type="button" onClick={() => {
+                pendingLeaveContinuation.current = null;
+                setLeaveContinuation(null);
+              }} disabled={busy}>{t('keepEditing')}</button>
+              <button className="danger-button" type="button" onClick={() => {
+                const continuation = leaveContinuation;
+                pendingLeaveContinuation.current = null;
+                requestKey.current = null;
+                setDraft({ displayName: profile.displayName, timeZoneId: profile.timeZoneId, locale: profile.locale });
+                setLeaveContinuation(null);
+                continuation();
+              }} disabled={busy}>{t('discardChanges')}</button>
+              <button className="primary-button" type="button" onClick={() => {
+                pendingLeaveContinuation.current = leaveContinuation;
+                profileForm.current?.requestSubmit();
+              }} disabled={busy}>{busy ? t('saving') : t('saveAndContinue')}</button>
+            </div>
+          </section>
+        </div>
+      )}
+      <PreferencesPanel onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />
+    </section>
+  );
+}
+
+function PreferencesPanel({ onAuthLost, onThemeChanged }: { onAuthLost: () => Promise<void>; onThemeChanged: (mode: ThemeMode) => void }) {
+  const { t } = useI18n();
+  const [preference, setPreference] = useState<PreferenceRecord | null>(null);
+  const [mode, setMode] = useState<ThemeMode>('System');
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const requestKey = useRef<string | null>(null);
+
+  async function load() {
+    requestKey.current = null;
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listPreferences();
+      const theme = page.items.find((item) => item.preferenceKey === 'theme') ?? null;
+      setPreference(theme);
+      if (theme) {
+        try {
+          const value = JSON.parse(theme.valueJson) as { mode?: string };
+          if (value.mode === 'System' || value.mode === 'Light' || value.mode === 'Dark') {
+            setMode(value.mode);
+            onThemeChanged(value.mode);
+          }
+        } catch {
+          setError(new NexoraApiError(t('invalidTheme'), 422, 'ValidationFailed'));
+        }
+      }
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  async function save() {
+    requestKey.current ??= createIdempotencyKey();
+    setBusy(true);
+    setError(null);
+    try {
+      const saved = await updatePreference('theme', preference?.etag ?? '*', { mode }, requestKey.current);
+      requestKey.current = null;
+      setPreference(saved);
+      onThemeChanged(mode);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <section className="settings-panel" aria-labelledby="preferences-title"><div className="section-heading"><div><h2 id="preferences-title">{t('preferences')}</h2><p className="muted">{t('preferencesDescription')}</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{t('reload')}</button></div>{error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<div className="form-grid"><div className="field-group"><label htmlFor="theme-mode">{t('theme')}</label><select id="theme-mode" value={mode} onChange={(event) => { const next = event.target.value as ThemeMode; requestKey.current = null; setMode(next); onThemeChanged(next); }} disabled={loading}><option value="System">System</option><option value="Light">Light</option><option value="Dark">Dark</option></select></div></div><div className="form-actions"><button className="primary-button" type="button" onClick={() => void save()} disabled={busy || loading}>{busy ? t('saving') : t('savePreferences')}</button></div></section>;
+}
+
+export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
+  const { locale, t } = useI18n();
+  const [sessions, setSessions] = useState<SessionProjection[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [hasLoadedSuccessfully, setHasLoadedSuccessfully] = useState(false);
+  const [staleData, setStaleData] = useState(false);
+  const actionKeys = useRef<Record<string, string>>({});
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await listSessions();
+      setSessions(Array.isArray(page.items) ? page.items : []);
+      setHasLoadedSuccessfully(true);
+      setStaleData(false);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setStaleData(hasLoadedSuccessfully);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  async function revoke(session: SessionProjection) {
+    setBusyId(session.id);
+    setError(null);
+    actionKeys.current[session.id] ??= createIdempotencyKey();
+    try {
+      await revokeSession(session.id, actionKeys.current[session.id]);
+      delete actionKeys.current[session.id];
+      setConfirmingId(null);
+      if (session.isCurrent) {
+        await onAuthLost();
+        return;
+      }
+      await load();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function revokeEverywhere() {
+    setBusyId('all');
+    setError(null);
+    actionKeys.current.all ??= createIdempotencyKey();
+    try {
+      await revokeAllSessions(actionKeys.current.all);
+      delete actionKeys.current.all;
+      await onAuthLost();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) {
+        await onAuthLost();
+      }
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <section className="content-section" aria-labelledby="security-title">
+      <div className="content-heading"><div><p className="eyebrow">{t('securityEyebrow')}</p><h1 id="security-title">{t('securityTitle')}</h1><p className="lead">{t('securityLead')}</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>{loading ? t('loading') : t('reload')}</button></div>
+      <div className="security-policy"><strong>{t('mfaRecovery')}</strong><span>{t('mfaRecoveryDescription')}</span></div>
+      {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {staleData && <p className="stale-state" role="status">{t('sessionsStale')}</p>}
+       {loading ? <div className="loading-state" role="status">{t('loadingSessions')}</div> : !hasLoadedSuccessfully ? null : sessions.length === 0 ? <div className="empty-state"><h2>{t('noSessions')}</h2><p>{t('noSessionsDescription')}</p></div> : <div className="table-wrap"><table><caption>{t('sessionList')}</caption><thead><tr><th scope="col">{t('device')}</th><th scope="col">{t('lastActivity')}</th><th scope="col">{t('expires')}</th><th scope="col"><span className="sr-only">{t('actions')}</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">{t('currentSession')}</span>}<span className="muted">{t('created')} {dateTime(session.createdAt, timeZoneId, locale)}</span></td><td>{dateTime(session.lastSeenAt, timeZoneId, locale)}</td><td>{dateTime(session.expiresAt, timeZoneId, locale)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>{t('revokeThisSession')}</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>{t('cancel')}</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>{t('revoke')}</button>}</td></tr>)}</tbody></table></div>}
+      <div className="danger-zone"><div><h2>{t('revokeAllTitle')}</h2><p>{t('revokeAllDescription')}</p></div>{confirmAll ? <div className="confirm-actions"><span>{t('revokeAllQuestion')}</span><button className="danger-button" type="button" onClick={revokeEverywhere} disabled={busyId === 'all'}>{busyId === 'all' ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmAll(false)} disabled={busyId === 'all'}>{t('cancel')}</button></div> : <button className="danger-button" type="button" onClick={() => setConfirmAll(true)} disabled={busyId !== null || loading}>{t('revokeAll')}</button>}</div>
+    </section>
+  );
+}
+
+export function App() {
+  const [location, setLocation] = useState<LocationState>(() => routeFromPath(window.location.pathname, window.location.search));
+  const locationRef = useRef(location);
+  const [sessionState, setSessionState] = useState<SessionState>('checking');
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [themeMode, setThemeMode] = useState<ThemeMode>('System');
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [notice, setNotice] = useState<{ kind: NoticeKind; text: string }>();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => {
+      const dark = themeMode === 'Dark' || (themeMode === 'System' && media.matches);
+      root.dataset.theme = dark ? 'dark' : 'light';
+      root.lang = profile?.locale === 'en' ? 'en' : 'vi';
+    };
+    apply();
+    if (themeMode === 'System') media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, [themeMode, profile?.locale]);
+
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
+  function commitNavigation(next: LocationState, nextPath: string, replace: boolean) {
+    const currentPath = `${window.location.pathname}${window.location.search}`;
+    if (currentPath !== nextPath) {
+      if (replace) {
+        window.history.replaceState({}, '', nextPath);
+      } else {
+        window.history.pushState({}, '', nextPath);
+      }
+    }
+    setLocation(next);
+    setNotice(undefined);
+  }
+
+  function navigate(screen: Screen, moduleCode?: string, replace = false, resourceId?: string) {
+    const next: LocationState = screen === 'shared'
+      ? { screen, token: moduleCode }
+      : screen === 'login'
+        ? { screen, returnTo: safeReturnPath(moduleCode) }
+      : screen === 'resource'
+        ? { screen, resourceType: moduleCode as ResourceType, resourceId }
+        : { screen, moduleCode };
+    const nextPath = pathForLocation(next);
+    if (!replace && window.location.pathname !== nextPath) {
+      const handled = dirtyLeaveGuard.current?.(() => commitNavigation(next, nextPath, false)) ?? false;
+      if (handled) return;
+    }
+    commitNavigation(next, nextPath, replace);
+  }
+
+  useEffect(() => {
+    const onPopState = () => {
+      const next = routeFromPath(window.location.pathname, window.location.search);
+      const currentPath = pathForLocation(locationRef.current);
+      const handled = dirtyLeaveGuard.current?.(() => {
+        window.history.pushState({}, '', pathForLocation(next));
+        setLocation(next);
+        setNotice(undefined);
+      }) ?? false;
+      if (handled) {
+        window.history.pushState({}, '', currentPath);
+        return;
+      }
+      setLocation(next);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function bootstrap() {
+      try {
+        await getCsrf();
+        const current = normalizeProfile(await getMe());
+        if (!cancelled) {
+          setProfile(current);
+          setSessionState('authenticated');
+        }
+        try {
+          const preferencePage = await listPreferences();
+          const theme = preferencePage.items.find((item) => item.preferenceKey === 'theme');
+          if (theme && !cancelled) {
+            const value = JSON.parse(theme.valueJson) as { mode?: string };
+            if (value.mode === 'System' || value.mode === 'Light' || value.mode === 'Dark') setThemeMode(value.mode);
+          }
+        } catch {
+          // A preference read must not make an otherwise authenticated local session unavailable.
+        }
+      } catch (requestError) {
+        if (cancelled) {
+          return;
+        }
+        const apiError = asApiError(requestError);
+        if (apiError.status === 401) {
+          setProfile(null);
+          setSessionState('anonymous');
+        } else {
+          setSessionState('unavailable');
+          setNotice({ kind: 'error', text: apiError.message });
+        }
+      }
+    }
+    void bootstrap();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    if (sessionState === 'anonymous' && !PUBLIC_SCREENS.has(location.screen)) {
+      navigate('login', location.screen === 'resource' ? pathForLocation(location) : undefined, true);
+    }
+    if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen) && location.screen !== 'shared') {
+      navigate('home', undefined, true);
+    }
+  }, [sessionState, location.screen]);
+
+  function authenticate(nextProfile: ProfileResponse) {
+    const returnTo = safeReturnPath(locationRef.current.returnTo);
+    setProfile(nextProfile);
+    setSessionState('authenticated');
+    if (returnTo) {
+      const target = routeFromPath(returnTo);
+      navigate('resource', target.resourceType, true, target.resourceId);
+    } else {
+      navigate('home', undefined, true);
+    }
+  }
+
+  async function clearSession(message?: string) {
+    const returnTo = locationRef.current.screen === 'resource'
+      ? safeReturnPath(pathForLocation(locationRef.current))
+      : undefined;
+    clearProfileRevision();
+    setThemeMode('System');
+    setProfile(null);
+    setSessionState('anonymous');
+    navigate('login', returnTo, true);
+    if (message) {
+      setNotice({ kind: 'info', text: message });
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await logout();
+      await clearSession();
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      if (apiError.status === 401) {
+        await clearSession('Phiên đã hết hạn và đã được xóa khỏi trình duyệt.');
+      } else {
+        setNotice({ kind: 'error', text: apiError.message });
+      }
+    }
+  }
+
+  if (sessionState === 'checking') {
+    return <div className="full-page-state" role="status"><div className="loading-mark" aria-hidden="true">N</div><h1>Đang kiểm tra phiên</h1><p>Không hiển thị dữ liệu private trước khi server xác nhận session.</p></div>;
+  }
+
+  if (sessionState === 'unavailable') {
+    return <div className="full-page-state"><div className="loading-mark" aria-hidden="true">!</div><h1>Local API chưa sẵn sàng</h1><p>{notice?.text ?? 'Không thể kết nối Nexora API.'}</p><button className="primary-button" type="button" onClick={() => window.location.reload()}>Thử lại</button></div>;
+  }
+
+  if (sessionState === 'authenticated' && profile) {
+    if (location.screen === 'shared') {
+      return <SharedResourceScreen token={location.token} />;
+    }
+    return <LocaleContext.Provider value={profile.locale === 'en' ? 'en' : 'vi'}><Shell profile={profile} location={location} navigate={navigate} onLogout={handleLogout} onProfileUpdated={setProfile} onThemeChanged={setThemeMode} onAuthLost={() => clearSession('Phiên đã hết hạn. Vui lòng đăng nhập lại.')} notice={notice} onDismissNotice={() => setNotice(undefined)} /></LocaleContext.Provider>;
+  }
+
+  const publicProps = { navigate, notice, onDismissNotice: () => setNotice(undefined) };
+  switch (location.screen) {
+    case 'register':
+      return <RegisterScreen {...publicProps} onRegistered={(email) => { setVerificationEmail(email); setNotice({ kind: 'success', text: 'Đã tiếp nhận đăng ký. Nhập mã từ kênh transport đã cấu hình để xác minh.' }); navigate('verify'); }} />;
+    case 'verify':
+      return <VerifyScreen {...publicProps} email={verificationEmail} setEmail={setVerificationEmail} onVerified={() => setNotice({ kind: 'success', text: 'Email đã được xác minh. Đăng nhập để tiếp tục.' })} />;
+    case 'forgot':
+      return <ForgotPasswordScreen {...publicProps} />;
+    case 'reset':
+      return <ResetPasswordScreen {...publicProps} />;
+    case 'shared':
+      return <SharedResourceScreen token={location.token} />;
+    case 'home':
+    case 'profile':
+    case 'security':
+    case 'finance':
+    case 'goals':
+    case 'module':
+    case 'login':
+    default:
+      return <LoginScreen {...publicProps} onAuthenticated={authenticate} onPendingVerification={(email) => { setVerificationEmail(email); navigate('verify'); }} />;
+  }
+}
+

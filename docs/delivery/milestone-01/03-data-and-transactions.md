@@ -79,11 +79,23 @@ Resolved technical decision. Anonymous register/verify/reset retries cannot use 
 | KeyHash | binary(32) | No | Keyed digest of supplied idempotency UUID |
 | RequestDigest | binary(32) | No | Keyed canonical request digest; no raw password/token |
 | State | varchar(16) | No | Running, Succeeded, Failed |
-| ResultCode | nvarchar(64) | Yes | Allowlisted generic replay outcome, never response body or token |
+| ResultCode | nvarchar(64) | Yes | Allowlisted replay outcome code; never a raw request secret |
+| ResultStatusCode | int | Yes | Safe replay HTTP status for an explicitly allowlisted local projection |
+| ResultJson | nvarchar(max) | Yes | Optional safe response projection only; JSON, size-bounded by the owning slice, never password/token/secret/raw source payload |
 | CreatedAt | datetime2(7) | No | UTC server timestamp |
 | ExpiresAt | datetime2(7) | No | CreatedAt + 24 hours |
 | RowVersion | rowversion | No | SQL generated |
 
-UQ(SubjectHash,OperationKey,KeyHash); index ExpiresAt. Same key/different RequestDigest rejects. Receipt and successful source writes commit atomically; no success record survives rollback. Duplicate waits for transaction completion then returns the same generic result after current token/account guards. All fields Restricted system, hashes Secret-derived; excluded from sharing, support, search, logs and export. Expiry cleanup is maintenance, not user-data purge.
+UQ(SubjectHash,OperationKey,KeyHash); index ExpiresAt. Same key/different RequestDigest rejects. Receipt and successful source writes commit atomically; no success record survives rollback. Duplicate waits for transaction completion then returns the same safe outcome/projection after current token/account/operation guards. Sensitive operations remain generic and never persist a response body. All fields Restricted system, hashes Secret-derived; excluded from sharing, support, search, logs and export. Expiry cleanup is maintenance, not user-data purge.
+
+Migration `20260910_0017_favorites_refs.sql` adds `ResultStatusCode` and
+`ResultJson` for the local Favorites slice. Only an explicitly safe
+`FavoriteRecord` projection (or a 204 marker) may be written; callers must not
+store arbitrary response bodies. A replay rechecks the current operation and
+source capability/lifecycle before returning a projection. If the source is no
+longer readable, the replay is redacted to the same unavailable shape; if the
+favorite itself no longer exists, the service returns a safe replay-unavailable
+conflict. This keeps idempotency from becoming a stale metadata or authority
+escape hatch.
 
 AccountMessageIntent is itself the pre-activation outbox: source transaction writes it directly; a leased SystemJob maintenance sweep selects pending intents with SQL locking and sends outside the source transaction. SystemJob arguments contain only the fixed sweep name/range, never account secrets or recipient data. Delivery failures update the intent and schedule bounded retry; duplicated external email remains possible after ambiguous provider acknowledgement. Owner-scoped Outbox/Job/Notification rows are written only once a real PersonalSpace exists. System policy changes enqueue a trusted maintenance sweep in the same transaction; per-user notification fan-out creates owner-scoped intents idempotently afterwards.
