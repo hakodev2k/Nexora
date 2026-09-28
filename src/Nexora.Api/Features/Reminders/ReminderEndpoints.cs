@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Nexora.Api.Features.Identity;
 using Nexora.Api.Http;
 using Nexora.Api.Security;
@@ -27,7 +28,7 @@ public static class ReminderEndpoints
             .WithName("setReminder");
 
         api.MapDelete("/reminders/{sourceType}/{sourceId:guid}", (HttpContext context, string sourceType, Guid sourceId,
-            ReminderRemoveRequest request, IReminderService service, IIdentityService identity, SessionCookieService cookies) =>
+            [FromBody] ReminderRemoveRequest request, IReminderService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Remove(principal, sourceType, sourceId, context.Request.Headers.IfMatch.ToString(),
                     new ReminderRemoveCommand(request.SourceETag), IdempotencyKey(context), context.TraceIdentifier), _ => (object?)null))

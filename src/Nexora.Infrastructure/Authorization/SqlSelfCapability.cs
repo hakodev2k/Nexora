@@ -24,14 +24,17 @@ internal sealed class SqlSelfCapability
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
     }
 
-    public bool IsAllowed(IdentityPrincipal actor, string moduleCode, params string[] actionKeys)
+    public bool IsAllowed(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        Evaluate(actor, moduleCode, actionKeys) == SqlCapabilityStatus.Allowed;
+
+    public SqlCapabilityStatus Evaluate(IdentityPrincipal actor, string moduleCode, params string[] actionKeys)
     {
         if (actor is null || string.IsNullOrWhiteSpace(moduleCode) || actionKeys is null || actionKeys.Length == 0)
-            return false;
+            return SqlCapabilityStatus.ModuleUnavailable;
 
         using var connection = _connections.Create();
         connection.Open();
-        return Evaluate(connection, null, actor, moduleCode, actionKeys) == SqlCapabilityStatus.Allowed;
+        return Evaluate(connection, null, actor, moduleCode, actionKeys);
     }
 
     public bool IsAllowed(SqlConnection connection, SqlTransaction? transaction,

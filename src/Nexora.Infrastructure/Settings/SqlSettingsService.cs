@@ -29,7 +29,8 @@ public sealed class SqlSettingsService : ISettingsService
 
     public IdentityOperationResult<PreferencePage> ListPreferences(IdentityPrincipal actor)
     {
-        if (!ModuleAvailable(actor, "FX09", "settings.preference.read")) return ModuleUnavailable<PreferencePage>();
+        var capabilityFailure = RequireCapability<PreferencePage>(actor, "FX09", "settings.preference.read");
+        if (capabilityFailure is not null) return capabilityFailure;
         using var connection = _connections.Create();
         connection.Open();
         using var command = connection.CreateCommand();
@@ -44,7 +45,8 @@ public sealed class SqlSettingsService : ISettingsService
     public IdentityOperationResult<PreferenceRecord> UpdatePreference(IdentityPrincipal actor, PreferenceUpdateCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX09", "settings.preference.update")) return ModuleUnavailable<PreferenceRecord>();
+        var capabilityFailure = RequireCapability<PreferenceRecord>(actor, "FX09", "settings.preference.update");
+        if (capabilityFailure is not null) return capabilityFailure;
         var validation = Validate(command);
         if (validation is not null) return validation;
         using var connection = _connections.Create();
@@ -161,8 +163,13 @@ public sealed class SqlSettingsService : ISettingsService
 
     private static PreferenceRecord Read(SqlDataReader reader) => new(reader.GetGuid(0), reader.GetString(1), reader.GetInt32(2), reader.GetString(3), ToOffset(reader.GetDateTime(4)), ToOffset(reader.GetDateTime(5)), EncodeETag(reader.GetFieldValue<byte[]>(6)));
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
-        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
+    private IdentityOperationResult<T>? RequireCapability<T>(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        _capabilities.Evaluate(actor, moduleCode, actionKeys) switch
+        {
+            SqlCapabilityStatus.Allowed => null,
+            SqlCapabilityStatus.PermissionDenied => Failure<T>("PermissionDenied", 403, "The Settings action is not allowed for the current user."),
+            _ => ModuleUnavailable<T>()
+        };
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
     {

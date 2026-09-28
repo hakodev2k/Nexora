@@ -343,7 +343,7 @@ public sealed class SqlAdminAccessService : IAdminAccessService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT m.[Code], COALESCE(g.[Enabled], 0), m.[State], m.[SystemEnabled] FROM [platform].[Module] m LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id] AND g.[UserId] = @UserId ORDER BY m.[Code];";
+        command.CommandText = "SELECT m.[Code], COALESCE(g.[Enabled], CAST(0 AS bit)), m.[State], m.[SystemEnabled] FROM [platform].[Module] m LEFT JOIN [platform].[UserModuleGrant] g ON g.[ModuleId] = m.[Id] AND g.[UserId] = @UserId ORDER BY m.[Code];";
         Add(command, "@UserId", SqlDbType.UniqueIdentifier, userId);
         using var reader = command.ExecuteReader();
         var grants = new List<AdminModuleGrantRecord>();
@@ -353,16 +353,24 @@ public sealed class SqlAdminAccessService : IAdminAccessService
 
     private static Guid EnsurePermission(SqlConnection connection, SqlTransaction transaction, string actionKey)
     {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-            MERGE [platform].[Permission] AS target
-            USING (SELECT @ActionKey AS [ActionKey]) AS source ON target.[ActionKey] = source.[ActionKey]
-            WHEN NOT MATCHED THEN INSERT ([ActionKey], [EffectiveStatus]) VALUES (source.[ActionKey], 'Resolved')
-            OUTPUT inserted.[Id];
-            """;
-        Add(command, "@ActionKey", SqlDbType.NVarChar, actionKey, 160);
-        return (Guid)command.ExecuteScalar()!;
+        using (var existing = connection.CreateCommand())
+        {
+            existing.Transaction = transaction;
+            existing.CommandText = "SELECT [Id] FROM [platform].[Permission] WITH (UPDLOCK, HOLDLOCK) WHERE [ActionKey] = @ActionKey;";
+            Add(existing, "@ActionKey", SqlDbType.NVarChar, actionKey, 160);
+            if (existing.ExecuteScalar() is Guid permissionId)
+            {
+                return permissionId;
+            }
+        }
+
+        using var insert = connection.CreateCommand();
+        insert.Transaction = transaction;
+        insert.CommandText = "INSERT INTO [platform].[Permission] ([ActionKey], [EffectiveStatus]) OUTPUT inserted.[Id] VALUES (@ActionKey, 'Resolved');";
+        Add(insert, "@ActionKey", SqlDbType.NVarChar, actionKey, 160);
+        return insert.ExecuteScalar() is Guid createdPermissionId
+            ? createdPermissionId
+            : throw new InvalidOperationException("Permission could not be created.");
     }
 
     private static int ActiveSuperAdminCount(SqlConnection connection, SqlTransaction transaction)

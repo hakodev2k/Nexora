@@ -20,6 +20,13 @@ BEGIN
         ALTER TABLE [productivity].[Project] ADD [Notes] nvarchar(max) NULL;
     IF OBJECT_ID(N'[productivity].[CK_Project_Status]', N'C') IS NOT NULL
         ALTER TABLE [productivity].[Project] DROP CONSTRAINT [CK_Project_Status];
+END
+GO
+
+/* SQL Server compiles a complete batch before executing its ALTER statements.
+   Keep the backfill in the next batch so newly added columns are resolvable. */
+IF OBJECT_ID(N'[productivity].[Project]', N'U') IS NOT NULL
+BEGIN
     UPDATE [productivity].[Project]
     SET [StartAt] = COALESCE([StartAt], [CreatedAt]),
         [EndAt] = COALESCE([EndAt], DATEADD(hour, 1, [CreatedAt])),
@@ -50,6 +57,11 @@ BEGIN
         ALTER TABLE [productivity].[Task] ADD [Rank] int NOT NULL CONSTRAINT [DF_Task_Rank_R1] DEFAULT 0;
     IF COL_LENGTH(N'productivity.Task', N'ReminderAt') IS NULL
         ALTER TABLE [productivity].[Task] ADD [ReminderAt] datetime2(7) NULL;
+END
+GO
+
+IF OBJECT_ID(N'[productivity].[Task]', N'U') IS NOT NULL
+BEGIN
     UPDATE [productivity].[Task]
     SET [StartAt] = COALESCE([StartAt], DATEADD(hour, -1, COALESCE([DueAt], [CreatedAt]))),
         [EndAt] = COALESCE([EndAt], COALESCE([DueAt], DATEADD(hour, 1, [CreatedAt])))

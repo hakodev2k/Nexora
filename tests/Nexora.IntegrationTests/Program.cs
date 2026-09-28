@@ -43,8 +43,8 @@ try
     await migrations.ApplyAsync(connection, migrationDirectory, M01MigrationManifest.RequiredFileNames);
     await migrations.ApplyAsync(connection, migrationDirectory, M01MigrationManifest.RequiredFileNames);
     Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration") == expectedMigrationCount, "Migrations journal once on replay");
-    Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration WHERE Name LIKE '20260910_%'") == 0,
-        "M01 migration runner must not apply R1 migrations");
+    Require(await Count("SELECT COUNT(*) FROM dbo.NexoraMigration WHERE Name LIKE '20260910_%'") > 0,
+        "Local Release 1 migration runner must apply reviewed R1 migrations");
     Console.WriteLine("PASS: empty database migration and journal replay.");
 
     var bootstrap = new SqlBootstrapSuperAdmin(connection);
@@ -74,6 +74,8 @@ try
         "One verified active principal");
     Require(await Count("SELECT COUNT(*) FROM [platform].[PersonalSpace] WHERE Id <> UserId") == 1, "Owner differs from UserId");
     Require(await Count("SELECT COUNT(*) FROM [identity].[UserRole]") == 2, "Base User and SuperAdmin roles");
+    Require(await Count("SELECT COUNT(*) FROM [platform].[UserModuleGrant] WHERE [UserId] = (SELECT TOP (1) [Id] FROM [identity].[User])") > 0,
+        "Bootstrap SuperAdmin receives the approved ready module defaults");
     Require(await Count("SELECT COUNT(*) FROM [security].[AuditEvent] WHERE ActionKey='identity.bootstrap.completed' AND RedactedDiffJson IS NULL") == 1,
         "One metadata-only audit");
     Console.WriteLine("PASS: concurrent bootstrap creates one principal, owner, role pair and audit.");

@@ -476,7 +476,9 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
 
     private static IReadOnlyList<ReminderDispatchClaim> ClaimDueReminders(SqlConnection connection)
     {
-        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        // READPAST queue leasing is valid only at read committed or repeatable
+        // read. UPDLOCK plus one UPDATE statement keeps the claim atomic.
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var leaseId = Guid.NewGuid();
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -484,7 +486,7 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
             ;WITH due AS
             (
                 SELECT TOP (@Limit) [Id]
-                FROM [calendar].[Reminder] WITH (UPDLOCK, READPAST, ROWLOCK)
+                FROM [calendar].[Reminder] WITH (UPDLOCK, READPAST, READCOMMITTEDLOCK, ROWLOCK)
                 WHERE [State] = 'Pending'
                   AND [DueAt] <= SYSUTCDATETIME()
                   AND [DispatchAttempts] < @MaxAttempts
@@ -505,9 +507,11 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         Add(command, "@Limit", SqlDbType.Int, DispatchBatchSize);
         Add(command, "@MaxAttempts", SqlDbType.Int, MaxDispatchAttempts);
         Add(command, "@LeaseId", SqlDbType.UniqueIdentifier, leaseId);
-        using var reader = command.ExecuteReader();
         var claims = new List<ReminderDispatchClaim>();
-        while (reader.Read()) claims.Add(new ReminderDispatchClaim(reader.GetGuid(0), reader.GetGuid(1)));
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read()) claims.Add(new ReminderDispatchClaim(reader.GetGuid(0), reader.GetGuid(1)));
+        }
         transaction.Commit();
         return claims;
     }

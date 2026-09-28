@@ -5,6 +5,7 @@
    existing P3 values.
 */
 SET XACT_ABORT ON;
+SET QUOTED_IDENTIFIER ON;
 GO
 
 BEGIN TRANSACTION;
@@ -39,6 +40,13 @@ BEGIN
         ALTER TABLE [calendar].[Reminder] ADD [NextAttemptAt] datetime2(7) NULL;
     IF COL_LENGTH(N'calendar.Reminder', N'LastErrorCode') IS NULL
         ALTER TABLE [calendar].[Reminder] ADD [LastErrorCode] varchar(64) NULL;
+END
+GO
+
+/* Keep constraints in a later batch so the newly added columns are visible
+   during SQL Server compilation while retaining the surrounding transaction. */
+IF OBJECT_ID(N'[calendar].[Reminder]', N'U') IS NOT NULL
+BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.check_constraints WHERE [name] = N'CK_Reminder_DispatchAttempts_R2')
         ALTER TABLE [calendar].[Reminder] ADD CONSTRAINT [CK_Reminder_DispatchAttempts_R2]
             CHECK ([DispatchAttempts] >= 0 AND [DispatchAttempts] <= 8);
@@ -56,6 +64,11 @@ BEGIN
         ALTER TABLE [files].[UploadSession] ADD [AttemptLeaseUntil] datetime2(7) NULL;
     IF COL_LENGTH(N'files.UploadSession', N'StagingStorageKey') IS NULL
         ALTER TABLE [files].[UploadSession] ADD [StagingStorageKey] nvarchar(512) NULL;
+END
+GO
+
+IF OBJECT_ID(N'[files].[UploadSession]', N'U') IS NOT NULL
+BEGIN
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE [name] = N'UX_UploadSession_Attempt_R2')
         CREATE UNIQUE INDEX [UX_UploadSession_Attempt_R2]
             ON [files].[UploadSession]([OwnerId], [Id], [AttemptId])

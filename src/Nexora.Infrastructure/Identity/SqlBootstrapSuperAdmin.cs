@@ -49,6 +49,10 @@ public sealed class SqlBootstrapSuperAdmin(string connectionString) : IBootstrap
             INSERT INTO [platform].[PersonalSpace] (Id, UserId) VALUES (@owner, @user);
             INSERT INTO [identity].[UserRole] (UserId, RoleId)
                 SELECT @user, Id FROM [identity].[Role] WHERE Code IN ('User', 'SuperAdmin');
+            INSERT INTO [platform].[UserModuleGrant] ([UserId], [ModuleId], [Enabled], [CreatedAt], [UpdatedAt])
+                SELECT @user, [Id], CAST(1 AS bit), SYSUTCDATETIME(), SYSUTCDATETIME()
+                FROM [platform].[Module]
+                WHERE [State] = 'Ready' AND [SystemEnabled] = 1 AND [RegistrationEnabled] = 1;
             INSERT INTO [security].[AuditEvent] (ActorUserId, OwnerUserId, ActionKey, TargetType, TargetId, Result)
                 VALUES (@user, @user, N'identity.bootstrap.completed', N'User', @user, 'Succeeded');
             UPDATE [platform].[SecurityInvariant]

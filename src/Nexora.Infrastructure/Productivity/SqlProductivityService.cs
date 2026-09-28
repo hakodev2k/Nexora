@@ -113,11 +113,11 @@ public sealed class SqlProductivityService : IProductivityService
         var result = ReadProject(connection, transaction, actor.OwnerId, id, forUpdate: false);
         if (result is not null) InsertProjectHistory(connection, transaction, actor.OwnerId, result, null);
         WriteAudit(connection, transaction, actor, id, "productivity.project.create", traceId);
-        CompleteReceipt(connection, transaction, receipt, "ProjectCreated", 200, result is null ? null : JsonSerializer.Serialize(result));
+        CompleteReceipt(connection, transaction, receipt, "ProjectCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<ProjectRecord>.Failure("PersistenceFailure", 500, "Project could not be loaded after creation.")
-            : IdentityOperationResult<ProjectRecord>.Success(result);
+            : IdentityOperationResult<ProjectRecord>.Success(result, 201, "ProjectCreated");
     }
 
     public IdentityOperationResult<ProjectRecord> UpdateProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -433,11 +433,11 @@ public sealed class SqlProductivityService : IProductivityService
             UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
         }
         WriteAudit(connection, transaction, actor, id, "productivity.task.create", traceId);
-        CompleteReceipt(connection, transaction, receipt, "TaskCreated", 200, result is null ? null : JsonSerializer.Serialize(result));
+        CompleteReceipt(connection, transaction, receipt, "TaskCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<TaskRecord>.Failure("PersistenceFailure", 500, "Task could not be loaded after creation.")
-            : IdentityOperationResult<TaskRecord>.Success(result);
+            : IdentityOperationResult<TaskRecord>.Success(result, 201, "TaskCreated");
     }
 
     public IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null) =>
@@ -653,9 +653,11 @@ public sealed class SqlProductivityService : IProductivityService
         Add(command, "@HasCursor", SqlDbType.Bit, cursor is not null);
         Add(command, "@CursorStartAt", SqlDbType.DateTime2, (object?)position?.StartAt ?? DBNull.Value);
         Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
-        using var reader = command.ExecuteReader();
         var items = new List<EventRecord>();
-        while (reader.Read()) items.Add(ReadEvent(reader));
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read()) items.Add(ReadEvent(reader));
+        }
         transaction.Commit();
         var hasMore = items.Count > take;
         if (hasMore) items.RemoveAt(items.Count - 1);
@@ -729,11 +731,11 @@ public sealed class SqlProductivityService : IProductivityService
         insert.ExecuteNonQuery();
         WriteAudit(connection, transaction, actor, id, "calendar.event.create", traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, id, forUpdate: false);
-        CompleteReceipt(connection, transaction, receipt, "EventCreated", 200, result is null ? null : JsonSerializer.Serialize(result));
+        CompleteReceipt(connection, transaction, receipt, "EventCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
         transaction.Commit();
         return result is null
             ? IdentityOperationResult<EventRecord>.Failure("PersistenceFailure", 500, "Event could not be loaded after creation.")
-            : IdentityOperationResult<EventRecord>.Success(result);
+            : IdentityOperationResult<EventRecord>.Success(result, 201, "EventCreated");
     }
 
     public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null) =>

@@ -13,7 +13,13 @@ IF OBJECT_ID(N'[calendar].[Event]', N'U') IS NOT NULL
 BEGIN
     IF COL_LENGTH(N'calendar.Event', N'TaskId') IS NULL
         ALTER TABLE [calendar].[Event] ADD [TaskId] uniqueidentifier NULL;
+END
+GO
 
+/* TaskId is introduced in the previous batch so SQL Server can resolve it
+   while compiling the foreign key, filtered index and check constraint. */
+IF OBJECT_ID(N'[calendar].[Event]', N'U') IS NOT NULL
+BEGIN
     IF NOT EXISTS
     (
         SELECT 1

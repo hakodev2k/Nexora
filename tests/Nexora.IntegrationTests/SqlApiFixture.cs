@@ -10,7 +10,10 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.DependencyInjection;
+using Nexora.Application.Files;
 using Nexora.Application.Identity;
+using Nexora.Application.Reminders;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Local;
 using Nexora.Infrastructure.Persistence;
@@ -101,7 +104,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             ConnectionString = LocalSqlTarget.Validate(database.ConnectionString, "Development");
 
             var sourceMigrations = Path.Combine(AppContext.BaseDirectory, "migrations");
-            var stagedMigrations = Path.Combine(_runRoot, "migrations-before-m01-completion");
+            var stagedMigrations = Path.Combine(_runRoot, "migrations-before-release-completion");
             Directory.CreateDirectory(stagedMigrations);
             var stagedMigrationNames = M01MigrationManifest.RequiredFileNames
                 .Take(M01MigrationManifest.RequiredFileNames.Count - 1)
@@ -119,7 +122,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             Require(
                 !ReadinessBeforeM01Completion.Ready &&
                 string.Equals(ReadinessBeforeM01Completion.Dependencies["requiredMigrations"], "MissingRequired", StringComparison.Ordinal),
-                "A journal missing an approved M01 migration must not be ready for the M01 binary.");
+                "A journal missing an approved Release 1 migration must not be ready for the local binary.");
 
             await migrations.ApplyAsync(ConnectionString, sourceMigrations, M01MigrationManifest.RequiredFileNames);
             await migrations.ApplyAsync(ConnectionString, sourceMigrations, M01MigrationManifest.RequiredFileNames);
@@ -128,8 +131,8 @@ public sealed class SqlApiFixture : IAsyncLifetime
                 await ScalarIntAsync("SELECT COUNT(*) FROM dbo.NexoraMigration;") == expectedMigrationCount,
                 "Migration replay must not add journal rows.");
             Require(
-                await ScalarIntAsync("SELECT COUNT(*) FROM dbo.NexoraMigration WHERE [Name] LIKE '20260910_%';") == 0,
-                "The M01 runner must not journal R1 migrations.");
+                await ScalarIntAsync("SELECT COUNT(*) FROM dbo.NexoraMigration WHERE [Name] LIKE '20260910_%';") > 0,
+                "The local Release 1 runner must journal the reviewed R1 migrations.");
             ReadinessAfterM01Migration = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
             Require(
                 !ReadinessAfterM01Migration.Ready &&
@@ -193,6 +196,9 @@ public sealed class SqlApiFixture : IAsyncLifetime
             Require(await ScalarIntAsync(
                 "SELECT COUNT(*) FROM [identity].[User] WHERE [State] = 'Active' AND [EmailConfirmed] = 1 AND [VerifiedAt] IS NOT NULL;") == 1,
                 "The synthetic bootstrap must leave one active principal.");
+            Require(await ScalarIntAsync(
+                "SELECT COUNT(*) FROM [platform].[UserModuleGrant] WHERE [UserId] = (SELECT TOP (1) [Id] FROM [identity].[User]);") > 0,
+                "The synthetic bootstrap must receive the approved ready module defaults.");
 
             // Synthetic corruption models a later role-row loss. The durable
             // bootstrap completion marker must keep the bootstrap gate closed.
@@ -286,9 +292,14 @@ public sealed class SqlApiFixture : IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    public async Task<SyntheticSession> CreateActiveSessionAsync()
+    public async Task<SyntheticSession> CreateActiveSessionAsync(string role = "User")
     {
         RequireAvailable();
+        if (role is not ("User" or "Admin" or "SuperAdmin"))
+        {
+            throw new ArgumentOutOfRangeException(nameof(role));
+        }
+
         var userId = Guid.NewGuid();
         var ownerId = Guid.NewGuid();
         var sessionId = Guid.NewGuid();
@@ -310,7 +321,12 @@ public sealed class SqlApiFixture : IAsyncLifetime
             VALUES (@ownerId, @userId, 'Active', @now, @now);
 
             INSERT INTO [identity].[UserRole] ([UserId], [RoleId])
-            SELECT @userId, [Id] FROM [identity].[Role] WHERE [Code] = 'User';
+            SELECT @userId, [Id] FROM [identity].[Role] WHERE [Code] IN ('User', @role);
+
+            INSERT INTO [platform].[UserModuleGrant] ([UserId], [ModuleId], [Enabled], [CreatedAt], [UpdatedAt])
+            SELECT @userId, [Id], CAST(1 AS bit), @now, @now
+            FROM [platform].[Module]
+            WHERE [State] = 'Ready' AND [SystemEnabled] = 1 AND [RegistrationEnabled] = 1;
 
             INSERT INTO [identity].[Session]
                 ([Id], [UserId], [HandleHash], [DeviceLabel], [SecurityStamp], [CreatedAt],
@@ -323,6 +339,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             Parameter("@ownerId", SqlDbType.UniqueIdentifier, ownerId),
             Parameter("@sessionId", SqlDbType.UniqueIdentifier, sessionId),
             Parameter("@email", SqlDbType.NVarChar, email, 320),
+            Parameter("@role", SqlDbType.VarChar, role, 32),
             Parameter("@passwordHash", SqlDbType.NVarChar, "synthetic-no-login-hash", 1024),
             Parameter("@securityStamp", SqlDbType.NVarChar, securityStamp, 128),
             Parameter("@handleHash", SqlDbType.Binary, SHA256.HashData(Encoding.UTF8.GetBytes(rawSessionHandle)), 32),
@@ -331,6 +348,68 @@ public sealed class SqlApiFixture : IAsyncLifetime
             Parameter("@absoluteExpiresAt", SqlDbType.DateTime2, now.AddDays(7)));
 
         return new SyntheticSession(userId, ownerId, sessionId, rawSessionHandle);
+    }
+
+    /// <summary>
+    /// Creates a fresh synthetic session for an existing active user. This is
+    /// intentionally separate from <see cref="CreateActiveSessionAsync"/> so
+    /// tests can verify that security-stamp changes revoke old sessions before
+    /// continuing as the same user.
+    /// </summary>
+    public async Task<SyntheticSession> CreateActiveSessionForUserAsync(Guid userId)
+    {
+        RequireAvailable();
+        var ownerId = Guid.Parse(await ScalarStringAsync(
+            "SELECT CONVERT(nvarchar(36), [Id]) FROM [platform].[PersonalSpace] WHERE [UserId] = @userId AND [State] = 'Active';",
+            Parameter("@userId", SqlDbType.UniqueIdentifier, userId)));
+        Require(
+            await ScalarIntAsync(
+                "SELECT COUNT(*) FROM [identity].[User] WHERE [Id] = @userId AND [State] = 'Active' AND [IsDeleted] = 0;",
+                Parameter("@userId", SqlDbType.UniqueIdentifier, userId)) == 1,
+            "A fresh synthetic session requires one active user.");
+
+        var sessionId = Guid.NewGuid();
+        var rawSessionHandle = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        var now = DateTime.UtcNow;
+        await ExecuteAsync(
+            """
+            INSERT INTO [identity].[Session]
+                ([Id], [UserId], [HandleHash], [DeviceLabel], [SecurityStamp], [CreatedAt],
+                 [LastSeenAt], [IdleExpiresAt], [AbsoluteExpiresAt], [RecentAuthenticatedAt])
+            SELECT
+                @sessionId, [Id], @handleHash, 'Synthetic refreshed integration', [SecurityStamp], @now,
+                @now, @idleExpiresAt, @absoluteExpiresAt, @now
+            FROM [identity].[User]
+            WHERE [Id] = @userId AND [State] = 'Active' AND [IsDeleted] = 0;
+            """,
+            Parameter("@sessionId", SqlDbType.UniqueIdentifier, sessionId),
+            Parameter("@userId", SqlDbType.UniqueIdentifier, userId),
+            Parameter("@handleHash", SqlDbType.Binary, SHA256.HashData(Encoding.UTF8.GetBytes(rawSessionHandle)), 32),
+            Parameter("@now", SqlDbType.DateTime2, now),
+            Parameter("@idleExpiresAt", SqlDbType.DateTime2, now.AddHours(8)),
+            Parameter("@absoluteExpiresAt", SqlDbType.DateTime2, now.AddDays(7)));
+
+        return new SyntheticSession(userId, ownerId, sessionId, rawSessionHandle);
+    }
+
+    public async Task<HttpResponseMessage> SendAuthenticatedAsync(HttpMethod method, string path, string sessionHandle)
+    {
+        RequireAvailable();
+        var request = new HttpRequestMessage(method, path);
+        request.Headers.TryAddWithoutValidation("Cookie", "__Host-NexoraSession=" + sessionHandle);
+        return await Client.SendAsync(request);
+    }
+
+    public async Task<(int FileCleanups, ReminderDispatchResult Reminders)> ProcessPendingBackgroundWorkAsync()
+    {
+        RequireAvailable();
+        var services = _factory?.Services
+            ?? throw new InvalidOperationException("The SQL/API test host is unavailable.");
+        var fileCleanup = services.GetRequiredService<IFileCleanupService>();
+        var reminderDispatch = services.GetRequiredService<IReminderDispatchService>();
+        return (
+            await fileCleanup.ProcessPendingAsync(),
+            await reminderDispatch.DispatchDueAsync());
     }
 
     public async Task MoveProfileReceiptToCurrentNamespaceAsync(Guid userId, Guid idempotencyKey)

@@ -69,7 +69,7 @@ try
             connection,
             migrationDirectory,
             M01MigrationManifest.RequiredFileNames);
-        Console.WriteLine("Approved M01 migrations applied and checksums verified.");
+        Console.WriteLine("Approved local Release 1 migrations applied and checksums verified.");
         return 0;
     }
     if (Console.IsInputRedirected || Console.IsOutputRedirected)

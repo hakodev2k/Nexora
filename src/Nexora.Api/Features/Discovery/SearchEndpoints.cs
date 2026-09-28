@@ -13,10 +13,10 @@ public static class SearchEndpoints
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
         api.MapGet("/search", (HttpContext context, string? q, string? resourceType,
-            DateOnly? from, DateOnly? to, bool includeArchived, int? limit, ISearchService service,
+            DateOnly? from, DateOnly? to, bool? includeArchived, int? limit, ISearchService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.Search(principal, q, resourceType, from, to, includeArchived, limit),
+                principal => service.Search(principal, q, resourceType, from, to, includeArchived ?? false, limit),
                 value => new SearchPageResponse(
                     value.Query,
                     value.ResourceType,

@@ -561,7 +561,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
 
     private static IReadOnlyList<StorageCleanupClaim> ClaimStorageCleanup(SqlConnection connection)
     {
-        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        // READPAST queue leasing is valid only at read committed or repeatable
+        // read. UPDLOCK plus one UPDATE statement keeps the claim atomic.
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
         var leaseId = Guid.NewGuid();
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -569,7 +571,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             ;WITH due AS
             (
                 SELECT TOP (25) [Id]
-                FROM [files].[StorageCleanup] WITH (UPDLOCK, READPAST, ROWLOCK)
+                FROM [files].[StorageCleanup] WITH (UPDLOCK, READPAST, READCOMMITTEDLOCK, ROWLOCK)
                 WHERE [State] = 'Pending' AND [Attempts] < 8
                   AND ([NextAttemptAt] IS NULL OR [NextAttemptAt] <= SYSUTCDATETIME())
                   AND ([LeaseUntil] IS NULL OR [LeaseUntil] < SYSUTCDATETIME())
@@ -583,9 +585,11 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             INNER JOIN due ON due.[Id] = cleanupRow.[Id];
             """;
         Add(command, "@LeaseId", SqlDbType.UniqueIdentifier, leaseId);
-        using var reader = command.ExecuteReader();
         var claims = new List<StorageCleanupClaim>();
-        while (reader.Read()) claims.Add(new StorageCleanupClaim(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetGuid(3)));
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read()) claims.Add(new StorageCleanupClaim(reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetGuid(3)));
+        }
         transaction.Commit();
         return claims;
     }

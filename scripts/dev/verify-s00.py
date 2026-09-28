@@ -128,6 +128,7 @@ REQUIRED_FILES = [
     "src/Nexora.Infrastructure/Planner/SqlPlannerService.cs",
     "src/Nexora.Infrastructure/Habits/SqlHabitService.cs",
     "src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs",
+    "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
     "src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs",
     "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
     "src/Nexora.Local/Nexora.Local.csproj",
@@ -153,6 +154,7 @@ REQUIRED_FILES = [
     "database/migrations/20260911_0022_reminders_scheduling.sql",
     "database/migrations/20260911_0023_planner_habits.sql",
     "database/migrations/20260912_0024_planner_habits_owner_integrity.sql",
+    "database/migrations/20260928_0028_bootstrap_ready_module_grants.sql",
     "web/Nexora.Web/package.json",
     "web/Nexora.Web/src/App.tsx",
     "web/Nexora.Web/src/api.ts",
@@ -427,13 +429,18 @@ def main() -> int:
             fail(f"planner/habits owner-integrity migration marker missing: {marker}")
 
     migration_runner = read("src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs")
-    for marker in ("NexoraMigration", "ContentHash", "sp_getapplock", 'Directory.GetFiles(directory, "*.sql")'):
+    for marker in ("NexoraMigration", "ContentHash", "sp_getapplock", "migrationFileNames", "Path.Combine(fullDirectory, name)"):
         if marker not in migration_runner:
             fail(f"journaled migration runner marker missing: {marker}")
+    if 'Directory.GetFiles(directory, "*.sql")' in migration_runner:
+        fail("journaled migration runner must not execute every SQL file through a directory wildcard")
+    migration_manifest = read("src/Nexora.Infrastructure/Local/M01MigrationManifest.cs")
+    for migration_name in ("20260909_0001_m01_identity_platform.sql", "20260910_0020_task_calendar_projection.sql", "20260913_0025_review_hardening.sql", "20260922_0027_sanitize_session_device_labels.sql", "20260928_0028_bootstrap_ready_module_grants.sql"):
+        if migration_name not in migration_manifest:
+            fail(f"reviewed local Release 1 migration missing from the explicit manifest: {migration_name}")
     readiness = read("src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs")
-    for migration_name in ("20260911_0021_core_sharing_support_files.sql", "20260911_0022_reminders_scheduling.sql", "20260911_0023_planner_habits.sql", "20260912_0024_planner_habits_owner_integrity.sql"):
-        if migration_name not in readiness:
-            fail(f"readiness probe must require {migration_name}")
+    if "M01MigrationManifest.RequiredFileNames" not in readiness:
+        fail("readiness probe must use the explicit reviewed local Release 1 migration manifest")
     for script_name in ("scripts/dev/migrate.sh", "scripts/dev/migrate.ps1"):
         migration_script = read(script_name)
         if "Nexora.Local" not in migration_script or "migrate" not in migration_script:

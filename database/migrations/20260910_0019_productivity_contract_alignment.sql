@@ -39,7 +39,7 @@ IF EXISTS
       AND c.[max_length] > 0
       AND c.[max_length] < 40000
 )
-    ALTER TABLE [productivity].[Project] ALTER COLUMN [Description] nvarchar(20000) NULL;
+    ALTER TABLE [productivity].[Project] ALTER COLUMN [Description] nvarchar(max) NULL;
 
 IF EXISTS
 (
@@ -67,7 +67,7 @@ IF EXISTS
       AND c.[max_length] > 0
       AND c.[max_length] < 40000
 )
-    ALTER TABLE [productivity].[ProjectHistory] ALTER COLUMN [Description] nvarchar(20000) NULL;
+    ALTER TABLE [productivity].[ProjectHistory] ALTER COLUMN [Description] nvarchar(max) NULL;
 
 IF EXISTS
 (
@@ -81,7 +81,7 @@ IF EXISTS
       AND c.[max_length] > 0
       AND c.[max_length] < 40000
 )
-    ALTER TABLE [calendar].[Event] ALTER COLUMN [Description] nvarchar(20000) NULL;
+    ALTER TABLE [calendar].[Event] ALTER COLUMN [Description] nvarchar(max) NULL;
 
 COMMIT TRANSACTION;
 GO
