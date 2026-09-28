@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 import {
   BookmarkRecord,
   CalendarEventRecord,
@@ -487,8 +487,13 @@ function moduleAvailabilityMessage(reason: string | null, t: (key: string, fallb
 function Notice({ kind, children, onDismiss }: { kind: NoticeKind; children: React.ReactNode; onDismiss?: () => void }) {
   const { t } = useI18n();
   return (
-    <div className={`notice notice-${kind}`} role={kind === 'error' ? 'alert' : 'status'} aria-live="polite">
-      <span>{children}</span>
+    <div
+      className={`notice notice-${kind}`}
+      role={kind === 'error' ? 'alert' : 'status'}
+      aria-live={kind === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
+    >
+      <div className="notice-content">{children}</div>
       {onDismiss && (
         <button className="icon-button" type="button" aria-label={t('closeNotice')} onClick={onDismiss}>
           ×
@@ -512,9 +517,190 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) {
   const { t } = useI18n();
   return (
-    <button className="primary-button" type="submit" disabled={busy}>
+    <button className="primary-button" type="submit" disabled={busy} aria-busy={busy}>
       {busy ? t('processing') : children}
     </button>
+  );
+}
+
+type ActionDialogTone = 'primary' | 'danger';
+
+function ActionDialog({
+  title,
+  description,
+  confirmLabel,
+  cancelLabel = 'Hủy',
+  busyLabel = 'Đang xử lý…',
+  tone = 'danger',
+  confirmDisabled = false,
+  onConfirm,
+  onClose,
+  children
+}: {
+  title: string;
+  description: React.ReactNode;
+  confirmLabel: string;
+  cancelLabel?: string;
+  busyLabel?: string;
+  tone?: ActionDialogTone;
+  confirmDisabled?: boolean;
+  onConfirm: () => void | Promise<void>;
+  onClose: () => void;
+  children?: React.ReactNode;
+}) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const busyRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    const getFocusable = () => dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+      : [];
+    const preferredFocus = dialog?.querySelector<HTMLElement>('[data-dialog-initial-focus]');
+    (preferredFocus ?? getFocusable()[0])?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busyRef.current) {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      const focusable = getFocusable();
+      if (event.key !== 'Tab' || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    dialog?.addEventListener('keydown', onKeyDown);
+    return () => {
+      dialog?.removeEventListener('keydown', onKeyDown);
+      if (returnFocusRef.current && document.contains(returnFocusRef.current)) returnFocusRef.current.focus();
+      returnFocusRef.current = null;
+    };
+  }, []);
+
+  async function confirm() {
+    setBusy(true);
+    try {
+      await onConfirm();
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="dialog-backdrop" role="presentation">
+      <div ref={dialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId}>
+        <h2 id={titleId}>{title}</h2>
+        <p id={descriptionId} className="dialog-description">{description}</p>
+        {children}
+        <div className="dialog-actions">
+          <button className={tone === 'danger' ? 'danger-button' : 'primary-button'} type="button" onClick={() => void confirm()} disabled={busy || confirmDisabled} aria-busy={busy}>{busy ? busyLabel : confirmLabel}</button>
+          <button className="secondary-button" type="button" onClick={onClose} disabled={busy}>{cancelLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ConfirmActionButton({
+  children,
+  confirmationTitle,
+  confirmationDescription,
+  confirmLabel,
+  className = 'danger-button',
+  disabled = false,
+  onConfirm
+}: {
+  children: React.ReactNode;
+  confirmationTitle: string;
+  confirmationDescription: React.ReactNode;
+  confirmLabel: string;
+  className?: string;
+  disabled?: boolean;
+  onConfirm: () => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className={className} type="button" onClick={() => setOpen(true)} disabled={disabled} aria-haspopup="dialog" aria-expanded={open}>{children}</button>
+      {open && <ActionDialog title={confirmationTitle} description={confirmationDescription} confirmLabel={confirmLabel} onConfirm={onConfirm} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function PromptActionButton({
+  children,
+  confirmationTitle,
+  confirmationDescription,
+  inputLabel,
+  initialValue,
+  confirmLabel,
+  className = 'secondary-button',
+  disabled = false,
+  inputRequired = true,
+  onConfirm
+}: {
+  children: React.ReactNode;
+  confirmationTitle: string;
+  confirmationDescription: React.ReactNode;
+  inputLabel: string;
+  initialValue: string;
+  confirmLabel: string;
+  className?: string;
+  disabled?: boolean;
+  inputRequired?: boolean;
+  onConfirm: (value: string) => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState(initialValue);
+  const inputId = useId();
+
+  function close() {
+    setOpen(false);
+    setValue(initialValue);
+  }
+
+  return (
+    <>
+      <button className={className} type="button" onClick={() => setOpen(true)} disabled={disabled} aria-haspopup="dialog" aria-expanded={open}>{children}</button>
+      {open && (
+        <ActionDialog
+          title={confirmationTitle}
+          description={confirmationDescription}
+          confirmLabel={confirmLabel}
+          tone={className === 'danger-button' ? 'danger' : 'primary'}
+          confirmDisabled={inputRequired && !value.trim()}
+          onConfirm={() => onConfirm(value.trim())}
+          onClose={close}
+        >
+          <div className="field-group dialog-field">
+            <label htmlFor={inputId}>{inputLabel}</label>
+            <input id={inputId} value={value} onChange={(event) => setValue(event.target.value)} data-dialog-initial-focus />
+          </div>
+        </ActionDialog>
+      )}
+    </>
   );
 }
 
@@ -1009,6 +1195,7 @@ function Shell({
 }) {
   const { t } = useI18n();
   const [logoutBusy, setLogoutBusy] = useState(false);
+  const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
   const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
   const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
@@ -1037,8 +1224,19 @@ function Shell({
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Nexora navigation">
-        <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
-        <nav className="primary-nav" aria-label={t('primaryNavigation')}>
+        <div className="sidebar-heading">
+          <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
+          <button
+            className="mobile-nav-toggle"
+            type="button"
+            aria-controls="nexora-primary-navigation"
+            aria-expanded={mobileNavigationOpen}
+            onClick={() => setMobileNavigationOpen((current) => !current)}
+          >
+            {mobileNavigationOpen ? t('closeNavigation') : t('openNavigation')}
+          </button>
+        </div>
+        <nav id="nexora-primary-navigation" className={mobileNavigationOpen ? 'primary-nav mobile-open' : 'primary-nav'} aria-label={t('primaryNavigation')} onClick={() => setMobileNavigationOpen(false)}>
           <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>{t('home')}</span></button>
           {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>{t('search')}</span></button>}
           {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}>★ <span>{t('favorites')}</span></button>}
@@ -1074,7 +1272,7 @@ function Shell({
             })
           )}
         </nav>
-        <nav className="utility-nav" aria-label={t('accountSettings')}>
+        <nav className={mobileNavigationOpen ? 'utility-nav mobile-open' : 'utility-nav'} aria-label={t('accountSettings')} onClick={() => setMobileNavigationOpen(false)}>
           <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}>⚙ <span>{t('profile')}</span></button>
           <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}>▣ <span>{t('securitySessions')}</span></button>
           <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}>↪ <span>{logoutBusy ? t('loggingOut') : t('logout')}</span></button>
@@ -1211,7 +1409,6 @@ function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function revoke(link: ShareLinkRecord) {
-    if (!window.confirm('Thu hồi link này? Link cũ sẽ không được hồi sinh khi bật lại sharing.')) return;
     setBusy(link.id);
     setError(null);
     try {
@@ -1226,7 +1423,7 @@ function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
   }
 
-  return <section className="content-section" aria-labelledby="sharing-title"><div className="content-heading"><div><p className="eyebrow">FX04 / SHARING</p><h1 id="sharing-title">Read-only sharing</h1><p className="lead">Chỉ Project và Published Document có projection cố định. Token chỉ hiển thị sau khi tạo và không được lưu vào browser storage.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}{createdToken && <div className="success-panel"><h2>Link đã được tạo</h2><p>Hãy lưu token/link này ngay; server chỉ lưu hash và giao diện không giữ nó sau khi tải lại.</p><code className="secret-output">{createdToken}</code><a href={`/share/${encodeURIComponent(createdToken)}`} rel="noreferrer" referrerPolicy="no-referrer">Mở projection read-only</a></div>}<form className="form-panel" onSubmit={create} noValidate><div className="section-heading"><h2>Tạo link</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="share-resource-type">Loại resource</label><select id="share-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value as 'Project' | 'Document')}><option value="Project">Project</option><option value="Document">Document</option></select></div><div className="field-group"><label htmlFor="share-resource-id">Resource ID</label><input id="share-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID từ server" required /></div></div><div className="form-grid"><div className="field-group"><label htmlFor="share-mode">Chế độ truy cập</label><select id="share-mode" value={mode} onChange={(event) => setMode(event.target.value)}><option value="PublicLink">Public link</option><option value="AuthenticatedLink">Authenticated account</option><option value="RestrictedUsers">Restricted users</option></select></div><div className="field-group"><label htmlFor="share-expiry">Hết hạn <span className="optional">(mặc định 7 ngày)</span></label><input id="share-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={noExpiry} /><label className="checkbox-row"><input type="checkbox" checked={noExpiry} onChange={(event) => { setNoExpiry(event.target.checked); if (event.target.checked) setExpiresAt(""); }} /> Không hết hạn</label></div></div>{mode === 'RestrictedUsers' && <div className="field-group"><label htmlFor="share-audience">Verified user IDs</label><input id="share-audience" value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="UUID, UUID" required /><p className="field-help">Server sẽ kiểm tra từng user là active và đã verified.</p></div>}<SubmitButton busy={busy === 'create'}>Tạo read-only link</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Link của PersonalSpace</h2><span className="muted">{links.length} link</span></div>{loading ? <div className="loading-state" role="status">Đang tải link…</div> : links.length === 0 ? <div className="empty-state"><h3>Chưa có link</h3><p>Tạo link từ resource ID đã được server cấp.</p></div> : <div className="resource-cards">{links.map((link) => <article className="resource-card" key={link.id}><div><h3>{link.resourceType}</h3><p className="muted">{link.resourceId} · {link.mode}</p><span className={link.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{link.isActive ? 'Active' : 'Expired / invalidated'}</span></div><button className="danger-button" type="button" onClick={() => void revoke(link)} disabled={busy !== null}>Thu hồi</button></article>)}</div>}</div></section>;
+  return <section className="content-section" aria-labelledby="sharing-title"><div className="content-heading"><div><p className="eyebrow">FX04 / SHARING</p><h1 id="sharing-title">Read-only sharing</h1><p className="lead">Chỉ Project và Published Document có projection cố định. Token chỉ hiển thị sau khi tạo và không được lưu vào browser storage.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}{createdToken && <div className="success-panel"><h2>Link đã được tạo</h2><p>Hãy lưu token/link này ngay; server chỉ lưu hash và giao diện không giữ nó sau khi tải lại.</p><code className="secret-output">{createdToken}</code><a href={`/share/${encodeURIComponent(createdToken)}`} rel="noreferrer" referrerPolicy="no-referrer">Mở projection read-only</a></div>}<form className="form-panel" onSubmit={create} noValidate><div className="section-heading"><h2>Tạo link</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="share-resource-type">Loại resource</label><select id="share-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value as 'Project' | 'Document')}><option value="Project">Project</option><option value="Document">Document</option></select></div><div className="field-group"><label htmlFor="share-resource-id">Resource ID</label><input id="share-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID từ server" required /></div></div><div className="form-grid"><div className="field-group"><label htmlFor="share-mode">Chế độ truy cập</label><select id="share-mode" value={mode} onChange={(event) => setMode(event.target.value)}><option value="PublicLink">Public link</option><option value="AuthenticatedLink">Authenticated account</option><option value="RestrictedUsers">Restricted users</option></select></div><div className="field-group"><label htmlFor="share-expiry">Hết hạn <span className="optional">(mặc định 7 ngày)</span></label><input id="share-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={noExpiry} /><label className="checkbox-row"><input type="checkbox" checked={noExpiry} onChange={(event) => { setNoExpiry(event.target.checked); if (event.target.checked) setExpiresAt(""); }} /> Không hết hạn</label></div></div>{mode === 'RestrictedUsers' && <div className="field-group"><label htmlFor="share-audience">Verified user IDs</label><input id="share-audience" value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="UUID, UUID" required /><p className="field-help">Server sẽ kiểm tra từng user là active và đã verified.</p></div>}<SubmitButton busy={busy === 'create'}>Tạo read-only link</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Link của PersonalSpace</h2><span className="muted">{links.length} link</span></div>{loading ? <div className="loading-state" role="status">Đang tải link…</div> : links.length === 0 ? <div className="empty-state"><h3>Chưa có link</h3><p>Tạo link từ resource ID đã được server cấp.</p></div> : <div className="resource-cards">{links.map((link) => <article className="resource-card" key={link.id}><div><h3>{link.resourceType}</h3><p className="muted">{link.resourceId} · {link.mode}</p><span className={link.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{link.isActive ? 'Active' : 'Expired / invalidated'}</span></div><ConfirmActionButton confirmationTitle="Thu hồi link chia sẻ?" confirmationDescription="Link hiện tại sẽ ngừng hoạt động ngay. Bật chia sẻ lại sau này sẽ không khôi phục token cũ." confirmLabel="Thu hồi link" disabled={busy !== null} onConfirm={() => revoke(link)}>Thu hồi</ConfirmActionButton></article>)}</div>}</div></section>;
 }
 
 function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
@@ -1275,7 +1472,6 @@ function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function revoke(grantRecord: SupportGrantRecord) {
-    if (!window.confirm(`Thu hồi consent support cho ${grantRecord.moduleCode}?`)) return;
     setBusy(grantRecord.id);
     try {
       await revokeSupportConsent(grantRecord.id, grantRecord.etag);
@@ -1299,7 +1495,7 @@ function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     } finally { setBusy(null); }
   }
 
-  return <section className="content-section" aria-labelledby="support-title"><div className="content-heading"><div><p className="eyebrow">FX05 / SUPPORT</p><h1 id="support-title">Support access</h1><p className="lead">Bạn cấp consent cho đúng một module và có thể revoke bất kỳ lúc nào. Admin chỉ nhận session read-only scoped; không có impersonation, export hay secret reveal.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={grant} noValidate><div className="section-heading"><h2>Cấp consent</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="support-module">Module code</label><input id="support-module" value={moduleCode} onChange={(event) => setModuleCode(event.target.value.toUpperCase())} maxLength={64} required /></div><div className="field-group"><label htmlFor="support-duration">Thời hạn</label><select id="support-duration" value={durationMode} onChange={(event) => setDurationMode(event.target.value)}><option value="24Hours">24 giờ</option><option value="Custom">Tùy chỉnh</option><option value="UntilRevoked">Cho đến khi revoke</option></select></div></div>{durationMode === 'Custom' && <div className="field-group"><label htmlFor="support-expires">Hết hạn</label><input id="support-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} required /></div>}<SubmitButton busy={busy === 'grant'}>Cấp support consent</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Consent hiện tại</h2><span className="muted">{grants.length} grant</span></div>{grants.map((grantRecord) => <article className="resource-card" key={grantRecord.id}><div><h3>{grantRecord.moduleCode}</h3><p className="muted">{grantRecord.durationMode} · {grantRecord.expiresAt ? `hết hạn ${dateTime(grantRecord.expiresAt)}` : 'không tự hết hạn'}</p><span className={grantRecord.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{grantRecord.isActive ? 'Active' : 'Inactive'}</span></div><button className="danger-button" type="button" onClick={() => void revoke(grantRecord)} disabled={busy !== null || !grantRecord.isActive}>Revoke</button></article>)}</div><div className="resource-list"><div className="section-heading"><h2>Sessions</h2></div>{sessions.length === 0 ? <div className="empty-state"><p>Chưa có support session nào hiển thị.</p></div> : sessions.map((session) => <article className="resource-card" key={session.id}><div><h3>{session.mode} · {session.moduleCode}</h3><p className="muted">Target {session.targetUserId} · hết hạn {dateTime(session.expiresAt)}</p></div><button className="secondary-button" type="button" onClick={() => void end(session)} disabled={busy !== null || session.endedAt !== null}>{session.endedAt ? 'Đã kết thúc' : 'Kết thúc'}</button></article>)}</div></section>;
+  return <section className="content-section" aria-labelledby="support-title"><div className="content-heading"><div><p className="eyebrow">FX05 / SUPPORT</p><h1 id="support-title">Support access</h1><p className="lead">Bạn cấp consent cho đúng một module và có thể revoke bất kỳ lúc nào. Admin chỉ nhận session read-only scoped; không có impersonation, export hay secret reveal.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={grant} noValidate><div className="section-heading"><h2>Cấp consent</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="support-module">Module code</label><input id="support-module" value={moduleCode} onChange={(event) => setModuleCode(event.target.value.toUpperCase())} maxLength={64} required /></div><div className="field-group"><label htmlFor="support-duration">Thời hạn</label><select id="support-duration" value={durationMode} onChange={(event) => setDurationMode(event.target.value)}><option value="24Hours">24 giờ</option><option value="Custom">Tùy chỉnh</option><option value="UntilRevoked">Cho đến khi revoke</option></select></div></div>{durationMode === 'Custom' && <div className="field-group"><label htmlFor="support-expires">Hết hạn</label><input id="support-expires" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} required /></div>}<SubmitButton busy={busy === 'grant'}>Cấp support consent</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Consent hiện tại</h2><span className="muted">{grants.length} grant</span></div>{grants.map((grantRecord) => <article className="resource-card" key={grantRecord.id}><div><h3>{grantRecord.moduleCode}</h3><p className="muted">{grantRecord.durationMode} · {grantRecord.expiresAt ? `hết hạn ${dateTime(grantRecord.expiresAt)}` : 'không tự hết hạn'}</p><span className={grantRecord.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{grantRecord.isActive ? 'Active' : 'Inactive'}</span></div><ConfirmActionButton confirmationTitle={`Thu hồi consent ${grantRecord.moduleCode}?`} confirmationDescription="Admin sẽ không thể dùng support session mới cho module này cho đến khi bạn cấp lại consent." confirmLabel="Thu hồi consent" disabled={busy !== null || !grantRecord.isActive} onConfirm={() => revoke(grantRecord)}>Revoke</ConfirmActionButton></article>)}</div><div className="resource-list"><div className="section-heading"><h2>Sessions</h2></div>{sessions.length === 0 ? <div className="empty-state"><p>Chưa có support session nào hiển thị.</p></div> : sessions.map((session) => <article className="resource-card" key={session.id}><div><h3>{session.mode} · {session.moduleCode}</h3><p className="muted">Target {session.targetUserId} · hết hạn {dateTime(session.expiresAt)}</p></div><button className="secondary-button" type="button" onClick={() => void end(session)} disabled={busy !== null || session.endedAt !== null}>{session.endedAt ? 'Đã kết thúc' : 'Kết thúc'}</button></article>)}</div></section>;
 }
 
 function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
@@ -1348,8 +1544,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     } finally { setBusy(null); }
   }
 
-  async function rename(file: FileRecord) {
-    const nextName = window.prompt('Tên file mới', file.originalName);
+  async function rename(file: FileRecord, nextName: string) {
     if (!nextName || nextName.trim() === file.originalName) return;
     setBusy(file.id);
     try {
@@ -1363,7 +1558,6 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function trash(file: FileRecord) {
-    if (!window.confirm('Đưa file vào Trash? File còn reference sẽ bị server từ chối.')) return;
     setBusy(file.id);
     try {
       await trashFile(file.id, file.etag);
@@ -1375,7 +1569,37 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     } finally { setBusy(null); }
   }
 
-  return <section className="content-section" aria-labelledby="files-title"><div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload được staging và scan local trước khi attach. Storage private; mỗi download kiểm tra lại owner, lifecycle và scan state.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}<form className="form-panel" onSubmit={upload} noValidate><div className="field-group"><label htmlFor="file-upload">Chọn file</label><input id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => setSelected(event.target.files?.[0] ?? null)} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>{selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}<SubmitButton busy={busy === 'upload'}>Upload và scan</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file</span></div>{loading ? <div className="loading-state" role="status">Đang tải file…</div> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Chưa có binary nào được server đánh dấu Clean.</p></div> : <div className="resource-cards">{files.map((file) => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}<button className="secondary-button" type="button" onClick={() => void rename(file)} disabled={busy !== null || file.lifecycle === 'Purged'}>Đổi tên</button>{file.lifecycle === 'Active' && <button className="danger-button" type="button" onClick={() => void trash(file)} disabled={busy !== null}>Trash</button>}</div></article>)}</div>}</div></section>;
+  return (
+    <section className="content-section" aria-labelledby="files-title">
+      <div className="content-heading">
+        <div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload được staging và scan local trước khi attach. Storage private; mỗi download kiểm tra lại owner, lifecycle và scan state.</p></div>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+      </div>
+      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <form className="form-panel" onSubmit={upload} noValidate>
+        <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => setSelected(event.target.files?.[0] ?? null)} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>
+        {selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}
+        <SubmitButton busy={busy === 'upload'}>Upload và scan</SubmitButton>
+      </form>
+      <div className="resource-list">
+        <div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file</span></div>
+        {loading ? <div className="loading-state" role="status">Đang tải file…</div> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Chưa có binary nào được server đánh dấu Clean.</p></div> : (
+          <div className="resource-cards">
+            {files.map((file) => (
+              <article className="resource-card" key={file.id}>
+                <div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div>
+                <div className="resource-actions">
+                  {file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}
+                  <PromptActionButton confirmationTitle="Đổi tên file" confirmationDescription="Tên mới chỉ thay đổi metadata; file binary và các kiểm tra access vẫn giữ nguyên." inputLabel="Tên file" initialValue={file.originalName} confirmLabel="Lưu tên mới" disabled={busy !== null || file.lifecycle === 'Purged'} onConfirm={(nextName) => rename(file, nextName)}>Đổi tên</PromptActionButton>
+                  {file.lifecycle === 'Active' && <ConfirmActionButton confirmationTitle="Đưa file vào Trash?" confirmationDescription="File còn được tham chiếu sẽ bị server từ chối. File trong Trash sẽ không còn xuất hiện ở danh sách active." confirmLabel="Đưa vào Trash" disabled={busy !== null} onConfirm={() => trash(file)}>Trash</ConfirmActionButton>}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function browserMediaType(file: File): string {
@@ -2533,6 +2757,7 @@ function ProductivityScreen({
   const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
   const [taskReminderChanged, setTaskReminderChanged] = useState(false);
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
+  const [timeWarning, setTimeWarning] = useState<{ title: string; description: string; confirmLabel: string; retry: () => Promise<void> } | null>(null);
   const projectRequestKey = useRef<string | null>(null);
   const taskRequestKey = useRef<string | null>(null);
   const eventRequestKey = useRef<string | null>(null);
@@ -2674,18 +2899,29 @@ function ProductivityScreen({
       if (!editingProject && !taskDraft.projectId) setTaskDraft((current) => ({ ...current, projectId: saved.id }));
     } catch (requestError) {
       const apiError = asApiError(requestError);
-      if (editingProject && apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Một hoặc nhiều Task nằm ngoài khung thời gian mới. Lưu Project mà không tự dời Task?')) {
-        try {
-          const saved = await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey, true);
-          setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
-          resetProject();
-          return;
-        } catch (retryError) {
-          const retryApiError = asApiError(retryError);
-          setError(retryApiError);
-          if (retryApiError.status === 401) await onAuthLost();
-          return;
-        }
+      const currentProject = editingProject;
+      if (currentProject && apiError.code === 'ProjectTaskTimeWarning') {
+        setTimeWarning({
+          title: 'Giữ Task ngoài khung thời gian Project?',
+          description: 'Một hoặc nhiều Task sẽ nằm ngoài thời gian mới của Project. Bạn có thể lưu Project mà không tự dời các Task đó.',
+          confirmLabel: 'Lưu Project, giữ nguyên Task',
+          retry: async () => {
+            setBusy('project');
+            setError(null);
+            try {
+              const saved = await updateProject(currentProject.id, currentProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey, true);
+              setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
+              resetProject();
+            } catch (retryError) {
+              const retryApiError = asApiError(retryError);
+              setError(retryApiError);
+              if (retryApiError.status === 401) await onAuthLost();
+            } finally {
+              setBusy(null);
+            }
+          }
+        });
+        return;
       }
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
@@ -2695,7 +2931,6 @@ function ProductivityScreen({
   }
 
   async function removeProject(project: ProjectRecord) {
-    if (!window.confirm(`Đưa Project “${project.name}” và các Task vào Trash?`)) return;
     setBusy(`project:${project.id}`);
     setError(null);
     const signature = `${project.id}:${project.etag}`;
@@ -2715,10 +2950,7 @@ function ProductivityScreen({
     }
   }
 
-  async function closeProject(project: ProjectRecord, status: 'Completed' | 'Skipped') {
-    const reason = window.prompt(`Lý do chuyển Project sang ${status}:`, 'Hoàn tất theo kế hoạch');
-    if (reason === null) return;
-    if (!window.confirm(`Xác nhận ${status} Project? Sau thao tác này Project sẽ chỉ-đọc vĩnh viễn.`)) return;
+  async function closeProject(project: ProjectRecord, status: 'Completed' | 'Skipped', reason: string) {
     setBusy(`project:${project.id}`);
     setError(null);
     const signature = `${project.id}:${project.etag}:${status}:${reason.trim()}`;
@@ -2762,20 +2994,31 @@ function ProductivityScreen({
       resetTask();
     } catch (requestError) {
       const apiError = asApiError(requestError);
-      if (apiError.code === 'ProjectTaskTimeWarning' && window.confirm('Task nằm ngoài khung thời gian Project. Lưu Task mà không thay đổi Project?')) {
-        try {
-          const saved = editingTask
-             ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, taskReminderChanged)
-             : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, true);
-          setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
-          resetTask();
-          return;
-        } catch (retryError) {
-          const retryApiError = asApiError(retryError);
-          setError(retryApiError);
-          if (retryApiError.status === 401) await onAuthLost();
-          return;
-        }
+      const currentTask = editingTask;
+      if (apiError.code === 'ProjectTaskTimeWarning') {
+        setTimeWarning({
+          title: 'Giữ Task ngoài khung thời gian Project?',
+          description: 'Task này nằm ngoài thời gian của Project. Bạn có thể lưu Task mà không thay đổi thời gian Project.',
+          confirmLabel: 'Lưu Task, giữ nguyên Project',
+          retry: async () => {
+            setBusy('task');
+            setError(null);
+            try {
+              const saved = currentTask
+                ? await updateTask(currentTask.id, currentTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, taskReminderChanged)
+                : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, true);
+              setTasks((current) => currentTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
+              resetTask();
+            } catch (retryError) {
+              const retryApiError = asApiError(retryError);
+              setError(retryApiError);
+              if (retryApiError.status === 401) await onAuthLost();
+            } finally {
+              setBusy(null);
+            }
+          }
+        });
+        return;
       }
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
@@ -2785,7 +3028,6 @@ function ProductivityScreen({
   }
 
   async function removeTask(task: TaskRecord) {
-    if (!window.confirm(`Xóa Task “${task.title}”?`)) return;
     setBusy(`task:${task.id}`);
     setError(null);
     const signature = `${task.id}:${task.etag}`;
@@ -2835,7 +3077,6 @@ function ProductivityScreen({
   }
 
   async function removeEvent(item: CalendarEventRecord) {
-    if (!window.confirm(`Xóa lịch “${item.title}”?`)) return;
     setBusy(`event:${item.id}`);
     setError(null);
     const signature = `${item.id}:${item.etag}`;
@@ -2890,6 +3131,7 @@ function ProductivityScreen({
         {canCalendar && <button className={moduleCode === 'FX13' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX13'} onClick={() => navigate('module', 'FX13')}>Calendar</button>}
       </div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}{error.status === 412 && ' Hãy tải lại revision rồi áp dụng lại thay đổi.'}</Notice>}
+      {timeWarning && <ActionDialog title={timeWarning.title} description={timeWarning.description} confirmLabel={timeWarning.confirmLabel} tone="primary" onConfirm={timeWarning.retry} onClose={() => setTimeWarning(null)} />}
 
       {moduleCode === 'FX11' && canProjects && (
         <div className="resource-layout">
@@ -2901,7 +3143,7 @@ function ProductivityScreen({
             <div className="form-grid"><div className="field-group"><label htmlFor="project-priority">Ưu tiên</label><select id="project-priority" value={projectDraft.priority} onChange={(event) => setProjectDraft({ ...projectDraft, priority: event.target.value })}><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div><div className="field-group"><label htmlFor="project-tags">Tags JSON <span className="optional">(mảng)</span></label><input id="project-tags" value={projectDraft.tagsJson} onChange={(event) => setProjectDraft({ ...projectDraft, tagsJson: event.target.value })} /></div></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetProject} disabled={busy === 'project'}>Làm mới</button><SubmitButton busy={busy === 'project'}>{editingProject ? 'Lưu Project' : 'Tạo Project'}</SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Projects của bạn</h2><span className="muted">{projects.length} bản ghi</span></div>{projects.length === 0 ? <div className="empty-state"><h3>Chưa có Project</h3><p>Tạo Project đầu tiên để bắt đầu gom Task.</p></div> : <div className="resource-cards">{projects.map((project) => <article className="resource-card" key={project.id}><div><h3>{project.name}</h3><p>{project.description || 'Không có mô tả.'}</p><span className="muted">{dateTime(project.startAt)} — {dateTime(project.endAt)} · {project.priority} · {project.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginProjectEdit(project)} disabled={busy !== null || project.status === 'Completed' || project.status === 'Skipped'}>Sửa</button>{(project.status === 'NotStarted' || project.status === 'InProgress') && <><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Completed')} disabled={busy !== null}>Hoàn tất</button><button className="secondary-button" type="button" onClick={() => void closeProject(project, 'Skipped')} disabled={busy !== null}>Bỏ qua</button></>}<button className="danger-button" type="button" onClick={() => void removeProject(project)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}{projectNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Project</button>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Projects của bạn</h2><span className="muted">{projects.length} bản ghi</span></div>{projects.length === 0 ? <div className="empty-state"><h3>Chưa có Project</h3><p>Tạo Project đầu tiên để bắt đầu gom Task.</p></div> : <div className="resource-cards">{projects.map((project) => <article className="resource-card" key={project.id}><div><h3>{project.name}</h3><p>{project.description || 'Không có mô tả.'}</p><span className="muted">{dateTime(project.startAt)} — {dateTime(project.endAt)} · {project.priority} · {project.status}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginProjectEdit(project)} disabled={busy !== null || project.status === 'Completed' || project.status === 'Skipped'}>Sửa</button>{(project.status === 'NotStarted' || project.status === 'InProgress') && <><PromptActionButton confirmationTitle={`Hoàn tất Project “${project.name}”?`} confirmationDescription="Project sẽ trở thành chỉ-đọc vĩnh viễn sau khi hoàn tất. Hãy thêm lý do nếu cần cho lịch sử." inputLabel="Lý do hoàn tất" initialValue="Hoàn tất theo kế hoạch" confirmLabel="Hoàn tất Project" inputRequired={false} disabled={busy !== null} onConfirm={(reason) => closeProject(project, 'Completed', reason)}>Hoàn tất</PromptActionButton><PromptActionButton confirmationTitle={`Bỏ qua Project “${project.name}”?`} confirmationDescription="Project sẽ trở thành chỉ-đọc vĩnh viễn sau thao tác này. Hãy thêm lý do nếu cần cho lịch sử." inputLabel="Lý do bỏ qua" initialValue="Không tiếp tục thực hiện" confirmLabel="Bỏ qua Project" inputRequired={false} disabled={busy !== null} onConfirm={(reason) => closeProject(project, 'Skipped', reason)}>Bỏ qua</PromptActionButton></>}<ConfirmActionButton confirmationTitle={`Đưa Project “${project.name}” vào Trash?`} confirmationDescription="Project và các Task thuộc Project sẽ được đưa vào Trash. Hãy kiểm tra các thông tin cần giữ trước khi tiếp tục." confirmLabel="Đưa Project vào Trash" disabled={busy !== null} onConfirm={() => removeProject(project)}>Xóa</ConfirmActionButton></div></article>)}</div>}{projectNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Project</button>}</div>
         </div>
       )}
 
@@ -2918,7 +3160,7 @@ function ProductivityScreen({
             {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeTask(task)} disabled={busy !== null}>Xóa</button></div></article>)}</div>}{taskNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Task</button>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><ConfirmActionButton confirmationTitle={`Xóa Task “${task.title}”?`} confirmationDescription="Task sẽ được đưa vào Trash. Project nguồn và các Task khác vẫn giữ nguyên." confirmLabel="Đưa Task vào Trash" disabled={busy !== null} onConfirm={() => removeTask(task)}>Xóa</ConfirmActionButton></div></article>)}</div>}{taskNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Task</button>}</div>
         </div>
       )}
 
@@ -2932,7 +3174,7 @@ function ProductivityScreen({
             <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft((current) => { const nextZone = event.target.value; if (current.isAllDay || !nextZone.trim() || !current.timeZoneId.trim()) return { ...current, timeZoneId: nextZone }; const startIso = localInputToIso(current.startAt, current.timeZoneId); const endIso = localInputToIso(current.endAt, current.timeZoneId); return { ...current, timeZoneId: nextZone, startAt: startIso ? isoToLocalInput(startIso, nextZone) : current.startAt, endAt: endIso ? isoToLocalInput(endIso, nextZone) : current.endAt }; })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft((current) => event.target.checked ? { ...current, startAt: current.startAt.slice(0, 10), endAt: current.endAt.slice(0, 10), isAllDay: true } : { ...current, startAt: current.startAt ? `${current.startAt.slice(0, 10)}T00:00` : '', endAt: current.endAt ? `${addDateDays(current.endAt.slice(0, 10), 1)}T00:00` : '', isAllDay: false })} /> All-day</label><p className="field-help">Timed values preserve the instant. All-day values use date-only input, store the end boundary exclusively, and resolve both boundaries in this IANA timezone.</p></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEvent} disabled={busy === 'event'}>Làm mới</button><SubmitButton busy={busy === 'event'}>{editingEvent ? 'Lưu sự kiện' : 'Tạo sự kiện'}</SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{item.isAllDay ? allDayLabel(item) : `${dateTime(item.startAt, item.timeZoneId, profile.locale)} — ${dateTime(item.endAt, item.timeZoneId, profile.locale)}`}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void completeEvent(item)} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<button className="danger-button" type="button" onClick={() => void removeEvent(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Hủy</button></div></article>)}</div>}{eventNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm sự kiện</button>}</div>
+          <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{item.isAllDay ? allDayLabel(item) : `${dateTime(item.startAt, item.timeZoneId, profile.locale)} — ${dateTime(item.endAt, item.timeZoneId, profile.locale)}`}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void completeEvent(item)} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<ConfirmActionButton confirmationTitle={`Hủy sự kiện “${item.title}”?`} confirmationDescription="Sự kiện sẽ bị hủy và không còn xuất hiện trong lịch của bạn." confirmLabel="Hủy sự kiện" disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null} onConfirm={() => removeEvent(item)}>Hủy</ConfirmActionButton></div></article>)}</div>}{eventNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm sự kiện</button>}</div>
         </div>
       )}
     </section>
@@ -3062,7 +3304,6 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function remove() {
     if (!source?.reminder) return;
-    if (!window.confirm(`Gỡ reminder cho “${source.sourceTitle}”?`)) return;
     removeRequestKey.current ??= createIdempotencyKey();
     setBusy('remove');
     setError(null);
@@ -3104,7 +3345,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <div className="field-group"><label htmlFor="reminder-config">Kiểu reminder</label><select id="reminder-config" value={configType} onChange={(event) => { requestKey.current = null; setConfigType(event.target.value as 'None' | 'BeforeStart15m' | 'Exact'); setError(null); }} disabled={busy !== null}><option value="BeforeStart15m">15 phút trước khi bắt đầu</option><option value="Exact">Thời điểm chính xác</option><option value="None">Không lên lịch</option></select></div>
             {configType === 'Exact' && <div className="field-group"><label htmlFor="reminder-exact-at">Nhắc lúc</label><input id="reminder-exact-at" type="datetime-local" value={exactAt} onChange={(event) => { requestKey.current = null; setExactAt(event.target.value); setError(null); }} required disabled={busy !== null} /></div>}
             <div className="security-policy"><strong>Scheduling metadata</strong><span>Nguồn bắt đầu {dateTime(source.sourceStartAt)} · timezone {source.timeZoneId}. Thay đổi lifecycle/revision của nguồn sẽ được kiểm tra lại trước local delivery.</span></div>
-            <div className="form-actions"><SubmitButton busy={busy === 'save'}>{source.reminder ? 'Lưu thay đổi' : 'Đặt reminder'}</SubmitButton>{source.reminder && <button className="danger-button" type="button" onClick={() => void remove()} disabled={busy !== null}>{busy === 'remove' ? 'Đang gỡ…' : 'Gỡ reminder'}</button>}</div>
+            <div className="form-actions"><SubmitButton busy={busy === 'save'}>{source.reminder ? 'Lưu thay đổi' : 'Đặt reminder'}</SubmitButton>{source.reminder && <ConfirmActionButton confirmationTitle={`Gỡ reminder cho “${source.sourceTitle}”?`} confirmationDescription="Intent reminder và các lần delivery liên quan sẽ không còn hoạt động; Task hoặc Calendar Event nguồn vẫn được giữ nguyên." confirmLabel="Gỡ reminder" disabled={busy !== null} onConfirm={remove}>{busy === 'remove' ? 'Đang gỡ…' : 'Gỡ reminder'}</ConfirmActionButton>}</div>
           </>}
         </form>
         <div className="content-section">
@@ -3280,7 +3521,6 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function transition(item: BookmarkRecord) {
     const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
-    if (!window.confirm(`${nextStatus === 'Archived' ? 'Archive' : 'Unarchive'} bookmark “${item.title}”?`)) return;
     const key = createIdempotencyKey();
     setBusy(`transition:${item.id}`);
     setError(null);
@@ -3331,7 +3571,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị bookmark đã archive</span></label>
             <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null}>Sửa</button><button className={item.status === 'Archived' ? 'secondary-button' : 'danger-button'} type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : item.status === 'Archived' ? 'Unarchive' : 'Archive'}</button></div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
         </div>
       </div>
     </section>
@@ -3444,7 +3684,6 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function transition(item: SnippetRecord) {
     const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
-    if (!window.confirm(`${nextStatus === 'Archived' ? 'Archive' : 'Unarchive'} snippet “${item.title}”?`)) return;
     setBusy(`transition:${item.id}`);
     setError(null);
     try {
@@ -3510,7 +3749,7 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị snippet đã archive</span></label>
             <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button><button className={item.status === 'Archived' ? 'secondary-button' : 'danger-button'} type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : item.status === 'Archived' ? 'Unarchive' : 'Archive'}</button></div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive snippet “${item.title}”?`} confirmationDescription="Snippet sẽ trở thành chỉ-đọc. Version và source vẫn được lưu; bạn có thể unarchive lại sau." confirmLabel="Archive snippet" disabled={busy !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
         </div>
       </div>
     </section>
@@ -3625,7 +3864,6 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function remove(item: ReadingItemRecord) {
-    if (!window.confirm(`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later? Bookmark nguồn sẽ không bị xóa.`)) return;
     setBusy(`remove:${item.id}`);
     setError(null);
     setConflict(false);
@@ -3678,7 +3916,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <div className="section-heading"><h2>Queue của bạn</h2><span className="muted">{items.length} mục</span></div>
             <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} disabled={loading || busy !== null}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
           </div>
-          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <div className="reading-position"><label htmlFor={`reading-position-${item.id}`}>Position metadata (0–1)</label><input id={`reading-position-${item.id}`} type="number" min="0" max="1" step="0.01" value={positionDraft[item.id] ?? String(item.progress)} onChange={(event) => setPositionDraft({ ...positionDraft, [item.id]: event.target.value })} disabled={busy !== null} /><button className="secondary-button" type="button" onClick={() => void savePosition(item)} disabled={busy !== null}>{busy === `state:${item.id}` ? 'Đang lưu…' : 'Lưu vị trí'}</button></div> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || busy !== null || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || busy !== null}>Đang đọc</button>}<button className="danger-button" type="button" onClick={() => void remove(item)} disabled={busy !== null}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</button></div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <div className="reading-position"><label htmlFor={`reading-position-${item.id}`}>Position metadata (0–1)</label><input id={`reading-position-${item.id}`} type="number" min="0" max="1" step="0.01" value={positionDraft[item.id] ?? String(item.progress)} onChange={(event) => setPositionDraft({ ...positionDraft, [item.id]: event.target.value })} disabled={busy !== null} /><button className="secondary-button" type="button" onClick={() => void savePosition(item)} disabled={busy !== null}>{busy === `state:${item.id}` ? 'Đang lưu…' : 'Lưu vị trí'}</button></div> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || busy !== null || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || busy !== null}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Bookmark nguồn sẽ không bị xóa." confirmLabel="Gỡ khỏi queue" disabled={busy !== null} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div></div>}
         </div>
       </div>
     </section>
@@ -3777,7 +4015,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
   }
 
   async function remove(tag: TagRecord) {
-    if (tag.usageCount > 0 || !window.confirm(`Xóa tag “${tag.name}” khỏi namespace ${tag.namespace}?`)) return;
+    if (tag.usageCount > 0) return;
     setBusy(`remove:${tag.id}`);
     setError(null);
     setConflict(false);
@@ -3829,7 +4067,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
             <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
             <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><button className="danger-button" type="button" onClick={() => void remove(tag)} disabled={busy !== null || tag.usageCount > 0}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</button></div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><ConfirmActionButton confirmationTitle={`Xóa tag “${tag.name}”?`} confirmationDescription={`Tag sẽ bị xóa khỏi namespace ${tag.namespace}. Tag đang được resource dùng sẽ không thể xóa.`} confirmLabel="Xóa tag" disabled={busy !== null || tag.usageCount > 0} onConfirm={() => remove(tag)}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div></div>}
         </div>
       </div>
       <div className="security-policy"><strong>Boundary</strong><span>Assignment vào Project/Task/Document/Bookmark/Snippet, Collections, Templates và sharing chưa nằm trong slice; server vẫn giữ action gate riêng cho các capability đó.</span></div>
@@ -4627,7 +4865,7 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function removeCategory(category: FinanceCategoryRecord) {
-    if (category.usageCount > 0 || !window.confirm(`Xóa category “${category.title}”?`)) return;
+    if (category.usageCount > 0) return;
     setBusy(`category:${category.id}`);
     setError(null);
     try {
@@ -4726,7 +4964,7 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <div className="field-group"><label htmlFor="finance-category-title">Tên category</label><input id="finance-category-title" value={categoryTitle} maxLength={100} onChange={(event) => { setCategoryTitle(event.target.value); setError(null); }} required /><FieldError id="finance-category-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetCategory} disabled={busy === 'category'}>Làm mới</button><SubmitButton busy={busy === 'category'}>{editingCategory ? 'Lưu category' : 'Tạo category'}</SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Categories</h2><span className="muted">{categories.length} bản ghi</span></div>{categories.length === 0 ? <div className="empty-state"><h3>Chưa có category</h3><p>Tạo category trước khi ghi nhận một khoản thủ công.</p></div> : <div className="resource-cards">{categories.map((category) => <article className="resource-card" key={category.id}><div><h3>{category.title}</h3><span className="muted">{category.usageCount} record · cập nhật {dateTime(category.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginCategoryEdit(category)} disabled={busy !== null}>Sửa</button><button className="danger-button" type="button" onClick={() => void removeCategory(category)} disabled={busy !== null || category.usageCount > 0}>{category.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Categories</h2><span className="muted">{categories.length} bản ghi</span></div>{categories.length === 0 ? <div className="empty-state"><h3>Chưa có category</h3><p>Tạo category trước khi ghi nhận một khoản thủ công.</p></div> : <div className="resource-cards">{categories.map((category) => <article className="resource-card" key={category.id}><div><h3>{category.title}</h3><span className="muted">{category.usageCount} record · cập nhật {dateTime(category.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginCategoryEdit(category)} disabled={busy !== null}>Sửa</button><ConfirmActionButton confirmationTitle={`Xóa category “${category.title}”?`} confirmationDescription="Category sẽ bị xóa nếu chưa được record nào sử dụng. Các record hiện có không bị thay đổi." confirmLabel="Xóa category" disabled={busy !== null || category.usageCount > 0} onConfirm={() => removeCategory(category)}>{category.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div>}</div>
         </div>
         <div className="content-section">
           <form className="form-panel" onSubmit={saveRecord} noValidate>

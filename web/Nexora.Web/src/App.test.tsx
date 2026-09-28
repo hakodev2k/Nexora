@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { test, expect, vi } from 'vitest';
 import {
+  ConfirmActionButton,
   RegisterScreen,
   SecurityScreen,
   dateTime,
@@ -78,6 +79,40 @@ test('registration keeps one idempotency request while submit is pending', async
 
   releaseRequest?.();
   await waitFor(() => expect(onRegistered).toHaveBeenCalledTimes(1));
+});
+
+test('destructive controls require an accessible in-app confirmation before acting', async () => {
+  const user = userEvent.setup();
+  const onConfirm = vi.fn();
+
+  render(
+    <ConfirmActionButton
+      confirmationTitle="Move file to Trash?"
+      confirmationDescription="The file will no longer appear in the active list."
+      confirmLabel="Move to Trash"
+      onConfirm={onConfirm}
+    >
+      Trash
+    </ConfirmActionButton>
+  );
+
+  const trigger = screen.getByRole('button', { name: 'Trash' });
+  await user.click(trigger);
+  expect(screen.getByRole('dialog', { name: 'Move file to Trash?' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Move to Trash' })).toHaveFocus();
+  expect(onConfirm).not.toHaveBeenCalled();
+
+  await user.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
+
+  await user.click(trigger);
+  await user.click(screen.getByRole('button', { name: 'Hủy' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  await user.click(trigger);
+  await user.click(screen.getByRole('button', { name: 'Move to Trash' }));
+  await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
 });
 
 test('the HTTP boundary refreshes CSRF once and retains a single idempotency key after a pre-handler rejection', async () => {
