@@ -37,7 +37,8 @@ public sealed record ProfileResponse(
     string State,
     Guid? PersonalSpaceId,
     IReadOnlyList<ModuleProjection> Modules,
-    string Role = "User");
+    string Role = "User",
+    bool CanViewAdminAccess = false);
 
 public sealed record ModuleProjection(string Code, bool Enabled, string? UnavailableReason);
 

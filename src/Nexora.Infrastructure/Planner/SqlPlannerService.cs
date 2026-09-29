@@ -277,7 +277,12 @@ public sealed class SqlPlannerService : IPlannerService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt],
+                   pin.[PlanDate], pin.[Rank], pin.[Notes],
+                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND taskRow.[DeletedAt] IS NULL
+                                           AND projectRow.[DeletedAt] IS NULL
+                                     THEN 1 ELSE 0 END) AS [SourceAvailable],
                    pin.[UpdatedAt], pin.[RowVersion]
             FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
@@ -303,7 +308,12 @@ public sealed class SqlPlannerService : IPlannerService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt],
+                   pin.[PlanDate], pin.[Rank], pin.[Notes],
+                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND taskRow.[DeletedAt] IS NULL
+                                           AND projectRow.[DeletedAt] IS NULL
+                                     THEN 1 ELSE 0 END) AS [SourceAvailable],
                    pin.[UpdatedAt], pin.[RowVersion]
             FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
@@ -325,7 +335,12 @@ public sealed class SqlPlannerService : IPlannerService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT TOP (1) pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt],
+                   pin.[PlanDate], pin.[Rank], pin.[Notes],
+                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND taskRow.[DeletedAt] IS NULL
+                                           AND projectRow.[DeletedAt] IS NULL
+                                     THEN 1 ELSE 0 END) AS [SourceAvailable],
                    pin.[UpdatedAt], pin.[RowVersion]
             FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
@@ -347,7 +362,12 @@ public sealed class SqlPlannerService : IPlannerService
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT taskRow.[Id], taskRow.[Status], projectRow.[Status], taskRow.[DeletedAt], projectRow.[DeletedAt]
+            SELECT taskRow.[Id],
+                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
+                                           AND taskRow.[DeletedAt] IS NULL
+                                           AND projectRow.[DeletedAt] IS NULL
+                                     THEN 1 ELSE 0 END) AS [SourceAvailable]
             FROM [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
             INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
                 ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = taskRow.[OwnerId]
@@ -357,8 +377,7 @@ public sealed class SqlPlannerService : IPlannerService
         Add(command, "@TaskId", SqlDbType.UniqueIdentifier, taskId);
         using var reader = command.ExecuteReader();
         return reader.Read()
-            ? new PlannerTask(reader.GetGuid(0), PlannerPolicy.IsActiveTask(reader.GetString(1), reader.GetString(2),
-                reader.IsDBNull(3), reader.IsDBNull(4)))
+            ? new PlannerTask(reader.GetGuid(0), reader.GetBoolean(1))
             : null;
     }
 
@@ -400,8 +419,7 @@ public sealed class SqlPlannerService : IPlannerService
         reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
         ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), DateOnly.FromDateTime(reader.GetDateTime(7)),
         reader.GetDecimal(8), reader.IsDBNull(9) ? null : reader.GetString(9),
-        PlannerPolicy.IsActiveTask(reader.GetString(3), reader.GetString(10), reader.IsDBNull(11), reader.IsDBNull(12)),
-        ToOffset(reader.GetDateTime(13)), EncodeETag(reader.GetFieldValue<byte[]>(14)));
+        reader.GetBoolean(10), ToOffset(reader.GetDateTime(11)), EncodeETag(reader.GetFieldValue<byte[]>(12)));
 
     private static bool TryValidateNotes(string? value, out string? notes)
     {

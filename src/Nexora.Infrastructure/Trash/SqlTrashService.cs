@@ -69,6 +69,7 @@ public sealed class SqlTrashService : ITrashService
             if (capabilityFailure is not null) return Rollback(transaction, capabilityFailure);
             var project = items.FirstOrDefault(item => item.ResourceType == "Project");
             var tasks = items.Where(item => item.ResourceType == "Task").ToArray();
+            var files = items.Where(item => item.ResourceType == "File").ToArray();
             var restored = 0;
             var remaining = 0;
 
@@ -124,7 +125,26 @@ public sealed class SqlTrashService : ITrashService
                 }
             }
 
-            WriteAudit(connection, transaction, actor, project?.ResourceId, "trash.restore", traceId);
+            foreach (var file in files)
+            {
+                var changed = Execute(connection, transaction,
+                    "UPDATE [files].[FileObject] SET [Lifecycle] = 'Active', [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @Actor WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] = 'Trash';",
+                    ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId),
+                    ("@Id", SqlDbType.UniqueIdentifier, (object)file.ResourceId),
+                    ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId));
+                if (changed != 1)
+                {
+                    transaction.Rollback();
+                    return Failure<TrashRestoreResult>("ResourceUnavailable", 404, "File Trash item is unavailable.");
+                }
+                Execute(connection, transaction,
+                    "UPDATE [platform].[TrashItem] SET [RestoredAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RestoredAt] IS NULL AND [PurgedAt] IS NULL;",
+                    ("@Id", SqlDbType.UniqueIdentifier, (object)file.Id),
+                    ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId));
+                restored++;
+            }
+
+            WriteAudit(connection, transaction, actor, project?.ResourceId ?? items[0].ResourceId, "trash.restore", traceId);
             var restoreResult = new TrashRestoreResult(deletionBatchId, restored, remaining);
             CompleteReceipt(connection, transaction, receipt, "TrashRestored", 200, JsonSerializer.Serialize(restoreResult));
             transaction.Commit();
@@ -163,6 +183,7 @@ public sealed class SqlTrashService : ITrashService
             if (capabilityFailure is not null) return Rollback(transaction, capabilityFailure);
             var taskIds = items.Where(item => item.ResourceType == "Task").Select(item => item.ResourceId).ToArray();
             var projectIds = items.Where(item => item.ResourceType == "Project").Select(item => item.ResourceId).ToArray();
+            var fileIds = items.Where(item => item.ResourceType == "File").Select(item => item.ResourceId).Distinct().ToArray();
             var aggregateTaskIds = taskIds
                 .Concat(projectIds.SelectMany(projectId => ReadProjectTaskIds(connection, transaction, actor.OwnerId, projectId)))
                 .Distinct()
@@ -176,6 +197,17 @@ public sealed class SqlTrashService : ITrashService
             {
                 transaction.Rollback();
                 return Failure<object?>("DependencyUnavailable", 409, "A source with an independent file reference cannot be purged.");
+            }
+            if (HasFileReferences(connection, transaction, actor.OwnerId, fileIds))
+            {
+                transaction.Rollback();
+                return Failure<object?>("DependencyUnavailable", 409, "A referenced file cannot be purged.");
+            }
+            var files = ReadFilesForPurge(connection, transaction, actor.OwnerId, fileIds);
+            if (files.Count != fileIds.Length)
+            {
+                transaction.Rollback();
+                return Failure<object?>("ResourceUnavailable", 404, "File Trash item is unavailable.");
             }
             DeleteTrashItemsForTasks(connection, transaction, actor.OwnerId, aggregateTaskIds);
             foreach (var taskId in aggregateTaskIds)
@@ -200,7 +232,24 @@ public sealed class SqlTrashService : ITrashService
                 Execute(connection, transaction, "DELETE FROM [productivity].[ProjectHistory] WHERE [ProjectId] = @Id;", ("@Id", SqlDbType.UniqueIdentifier, (object)projectId));
                 Execute(connection, transaction, "DELETE FROM [productivity].[Project] WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Status] = 'Deleted';", ("@Id", SqlDbType.UniqueIdentifier, (object)projectId), ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId));
             }
-            WriteAudit(connection, transaction, actor, projectIds.FirstOrDefault(), "trash.purge", traceId);
+            foreach (var file in files)
+            {
+                QueueFileStorageCleanup(connection, transaction, actor.OwnerId, file.Id, file.StorageKey);
+                Execute(connection, transaction,
+                    "UPDATE [files].[UploadSession] SET [FileObjectId] = NULL, [UpdatedAt] = SYSUTCDATETIME() WHERE [OwnerId] = @OwnerId AND [FileObjectId] = @FileId;",
+                    ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId),
+                    ("@FileId", SqlDbType.UniqueIdentifier, (object)file.Id));
+                var deleted = Execute(connection, transaction,
+                    "DELETE FROM [files].[FileObject] WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] = 'Trash';",
+                    ("@Id", SqlDbType.UniqueIdentifier, (object)file.Id),
+                    ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId));
+                if (deleted != 1)
+                {
+                    transaction.Rollback();
+                    return Failure<object?>("ResourceUnavailable", 404, "File Trash item is unavailable.");
+                }
+            }
+            WriteAudit(connection, transaction, actor, items[0].ResourceId, "trash.purge", traceId);
             Execute(connection, transaction, "DELETE FROM [platform].[TrashItem] WHERE [OwnerId] = @OwnerId AND [DeletionBatchId] = @BatchId AND [RestoredAt] IS NULL AND [PurgedAt] IS NULL;", ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId), ("@BatchId", SqlDbType.UniqueIdentifier, (object)command.DeletionBatchId));
             CompleteReceipt(connection, transaction, receipt, "TrashPurged", 204, null);
             transaction.Commit();
@@ -247,6 +296,7 @@ public sealed class SqlTrashService : ITrashService
             {
                 "Project" => ("FX11", operation == "restore" ? "projects.project.restore" : "projects.project.purge"),
                 "Task" => ("FX12", operation == "restore" ? "tasks.task.restore" : "tasks.task.purge"),
+                "File" => ("FX07", operation == "restore" ? "files.file.restore" : "files.file.purge"),
                 _ => (string.Empty, string.Empty)
             };
             if (string.IsNullOrEmpty(module))
@@ -357,6 +407,63 @@ public sealed class SqlTrashService : ITrashService
         return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
     }
 
+    private static bool HasFileReferences(SqlConnection connection, SqlTransaction transaction,
+        Guid ownerId, IReadOnlyList<Guid> fileIds)
+    {
+        if (fileIds.Count == 0) return false;
+        var parameters = new List<(string Name, SqlDbType Type, object Value)>
+        {
+            ("@OwnerId", SqlDbType.UniqueIdentifier, ownerId)
+        };
+        var names = new List<string>(fileIds.Count);
+        for (var index = 0; index < fileIds.Count; index++)
+        {
+            var name = "@File" + index;
+            names.Add(name);
+            parameters.Add((name, SqlDbType.UniqueIdentifier, fileIds[index]));
+        }
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"SELECT CASE WHEN EXISTS (SELECT 1 FROM [files].[FileReference] WITH (UPDLOCK, HOLDLOCK) WHERE [OwnerId] = @OwnerId AND [FileObjectId] IN ({string.Join(',', names)})) THEN 1 ELSE 0 END;";
+        foreach (var parameter in parameters) Add(command, parameter.Name, parameter.Type, parameter.Value);
+        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
+    }
+
+    private static IReadOnlyList<FilePurgeCandidate> ReadFilesForPurge(SqlConnection connection,
+        SqlTransaction transaction, Guid ownerId, IReadOnlyList<Guid> fileIds)
+    {
+        if (fileIds.Count == 0) return Array.Empty<FilePurgeCandidate>();
+        var files = new List<FilePurgeCandidate>(fileIds.Count);
+        foreach (var fileId in fileIds)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText = "SELECT [Id], [StorageKey] FROM [files].[FileObject] WITH (UPDLOCK, ROWLOCK) WHERE [OwnerId] = @OwnerId AND [Id] = @Id AND [Lifecycle] = 'Trash';";
+            Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+            Add(command, "@Id", SqlDbType.UniqueIdentifier, fileId);
+            using var reader = command.ExecuteReader();
+            if (reader.Read()) files.Add(new FilePurgeCandidate(reader.GetGuid(0), reader.GetString(1)));
+        }
+        return files;
+    }
+
+    private static void QueueFileStorageCleanup(SqlConnection connection, SqlTransaction transaction,
+        Guid ownerId, Guid fileId, string storageKey)
+    {
+        using var existing = connection.CreateCommand();
+        existing.Transaction = transaction;
+        existing.CommandText = "SELECT TOP (1) 1 FROM [files].[StorageCleanup] WITH (UPDLOCK, HOLDLOCK) WHERE [OwnerId] = @OwnerId AND [StorageKey] = @StorageKey;";
+        Add(existing, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
+        Add(existing, "@StorageKey", SqlDbType.NVarChar, storageKey);
+        if (existing.ExecuteScalar() is not null) return;
+
+        Execute(connection, transaction, "INSERT INTO [files].[StorageCleanup] ([Id], [OwnerId], [FileObjectId], [StorageKey], [State], [LastErrorCode]) VALUES (@Id, @OwnerId, @FileId, @StorageKey, 'Pending', 'FilePurged');",
+            ("@Id", SqlDbType.UniqueIdentifier, (object)Guid.NewGuid()),
+            ("@OwnerId", SqlDbType.UniqueIdentifier, (object)ownerId),
+            ("@FileId", SqlDbType.UniqueIdentifier, (object)fileId),
+            ("@StorageKey", SqlDbType.NVarChar, (object)storageKey));
+    }
+
     private static void DeleteTrashItemsForTasks(SqlConnection connection, SqlTransaction transaction,
         Guid ownerId, IReadOnlyList<Guid> taskIds)
     {
@@ -454,13 +561,13 @@ public sealed class SqlTrashService : ITrashService
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'platform.TrashItem', @Target, 'Succeeded', @TraceId);",
         ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@Action", SqlDbType.NVarChar, (object)action), ("@Target", SqlDbType.UniqueIdentifier, (object?)targetId ?? DBNull.Value), ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
 
-    private static void Execute(SqlConnection connection, SqlTransaction transaction, string sql, params (string Name, SqlDbType Type, object Value)[] parameters)
+    private static int Execute(SqlConnection connection, SqlTransaction transaction, string sql, params (string Name, SqlDbType Type, object Value)[] parameters)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = sql;
         foreach (var parameter in parameters) Add(command, parameter.Name, parameter.Type, parameter.Value);
-        command.ExecuteNonQuery();
+        return command.ExecuteNonQuery();
     }
 
     private static void Add(SqlCommand command, string name, SqlDbType type, object value)
@@ -479,4 +586,6 @@ public sealed class SqlTrashService : ITrashService
     private static IdentityOperationResult<T> Failure<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
     private static IdentityOperationResult<T> PersistenceFailure<T>(SqlException exception) => Failure<T>("PersistenceUnavailable", 503, "Trash persistence is unavailable.");
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    private sealed record FilePurgeCandidate(Guid Id, string StorageKey);
 }

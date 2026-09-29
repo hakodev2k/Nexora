@@ -473,12 +473,92 @@ public sealed class SqlApiFixture : IAsyncLifetime
         return await Client.SendAsync(request);
     }
 
+    /// <summary>
+    /// Sends an authenticated, CSRF-protected non-JSON body through the same
+    /// real HTTP path as browser uploads. Keeping this beside SendJsonAsync
+    /// avoids bypassing headers or cookie handling in file lifecycle tests.
+    /// </summary>
+    public async Task<HttpResponseMessage> SendContentAsync(
+        HttpMethod method,
+        string path,
+        HttpContent content,
+        CsrfContext csrf,
+        Guid idempotencyKey,
+        string sessionHandle,
+        string? ifMatch = null,
+        string? uploadHandle = null)
+    {
+        RequireAvailable();
+        var request = new HttpRequestMessage(method, path)
+        {
+            Content = content
+        };
+        request.Headers.TryAddWithoutValidation("X-CSRF-Token", csrf.RequestToken);
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey.ToString());
+        if (!string.IsNullOrWhiteSpace(ifMatch))
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+        if (!string.IsNullOrWhiteSpace(uploadHandle))
+        {
+            request.Headers.TryAddWithoutValidation("X-Upload-Handle", uploadHandle);
+        }
+        request.Headers.TryAddWithoutValidation("Cookie", csrf.CookieHeader + "; __Host-NexoraSession=" + sessionHandle);
+        return await Client.SendAsync(request);
+    }
+
     public async Task<HttpResponseMessage> GetMeAsync(string sessionHandle)
     {
         RequireAvailable();
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/me");
         request.Headers.TryAddWithoutValidation("Cookie", "__Host-NexoraSession=" + sessionHandle);
         return await Client.SendAsync(request);
+    }
+
+    /// <summary>
+    /// Changes one synthetic user's current entitlement while preserving the
+    /// reusable, all-modules-ready baseline used by other role tests. This is
+    /// deliberately test-only setup, not an API shortcut, so authorization is
+    /// still evaluated by the real SQL capability path on the next request.
+    /// </summary>
+    public Task SetModuleEnabledAsync(Guid userId, string moduleCode, bool enabled)
+    {
+        RequireAvailable();
+        if (string.IsNullOrWhiteSpace(moduleCode) || !Regex.IsMatch(moduleCode, "^FX[0-9]{2}$", RegexOptions.CultureInvariant))
+        {
+            throw new ArgumentOutOfRangeException(nameof(moduleCode));
+        }
+
+        return ExecuteAsync(
+            """
+            UPDATE [platform].[UserModuleGrant]
+            SET [Enabled] = @enabled, [UpdatedAt] = SYSUTCDATETIME()
+            WHERE [UserId] = @userId
+              AND [ModuleId] = (SELECT [Id] FROM [platform].[Module] WHERE [Code] = @moduleCode);
+            """,
+            Parameter("@enabled", SqlDbType.Bit, enabled),
+            Parameter("@userId", SqlDbType.UniqueIdentifier, userId),
+            Parameter("@moduleCode", SqlDbType.VarChar, moduleCode, 64));
+    }
+
+    /// <summary>
+    /// Configures one module catalog state only inside the generated test
+    /// database. It is used to verify both fail-closed production defaults and
+    /// a future approved activation without changing the checked-in catalog.
+    /// </summary>
+    public Task SetModuleRuntimeAvailabilityAsync(string moduleCode, bool enabled)
+    {
+        RequireAvailable();
+        if (string.IsNullOrWhiteSpace(moduleCode) || !Regex.IsMatch(moduleCode, "^FX[0-9]{2}$", RegexOptions.CultureInvariant))
+        {
+            throw new ArgumentOutOfRangeException(nameof(moduleCode));
+        }
+
+        return ExecuteAsync(
+            "UPDATE [platform].[Module] SET [State] = @state, [SystemEnabled] = @enabled, [RegistrationEnabled] = @enabled, [PolicyRevision] = [PolicyRevision] + 1, [UpdatedAt] = SYSUTCDATETIME() WHERE [Code] = @moduleCode;",
+            Parameter("@state", SqlDbType.VarChar, enabled ? "Ready" : "Blocked", 32),
+            Parameter("@enabled", SqlDbType.Bit, enabled),
+            Parameter("@moduleCode", SqlDbType.VarChar, moduleCode, 64));
     }
 
     private async Task CreateDatabaseAsync(string database)

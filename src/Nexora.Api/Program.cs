@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Microsoft.Data.SqlClient;
+using Nexora.Api.Http;
 using Nexora.Api.Features.Access;
 using Nexora.Api.Features.Bookmarks;
 using Nexora.Api.Features.Dashboard;
@@ -77,6 +78,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
+    // System.Text.Json's built-in camel-case policy emits the acronym-only
+    // property ETag as "eTag". The API and web client use the conventional
+    // lower-camel wire name "etag" for every concurrency revision, including
+    // list projections that do not carry an HTTP ETag header to fall back to.
+    options.SerializerOptions.PropertyNamingPolicy = NexoraJsonNamingPolicy.Instance;
     options.SerializerOptions.UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow;
 });
 

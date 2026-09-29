@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Domain.Identity;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Persistence;
 
 namespace Nexora.Infrastructure.Identity;
@@ -45,6 +46,7 @@ public sealed class SqlIdentityService : IIdentityService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly LocalAccountMessageEnvelopeProtector _deliveryProtector;
+    private readonly SqlSelfCapability _capabilities;
     private readonly Pbkdf2PasswordHasher _passwords = new();
 
     public SqlIdentityService(
@@ -61,6 +63,7 @@ public sealed class SqlIdentityService : IIdentityService
         var receiptSecret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _receipts = new SqlRequestReceiptStore(receiptSecret);
         _deliveryProtector = deliveryProtector ?? LocalAccountMessageEnvelopeProtector.FromSecret(receiptSecret);
+        _capabilities = new SqlSelfCapability(_connections);
     }
 
     public IdentityOperationResult<IdentityAccepted> Register(RegistrationCommand command, string? idempotencyKey = null, string? traceId = null, string? anonymousSessionBinding = null)
@@ -1288,8 +1291,15 @@ OPTION (MAXRECURSION 32);"))
             }
         }
 
+        var canViewAdminAccess = row.PersonalSpaceId is not null &&
+            (string.Equals(row.Role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(row.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase)) &&
+            _capabilities.IsAllowed(connection, transaction,
+                new IdentityPrincipal(row.Id, row.PersonalSpaceId.Value, row.Role, UtcNow()),
+                "FX02", "access.user.read");
+
         return new IdentityProfile(row.Id, row.Email, row.DisplayName, row.TimeZoneId, row.Locale,
-            row.State, row.PersonalSpaceId, modules, row.Role);
+            row.State, row.PersonalSpaceId, modules, row.Role, canViewAdminAccess);
     }
 
     private static byte[] LoadRowVersion(SqlConnection connection, SqlTransaction transaction, Guid userId)

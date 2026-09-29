@@ -29,6 +29,7 @@ button {
 }
 
 button:focus-visible,
+a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
@@ -632,6 +633,15 @@ a.danger-button {
   padding: 0.5rem 0.7rem;
   text-align: left;
   width: 100%;
+}
+
+.nav-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 1.1rem;
+  font-size: 1rem;
+  justify-content: center;
+  line-height: 1;
 }
 
 .nav-item:hover:not(:disabled),

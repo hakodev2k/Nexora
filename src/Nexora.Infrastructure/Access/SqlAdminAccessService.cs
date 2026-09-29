@@ -5,6 +5,7 @@ using Microsoft.Data.SqlClient;
 using Nexora.Application.Access;
 using Nexora.Application.Identity;
 using Nexora.Domain.Access;
+using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -19,11 +20,13 @@ public sealed class SqlAdminAccessService : IAdminAccessService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
+    private readonly SqlSelfCapability _capabilities;
 
     public SqlAdminAccessService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        _capabilities = new SqlSelfCapability(_connections);
     }
 
     public IdentityOperationResult<AdminUserPage> ListUsers(IdentityPrincipal actor, string? query = null, int? limit = null)
@@ -297,7 +300,9 @@ public sealed class SqlAdminAccessService : IAdminAccessService
     }
 
     private bool Can(IdentityPrincipal actor, string actionKey) =>
-        string.Equals(actor.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+        (string.Equals(actor.Role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+         string.Equals(actor.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase)) &&
+        _capabilities.IsAllowed(actor, "FX02", actionKey);
 
     private static IdentityOperationResult<T> Denied<T>() => Failure<T>("PermissionDenied", 403, "Permission denied.");
     private static IdentityOperationResult<T> Missing<T>() => Failure<T>("ResourceUnavailable", 404, "User account unavailable.");

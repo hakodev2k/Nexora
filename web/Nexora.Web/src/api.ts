@@ -24,6 +24,7 @@ export type ProfileResponse = {
   state: string;
   personalSpaceId: string | null;
   role: string;
+  canViewAdminAccess?: boolean;
   modules: ModuleProjection[];
 };
 

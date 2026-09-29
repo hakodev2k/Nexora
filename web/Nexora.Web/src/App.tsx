@@ -163,10 +163,10 @@ import {
 } from './api';
 import { LocaleContext, useI18n } from './i18n';
 
-type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+export type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
-type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
+export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
 type DirtyLeaveContinuation = () => void;
@@ -1172,7 +1172,7 @@ function ResetPasswordScreen({
   );
 }
 
-function Shell({
+export function Shell({
   profile,
   location,
   navigate,
@@ -1210,6 +1210,7 @@ function Shell({
   const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
   const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
   const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
+  const canViewAdminAccess = profile.canViewAdminAccess === true;
   const navigableModules = profile.modules.filter((module) => hasModuleScreen(module.code) && !['FX04', 'FX05', 'FX07', 'FX15', 'FX16', 'FX17', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
@@ -1237,24 +1238,24 @@ function Shell({
           </button>
         </div>
         <nav id="nexora-primary-navigation" className={mobileNavigationOpen ? 'primary-nav mobile-open' : 'primary-nav'} aria-label={t('primaryNavigation')} onClick={() => setMobileNavigationOpen(false)}>
-          <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}>⌂ <span>{t('home')}</span></button>
-          {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}>⌕ <span>{t('search')}</span></button>}
-          {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}>★ <span>{t('favorites')}</span></button>}
-          {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}>₫ <span>{t('finance')}</span></button>}
-          {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}>🔖 <span>{t('bookmarks')}</span></button>}
-          {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}>⌘ <span>{t('snippets')}</span></button>}
-          {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}>▤ <span>{t('readLater')}</span></button>}
-          {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}># <span>{t('tags')}</span></button>}
-          {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}>⌘ <span>{t('developerTools')}</span></button>}
-          {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}>◎ <span>{t('goals')}</span></button>}
-          {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}>▤ <span>{t('planner')}</span></button>}
-          {canHabits && <button className={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'page' : undefined} onClick={() => navigate('habits')}>◌ <span>{t('habits')}</span></button>}
-          {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}>↗ <span>{t('sharing')}</span></button>}
-          {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}>◈ <span>{t('supportAccess')}</span></button>}
-          {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}>▧ <span>{t('files')}</span></button>}
-          <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}>✉ <span>{t('notifications')}</span></button>
-          <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}>▱ <span>{t('trash')}</span></button>
-          {profile.role === 'SuperAdmin' && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}>♙ <span>{t('adminAccess')}</span></button>}
+          <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}><NavItemContent icon="⌂" label={t('home')} /></button>
+          {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}><NavItemContent icon="⌕" label={t('search')} /></button>}
+          {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}><NavItemContent icon="★" label={t('favorites')} /></button>}
+          {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}><NavItemContent icon="₫" label={t('finance')} /></button>}
+          {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}><NavItemContent icon="🔖" label={t('bookmarks')} /></button>}
+          {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}><NavItemContent icon="⌘" label={t('snippets')} /></button>}
+          {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}><NavItemContent icon="▤" label={t('readLater')} /></button>}
+          {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}><NavItemContent icon="#" label={t('tags')} /></button>}
+          {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}><NavItemContent icon="⌘" label={t('developerTools')} /></button>}
+          {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}><NavItemContent icon="◎" label={t('goals')} /></button>}
+          {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}><NavItemContent icon="▤" label={t('planner')} /></button>}
+          {canHabits && <button className={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'habits' || (location.screen === 'module' && location.moduleCode === 'FX17') ? 'page' : undefined} onClick={() => navigate('habits')}><NavItemContent icon="◌" label={t('habits')} /></button>}
+          {canSharing && <button className={location.screen === 'sharing' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'sharing' ? 'page' : undefined} onClick={() => navigate('sharing')}><NavItemContent icon="↗" label={t('sharing')} /></button>}
+          {canSupport && <button className={location.screen === 'support' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'support' ? 'page' : undefined} onClick={() => navigate('support')}><NavItemContent icon="◈" label={t('supportAccess')} /></button>}
+          {canFiles && <button className={location.screen === 'files' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'files' ? 'page' : undefined} onClick={() => navigate('files')}><NavItemContent icon="▧" label={t('files')} /></button>}
+          <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}><NavItemContent icon="✉" label={t('notifications')} /></button>
+          <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}><NavItemContent icon="▱" label={t('trash')} /></button>
+          {canViewAdminAccess && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}><NavItemContent icon="♙" label={t('adminAccess')} /></button>}
           <p className="nav-section-label">{t('modules')}</p>
           {profile.modules.length === 0 ? (
             <p className="nav-empty">{t('noModules')}</p>
@@ -1273,9 +1274,9 @@ function Shell({
           )}
         </nav>
         <nav className={mobileNavigationOpen ? 'utility-nav mobile-open' : 'utility-nav'} aria-label={t('accountSettings')} onClick={() => setMobileNavigationOpen(false)}>
-          <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}>⚙ <span>{t('profile')}</span></button>
-          <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}>▣ <span>{t('securitySessions')}</span></button>
-          <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}>↪ <span>{logoutBusy ? t('loggingOut') : t('logout')}</span></button>
+          <button className={location.screen === 'profile' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'profile' ? 'page' : undefined} onClick={() => navigate('profile')}><NavItemContent icon="⚙" label={t('profile')} /></button>
+          <button className={location.screen === 'security' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'security' ? 'page' : undefined} onClick={() => navigate('security')}><NavItemContent icon="▣" label={t('securitySessions')} /></button>
+          <button className="nav-item logout-item" type="button" onClick={signOut} disabled={logoutBusy}><NavItemContent icon="↪" label={logoutBusy ? t('loggingOut') : t('logout')} /></button>
         </nav>
       </aside>
       <div className="shell-content">
@@ -1298,14 +1299,14 @@ function Shell({
           {location.screen === 'sharing' && (canSharing ? <SharingScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX04" />)}
           {location.screen === 'support' && (canSupport ? <SupportScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX05" />)}
           {location.screen === 'files' && (canFiles ? <FilesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX07" />)}
-          {location.screen === 'admin' && <AdminAccessScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'finance' && <FinanceScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'bookmarks' && <BookmarksScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'snippets' && <SnippetsScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'readLater' && <ReadLaterScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'tags' && <OrganizationTagsScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'tools' && <DeveloperToolsScreen onAuthLost={onAuthLost} />}
-          {location.screen === 'goals' && <GoalsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'admin' && (canViewAdminAccess ? <AdminAccessScreen onAuthLost={onAuthLost} readOnly={profile.role !== 'SuperAdmin'} /> : <AdminAccessUnavailableScreen />)}
+          {location.screen === 'finance' && (canFinance ? <FinanceScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
+          {location.screen === 'bookmarks' && (canBookmarks ? <BookmarksScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX21" />)}
+          {location.screen === 'snippets' && (canSnippets ? <SnippetsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX22" />)}
+          {location.screen === 'readLater' && (canReadLater ? <ReadLaterScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX23" />)}
+          {location.screen === 'tags' && (canOrganization ? <OrganizationTagsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
+          {location.screen === 'tools' && (canToolbox ? <DeveloperToolsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX32" />)}
+          {location.screen === 'goals' && (canGoals ? <GoalsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX16" />)}
           {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
           {location.screen === 'habits' && (canHabits ? <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
           {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
@@ -1316,7 +1317,11 @@ function Shell({
   );
 }
 
-function SharedResourceScreen({ token }: { token?: string }) {
+function NavItemContent({ icon, label }: { icon: string; label: string }) {
+  return <><span className="nav-icon" aria-hidden="true">{icon}</span><span>{label}</span></>;
+}
+
+export function SharedResourceScreen({ token, onLogin }: { token?: string; onLogin?: () => void }) {
   const [resource, setResource] = useState<SharedResource | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -1348,7 +1353,7 @@ function SharedResourceScreen({ token }: { token?: string }) {
   return (
     <div className="full-page-state shared-resource-page">
       <div className="loading-mark" aria-hidden="true">N</div>
-      {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p><a className="secondary-button" href="/login" rel="noreferrer">Đăng nhập</a></> : resource?.project ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / PROJECT</p><h1>{resource.project.name}</h1><p>{resource.project.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.project.status} · {dateTime(resource.project.startAt)} – {dateTime(resource.project.endAt)}</p><h2>Tasks</h2>{resource.project.tasks.length === 0 ? <p>Project chưa có Task.</p> : <div className="table-wrap"><table><caption>Task detail được phép chia sẻ</caption><thead><tr><th scope="col">Task</th><th scope="col">Trạng thái</th><th scope="col">Due</th></tr></thead><tbody>{resource.project.tasks.map((task) => <tr key={task.id}><td><strong>{task.title}</strong>{task.description && <span className="muted">{task.description}</span>}</td><td>{task.status}{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}</td><td>{task.dueAt ? dateTime(task.dueAt) : '—'}</td></tr>)}</tbody></table></div>}<p className="field-help">Chế độ read-only: không có history, reason, reminder, private notes hoặc thao tác chỉnh sửa.</p></article> : resource?.document ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / DOCUMENT</p><h1>{resource.document.title}</h1><p className="muted">{resource.document.status} · version {resource.document.versionNumber} · cập nhật {dateTime(resource.document.updatedAt)}</p><pre className="shared-document-body">{resource.document.body}</pre><p className="field-help">Nội dung được render như text, không diễn giải HTML/script.</p></article> : <><h1>Không có nội dung</h1><p>Server không trả projection được phép.</p></>}
+      {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p>{onLogin ? <button className="secondary-button" type="button" onClick={onLogin}>Đăng nhập để kiểm tra quyền</button> : <p className="field-help">Nếu đây là link yêu cầu tài khoản, hãy đăng xuất rồi đăng nhập bằng account có quyền truy cập.</p>}</> : resource?.project ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / PROJECT</p><h1>{resource.project.name}</h1><p>{resource.project.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.project.status} · {dateTime(resource.project.startAt)} – {dateTime(resource.project.endAt)}</p><h2>Tasks</h2>{resource.project.tasks.length === 0 ? <p>Project chưa có Task.</p> : <div className="table-wrap"><table><caption>Task detail được phép chia sẻ</caption><thead><tr><th scope="col">Task</th><th scope="col">Trạng thái</th><th scope="col">Due</th></tr></thead><tbody>{resource.project.tasks.map((task) => <tr key={task.id}><td><strong>{task.title}</strong>{task.description && <span className="muted">{task.description}</span>}</td><td>{task.status}{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}</td><td>{task.dueAt ? dateTime(task.dueAt) : '—'}</td></tr>)}</tbody></table></div>}<p className="field-help">Chế độ read-only: không có history, reason, reminder, private notes hoặc thao tác chỉnh sửa.</p></article> : resource?.document ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / DOCUMENT</p><h1>{resource.document.title}</h1><p className="muted">{resource.document.status} · version {resource.document.versionNumber} · cập nhật {dateTime(resource.document.updatedAt)}</p><pre className="shared-document-body">{resource.document.body}</pre><p className="field-help">Nội dung được render như text, không diễn giải HTML/script.</p></article> : <><h1>Không có nội dung</h1><p>Server không trả projection được phép.</p></>}
     </div>
   );
 }
@@ -1501,6 +1506,7 @@ function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [files, setFiles] = useState<FileRecord[]>([]);
   const [selected, setSelected] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -1536,6 +1542,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       const session = await initiateFileUpload(selected.name, browserMediaType(selected), selected.size);
       await completeFileUpload(session, selected);
       setSelected(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
@@ -1577,7 +1584,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       </div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <form className="form-panel" onSubmit={upload} noValidate>
-        <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => setSelected(event.target.files?.[0] ?? null)} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>
+        <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input ref={fileInputRef} id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => { setSelected(event.target.files?.[0] ?? null); setError(null); }} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>
         {selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}
         <SubmitButton busy={busy === 'upload'}>Upload và scan</SubmitButton>
       </form>
@@ -1786,7 +1793,7 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     <section className="content-section" aria-labelledby="trash-title">
       <div className="content-heading"><div><p className="eyebrow">FX08 / LIFECYCLE</p><h1 id="trash-title">Trash</h1><p className="lead">Restore theo deletion batch đã ghi trong SQL. Calendar event không vào Trash; thao tác xóa Calendar là Cancel.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      {loading ? <div className="loading-state" role="status">Đang tải Trash…</div> : batches.length === 0 ? <div className="empty-state"><h2>Trash trống</h2><p>Không có Project hoặc Task đang chờ restore/purge.</p></div> : <div className="notification-list">{batches.map(([batchId, batch]) => <article className="resource-card" key={batchId}><div><h2>Batch {batchId.slice(0, 8)}</h2><p>{batch.length} item · xóa lúc {dateTime(batch[0].deletedAt)}</p><ul className="trash-members">{batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void restore(batchId)} disabled={busy !== null}>Restore batch</button><label className="purge-confirm"><span className="sr-only">Nhập PURGE để xóa vĩnh viễn batch</span><input value={confirmation[batchId] ?? ''} onChange={(event) => setConfirmation((current) => ({ ...current, [batchId]: event.target.value }))} placeholder="Nhập PURGE" autoComplete="off" /><button className="danger-button" type="button" onClick={() => void purge(batchId)} disabled={busy !== null || confirmation[batchId] !== 'PURGE'}>Purge</button></label></div></article>)}</div>}
+      {loading ? <div className="loading-state" role="status">Đang tải Trash…</div> : batches.length === 0 ? <div className="empty-state"><h2>Trash trống</h2><p>Không có resource nào đang chờ restore hoặc purge.</p></div> : <div className="notification-list">{batches.map(([batchId, batch]) => <article className="resource-card" key={batchId}><div><h2>Batch {batchId.slice(0, 8)}</h2><p>{batch.length} item · xóa lúc {dateTime(batch[0].deletedAt)}</p><ul className="trash-members">{batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void restore(batchId)} disabled={busy !== null}>Restore batch</button><div className="purge-confirm"><label htmlFor={`purge-confirm-${batchId}`} className="sr-only">Nhập PURGE để xóa vĩnh viễn batch</label><input id={`purge-confirm-${batchId}`} value={confirmation[batchId] ?? ''} onChange={(event) => setConfirmation((current) => ({ ...current, [batchId]: event.target.value }))} placeholder="Nhập PURGE" autoComplete="off" /><button className="danger-button" type="button" onClick={() => void purge(batchId)} disabled={busy !== null || confirmation[batchId] !== 'PURGE'}>Purge</button></div></div></article>)}</div>}
     </section>
   );
 }
@@ -2044,7 +2051,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   );
 }
 
-function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () => Promise<void>; readOnly?: boolean }) {
   const actionKeys = useRef<Record<string, string>>({});
   const { t } = useI18n();
   const [users, setUsers] = useState<AdminUserRecord[]>([]);
@@ -2216,6 +2223,7 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
         <button className="secondary-button" type="button" onClick={loadUsers} disabled={loading}>{t('reloadUsers')}</button>
       </div>
       {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {readOnly && <div className="security-policy" role="status"><strong>{t('adminAccessReadOnlyTitle')}</strong><span>{t('adminAccessReadOnlyDescription')}</span></div>}
       {loading ? (
         <div className="loading-state" role="status">{t('loadingUsers')}</div>
       ) : users.length === 0 ? (
@@ -2232,20 +2240,20 @@ function AdminAccessScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) 
             {!access ? <div className="empty-state"><h2>{t('selectUser')}</h2></div> : <>
               <div className="section-heading">
                 <div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div>
-                <button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>{t('disableUser')}</button>
+                {!readOnly && <button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>{t('disableUser')}</button>}
               </div>
-              <form className="form-panel" onSubmit={saveRole}>
+              {!readOnly && <form className="form-panel" onSubmit={saveRole}>
                 <div className="field-group"><label htmlFor="admin-role">{t('role')}</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div>
                 <button className="primary-button" type="submit" disabled={busy !== null}>{t('saveRole')}</button>
-              </form>
-              <form className="form-panel" onSubmit={saveGrant}>
+              </form>}
+              {!readOnly && <form className="form-panel" onSubmit={saveGrant}>
                 <div className="section-heading"><h3>{t('actionGrant')}</h3><span className="muted">{t('allowPolicy')}</span></div>
                 <div className="form-grid"><div className="field-group"><label htmlFor="admin-action">{t('actionKey')}</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">{t('effect')}</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div>
                 <button className="secondary-button" type="submit" disabled={busy !== null}>{t('updateGrant')}</button>
-              </form>
+              </form>}
               <div className="form-panel">
                 <div className="section-heading"><h3>{t('moduleGrants')}</h3><span className="muted">{t('serverRechecks')}</span></div>
-                <div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ` · ${t('systemDisabled')}`}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div>
+                <div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ` · ${t('systemDisabled')}`}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={readOnly || busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div>
               </div>
               <div className="form-panel"><h3>{t('currentActionGrants')}</h3>{access.actionGrants.length === 0 ? <p className="muted">{t('noExplicitGrants')}</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div>
             </>}
@@ -2314,11 +2322,23 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
 }
 
 function ModuleUnavailableScreen({ moduleCode }: { moduleCode: string }) {
+  const { t } = useI18n();
   return (
     <section className="content-section" aria-labelledby="module-unavailable-title">
       <p className="eyebrow">{moduleCode}</p>
-      <h1 id="module-unavailable-title">Module không khả dụng</h1>
-      <p className="lead">Server hiện không cấp module này cho PersonalSpace hoặc module đang bị disable.</p>
+      <h1 id="module-unavailable-title">{t('moduleUnavailable')}</h1>
+      <p className="lead">{t('moduleUnavailableDescription')}</p>
+    </section>
+  );
+}
+
+function AdminAccessUnavailableScreen() {
+  const { t } = useI18n();
+  return (
+    <section className="content-section" aria-labelledby="admin-access-unavailable-title">
+      <p className="eyebrow">FX02 / ACCESS CONTROL</p>
+      <h1 id="admin-access-unavailable-title">{t('adminAccessUnavailableTitle')}</h1>
+      <p className="lead">{t('adminAccessUnavailableDescription')}</p>
     </section>
   );
 }
@@ -5446,6 +5466,7 @@ export function App() {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [themeMode, setThemeMode] = useState<ThemeMode>('System');
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [sharedTokenAfterLogin, setSharedTokenAfterLogin] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: NoticeKind; text: string }>();
 
   useEffect(() => {
@@ -5492,6 +5513,11 @@ export function App() {
       if (handled) return;
     }
     commitNavigation(next, nextPath, replace);
+  }
+
+  function beginSharedLinkLogin(token: string | undefined) {
+    if (token) setSharedTokenAfterLogin(token);
+    navigate('login');
   }
 
   useEffect(() => {
@@ -5562,9 +5588,13 @@ export function App() {
 
   function authenticate(nextProfile: ProfileResponse) {
     const returnTo = safeReturnPath(locationRef.current.returnTo);
+    const sharedToken = sharedTokenAfterLogin;
+    setSharedTokenAfterLogin(null);
     setProfile(nextProfile);
     setSessionState('authenticated');
-    if (returnTo) {
+    if (sharedToken) {
+      navigate('shared', sharedToken, true);
+    } else if (returnTo) {
       const target = routeFromPath(returnTo);
       navigate('resource', target.resourceType, true, target.resourceId);
     } else {
@@ -5626,7 +5656,7 @@ export function App() {
     case 'reset':
       return <ResetPasswordScreen {...publicProps} />;
     case 'shared':
-      return <SharedResourceScreen token={location.token} />;
+      return <SharedResourceScreen token={location.token} onLogin={() => beginSharedLinkLogin(location.token)} />;
     case 'home':
     case 'profile':
     case 'security':

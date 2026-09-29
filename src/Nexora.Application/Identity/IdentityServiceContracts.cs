@@ -37,7 +37,8 @@ public sealed record IdentityProfile(
     string State,
     Guid? PersonalSpaceId,
     IReadOnlyList<IdentityModuleProjection> Modules,
-    string Role = "User");
+    string Role = "User",
+    bool CanViewAdminAccess = false);
 
 public sealed record IdentityVerification(string Status, string MessageCode, IdentityProfile Profile);
 

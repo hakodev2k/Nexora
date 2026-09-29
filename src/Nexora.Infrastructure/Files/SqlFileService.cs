@@ -59,7 +59,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             SELECT TOP (@Limit) [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle],
                    [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion]
             FROM [files].[FileObject]
-            WHERE [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged'
+            WHERE [OwnerId] = @OwnerId AND [Lifecycle] = 'Active'
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
         Add(command, "@Limit", SqlDbType.Int, take);
