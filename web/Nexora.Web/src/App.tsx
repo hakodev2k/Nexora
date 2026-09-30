@@ -5973,7 +5973,7 @@ export function App() {
   }
 
   if (sessionState === 'unavailable') {
-    return <div className="full-page-state"><div className="loading-mark" aria-hidden="true">!</div><h1>Local API chưa sẵn sàng</h1><p>{notice?.text ?? 'Không thể kết nối Nexora API.'}</p><button className="primary-button" type="button" onClick={() => window.location.reload()}>Thử lại</button></div>;
+    return <main className="full-page-state"><div className="loading-mark" aria-hidden="true">!</div><h1>Local API chưa sẵn sàng</h1><p>{notice?.text ?? 'Không thể kết nối Nexora API.'}</p><button className="primary-button" type="button" onClick={() => window.location.reload()}>Thử lại</button></main>;
   }
 
   if (sessionState === 'authenticated' && profile) {
