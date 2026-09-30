@@ -149,3 +149,11 @@ test('Files exposes a clear loading state before its empty state resolves', asyn
   release?.();
   expect(await screen.findByRole('heading', { name: 'Chưa có file' })).toBeInTheDocument();
 });
+
+test('a revoked module entry reports unavailability instead of claiming a grant', async () => {
+  renderEnabledShell({ screen: 'module', moduleCode: 'FX11' }, enabledProfile({
+    modules: [{ code: 'FX11', enabled: false, unavailableReason: 'UserGrantDisabled' }]
+  }));
+  expect(await screen.findByRole('heading', { name: 'Module unavailable' })).toBeVisible();
+  expect(screen.queryByText(/Server đã cấp module này/)).not.toBeInTheDocument();
+});

@@ -179,6 +179,8 @@ code {
 .field-group {
   display: grid;
   gap: 0.42rem;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
 fieldset.field-group {
@@ -322,6 +324,7 @@ fieldset.field-group {
   border-radius: 0.62rem;
   color: #17233b;
   min-height: 2.8rem;
+  min-width: 0;
   padding: 0.65rem 0.75rem;
   width: 100%;
 }
@@ -550,6 +553,12 @@ a.danger-button {
   white-space: pre-wrap;
 }
 
+.snippet-code code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
 .checkbox-row {
   align-items: center;
   display: inline-flex;
@@ -614,7 +623,7 @@ a.danger-button {
 }
 
 .nav-section-label {
-  color: #8290a6;
+  color: #52617a;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -666,7 +675,7 @@ a.danger-button {
 }
 
 .module-code {
-  color: #7a89a0;
+  color: #52617a;
   font-size: 0.68rem;
   font-weight: 750;
   letter-spacing: 0.04em;
@@ -751,6 +760,8 @@ a.danger-button {
 .content-section {
   display: grid;
   gap: 1.5rem;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
 .content-heading {
@@ -827,7 +838,7 @@ a.danger-button {
 }
 
 .card-label {
-  color: #7a89a0;
+  color: #52617a;
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -843,6 +854,7 @@ a.danger-button {
 .section-heading {
   align-items: baseline;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.8rem;
   justify-content: space-between;
 }
@@ -936,6 +948,7 @@ a.danger-button {
 .security-policy span {
   color: #62728b;
   font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .table-wrap,
@@ -943,7 +956,9 @@ a.danger-button {
   background: #fff;
   border: 1px solid #dbe4f0;
   border-radius: 0.9rem;
+  min-width: 0;
   overflow-x: auto;
+  position: relative;
 }
 
 table {
@@ -968,7 +983,7 @@ td {
 }
 
 th {
-  color: #697991;
+  color: #52617a;
   font-size: 0.76rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1039,6 +1054,8 @@ td .muted {
   display: flex;
   gap: 0.35rem;
   margin: 0.2rem 0 1.25rem;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
 }
 
@@ -1464,7 +1481,7 @@ progress::-moz-progress-bar {
 
 @media (max-width: 960px) {
   .resource-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .resource-form {

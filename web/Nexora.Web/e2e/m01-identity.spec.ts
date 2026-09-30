@@ -93,6 +93,36 @@ test('M01 register, local capture, verify, login, and keyboard-visible controls'
   await expect(page.getByText('PERSONAL SPACE')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true });
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  await page.goto('/search');
+  await expect(page.getByRole('heading', { name: 'Bắt đầu tìm kiếm', level: 2 })).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  await page.goto('/modules/FX22');
+  await page.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic contrast regression');
+  await page.getByLabel('Language', { exact: true }).fill('javascript');
+  await page.getByLabel('Source code / text', { exact: true }).fill('const answer = 42;');
+  await page.getByRole('button', { name: 'Tạo snippet', exact: true }).click();
+  await expect(page.locator('.snippet-code code')).toHaveText('const answer = 42;');
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+
+  await page.goto('/settings/security');
+  await expect(page.locator('table tbody tr')).toHaveCount(1);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  for (const { route, width, height } of [
+    { route: '/modules/FX24', width: 320, height: 568 },
+    { route: '/modules/FX11', width: 768, height: 1024 },
+    { route: '/modules/FX12', width: 768, height: 1024 },
+    { route: '/modules/FX13', width: 768, height: 1024 }
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.goto(route);
+    await expect(page.locator('main h1')).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
 });
 
 test('M01 password reset uses the local operator boundary and does not auto-login', async ({ page }) => {

@@ -2586,7 +2586,7 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
         </div>
         <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
       </>}
-      {!page && !loading && <div className="empty-state"><h3>Bắt đầu tìm kiếm</h3><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
+      {!page && !loading && <div className="empty-state"><h2>Bắt đầu tìm kiếm</h2><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
     </section>
   );
 }
@@ -5323,6 +5323,10 @@ function ModuleScreen({
         <button className="secondary-button" type="button" onClick={() => navigate('home')}>Về Home</button>
       </section>
     );
+  }
+
+  if (!module.enabled) {
+    return <ModuleUnavailableScreen moduleCode={module.code} />;
   }
 
   const normalizedCode = module.code.toUpperCase();
