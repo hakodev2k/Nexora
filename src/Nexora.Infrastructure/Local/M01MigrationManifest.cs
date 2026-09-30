@@ -38,6 +38,7 @@ public static class M01MigrationManifest
         "20260913_0026_identity_local_delivery.sql",
         "20260922_0027_sanitize_session_device_labels.sql",
         "20260928_0028_bootstrap_ready_module_grants.sql",
-        "20260929_0029_habit_trash_consistency.sql"
+        "20260929_0029_habit_trash_consistency.sql",
+        "20260930_0030_access_preview_action.sql"
     ];
 }

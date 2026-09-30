@@ -38,7 +38,9 @@ public sealed record IdentityProfile(
     Guid? PersonalSpaceId,
     IReadOnlyList<IdentityModuleProjection> Modules,
     string Role = "User",
-    bool CanViewAdminAccess = false);
+    bool CanViewAdminAccess = false,
+    bool CanViewModuleCatalog = false,
+    bool CanManageModulePolicy = false);
 
 public sealed record IdentityVerification(string Status, string MessageCode, IdentityProfile Profile);
 
@@ -67,7 +69,8 @@ public sealed record IdentityPrincipal(
     Guid UserId,
     Guid OwnerId,
     string Role,
-    DateTimeOffset RecentAuthenticatedAt);
+    DateTimeOffset RecentAuthenticatedAt,
+    Guid? SessionId = null);
 
 public sealed record BootstrapSuperAdminCommand(
     string Email,

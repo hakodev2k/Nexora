@@ -41,6 +41,10 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         var take = Math.Clamp(limit ?? 25, 1, 100);
         using var connection = _connections.Create();
         connection.Open();
+        if (!CanControlPlane(connection, null, actor, "modules.catalog.read"))
+        {
+            return Denied<ModulePolicyPage>();
+        }
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Code], [Name], [State], [SystemEnabled],
@@ -91,6 +95,11 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             return Denied<ModulePolicyPreview>();
         }
 
+        if (!HasRecentAuthentication(actor))
+        {
+            return RecentAuthRequired<ModulePolicyPreview>();
+        }
+
         if (change.SystemEnabled is null && change.RegistrationEnabled is null)
         {
             return IdentityOperationResult<ModulePolicyPreview>.Failure(
@@ -99,6 +108,10 @@ public sealed class SqlModulePolicyService : IModulePolicyService
 
         using var connection = _connections.Create();
         connection.Open();
+        if (!CanControlPlane(connection, null, actor, RequiredActions(change)))
+        {
+            return Denied<ModulePolicyPreview>();
+        }
         var module = ReadModule(connection, moduleId, forUpdate: false);
         if (module is null)
         {
@@ -107,10 +120,15 @@ public sealed class SqlModulePolicyService : IModulePolicyService
 
         var blockers = EvaluateBlockers(connection, module, change);
         var changes = BuildDiffs(module, change);
+        if (changes.Count == 0)
+        {
+            return IdentityOperationResult<ModulePolicyPreview>.Failure(
+                "ValidationFailed", 422, "The requested policy change does not alter the current state.");
+        }
         var expiresAt = DateTimeOffset.UtcNow.Add(PreviewTtl);
         // Bind the short-lived capability to the SuperAdmin who requested it.
         // A valid preview must never be transferable to another principal.
-        var token = SignPreview(new PreviewPayload(actor.UserId, module.Id, module.PolicyRevision, change.SystemEnabled, change.RegistrationEnabled, expiresAt));
+        var token = SignPreview(new PreviewPayload(actor.UserId, actor.SessionId, module.Id, module.PolicyRevision, change.SystemEnabled, change.RegistrationEnabled, expiresAt));
         return IdentityOperationResult<ModulePolicyPreview>.Success(
             new ModulePolicyPreview(token, expiresAt, ETag(module.PolicyRevision), changes, blockers));
     }
@@ -122,12 +140,17 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             return Denied<ModulePolicyRecord>();
         }
 
-        if (string.IsNullOrWhiteSpace(ifMatch))
+        if (!HasRecentAuthentication(actor))
+        {
+            return RecentAuthRequired<ModulePolicyRecord>();
+        }
+
+        if (!TryETag(ifMatch))
         {
             return IdentityOperationResult<ModulePolicyRecord>.Failure("PreconditionRequired", 428, "If-Match is required.");
         }
 
-        if (!TryReadPreview(command.PreviewToken, actor.UserId, out var preview) || preview.ModuleId != moduleId || preview.ExpiresAt <= DateTimeOffset.UtcNow)
+        if (!TryReadPreview(command.PreviewToken, actor, out var preview) || preview.ModuleId != moduleId || preview.ExpiresAt <= DateTimeOffset.UtcNow)
         {
             return IdentityOperationResult<ModulePolicyRecord>.Failure("PreviewStale", 409, "Module policy preview is stale.");
         }
@@ -135,6 +158,11 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(System.Data.IsolationLevel.Serializable);
+        if (!CanControlPlane(connection, transaction, actor, RequiredActions(command.Change)))
+        {
+            transaction.Rollback();
+            return Denied<ModulePolicyRecord>();
+        }
         var module = ReadModule(connection, transaction, moduleId, forUpdate: true);
         if (module is null)
         {
@@ -154,10 +182,15 @@ public sealed class SqlModulePolicyService : IModulePolicyService
                 code == "IdempotencyConflict" ? "The same Idempotency-Key was already used with a different request." : "The request was already completed or is in progress.");
         }
 
-        if (!string.Equals(ifMatch, ETag(module.PolicyRevision), StringComparison.Ordinal) ||
-            preview.PolicyRevision != module.PolicyRevision ||
-            preview.SystemEnabled != command.Change.SystemEnabled ||
+        if (preview.SystemEnabled != command.Change.SystemEnabled ||
             preview.RegistrationEnabled != command.Change.RegistrationEnabled)
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<ModulePolicyRecord>.Failure("PreviewStale", 409, "The requested changes differ from the reviewed module policy.");
+        }
+
+        if (!string.Equals(ifMatch, ETag(module.PolicyRevision), StringComparison.Ordinal) ||
+            preview.PolicyRevision != module.PolicyRevision)
         {
             transaction.Rollback();
             return IdentityOperationResult<ModulePolicyRecord>.Failure("RevisionConflict", 412, "Module policy revision changed.");
@@ -212,6 +245,39 @@ public sealed class SqlModulePolicyService : IModulePolicyService
     private static bool IsSuperAdmin(IdentityPrincipal actor) =>
         string.Equals(actor.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
 
+    private static bool HasRecentAuthentication(IdentityPrincipal actor) =>
+        actor.SessionId is not null && actor.RecentAuthenticatedAt >= DateTimeOffset.UtcNow.AddMinutes(-5);
+
+    private static IdentityOperationResult<T> RecentAuthRequired<T>() =>
+        IdentityOperationResult<T>.Failure("RecentAuthenticationRequired", 428, "Reauthenticate within five minutes before changing module policy.");
+
+    private static IReadOnlyList<string> RequiredActions(ModulePolicyChange change)
+    {
+        var actions = new List<string>();
+        if (change.SystemEnabled is true) actions.Add("modules.policy.enable");
+        if (change.SystemEnabled is false) actions.Add("modules.policy.disable");
+        if (change.RegistrationEnabled is not null) actions.Add("modules.policy.defaults");
+        return actions;
+    }
+
+    private static bool CanControlPlane(SqlConnection connection, SqlTransaction? transaction, IdentityPrincipal actor,
+        params string[] actions) =>
+        CanControlPlane(connection, transaction, actor, (IReadOnlyList<string>)actions);
+
+    private static bool CanControlPlane(SqlConnection connection, SqlTransaction? transaction, IdentityPrincipal actor,
+        IReadOnlyList<string> actions)
+    {
+        if (!IsSuperAdmin(actor) || actions.Count == 0) return false;
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        var parameters = actions.Distinct(StringComparer.Ordinal).ToArray();
+        for (var index = 0; index < parameters.Length; index++)
+            command.Parameters.Add(new SqlParameter("@Action" + index, System.Data.SqlDbType.NVarChar, 160) { Value = parameters[index] });
+        command.CommandText = $"SELECT COUNT(DISTINCT [ActionKey]) FROM [platform].[Permission] WITH (HOLDLOCK) WHERE [EffectiveStatus] = 'Resolved' AND [ActionKey] IN ({string.Join(',', parameters.Select((_, index) => "@Action" + index))});";
+        return Convert.ToInt32(command.ExecuteScalar()) == parameters.Length;
+    }
+
     private static IdentityOperationResult<T> Denied<T>() =>
         IdentityOperationResult<T>.Failure("PermissionDenied", 403, "Permission denied.");
 
@@ -234,7 +300,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         command.Transaction = transaction;
         command.CommandText = $"""
             SELECT [Id], [Code], [Name], [State], [SystemEnabled], [RegistrationEnabled], [PolicyRevision]
-            FROM [platform].[Module] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")})
+            FROM [platform].[Module] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "HOLDLOCK")})
             WHERE [Id] = @Id;
             """;
         command.Parameters.Add(new SqlParameter("@Id", System.Data.SqlDbType.UniqueIdentifier) { Value = id });
@@ -355,7 +421,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         return body + "." + Base64Url(hmac.ComputeHash(Encoding.UTF8.GetBytes(body)));
     }
 
-    private bool TryReadPreview(string token, Guid actorUserId, out PreviewPayload payload)
+    private bool TryReadPreview(string? token, IdentityPrincipal actor, out PreviewPayload payload)
     {
         payload = default!;
         var parts = token?.Split('.') ?? Array.Empty<string>();
@@ -368,7 +434,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             var actual = FromBase64Url(parts[1]);
             if (!CryptographicOperations.FixedTimeEquals(expected, actual)) return false;
             payload = JsonSerializer.Deserialize<PreviewPayload>(FromBase64Url(parts[0]))!;
-            return payload is not null && payload.ActorUserId == actorUserId;
+            return payload is not null && payload.ActorUserId == actor.UserId && payload.ActorSessionId == actor.SessionId;
         }
         catch (Exception)
         {
@@ -380,5 +446,18 @@ public sealed class SqlModulePolicyService : IModulePolicyService
     private static byte[] FromBase64Url(string value) => Convert.FromBase64String(value.Replace('-', '+').Replace('_', '/') + new string('=', (4 - value.Length % 4) % 4));
     private static string ETag(long revision) => $"\"{Convert.ToBase64String(BitConverter.GetBytes(revision))}\"";
 
-    private sealed record PreviewPayload(Guid ActorUserId, Guid ModuleId, long PolicyRevision, bool? SystemEnabled, bool? RegistrationEnabled, DateTimeOffset ExpiresAt);
+    private static bool TryETag(string? value)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(value) || !value.Trim().StartsWith('"') || !value.Trim().EndsWith('"')) return false;
+            return Convert.FromBase64String(value.Trim().Trim('"')).Length == sizeof(long);
+        }
+        catch (FormatException)
+        {
+            return false;
+        }
+    }
+
+    private sealed record PreviewPayload(Guid ActorUserId, Guid? ActorSessionId, Guid ModuleId, long PolicyRevision, bool? SystemEnabled, bool? RegistrationEnabled, DateTimeOffset ExpiresAt);
 }

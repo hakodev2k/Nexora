@@ -1083,7 +1083,11 @@ WHERE [UserId] = @userId AND [RevokedAt] IS NULL;",
 
             transaction.Commit();
             return IdentityOperationResult<IdentityPrincipal>.Success(new IdentityPrincipal(
-                auth.User.UserId, auth.User.PersonalSpaceId.Value, auth.User.Role, auth.User.RecentAuthenticatedAt ?? UtcNow()));
+                auth.User.UserId, auth.User.PersonalSpaceId.Value, auth.User.Role,
+                auth.Session!.RecentAuthenticatedAt is { } recent
+                    ? new DateTimeOffset(DateTime.SpecifyKind(recent, DateTimeKind.Utc))
+                    : DateTimeOffset.MinValue,
+                auth.Session.SessionId));
         }
         catch (SqlException exception)
         {
@@ -1291,15 +1295,21 @@ OPTION (MAXRECURSION 32);"))
             }
         }
 
-        var canViewAdminAccess = row.PersonalSpaceId is not null &&
-            (string.Equals(row.Role, "Admin", StringComparison.OrdinalIgnoreCase) ||
-             string.Equals(row.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase)) &&
-            _capabilities.IsAllowed(connection, transaction,
-                new IdentityPrincipal(row.Id, row.PersonalSpaceId.Value, row.Role, UtcNow()),
-                "FX02", "access.user.read");
+        var principal = row.PersonalSpaceId is null
+            ? null
+            : new IdentityPrincipal(row.Id, row.PersonalSpaceId.Value, row.Role, UtcNow());
+        var isSuperAdmin = principal is not null && string.Equals(row.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
+        var canViewAdminAccess = isSuperAdmin &&
+            _capabilities.IsAllowed(connection, transaction, principal!, "FX02", "access.user.read");
+        var canViewModuleCatalog = isSuperAdmin &&
+            _capabilities.IsAllowed(connection, transaction, principal!, "FX03", "modules.catalog.read");
+        var canManageModulePolicy = isSuperAdmin &&
+            _capabilities.IsAllowed(connection, transaction, principal!, "FX03",
+                "modules.policy.enable", "modules.policy.disable", "modules.policy.defaults");
 
         return new IdentityProfile(row.Id, row.Email, row.DisplayName, row.TimeZoneId, row.Locale,
-            row.State, row.PersonalSpaceId, modules, row.Role, canViewAdminAccess);
+            row.State, row.PersonalSpaceId, modules, row.Role, canViewAdminAccess,
+            canViewModuleCatalog, canManageModulePolicy);
     }
 
     private static byte[] LoadRowVersion(SqlConnection connection, SqlTransaction transaction, Guid userId)

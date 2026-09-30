@@ -125,7 +125,9 @@ public static class IdentityEndpoints
         profile.PersonalSpaceId,
         profile.Modules.Select(module => new ModuleProjection(module.Code, module.Enabled, module.UnavailableReason)).ToArray(),
         profile.Role,
-        profile.CanViewAdminAccess);
+        profile.CanViewAdminAccess,
+        profile.CanViewModuleCatalog,
+        profile.CanManageModulePolicy);
 
     private static string? IdempotencyKey(HttpContext context) =>
         context.Request.Headers["Idempotency-Key"].ToString();

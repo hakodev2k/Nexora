@@ -168,7 +168,7 @@ public sealed class SqlApiIntegrationTests
     }
 
     [Fact]
-    public async Task SuperAdmin_role_change_requires_an_explicit_admin_self_grant()
+    public async Task SuperAdmin_access_preview_binds_the_exact_change_before_role_and_permission_commit()
     {
         _fixture.RequireAvailable();
         var superAdmin = await _fixture.CreateActiveSessionAsync("SuperAdmin");
@@ -181,13 +181,25 @@ public sealed class SqlApiIntegrationTests
         var initialEtag = initialAccess.Headers.ETag?.Tag;
         Assert.False(string.IsNullOrWhiteSpace(initialEtag));
 
-        using var roleUpdate = await _fixture.SendJsonAsync(
-            HttpMethod.Put,
-            $"/api/v1/admin/users/{target.UserId}/role",
-            new { role = "Admin", ifMatch = initialEtag },
+        using var rolePreview = await _fixture.SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/admin/users/{target.UserId}/access/preview",
+            new { kind = "role", role = "Admin" },
             csrf,
             Guid.NewGuid(),
             superAdmin.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, rolePreview.StatusCode);
+        var rolePreviewToken = await ReadStringPropertyAsync(rolePreview, "previewToken");
+        Assert.False(string.IsNullOrWhiteSpace(rolePreviewToken));
+
+        using var roleUpdate = await _fixture.SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/admin/users/{target.UserId}/access/role",
+            new { kind = "role", role = "Admin", previewToken = rolePreviewToken },
+            csrf,
+            Guid.NewGuid(),
+            superAdmin.RawSessionHandle,
+            initialEtag);
         Assert.Equal(HttpStatusCode.OK, roleUpdate.StatusCode);
         var roleEtag = roleUpdate.Headers.ETag?.Tag;
         Assert.False(string.IsNullOrWhiteSpace(roleEtag));
@@ -201,13 +213,25 @@ public sealed class SqlApiIntegrationTests
             HttpMethod.Get, "/api/v1/settings/preferences", admin.RawSessionHandle);
         Assert.Equal(HttpStatusCode.Forbidden, noGrant.StatusCode);
 
-        using var grantUpdate = await _fixture.SendJsonAsync(
-            HttpMethod.Put,
-            $"/api/v1/admin/users/{target.UserId}/permissions",
-            new { actionKey = "settings.preference.read", effect = "Allow", ifMatch = roleEtag },
+        using var permissionPreview = await _fixture.SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/admin/users/{target.UserId}/access/preview",
+            new { kind = "permissions", changes = new[] { new { actionKey = "settings.preference.read", effect = "Allow" } } },
             csrf,
             Guid.NewGuid(),
             superAdmin.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, permissionPreview.StatusCode);
+        var permissionPreviewToken = await ReadStringPropertyAsync(permissionPreview, "previewToken");
+        Assert.False(string.IsNullOrWhiteSpace(permissionPreviewToken));
+
+        using var grantUpdate = await _fixture.SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/admin/users/{target.UserId}/access/permissions",
+            new { kind = "permissions", changes = new[] { new { actionKey = "settings.preference.read", effect = "Allow" } }, previewToken = permissionPreviewToken },
+            csrf,
+            Guid.NewGuid(),
+            superAdmin.RawSessionHandle,
+            roleEtag);
         Assert.Equal(HttpStatusCode.OK, grantUpdate.StatusCode);
 
         using var allowed = await _fixture.SendAuthenticatedAsync(
@@ -216,7 +240,59 @@ public sealed class SqlApiIntegrationTests
     }
 
     [Fact]
-    public async Task Admin_with_explicit_operational_read_grant_can_view_metadata_but_cannot_mutate_access()
+    public async Task Access_commit_rejects_a_preview_token_when_the_change_body_differs()
+    {
+        _fixture.RequireAvailable();
+        var superAdmin = await _fixture.CreateActiveSessionAsync("SuperAdmin");
+        var target = await _fixture.CreateActiveSessionAsync();
+        var csrf = await _fixture.GetCsrfAsync();
+
+        using var initialAccess = await _fixture.SendAuthenticatedAsync(
+            HttpMethod.Get, $"/api/v1/admin/users/{target.UserId}/access", superAdmin.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, initialAccess.StatusCode);
+        var etag = initialAccess.Headers.ETag?.Tag;
+        Assert.False(string.IsNullOrWhiteSpace(etag));
+
+        var previewChanges = new[] { new { actionKey = "access.user.read", effect = "Allow" } };
+        using var preview = await _fixture.SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/admin/users/{target.UserId}/access/preview",
+            new { kind = "permissions", changes = previewChanges },
+            csrf,
+            Guid.NewGuid(),
+            superAdmin.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, preview.StatusCode);
+        var previewToken = await ReadStringPropertyAsync(preview, "previewToken");
+        Assert.False(string.IsNullOrWhiteSpace(previewToken));
+
+        using var changedCommit = await _fixture.SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/admin/users/{target.UserId}/access/permissions",
+            new
+            {
+                kind = "permissions",
+                changes = new[] { new { actionKey = "settings.preference.read", effect = "Allow" } },
+                previewToken
+            },
+            csrf,
+            Guid.NewGuid(),
+            superAdmin.RawSessionHandle,
+            etag);
+        Assert.Equal(HttpStatusCode.Conflict, changedCommit.StatusCode);
+        await AssertProblemCodeAsync(changedCommit, "PreviewStale");
+
+        Assert.Equal(0, await _fixture.ScalarIntAsync(
+            """
+            SELECT COUNT(*)
+            FROM [platform].[AdminPermission] ap
+            INNER JOIN [platform].[Permission] p ON p.[Id] = ap.[PermissionId]
+            WHERE ap.[UserId] = @userId AND p.[ActionKey] IN ('access.user.read', 'settings.preference.read');
+            """,
+            Parameter("@userId", SqlDbType.UniqueIdentifier, target.UserId)));
+    }
+
+    [Fact]
+    public async Task Admin_cannot_read_or_change_SUPER_only_access_even_after_an_explicit_self_grant()
     {
         _fixture.RequireAvailable();
         var superAdmin = await _fixture.CreateActiveSessionAsync("SuperAdmin");
@@ -230,13 +306,25 @@ public sealed class SqlApiIntegrationTests
         var adminEtag = initialAdminAccess.Headers.ETag?.Tag;
         Assert.False(string.IsNullOrWhiteSpace(adminEtag));
 
-        using var grantRead = await _fixture.SendJsonAsync(
-            HttpMethod.Put,
-            $"/api/v1/admin/users/{admin.UserId}/permissions",
-            new { actionKey = "access.user.read", effect = "Allow", ifMatch = adminEtag },
+        using var grantReadPreview = await _fixture.SendJsonAsync(
+            HttpMethod.Post,
+            $"/api/v1/admin/users/{admin.UserId}/access/preview",
+            new { kind = "permissions", changes = new[] { new { actionKey = "access.user.read", effect = "Allow" } } },
             csrf,
             Guid.NewGuid(),
             superAdmin.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, grantReadPreview.StatusCode);
+        var grantReadPreviewToken = await ReadStringPropertyAsync(grantReadPreview, "previewToken");
+        Assert.False(string.IsNullOrWhiteSpace(grantReadPreviewToken));
+
+        using var grantRead = await _fixture.SendJsonAsync(
+            HttpMethod.Put,
+            $"/api/v1/admin/users/{admin.UserId}/access/permissions",
+            new { kind = "permissions", changes = new[] { new { actionKey = "access.user.read", effect = "Allow" } }, previewToken = grantReadPreviewToken },
+            csrf,
+            Guid.NewGuid(),
+            superAdmin.RawSessionHandle,
+            adminEtag);
         Assert.Equal(HttpStatusCode.OK, grantRead.StatusCode);
 
         using var ordinaryList = await _fixture.SendAuthenticatedAsync(
@@ -250,22 +338,20 @@ public sealed class SqlApiIntegrationTests
         var refreshedAdminSession = await _fixture.CreateActiveSessionForUserAsync(admin.UserId);
         using var adminProfile = await _fixture.GetMeAsync(refreshedAdminSession.RawSessionHandle);
         Assert.Equal(HttpStatusCode.OK, adminProfile.StatusCode);
-        Assert.True(await ReadBooleanAsync(adminProfile, "canViewAdminAccess"));
+        Assert.False(await ReadBooleanAsync(adminProfile, "canViewAdminAccess"));
 
-        using var allowedList = await _fixture.SendAuthenticatedAsync(
+        using var allowedMetadataList = await _fixture.SendAuthenticatedAsync(
             HttpMethod.Get, "/api/v1/admin/users", refreshedAdminSession.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, allowedList.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, allowedMetadataList.StatusCode);
 
-        using var allowedDetail = await _fixture.SendAuthenticatedAsync(
+        using var deniedDetail = await _fixture.SendAuthenticatedAsync(
             HttpMethod.Get, $"/api/v1/admin/users/{ordinaryUser.UserId}/access", refreshedAdminSession.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, allowedDetail.StatusCode);
-        var ordinaryEtag = allowedDetail.Headers.ETag?.Tag;
-        Assert.False(string.IsNullOrWhiteSpace(ordinaryEtag));
+        Assert.Equal(HttpStatusCode.Forbidden, deniedDetail.StatusCode);
 
         using var deniedMutation = await _fixture.SendJsonAsync(
-            HttpMethod.Put,
-            $"/api/v1/admin/users/{ordinaryUser.UserId}/role",
-            new { role = "Admin", ifMatch = ordinaryEtag },
+            HttpMethod.Post,
+            $"/api/v1/admin/users/{ordinaryUser.UserId}/access/preview",
+            new { kind = "role", role = "Admin" },
             csrf,
             Guid.NewGuid(),
             refreshedAdminSession.RawSessionHandle);

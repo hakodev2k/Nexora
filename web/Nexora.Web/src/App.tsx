@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BookmarkRecord,
   CalendarEventRecord,
@@ -15,6 +16,10 @@ import {
   FavoritePage,
   AdminUserAccess,
   AdminUserRecord,
+  AdminAccessChange,
+  AdminAccessPreview,
+  AdminModuleRecord,
+  ModulePolicyPreview,
   NotificationRecord,
   PreferenceRecord,
   ReadingItemRecord,
@@ -53,7 +58,6 @@ import {
   deleteProject,
   deleteTask,
   deleteNotifications,
-  disableAdminUser,
   getCsrf,
   getMe,
   getDashboard,
@@ -89,9 +93,14 @@ import {
   listTrash,
   purgeTrashBatch,
   restoreTrashBatch,
-  setAdminModuleGrant,
-  setAdminActionGrant,
-  setAdminUserRole,
+  commitAdminModuleGrant,
+  commitAdminActionGrant,
+  commitAdminUserRole,
+  previewAdminAccess,
+  reauthenticate,
+  listAdminModules,
+  previewModulePolicy,
+  commitModulePolicy,
   saveDocument,
   saveSnippet,
   transitionDocument,
@@ -163,7 +172,7 @@ import {
 } from './api';
 import { LocaleContext, useI18n } from './i18n';
 
-export type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+export type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
 export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
@@ -226,6 +235,8 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       return { screen: 'trash' };
     case '/admin/access':
       return { screen: 'admin' };
+    case '/admin/modules':
+      return { screen: 'adminModules' };
     case '/finance':
       return { screen: 'finance' };
     case '/bookmarks':
@@ -298,6 +309,8 @@ function pathForLocation(location: LocationState): string {
       return '/trash';
     case 'admin':
       return '/admin/access';
+    case 'adminModules':
+      return '/admin/modules';
     case 'finance':
       return '/finance';
     case 'bookmarks':
@@ -524,13 +537,44 @@ function SubmitButton({ busy, children }: { busy: boolean; children: React.React
 }
 
 type ActionDialogTone = 'primary' | 'danger';
+type ActionDialogResult = true | false | { error: React.ReactNode };
+type ActionDialogHandler = () => ActionDialogResult | Promise<ActionDialogResult>;
+
+function ModalLayer({ children, className = 'dialog-backdrop' }: { children: React.ReactNode; className?: string }) {
+  const layerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const layer = layerRef.current;
+    if (!layer) return;
+    const backgrounds = Array.from(document.body.children).filter((element) => element !== layer);
+    const previousStates = backgrounds.map((element) => ({
+      element,
+      ariaHidden: element.getAttribute('aria-hidden'),
+      inert: element.hasAttribute('inert')
+    }));
+
+    for (const { element } of previousStates) {
+      element.setAttribute('aria-hidden', 'true');
+      element.setAttribute('inert', '');
+    }
+
+    return () => {
+      for (const { element, ariaHidden, inert } of previousStates) {
+        if (ariaHidden === null) element.removeAttribute('aria-hidden'); else element.setAttribute('aria-hidden', ariaHidden);
+        if (inert) element.setAttribute('inert', ''); else element.removeAttribute('inert');
+      }
+    };
+  }, []);
+
+  return createPortal(<div ref={layerRef} className={className} role="presentation" data-modal-layer>{children}</div>, document.body);
+}
 
 function ActionDialog({
   title,
   description,
   confirmLabel,
-  cancelLabel = 'Hủy',
-  busyLabel = 'Đang xử lý…',
+  cancelLabel,
+  busyLabel,
   tone = 'danger',
   confirmDisabled = false,
   onConfirm,
@@ -544,10 +588,11 @@ function ActionDialog({
   busyLabel?: string;
   tone?: ActionDialogTone;
   confirmDisabled?: boolean;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: ActionDialogHandler;
   onClose: () => void;
   children?: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -555,6 +600,7 @@ function ActionDialog({
   const busyRef = useRef(false);
   const onCloseRef = useRef(onClose);
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     busyRef.current = busy;
@@ -570,7 +616,8 @@ function ActionDialog({
     const getFocusable = () => dialog
       ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
       : [];
-    const preferredFocus = dialog?.querySelector<HTMLElement>('[data-dialog-initial-focus]');
+    const preferredFocus = dialog?.querySelector<HTMLElement>('[data-dialog-initial-focus]')
+      ?? (tone === 'danger' ? dialog?.querySelector<HTMLElement>('[data-dialog-cancel]') : null);
     (preferredFocus ?? getFocusable()[0])?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !busyRef.current) {
@@ -600,26 +647,36 @@ function ActionDialog({
 
   async function confirm() {
     setBusy(true);
+    setActionError(null);
     try {
-      await onConfirm();
-      onClose();
+      const result = await onConfirm();
+      if (result === true) {
+        onClose();
+      } else {
+        setActionError(typeof result === 'object' && result !== null && 'error' in result
+          ? result.error
+          : 'Không thể hoàn tất thao tác. Hãy thử lại hoặc hủy để xem chi tiết lỗi.');
+      }
+    } catch (requestError) {
+      setActionError(asApiError(requestError).message);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="dialog-backdrop" role="presentation">
+    <ModalLayer>
       <div ref={dialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId}>
         <h2 id={titleId}>{title}</h2>
         <p id={descriptionId} className="dialog-description">{description}</p>
         {children}
+        {actionError && <p className="field-error dialog-error" role="alert">{actionError}</p>}
         <div className="dialog-actions">
-          <button className={tone === 'danger' ? 'danger-button' : 'primary-button'} type="button" onClick={() => void confirm()} disabled={busy || confirmDisabled} aria-busy={busy}>{busy ? busyLabel : confirmLabel}</button>
-          <button className="secondary-button" type="button" onClick={onClose} disabled={busy}>{cancelLabel}</button>
+          <button className={tone === 'danger' ? 'danger-button' : 'primary-button'} type="button" onClick={() => void confirm()} disabled={busy || confirmDisabled} aria-busy={busy}>{busy ? (busyLabel ?? t('processing')) : confirmLabel}</button>
+          <button className="secondary-button" type="button" onClick={onClose} disabled={busy} {...(tone === 'danger' ? { 'data-dialog-cancel': true } : {})}>{cancelLabel ?? t('cancel')}</button>
         </div>
       </div>
-    </div>
+    </ModalLayer>
   );
 }
 
@@ -638,7 +695,7 @@ export function ConfirmActionButton({
   confirmLabel: string;
   className?: string;
   disabled?: boolean;
-  onConfirm: () => void | Promise<void>;
+  onConfirm: () => ActionDialogResult | Promise<ActionDialogResult>;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -670,7 +727,7 @@ function PromptActionButton({
   className?: string;
   disabled?: boolean;
   inputRequired?: boolean;
-  onConfirm: (value: string) => void | Promise<void>;
+  onConfirm: (value: string) => ActionDialogResult | Promise<ActionDialogResult>;
 }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(initialValue);
@@ -1210,7 +1267,10 @@ export function Shell({
   const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
   const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
   const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
-  const canViewAdminAccess = profile.canViewAdminAccess === true;
+  const isSuperAdmin = profile.role === 'SuperAdmin';
+  const canViewAdminAccess = isSuperAdmin && profile.canViewAdminAccess === true;
+  const canViewModuleCatalog = isSuperAdmin && profile.canViewModuleCatalog === true;
+  const canManageModulePolicy = isSuperAdmin && profile.canManageModulePolicy === true;
   const navigableModules = profile.modules.filter((module) => hasModuleScreen(module.code) && !['FX04', 'FX05', 'FX07', 'FX15', 'FX16', 'FX17', 'FX25', 'FX27', 'FX21', 'FX22', 'FX23', 'FX24', 'FX32'].includes(module.code.toUpperCase()));
 
   async function signOut() {
@@ -1256,6 +1316,7 @@ export function Shell({
           <button className={location.screen === 'notifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'notifications' ? 'page' : undefined} onClick={() => navigate('notifications')}><NavItemContent icon="✉" label={t('notifications')} /></button>
           <button className={location.screen === 'trash' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'trash' ? 'page' : undefined} onClick={() => navigate('trash')}><NavItemContent icon="▱" label={t('trash')} /></button>
           {canViewAdminAccess && <button className={location.screen === 'admin' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'admin' ? 'page' : undefined} onClick={() => navigate('admin')}><NavItemContent icon="♙" label={t('adminAccess')} /></button>}
+          {canViewModuleCatalog && <button className={location.screen === 'adminModules' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'adminModules' ? 'page' : undefined} onClick={() => navigate('adminModules')}><NavItemContent icon="▦" label="Module catalog" /></button>}
           <p className="nav-section-label">{t('modules')}</p>
           {profile.modules.length === 0 ? (
             <p className="nav-empty">{t('noModules')}</p>
@@ -1300,6 +1361,7 @@ export function Shell({
           {location.screen === 'support' && (canSupport ? <SupportScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX05" />)}
           {location.screen === 'files' && (canFiles ? <FilesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX07" />)}
           {location.screen === 'admin' && (canViewAdminAccess ? <AdminAccessScreen onAuthLost={onAuthLost} readOnly={profile.role !== 'SuperAdmin'} /> : <AdminAccessUnavailableScreen />)}
+          {location.screen === 'adminModules' && (canViewModuleCatalog ? <ModulePolicyScreen onAuthLost={onAuthLost} readOnly={!canManageModulePolicy} /> : <AdminAccessUnavailableScreen />)}
           {location.screen === 'finance' && (canFinance ? <FinanceScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
           {location.screen === 'bookmarks' && (canBookmarks ? <BookmarksScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX21" />)}
           {location.screen === 'snippets' && (canSnippets ? <SnippetsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX22" />)}
@@ -1419,10 +1481,12 @@ function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     try {
       await revokeShareLink(link.id, link.etag);
       setLinks((current) => current.filter((candidate) => candidate.id !== link.id));
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -1481,10 +1545,12 @@ function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     try {
       await revokeSupportConsent(grantRecord.id, grantRecord.etag);
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally { setBusy(null); }
   }
 
@@ -1552,15 +1618,17 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function rename(file: FileRecord, nextName: string) {
-    if (!nextName || nextName.trim() === file.originalName) return;
+    if (!nextName || nextName.trim() === file.originalName) return true;
     setBusy(file.id);
     try {
       const updated = await renameFile(file.id, file.etag, nextName.trim());
       setFiles((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally { setBusy(null); }
   }
 
@@ -1569,10 +1637,12 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     try {
       await trashFile(file.id, file.etag);
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally { setBusy(null); }
   }
 
@@ -1598,7 +1668,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
                 <div className="resource-actions">
                   {file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}
                   <PromptActionButton confirmationTitle="Đổi tên file" confirmationDescription="Tên mới chỉ thay đổi metadata; file binary và các kiểm tra access vẫn giữ nguyên." inputLabel="Tên file" initialValue={file.originalName} confirmLabel="Lưu tên mới" disabled={busy !== null || file.lifecycle === 'Purged'} onConfirm={(nextName) => rename(file, nextName)}>Đổi tên</PromptActionButton>
-                  {file.lifecycle === 'Active' && <ConfirmActionButton confirmationTitle="Đưa file vào Trash?" confirmationDescription="File còn được tham chiếu sẽ bị server từ chối. File trong Trash sẽ không còn xuất hiện ở danh sách active." confirmLabel="Đưa vào Trash" disabled={busy !== null} onConfirm={() => trash(file)}>Trash</ConfirmActionButton>}
+                  {file.lifecycle === 'Active' && <ConfirmActionButton confirmationTitle={`Đưa “${file.originalName}” vào Trash?`} confirmationDescription={`File ${file.originalName} sẽ rời danh sách active. File còn được tham chiếu sẽ bị server từ chối; server revalidate trước khi commit.`} confirmLabel="Đưa vào Trash" disabled={busy !== null} onConfirm={() => trash(file)}>Trash</ConfirmActionButton>}
                 </div>
               </article>
             ))}
@@ -1683,7 +1753,7 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
   }
 
   async function removeSelected() {
-    if (selected.size === 0) return;
+    if (selected.size === 0) return { error: 'Chọn ít nhất một thông báo trước khi xóa.' };
     const signature = Array.from(selected).sort().join(',');
     if (deleteRequestRef.current?.signature !== signature) {
       deleteRequestRef.current = { signature, key: createIdempotencyKey() };
@@ -1694,10 +1764,12 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
       await deleteNotifications(Array.from(selected), deleteRequestRef.current.key);
       deleteRequestRef.current = null;
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -1711,10 +1783,12 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
     });
   }
 
+  const selectedItems = items.filter((item) => selected.has(item.id));
+
   return (
     <section className="content-section" aria-labelledby="notifications-title">
       <div className="content-heading"><div><p className="eyebrow">FX06 / INBOX</p><h1 id="notifications-title">Notifications</h1><p className="lead">Thông báo thuộc PersonalSpace hiện tại; delivery state được hiển thị đúng theo SQL projection.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
-      <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={busy !== null || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><button className="danger-button" type="button" onClick={() => void removeSelected()} disabled={busy !== null || selected.size === 0}>Xóa mục đã chọn</button></div>
+      <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={busy !== null || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><ConfirmActionButton confirmationTitle={`Xóa ${selectedItems.length} mục khỏi Inbox?`} confirmationDescription={`Các mục đã chọn (${selectedItems.map((item) => item.title).join(', ') || 'không có mục'}) sẽ bị xóa khỏi Inbox. Thao tác này không xóa audit log hoặc resource nguồn.`} confirmLabel="Xóa mục đã chọn" disabled={busy !== null || selectedItems.length === 0} onConfirm={removeSelected}>Xóa mục đã chọn</ConfirmActionButton></div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {loading ? <div className="loading-state" role="status">Đang tải thông báo…</div> : items.length === 0 ? <div className="empty-state"><h2>Inbox trống</h2><p>Không có thông báo phù hợp trong projection hiện tại.</p></div> : <div className="notification-list">{items.map((item) => <article className={item.readAt ? 'notification-card read' : 'notification-card'} key={item.id}><label className="notification-select"><input type="checkbox" checked={selected.has(item.id)} onChange={(event) => select(item.id, event.target.checked)} aria-label={`Chọn ${item.title}`} /></label><div className="notification-content"><div className="notification-heading"><h2>{item.title}</h2><span className="state-pill">{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span></div><p>{item.body}</p><span className="muted">{item.kind} · {dateTime(item.createdAt)}</span><div className="delivery-summary">{item.deliveries.map((delivery) => <span key={delivery.channel} title={delivery.lastErrorCode ?? undefined}>{delivery.channel}: {delivery.state}</span>)}</div></div><button className="secondary-button" type="button" onClick={() => void toggleRead(item)} disabled={busy !== null}>{item.readAt ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></article>)}</div>}
     </section>
@@ -1723,7 +1797,8 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
 
 function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<TrashItemRecord[]>([]);
-  const [confirmation, setConfirmation] = useState<Record<string, string>>({});
+  const [pendingAction, setPendingAction] = useState<{ kind: 'restore' | 'purge'; batchId: string; batch: TrashItemRecord[] } | null>(null);
+  const [purgeConfirmation, setPurgeConfirmation] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
@@ -1754,29 +1829,33 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       await restoreTrashBatch(batchId, requestKey);
       delete requestKeys.current[`restore:${batchId}`];
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
   }
 
-  async function purge(batchId: string) {
-    if (confirmation[batchId] !== 'PURGE') return;
+  async function purge(batchId: string, confirmation: string) {
+    if (confirmation !== 'PURGE') return { error: 'Nhập chính xác PURGE để xác nhận xóa vĩnh viễn.' };
     const requestKey = requestKeys.current[`purge:${batchId}`] ?? createIdempotencyKey();
     requestKeys.current[`purge:${batchId}`] = requestKey;
     setBusy(batchId);
     setError(null);
     try {
-      await purgeTrashBatch(batchId, confirmation[batchId], requestKey);
+      await purgeTrashBatch(batchId, confirmation, requestKey);
       delete requestKeys.current[`purge:${batchId}`];
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -1793,7 +1872,24 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     <section className="content-section" aria-labelledby="trash-title">
       <div className="content-heading"><div><p className="eyebrow">FX08 / LIFECYCLE</p><h1 id="trash-title">Trash</h1><p className="lead">Restore theo deletion batch đã ghi trong SQL. Calendar event không vào Trash; thao tác xóa Calendar là Cancel.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      {loading ? <div className="loading-state" role="status">Đang tải Trash…</div> : batches.length === 0 ? <div className="empty-state"><h2>Trash trống</h2><p>Không có resource nào đang chờ restore hoặc purge.</p></div> : <div className="notification-list">{batches.map(([batchId, batch]) => <article className="resource-card" key={batchId}><div><h2>Batch {batchId.slice(0, 8)}</h2><p>{batch.length} item · xóa lúc {dateTime(batch[0].deletedAt)}</p><ul className="trash-members">{batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void restore(batchId)} disabled={busy !== null}>Restore batch</button><div className="purge-confirm"><label htmlFor={`purge-confirm-${batchId}`} className="sr-only">Nhập PURGE để xóa vĩnh viễn batch</label><input id={`purge-confirm-${batchId}`} value={confirmation[batchId] ?? ''} onChange={(event) => setConfirmation((current) => ({ ...current, [batchId]: event.target.value }))} placeholder="Nhập PURGE" autoComplete="off" /><button className="danger-button" type="button" onClick={() => void purge(batchId)} disabled={busy !== null || confirmation[batchId] !== 'PURGE'}>Purge</button></div></div></article>)}</div>}
+      {loading ? <div className="loading-state" role="status">Đang tải Trash…</div> : batches.length === 0 ? <div className="empty-state"><h2>Trash trống</h2><p>Không có resource nào đang chờ restore hoặc purge.</p></div> : <div className="notification-list">{batches.map(([batchId, batch]) => <article className="resource-card" key={batchId}><div><h2>Batch {batchId.slice(0, 8)}</h2><p>{batch.length} item · xóa lúc {dateTime(batch[0].deletedAt)}</p><ul className="trash-members">{batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => { setPurgeConfirmation(''); setPendingAction({ kind: 'restore', batchId, batch }); }} disabled={busy !== null}>Restore batch</button><button className="danger-button" type="button" onClick={() => { setPurgeConfirmation(''); setPendingAction({ kind: 'purge', batchId, batch }); }} disabled={busy !== null}>Delete permanently</button></div></article>)}</div>}
+      {pendingAction && <ActionDialog
+        title={pendingAction.kind === 'purge' ? 'Delete permanently?' : 'Restore these items?'}
+        description={pendingAction.kind === 'purge'
+          ? 'Thao tác này không thể hoàn tác trong Nexora. Server sẽ kiểm tra lại trạng thái batch và các dependency trước khi commit.'
+          : 'Các resource sẽ được khôi phục theo location và trạng thái gốc đã ghi nhận. Server sẽ kiểm tra lại dependency trước khi commit.'}
+        confirmLabel={pendingAction.kind === 'purge' ? 'Delete permanently' : 'Restore batch'}
+        tone={pendingAction.kind === 'purge' ? 'danger' : 'primary'}
+        confirmDisabled={pendingAction.kind === 'purge' && purgeConfirmation !== 'PURGE'}
+        onConfirm={() => pendingAction.kind === 'purge' ? purge(pendingAction.batchId, purgeConfirmation) : restore(pendingAction.batchId)}
+        onClose={() => { setPendingAction(null); setPurgeConfirmation(''); }}
+      >
+        <div className="dialog-preview">
+          <p><strong>Batch {pendingAction.batchId.slice(0, 8)}</strong> · {pendingAction.batch.length} resource đã ghi nhận.</p>
+          <ul className="trash-members">{pendingAction.batch.map((item) => <li key={item.id}>{item.resourceType} · {item.resourceId} · trạng thái trước: {item.priorStatus}</li>)}</ul>
+          {pendingAction.kind === 'purge' && <div className="field-group dialog-field"><label htmlFor="purge-confirm-dialog">Nhập PURGE để xóa vĩnh viễn batch</label><input id="purge-confirm-dialog" value={purgeConfirmation} onChange={(event) => setPurgeConfirmation(event.target.value)} placeholder="PURGE" autoComplete="off" /></div>}
+        </div>
+      </ActionDialog>}
     </section>
   );
 }
@@ -1999,7 +2095,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function transition(status: string) {
-    if (!selected) return;
+    if (!selected) return { error: 'Document không còn khả dụng. Hãy tải lại dữ liệu trước khi thử lại.' };
     const signature = `transition:${selected.id}:${selected.etag}:${status}`;
     if (transitionRequestRef.current?.signature !== signature) {
       transitionRequestRef.current = { signature, key: createIdempotencyKey() };
@@ -2013,6 +2109,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setTitle(saved.title);
       setBody(saved.body);
       setItems((current) => current.map((candidate) => candidate.id === saved.id ? saved : candidate));
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -2025,6 +2122,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           setError(asApiError(reloadError));
         }
       }
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -2043,12 +2141,42 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={selected !== null} required><option value="">Chọn Document type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={selected !== null} required><option value="">Chọn Editor mode</option><option value="Markdown">Markdown</option><option value="Block">Block</option></select></div></div>
           <div className="field-group"><label htmlFor="document-body">Body <span className="optional">(tối đa 1 MiB)</span></label><textarea id="document-body" value={body} onChange={(event) => setBody(event.target.value)} rows={12} maxLength={1048576} disabled={selected?.status === 'Archived'} /></div>
           <div className="form-actions"><button className="secondary-button" type="button" onClick={startNew} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{selected ? 'Save version' : 'Tạo page'}</SubmitButton></div>
-          {selected && <div className="form-actions"><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : selected.status === 'Published' ? 'Archived' : selected.preArchiveStatus ?? 'Draft')} disabled={busy !== null}>{selected.status === 'Draft' ? 'Publish' : selected.status === 'Published' ? 'Archive' : 'Unarchive'}</button><span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
+          {selected && <div className="form-actions">{selected.status === 'Published' ? <ConfirmActionButton confirmationTitle={`Archive “${selected.title}”?`} confirmationDescription="Document sẽ trở thành chỉ-đọc. Version hiện tại và lịch sử SQL vẫn được giữ; bạn có thể unarchive theo trạng thái trước đó." confirmLabel="Archive document" disabled={busy !== null} onConfirm={() => transition('Archived')}>Archive</ConfirmActionButton> : <button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : selected.preArchiveStatus ?? 'Draft')} disabled={busy !== null}>{selected.status === 'Draft' ? 'Publish' : 'Unarchive'}</button>}<span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
         </form>
         <div className="resource-list"><div className="section-heading"><div><h2>Page của bạn</h2><span className="muted">{items.length} bản ghi</span></div><div className="module-tabs" role="tablist" aria-label="Document views"><button className={documentView === 'grid' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'grid'} onClick={() => setDocumentView('grid')}>Grid</button><button className={documentView === 'table' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'table'} onClick={() => setDocumentView('table')}>Table</button></div></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : items.length === 0 ? <div className="empty-state"><h3>Chưa có page</h3><p>Tạo Document, Note hoặc Knowledge page đầu tiên.</p></div> : documentView === 'grid' ? <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></article>)}</div> : <div className="table-wrapper"><table><caption>Document pages</caption><thead><tr><th>Title</th><th>Type / editor</th><th>Status</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.title}</strong><span className="muted">Version {item.versionNumber}</span></td><td>{item.documentType} · {item.editorMode}</td><td>{item.status}</td><td>{dateTime(item.updatedAt)}</td><td><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={busy !== null}>Mở</button></td></tr>)}</tbody></table></div>}</div>
       </div>
     </section>
   );
+}
+
+type PendingAccessPreview = {
+  change: AdminAccessChange;
+  preview: AdminAccessPreview;
+  stale: boolean;
+};
+
+function ReauthenticateDialog({ onAuthenticated, onClose }: { onAuthenticated: () => void; onClose: () => void }) {
+  const [password, setPassword] = useState('');
+  return <ActionDialog
+    title="Xác minh lại danh tính"
+    description="Thay đổi quyền là thao tác nhạy cảm. Nhập mật khẩu hiện tại để tạo preview mới; mật khẩu không được lưu trong trình duyệt."
+    confirmLabel="Xác minh và tiếp tục"
+    tone="primary"
+    onClose={onClose}
+    onConfirm={async () => {
+      if (!password) return { error: 'Nhập mật khẩu hiện tại để tiếp tục.' };
+      try {
+        await reauthenticate(password);
+        setPassword('');
+        onAuthenticated();
+        return true;
+      } catch (requestError) {
+        return { error: asApiError(requestError).message };
+      }
+    }}
+  >
+    <div className="field-group dialog-field"><label htmlFor="admin-reauth-password">Mật khẩu hiện tại</label><input id="admin-reauth-password" data-dialog-initial-focus type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} /></div>
+  </ActionDialog>;
 }
 
 function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () => Promise<void>; readOnly?: boolean }) {
@@ -2059,10 +2187,13 @@ function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =>
   const [access, setAccess] = useState<AdminUserAccess | null>(null);
   const [role, setRole] = useState('User');
   const [actionKey, setActionKey] = useState('');
-  const [effect, setEffect] = useState('Allow');
+  const [effect, setEffect] = useState<'Allow' | 'Deny' | 'Unset'>('Allow');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<PendingAccessPreview | null>(null);
+  const [reauthChange, setReauthChange] = useState<AdminAccessChange | null>(null);
+  const [retryAfterReauth, setRetryAfterReauth] = useState<AdminAccessChange | null>(null);
 
   async function loadUsers() {
     setLoading(true);
@@ -2091,15 +2222,13 @@ function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =>
     setSelectedId(user.id);
     setBusy(`load:${user.id}`);
     setError(null);
+    setPendingPreview(null);
+    setReauthChange(null);
     try {
       const loaded = await getAdminUserAccess(user.id);
       setAccess(loaded);
       setRole(loaded.user.role);
-      delete actionKeys.current.role;
-      delete actionKeys.current.roleIntent;
-      delete actionKeys.current.permission;
-      delete actionKeys.current.permissionIntent;
-      delete actionKeys.current.disable;
+      actionKeys.current = {};
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -2109,108 +2238,113 @@ function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =>
     }
   }
 
+  async function refreshAccessSnapshot(userId: string) {
+    const loaded = await getAdminUserAccess(userId);
+    setAccess(loaded);
+    setUsers((current) => current.map((user) => user.id === loaded.user.id ? loaded.user : user));
+  }
+
   useEffect(() => { void loadUsers(); }, []);
 
-  async function saveRole(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    if (!retryAfterReauth) return;
+    setRetryAfterReauth(null);
+    void requestPreview(retryAfterReauth, true);
+  }, [retryAfterReauth]);
+
+  async function requestPreview(change: AdminAccessChange, afterReauthentication = false) {
     if (!access) return;
-    setBusy('role');
+    setBusy(`preview:${change.kind}`);
     setError(null);
-    const roleIntent = `${access.user.id}|${access.user.etag}|${role}`;
-    if (actionKeys.current.roleIntent !== roleIntent) {
-      actionKeys.current.roleIntent = roleIntent;
-      actionKeys.current.role = createIdempotencyKey();
-    }
-    actionKeys.current.role ??= createIdempotencyKey();
     try {
-      const updated = await setAdminUserRole(access.user.id, access.user.etag, role, actionKeys.current.role);
-      delete actionKeys.current.role;
-      delete actionKeys.current.roleIntent;
-      if (!updated) {
-        // A self-demotion is a successful 204 and revokes the current
-        // authority/session. Clear the privileged projection before the
-        // shell re-authenticates; never retain the pre-change DTO in state.
-        setAccess(null);
-        setSelectedId('');
-        await onAuthLost();
-        return;
-      }
-      setAccess(updated);
-      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+      const preview = await previewAdminAccess(access.user.id, change);
+      setPendingPreview({ change, preview, stale: false });
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
-      if (apiError.status === 412) await selectUser(access.user);
+      if (apiError.status === 428 && !afterReauthentication) setReauthChange(change);
+      if (apiError.status === 412) await refreshAccessSnapshot(access.user.id);
     } finally {
       setBusy(null);
     }
+  }
+
+  async function saveRole(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!access || role === access.user.role) return;
+    await requestPreview({ kind: 'role', role });
   }
 
   async function saveGrant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!access || !actionKey.trim()) return;
-    setBusy('permission');
-    setError(null);
-    const permissionIntent = `${access.user.id}|${access.user.etag}|${actionKey.trim()}|${effect}`;
-    if (actionKeys.current.permissionIntent !== permissionIntent) {
-      actionKeys.current.permissionIntent = permissionIntent;
-      actionKeys.current.permission = createIdempotencyKey();
-    }
-    actionKeys.current.permission ??= createIdempotencyKey();
-    try {
-      const updated = await setAdminActionGrant(access.user.id, access.user.etag, actionKey.trim(), effect, actionKeys.current.permission);
-      delete actionKeys.current.permission;
-      delete actionKeys.current.permissionIntent;
-      setAccess(updated);
-      setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
-      setActionKey('');
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setBusy(null);
-    }
+    await requestPreview({ kind: 'permissions', changes: [{ actionKey: actionKey.trim(), effect }] });
   }
 
-  async function toggleModule(code: string, enabled: boolean) {
-    if (!access) return;
-    setBusy(`module:${code}`);
-    setError(null);
-    const keyName = `module:${code}:${enabled ? 'on' : 'off'}`;
+  async function toggleModule(moduleId: string, enabled: boolean) {
+    await requestPreview({ kind: 'modules', changes: [{ moduleId, enabled }] });
+  }
+
+  async function commitPreview(): Promise<ActionDialogResult> {
+    if (!access || !pendingPreview || pendingPreview.stale || pendingPreview.preview.blockers.length > 0) {
+      return { error: 'Preview không còn hợp lệ. Hãy đóng hộp thoại và tạo preview mới.' };
+    }
+    const { change, preview } = pendingPreview;
+    const signature = `${access.user.id}|${preview.etag}|${preview.previewToken}`;
+    const keyName = `commit:${change.kind}:${signature}`;
     actionKeys.current[keyName] ??= createIdempotencyKey();
+    setBusy(`commit:${change.kind}`);
+    setError(null);
     try {
-      const updated = await setAdminModuleGrant(access.user.id, access.user.etag, code, enabled, actionKeys.current[keyName]);
+      let updated: AdminUserAccess | undefined;
+      if (change.kind === 'role') {
+        updated = await commitAdminUserRole(access.user.id, preview.etag, change.role, preview.previewToken, actionKeys.current[keyName]);
+      } else if (change.kind === 'permissions') {
+        updated = await commitAdminActionGrant(access.user.id, preview.etag, change.changes, preview.previewToken, actionKeys.current[keyName]);
+      } else {
+        updated = await commitAdminModuleGrant(access.user.id, preview.etag, change.changes, preview.previewToken, actionKeys.current[keyName]);
+      }
       delete actionKeys.current[keyName];
+      if (!updated) {
+        setAccess(null);
+        setSelectedId('');
+        await onAuthLost();
+        return true;
+      }
       setAccess(updated);
       setUsers((current) => current.map((user) => user.id === updated.user.id ? updated.user : user));
+      setRole(updated.user.role);
+      if (change.kind === 'permissions') setActionKey('');
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 409 || apiError.status === 412 || apiError.status === 428) {
+        setPendingPreview((current) => current ? { ...current, stale: true } : current);
+        if (apiError.status === 412) {
+          try { await refreshAccessSnapshot(access.user.id); }
+          catch (refreshError) {
+            const refreshApiError = asApiError(refreshError);
+            if (refreshApiError.status === 401) await onAuthLost();
+            return { error: `${apiError.message} Không thể tải dữ liệu mới. Hãy đóng hộp thoại và thử tải lại; thay đổi chưa được lưu.` };
+          }
+        }
+      }
+      return { error: apiError.status === 409 || apiError.status === 412 || apiError.status === 428
+        ? `${apiError.message} Preview đã bị vô hiệu; tải dữ liệu hiện tại và tạo preview mới trước khi commit.`
+        : apiError.message };
     } finally {
       setBusy(null);
     }
   }
 
-  async function disable() {
-    if (!access || access.user.state === 'Disabled') return;
-    setBusy('disable');
-    setError(null);
-    actionKeys.current.disable ??= createIdempotencyKey();
-    try {
-      await disableAdminUser(access.user.id, access.user.etag, actionKeys.current.disable);
-      delete actionKeys.current.disable;
-      await loadUsers();
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setBusy(null);
-    }
-  }
+  const previewLabel = pendingPreview?.change.kind === 'role'
+    ? 'thay đổi role'
+    : pendingPreview?.change.kind === 'permissions'
+      ? 'cập nhật quyền chi tiết'
+      : 'cập nhật module grant';
 
   return (
     <section className="content-section" aria-labelledby="admin-access-title">
@@ -2218,9 +2352,9 @@ function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =>
         <div>
           <p className="eyebrow">{t('adminAccessEyebrow')}</p>
           <h1 id="admin-access-title">{t('adminAccessTitle')}</h1>
-          <p className="lead">{t('adminAccessLead')}</p>
+          <p className="lead">Mọi thay đổi quyền đều có preview ký số, thời hạn 2 phút và server kiểm tra lại revision, dependency và authority trước khi ghi.</p>
         </div>
-        <button className="secondary-button" type="button" onClick={loadUsers} disabled={loading}>{t('reloadUsers')}</button>
+        <button className="secondary-button" type="button" onClick={loadUsers} disabled={loading || busy !== null}>{t('reloadUsers')}</button>
       </div>
       {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {readOnly && <div className="security-policy" role="status"><strong>{t('adminAccessReadOnlyTitle')}</strong><span>{t('adminAccessReadOnlyDescription')}</span></div>}
@@ -2238,30 +2372,166 @@ function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =>
           </div>
           <div className="admin-detail">
             {!access ? <div className="empty-state"><h2>{t('selectUser')}</h2></div> : <>
-              <div className="section-heading">
-                <div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div>
-                {!readOnly && <button className="danger-button" type="button" onClick={() => void disable()} disabled={busy !== null || access.user.state === 'Disabled'}>{t('disableUser')}</button>}
-              </div>
-              {!readOnly && <form className="form-panel" onSubmit={saveRole}>
+              <div className="section-heading"><div><h2>{access.user.displayName}</h2><p className="muted">{access.user.email} · {access.user.state} · ETag {access.user.etag}</p></div></div>
+              {!readOnly && <form className="form-panel" onSubmit={(event) => void saveRole(event)}>
+                <div className="section-heading"><h3>{t('role')}</h3><span className="muted">Xem preview trước khi thay đổi</span></div>
                 <div className="field-group"><label htmlFor="admin-role">{t('role')}</label><select id="admin-role" value={role} onChange={(event) => setRole(event.target.value)}><option>User</option><option>Admin</option><option>SuperAdmin</option></select></div>
-                <button className="primary-button" type="submit" disabled={busy !== null}>{t('saveRole')}</button>
+                <button className="primary-button" type="submit" disabled={busy !== null || role === access.user.role}>Xem preview role</button>
               </form>}
-              {!readOnly && <form className="form-panel" onSubmit={saveGrant}>
+              {!readOnly && <form className="form-panel" onSubmit={(event) => void saveGrant(event)}>
                 <div className="section-heading"><h3>{t('actionGrant')}</h3><span className="muted">{t('allowPolicy')}</span></div>
-                <div className="form-grid"><div className="field-group"><label htmlFor="admin-action">{t('actionKey')}</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">{t('effect')}</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value)}><option>Allow</option><option>Deny</option></select></div></div>
-                <button className="secondary-button" type="submit" disabled={busy !== null}>{t('updateGrant')}</button>
+                <div className="form-grid"><div className="field-group"><label htmlFor="admin-action">{t('actionKey')}</label><input id="admin-action" value={actionKey} onChange={(event) => setActionKey(event.target.value)} maxLength={160} required /></div><div className="field-group"><label htmlFor="admin-effect">{t('effect')}</label><select id="admin-effect" value={effect} onChange={(event) => setEffect(event.target.value as 'Allow' | 'Deny' | 'Unset')}><option>Allow</option><option>Deny</option><option>Unset</option></select></div></div>
+                <button className="secondary-button" type="submit" disabled={busy !== null || !actionKey.trim()}>Xem preview quyền</button>
               </form>}
               <div className="form-panel">
-                <div className="section-heading"><h3>{t('moduleGrants')}</h3><span className="muted">{t('serverRechecks')}</span></div>
-                <div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.code} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ` · ${t('systemDisabled')}`}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.code, event.target.checked)} disabled={readOnly || busy !== null || !grant.systemEnabled || grant.state !== 'Ready'} /></label>)}</div>
+                <div className="section-heading"><h3>{t('moduleGrants')}</h3><span className="muted">Tắt/bật đều được server kiểm tra dependency trong preview.</span></div>
+                <div className="admin-module-list">{access.moduleGrants.map((grant) => <label key={grant.moduleId} className="admin-module-row"><span><strong>{grant.code}</strong><small>{grant.state}{grant.systemEnabled ? '' : ` · ${t('systemDisabled')}`}</small></span><input type="checkbox" checked={grant.enabled} onChange={(event) => void toggleModule(grant.moduleId, event.target.checked)} disabled={readOnly || busy !== null} aria-label={`${grant.code} module grant`} /></label>)}</div>
               </div>
               <div className="form-panel"><h3>{t('currentActionGrants')}</h3>{access.actionGrants.length === 0 ? <p className="muted">{t('noExplicitGrants')}</p> : <ul className="grant-list">{access.actionGrants.map((grant) => <li key={grant.actionKey}><code>{grant.actionKey}</code><span>{grant.effect} · {grant.status}</span></li>)}</ul>}</div>
             </>}
           </div>
         </div>
       )}
+      {reauthChange && <ReauthenticateDialog onClose={() => setReauthChange(null)} onAuthenticated={() => { setReauthChange(null); setRetryAfterReauth(reauthChange); }} />}
+      {pendingPreview && <ActionDialog
+        title={`Xem lại ${previewLabel}`}
+        description={pendingPreview.preview.blockers.length > 0
+          ? 'Server phát hiện blocker. Không thể commit cho đến khi bạn sửa thay đổi hoặc điều kiện phụ thuộc.'
+          : pendingPreview.stale
+            ? 'Preview không còn hợp lệ. Đóng hộp thoại, tải snapshot mới và tạo preview lại.'
+            : 'So sánh dưới đây là snapshot server đã ký. Commit sẽ kiểm tra lại authority, revision và dependency trước khi ghi.'}
+        confirmLabel="Xác nhận commit"
+        tone={pendingPreview.change.kind === 'role' ? 'danger' : 'primary'}
+        confirmDisabled={pendingPreview.preview.blockers.length > 0 || pendingPreview.stale || busy !== null}
+        onConfirm={commitPreview}
+        onClose={() => setPendingPreview(null)}
+      >
+        <div className="dialog-preview"><p><strong>Hết hạn:</strong> {dateTime(pendingPreview.preview.expiresAt)}</p><p><strong>Revision:</strong> {pendingPreview.preview.etag}</p>{pendingPreview.preview.changes.length === 0 ? <p className="muted">Không có thay đổi hiệu lực.</p> : <ul className="grant-list">{pendingPreview.preview.changes.map((change) => <li key={`${change.field}:${change.before}:${change.after}`}><code>{change.field}</code><span>{change.before ?? 'Unset'} → {change.after ?? 'Unset'}</span></li>)}</ul>}{pendingPreview.preview.blockers.length > 0 && <div className="security-policy" role="alert"><strong>Blockers</strong><ul>{pendingPreview.preview.blockers.map((blocker) => <li key={`${blocker.code}:${blocker.message}`}>{blocker.message}</li>)}</ul></div>}</div>
+      </ActionDialog>}
     </section>
   );
+}
+
+type PendingModulePolicyPreview = {
+  module: AdminModuleRecord;
+  change: { systemEnabled?: boolean; registrationEnabled?: boolean };
+  preview: ModulePolicyPreview;
+  stale: boolean;
+};
+
+function ModulePolicyScreen({ onAuthLost, readOnly = false }: { onAuthLost: () => Promise<void>; readOnly?: boolean }) {
+  const requestKeys = useRef<Record<string, string>>({});
+  const [drafts, setDrafts] = useState<Record<string, { systemEnabled: boolean; registrationEnabled: boolean }>>({});
+  const [modules, setModules] = useState<AdminModuleRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<PendingModulePolicyPreview | null>(null);
+  const [reauthRetry, setReauthRetry] = useState<{ module: AdminModuleRecord; change: { systemEnabled?: boolean; registrationEnabled?: boolean } } | null>(null);
+  const [retryAfterReauth, setRetryAfterReauth] = useState<{ module: AdminModuleRecord; change: { systemEnabled?: boolean; registrationEnabled?: boolean } } | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      setModules((await listAdminModules()).items);
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, []);
+
+  useEffect(() => {
+    if (!retryAfterReauth) return;
+    setRetryAfterReauth(null);
+    void requestPreview(retryAfterReauth.module, retryAfterReauth.change, true);
+  }, [retryAfterReauth]);
+
+  async function requestPreview(module: AdminModuleRecord, change: { systemEnabled?: boolean; registrationEnabled?: boolean }, afterReauthentication = false) {
+    setBusy(`preview:${module.id}`);
+    setError(null);
+    try {
+      const preview = await previewModulePolicy(module.id, change);
+      setPendingPreview({ module, change, preview, stale: false });
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 428 && !afterReauthentication) setReauthRetry({ module, change });
+      if (apiError.status === 412) await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function commitPreview(): Promise<ActionDialogResult> {
+    if (!pendingPreview || pendingPreview.preview.blockers.length > 0 || pendingPreview.stale) {
+      return { error: 'Preview không còn hợp lệ. Hãy đóng hộp thoại, tải trạng thái hiện tại và tạo preview mới.' };
+    }
+    const { module, change, preview } = pendingPreview;
+    const keyName = `${module.id}|${module.etag}|${preview.previewToken}`;
+    requestKeys.current[keyName] ??= createIdempotencyKey();
+    setBusy(`commit:${module.id}`);
+    setError(null);
+    try {
+      const updated = await commitModulePolicy(module.id, module.etag, change, preview.previewToken, requestKeys.current[keyName]);
+      delete requestKeys.current[keyName];
+      setModules((current) => current.map((item) => item.id === updated.id ? updated : item));
+      setDrafts((current) => { const next = { ...current }; delete next[module.id]; return next; });
+      return true;
+    } catch (requestError) {
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if (apiError.status === 401) await onAuthLost();
+      if (apiError.status === 409 || apiError.status === 412 || apiError.status === 428) {
+        setPendingPreview((current) => current ? { ...current, stale: true } : current);
+        if (apiError.status === 412) await load();
+      }
+      return { error: apiError.status === 409 || apiError.status === 412 || apiError.status === 428
+        ? `${apiError.message} Preview đã bị vô hiệu; tải dữ liệu hiện tại và tạo preview mới.`
+        : apiError.message };
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return <section className="content-section" aria-labelledby="module-policy-title">
+    <div className="content-heading"><div><p className="eyebrow">FX03 / MODULE POLICY</p><h1 id="module-policy-title">Module catalog</h1><p className="lead">Catalog hiển thị dependency, trạng thái runtime và policy hiện tại. Thay đổi system/default luôn qua preview ký số rồi mới commit.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading || busy !== null}>Tải lại</button></div>
+    {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+    {readOnly && <div className="security-policy" role="status"><strong>Read-only catalog</strong><span>Quyền policy hiện tại không cho phép thay đổi module. Server vẫn kiểm tra lại quyền này tại preview và commit.</span></div>}
+    {loading ? <div className="loading-state" role="status">Đang tải module catalog…</div> : modules.length === 0 ? <div className="empty-state"><h2>Chưa có module</h2><p>Catalog hiện không trả module khả dụng.</p></div> : <div className="module-grid">{modules.map((module) => <article className="module-card" key={module.id}>
+      <div className="module-card-heading"><div><h2>{module.name}</h2><span className="module-code">{module.code}</span></div><span className={`state-pill ${module.systemEnabled ? 'state-active' : ''}`}>{module.state}</span></div>
+      <p className="muted">Policy revision {module.policyRevision} · {module.systemEnabled ? 'System enabled' : 'System disabled'} · registration {module.registrationEnabled ? 'enabled' : 'disabled'}</p>
+      {module.unavailableReason && <Notice kind="info">{module.unavailableReason}</Notice>}
+      <div className="check-grid" aria-label={`Policy controls for ${module.code}`}>
+        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.systemEnabled ?? module.systemEnabled} onChange={(event) => { const value = event.target.checked; setDrafts((current) => ({ ...current, [module.id]: { ...(current[module.id] ?? { systemEnabled: module.systemEnabled, registrationEnabled: module.registrationEnabled }), systemEnabled: value } })); }} disabled={readOnly || busy !== null} /> System enabled</label>
+        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.registrationEnabled ?? module.registrationEnabled} onChange={(event) => { const value = event.target.checked; setDrafts((current) => ({ ...current, [module.id]: { ...(current[module.id] ?? { systemEnabled: module.systemEnabled, registrationEnabled: module.registrationEnabled }), registrationEnabled: value } })); }} disabled={readOnly || busy !== null} /> Registration default</label>
+      </div>
+      {!readOnly && <button className="primary-button" type="button" disabled={busy !== null || !drafts[module.id] || (drafts[module.id].systemEnabled === module.systemEnabled && drafts[module.id].registrationEnabled === module.registrationEnabled)} onClick={() => { const draft = drafts[module.id]; if (draft) void requestPreview(module, { ...(draft.systemEnabled !== module.systemEnabled ? { systemEnabled: draft.systemEnabled } : {}), ...(draft.registrationEnabled !== module.registrationEnabled ? { registrationEnabled: draft.registrationEnabled } : {}) }); }}>Xem lại thay đổi {module.code}</button>}
+      <div className="module-dependencies"><p><strong>Requires:</strong> {module.requiredDependencies.length ? module.requiredDependencies.join(', ') : 'None'}</p><p><strong>Required by:</strong> {module.requiredBy.length ? module.requiredBy.join(', ') : 'None'}</p></div>
+    </article>)}</div>}
+    {reauthRetry && <ReauthenticateDialog onClose={() => setReauthRetry(null)} onAuthenticated={() => { setReauthRetry(null); setRetryAfterReauth(reauthRetry); }} />}
+    {pendingPreview && <ActionDialog
+      title={`Xem lại policy ${pendingPreview.module.code}`}
+      description={pendingPreview.preview.blockers.length > 0
+        ? 'Server phát hiện blocker. Policy sẽ không được ghi cho đến khi bạn giải quyết dependency hoặc trạng thái runtime.'
+        : pendingPreview.stale
+          ? 'Preview không còn hợp lệ. Đóng hộp thoại, tải trạng thái mới và tạo preview lại.'
+          : 'So sánh dưới đây là snapshot policy đã ký. Server sẽ recheck quyền, revision và dependency ngay trước khi commit.'}
+      confirmLabel="Xác nhận policy"
+      tone={pendingPreview.change.systemEnabled === false ? 'danger' : 'primary'}
+      confirmDisabled={pendingPreview.preview.blockers.length > 0 || pendingPreview.stale || busy !== null}
+      onConfirm={commitPreview}
+      onClose={() => setPendingPreview(null)}
+    >
+      <div className="dialog-preview"><p><strong>Hết hạn:</strong> {dateTime(pendingPreview.preview.expiresAt)}</p><p><strong>Revision:</strong> {pendingPreview.preview.etag}</p>{pendingPreview.preview.changes.length === 0 ? <p className="muted">Không có thay đổi hiệu lực.</p> : <ul className="grant-list">{pendingPreview.preview.changes.map((change) => <li key={`${change.field}:${change.before}:${change.after}`}><code>{change.field}</code><span>{change.before} → {change.after}</span></li>)}</ul>}{pendingPreview.preview.blockers.length > 0 && <div className="security-policy" role="alert"><strong>Blockers</strong><ul>{pendingPreview.preview.blockers.map((blocker) => <li key={`${blocker.code}:${blocker.field}:${blocker.message}`}>{blocker.message}</li>)}</ul></div>}</div>
+    </ActionDialog>}
+  </section>;
 }
 
 function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void }) {
@@ -2777,7 +3047,7 @@ function ProductivityScreen({
   const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
   const [taskReminderChanged, setTaskReminderChanged] = useState(false);
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
-  const [timeWarning, setTimeWarning] = useState<{ title: string; description: string; confirmLabel: string; retry: () => Promise<void> } | null>(null);
+  const [timeWarning, setTimeWarning] = useState<{ title: string; description: string; confirmLabel: string; retry: () => Promise<ActionDialogResult> } | null>(null);
   const projectRequestKey = useRef<string | null>(null);
   const taskRequestKey = useRef<string | null>(null);
   const eventRequestKey = useRef<string | null>(null);
@@ -2932,10 +3202,12 @@ function ProductivityScreen({
               const saved = await updateProject(currentProject.id, currentProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey, true);
               setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
               resetProject();
+              return true;
             } catch (retryError) {
               const retryApiError = asApiError(retryError);
               setError(retryApiError);
               if (retryApiError.status === 401) await onAuthLost();
+              return { error: retryApiError.message };
             } finally {
               setBusy(null);
             }
@@ -2961,10 +3233,12 @@ function ProductivityScreen({
       setProjects((current) => current.filter((item) => item.id !== project.id));
       setTasks((current) => current.filter((item) => item.projectId !== project.id));
       if (editingProject?.id === project.id) resetProject();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -2979,11 +3253,13 @@ function ProductivityScreen({
       const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null, requestKey, true);
       clearActionRequestKey('project.transition', signature);
       setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       if (apiError.status === 412) clearActionRequestKey('project.transition', signature);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -3029,10 +3305,12 @@ function ProductivityScreen({
                 : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, true);
               setTasks((current) => currentTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
               resetTask();
+              return true;
             } catch (retryError) {
               const retryApiError = asApiError(retryError);
               setError(retryApiError);
               if (retryApiError.status === 401) await onAuthLost();
+              return { error: retryApiError.message };
             } finally {
               setBusy(null);
             }
@@ -3057,10 +3335,12 @@ function ProductivityScreen({
       clearActionRequestKey('task.delete', signature);
       setTasks((current) => current.filter((item) => item.id !== task.id));
       if (editingTask?.id === task.id) resetTask();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -3106,10 +3386,12 @@ function ProductivityScreen({
       clearActionRequestKey('calendar.event.delete', signature);
       setEvents((current) => current.filter((eventItem) => eventItem.id !== item.id));
       if (editingEvent?.id === item.id) resetEvent();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -3323,7 +3605,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function remove() {
-    if (!source?.reminder) return;
+    if (!source?.reminder) return { error: 'Reminder không còn khả dụng. Hãy tải lại dữ liệu trước khi thử lại.' };
     removeRequestKey.current ??= createIdempotencyKey();
     setBusy('remove');
     setError(null);
@@ -3334,6 +3616,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       removeRequestKey.current = null;
       const option = sources.find((item) => item.key === selectedKey);
       if (option) await loadSource(option);
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -3344,6 +3627,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         if (option) await loadSource(option);
       }
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -3548,9 +3832,11 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       await transitionBookmark(item.id, item.etag, nextStatus, key);
       await load();
       if (editing?.id === item.id) resetEditor();
+      return true;
     } catch (requestError) {
       const apiError = showError(requestError);
       if (apiError.status === 412) await load();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -3710,9 +3996,11 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       await transitionSnippet(item.id, item.etag, nextStatus, createIdempotencyKey());
       await load();
       if (editing?.id === item.id) resetEditor();
+      return true;
     } catch (requestError) {
       const apiError = showError(requestError);
       if (apiError.status === 412) await load();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -3890,12 +4178,14 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     try {
       await removeReadingItem(item.id, item.etag, createIdempotencyKey());
       await load();
+      return true;
     } catch (requestError) {
       const apiError = showError(requestError);
       if (apiError.status === 412) {
         setConflict(true);
         await load();
       }
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -4035,7 +4325,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
   }
 
   async function remove(tag: TagRecord) {
-    if (tag.usageCount > 0) return;
+    if (tag.usageCount > 0) return { error: 'Tag này đang được sử dụng và không thể xóa.' };
     setBusy(`remove:${tag.id}`);
     setError(null);
     setConflict(false);
@@ -4043,6 +4333,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
       await removeOrganizationTag(tag.id, tag.etag);
       if (editing?.id === tag.id) resetEditor();
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
@@ -4051,6 +4342,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
         await load();
       }
       if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -4885,15 +5177,17 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function removeCategory(category: FinanceCategoryRecord) {
-    if (category.usageCount > 0) return;
+    if (category.usageCount > 0) return { error: 'Category này đang được record sử dụng và không thể xóa.' };
     setBusy(`category:${category.id}`);
     setError(null);
     try {
       await removeFinanceCategory(category.id, category.etag);
       if (editingCategory?.id === category.id) resetCategory();
       await load();
+      return true;
     } catch (requestError) {
-      showError(requestError);
+      const apiError = showError(requestError);
+      return { error: apiError.message };
     } finally {
       setBusy(null);
     }
@@ -5119,6 +5413,9 @@ function ProfileScreen({
   const requestKey = useRef<string | null>(null);
   const profileForm = useRef<HTMLFormElement>(null);
   const pendingLeaveContinuation = useRef<DirtyLeaveContinuation | null>(null);
+  const leaveDialogRef = useRef<HTMLElement | null>(null);
+  const leaveReturnFocusRef = useRef<HTMLElement | null>(null);
+  const leaveBusyRef = useRef(busy);
 
 
   useEffect(() => {
@@ -5128,6 +5425,46 @@ function ProfileScreen({
     setServerVersion(null);
     setLeaveContinuation(null);
   }, [profile]);
+
+  useEffect(() => {
+    leaveBusyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    if (!leaveContinuation) return;
+    leaveReturnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = leaveDialogRef.current;
+    const getFocusable = () => dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'))
+      : [];
+    const preferredFocus = dialog?.querySelector<HTMLElement>('[data-dialog-initial-focus]');
+    (preferredFocus ?? getFocusable()[0])?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !leaveBusyRef.current) {
+        event.preventDefault();
+        pendingLeaveContinuation.current = null;
+        setLeaveContinuation(null);
+        return;
+      }
+      const focusable = getFocusable();
+      if (event.key !== 'Tab' || focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    dialog?.addEventListener('keydown', onKeyDown);
+    return () => {
+      dialog?.removeEventListener('keydown', onKeyDown);
+      if (leaveReturnFocusRef.current && document.contains(leaveReturnFocusRef.current)) leaveReturnFocusRef.current.focus();
+      leaveReturnFocusRef.current = null;
+    };
+  }, [leaveContinuation]);
 
   function changeDraft(patch: ProfilePatch) {
     requestKey.current = null;
@@ -5277,12 +5614,12 @@ function ProfileScreen({
         </div>
       </form>
       {leaveContinuation && (
-        <div className="modal-backdrop" role="presentation">
-          <section className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-unsaved-title" aria-describedby="profile-unsaved-description">
+        <ModalLayer className="modal-backdrop">
+          <section ref={leaveDialogRef} className="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="profile-unsaved-title" aria-describedby="profile-unsaved-description">
             <h2 id="profile-unsaved-title">{t('unsavedChangesTitle')}</h2>
             <p id="profile-unsaved-description">{t('unsavedChangesDescription')}</p>
             <div className="form-actions">
-              <button className="secondary-button" type="button" onClick={() => {
+              <button className="secondary-button" type="button" data-dialog-initial-focus onClick={() => {
                 pendingLeaveContinuation.current = null;
                 setLeaveContinuation(null);
               }} disabled={busy}>{t('keepEditing')}</button>
@@ -5300,7 +5637,7 @@ function ProfileScreen({
               }} disabled={busy}>{busy ? t('saving') : t('saveAndContinue')}</button>
             </div>
           </section>
-        </div>
+        </ModalLayer>
       )}
       <PreferencesPanel onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />
     </section>
@@ -5373,8 +5710,6 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
   const [sessions, setSessions] = useState<SessionProjection[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [confirmAll, setConfirmAll] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [hasLoadedSuccessfully, setHasLoadedSuccessfully] = useState(false);
   const [staleData, setStaleData] = useState(false);
@@ -5411,18 +5746,19 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
     try {
       await revokeSession(session.id, actionKeys.current[session.id]);
       delete actionKeys.current[session.id];
-      setConfirmingId(null);
       if (session.isCurrent) {
         await onAuthLost();
-        return;
+        return true;
       }
       await load();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) {
         await onAuthLost();
       }
+      return { error: localizedError(apiError, t) };
     } finally {
       setBusyId(null);
     }
@@ -5436,12 +5772,14 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
       await revokeAllSessions(actionKeys.current.all);
       delete actionKeys.current.all;
       await onAuthLost();
+      return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
       if (apiError.status === 401) {
         await onAuthLost();
       }
+      return { error: localizedError(apiError, t) };
     } finally {
       setBusyId(null);
     }
@@ -5453,8 +5791,8 @@ export function SecurityScreen({ timeZoneId, onAuthLost }: { timeZoneId: string;
       <div className="security-policy"><strong>{t('mfaRecovery')}</strong><span>{t('mfaRecoveryDescription')}</span></div>
       {error && <Notice kind="error">{localizedError(error, t)}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {staleData && <p className="stale-state" role="status">{t('sessionsStale')}</p>}
-       {loading ? <div className="loading-state" role="status">{t('loadingSessions')}</div> : !hasLoadedSuccessfully ? null : sessions.length === 0 ? <div className="empty-state"><h2>{t('noSessions')}</h2><p>{t('noSessionsDescription')}</p></div> : <div className="table-wrap"><table><caption>{t('sessionList')}</caption><thead><tr><th scope="col">{t('device')}</th><th scope="col">{t('lastActivity')}</th><th scope="col">{t('expires')}</th><th scope="col"><span className="sr-only">{t('actions')}</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">{t('currentSession')}</span>}<span className="muted">{t('created')} {dateTime(session.createdAt, timeZoneId, locale)}</span></td><td>{dateTime(session.lastSeenAt, timeZoneId, locale)}</td><td>{dateTime(session.expiresAt, timeZoneId, locale)}</td><td className="table-action-cell">{confirmingId === session.id ? <div className="confirm-actions"><span>{t('revokeThisSession')}</span><button className="danger-button" type="button" onClick={() => revoke(session)} disabled={busyId === session.id}>{busyId === session.id ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmingId(null)} disabled={busyId === session.id}>{t('cancel')}</button></div> : <button className="secondary-button" type="button" onClick={() => setConfirmingId(session.id)} disabled={busyId !== null}>{t('revoke')}</button>}</td></tr>)}</tbody></table></div>}
-      <div className="danger-zone"><div><h2>{t('revokeAllTitle')}</h2><p>{t('revokeAllDescription')}</p></div>{confirmAll ? <div className="confirm-actions"><span>{t('revokeAllQuestion')}</span><button className="danger-button" type="button" onClick={revokeEverywhere} disabled={busyId === 'all'}>{busyId === 'all' ? t('revoking') : t('confirm')}</button><button className="link-button" type="button" onClick={() => setConfirmAll(false)} disabled={busyId === 'all'}>{t('cancel')}</button></div> : <button className="danger-button" type="button" onClick={() => setConfirmAll(true)} disabled={busyId !== null || loading}>{t('revokeAll')}</button>}</div>
+      {loading ? <div className="loading-state" role="status">{t('loadingSessions')}</div> : !hasLoadedSuccessfully ? null : sessions.length === 0 ? <div className="empty-state"><h2>{t('noSessions')}</h2><p>{t('noSessionsDescription')}</p></div> : <div className="table-wrap"><table><caption>{t('sessionList')}</caption><thead><tr><th scope="col">{t('device')}</th><th scope="col">{t('lastActivity')}</th><th scope="col">{t('expires')}</th><th scope="col"><span className="sr-only">{t('actions')}</span></th></tr></thead><tbody>{sessions.map((session) => <tr key={session.id}><td><strong>{session.deviceLabel}</strong>{session.isCurrent && <span className="current-label">{t('currentSession')}</span>}<span className="muted">{t('created')} {dateTime(session.createdAt, timeZoneId, locale)}</span></td><td>{dateTime(session.lastSeenAt, timeZoneId, locale)}</td><td>{dateTime(session.expiresAt, timeZoneId, locale)}</td><td className="table-action-cell"><ConfirmActionButton className="secondary-button" confirmationTitle={t('revokeThisSession')} confirmationDescription={`${session.deviceLabel} · ${t('created')} ${dateTime(session.createdAt, timeZoneId, locale)}. ${session.isCurrent ? t('currentSession') : ''}`} confirmLabel={t('revoke')} disabled={busyId !== null} onConfirm={() => revoke(session)}>{t('revoke')}</ConfirmActionButton></td></tr>)}</tbody></table></div>}
+      <div className="danger-zone"><div><h2>{t('revokeAllTitle')}</h2><p>{t('revokeAllDescription')}</p></div><ConfirmActionButton confirmationTitle={t('revokeAllQuestion')} confirmationDescription={t('revokeAllDescription')} confirmLabel={t('revokeAll')} disabled={busyId !== null || loading} onConfirm={revokeEverywhere}>{t('revokeAll')}</ConfirmActionButton></div>
     </section>
   );
 }

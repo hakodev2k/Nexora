@@ -127,7 +127,7 @@ test('registration keeps one idempotency request while submit is pending', async
 
 test('destructive controls require an accessible in-app confirmation before acting', async () => {
   const user = userEvent.setup();
-  const onConfirm = vi.fn();
+  const onConfirm = vi.fn(async () => true);
 
   render(
     <ConfirmActionButton
@@ -143,11 +143,22 @@ test('destructive controls require an accessible in-app confirmation before acti
   const trigger = screen.getByRole('button', { name: 'Trash' });
   await user.click(trigger);
   expect(screen.getByRole('dialog', { name: 'Move file to Trash?' })).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Move to Trash' })).toHaveFocus();
+  const cancel = screen.getByRole('button', { name: 'Hủy' });
+  const confirm = screen.getByRole('button', { name: 'Move to Trash' });
+  expect(cancel).toHaveFocus();
+  expect(trigger.parentElement).toHaveAttribute('inert', '');
+  expect(trigger.parentElement).toHaveAttribute('aria-hidden', 'true');
   expect(onConfirm).not.toHaveBeenCalled();
+
+  await user.tab();
+  expect(confirm).toHaveFocus();
+  await user.tab({ shift: true });
+  expect(cancel).toHaveFocus();
 
   await user.keyboard('{Escape}');
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(trigger.parentElement).not.toHaveAttribute('inert');
+  expect(trigger.parentElement).not.toHaveAttribute('aria-hidden');
   expect(trigger).toHaveFocus();
 
   await user.click(trigger);
@@ -157,6 +168,35 @@ test('destructive controls require an accessible in-app confirmation before acti
   await user.click(trigger);
   await user.click(screen.getByRole('button', { name: 'Move to Trash' }));
   await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('a failed destructive confirmation stays open, explains the failure, and returns focus safely on cancel', async () => {
+  const user = userEvent.setup();
+  const onConfirm = vi.fn(async () => ({ error: 'The file is still referenced by a protected record.' }));
+
+  render(
+    <ConfirmActionButton
+      confirmationTitle="Move file to Trash?"
+      confirmationDescription="The file will no longer appear in the active list."
+      confirmLabel="Move to Trash"
+      onConfirm={onConfirm}
+    >
+      Trash
+    </ConfirmActionButton>
+  );
+
+  const trigger = screen.getByRole('button', { name: 'Trash' });
+  await user.click(trigger);
+  await user.click(screen.getByRole('button', { name: 'Move to Trash' }));
+
+  await waitFor(() => expect(onConfirm).toHaveBeenCalledTimes(1));
+  expect(screen.getByRole('dialog', { name: 'Move file to Trash?' })).toBeInTheDocument();
+  expect(screen.getByRole('alert')).toHaveTextContent('The file is still referenced by a protected record.');
+
+  await user.click(screen.getByRole('button', { name: 'Hủy' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(trigger).toHaveFocus();
 });
 
 const specialistRoutes: Array<[Screen, string]> = [
@@ -195,37 +235,185 @@ test('the shell hides an unavailable admin route and provides an explicit permis
   expect(screen.queryByRole('button', { name: 'Admin access' })).not.toBeInTheDocument();
 });
 
-test('an Admin with the server-confirmed read grant gets a discoverable read-only admin UI', async () => {
+test('an Admin cannot reveal a SUPER-only access route even if a stale client profile contains a capability flag', () => {
+  renderShell(syntheticProfile({ role: 'Admin', canViewAdminAccess: true }), { screen: 'admin' });
+
+  expect(screen.getByRole('heading', { name: 'Admin access is unavailable' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Admin access' })).not.toBeInTheDocument();
+});
+
+test('a SuperAdmin reviews a signed access preview before committing a role mutation', async () => {
+  const user = userEvent.setup();
   const target = {
-    id: 'e9ed32e4-3a28-4eb9-a5d1-1f95c3868ef1',
-    email: 'target@example.invalid',
-    displayName: 'Operational target',
+    id: 'ae17ba5b-43a1-47d8-b5b7-2c87c8b72ba1',
+    email: 'managed@example.invalid',
+    displayName: 'Managed account',
     state: 'Active',
     emailConfirmed: true,
     role: 'User',
-    personalSpaceId: '3e065c11-7401-4d89-9305-d36bca2e7466',
+    personalSpaceId: '6c6877f0-f90a-43e4-a0e4-fd14f2a48ffb',
     personalSpaceState: 'Active',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-02T00:00:00.000Z',
     etag: '"AQIDBAUGBwg="'
   };
+  const updated = { ...target, role: 'Admin', etag: '"AgMEBQYHCAk="' };
+  let previewCalls = 0;
+  let commitCalls = 0;
   server.use(
+    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
     http.get('*/api/v1/admin/users', () => HttpResponse.json({ items: [target], nextCursor: null })),
     http.get(`*/api/v1/admin/users/${target.id}/access`, () => HttpResponse.json({
       user: target,
-      actionGrants: [{ actionKey: 'access.user.read', effect: 'Allow', status: 'Resolved', updatedAt: target.updatedAt }],
-      moduleGrants: [{ code: 'FX02', enabled: true, state: 'Ready', systemEnabled: true }]
-    }))
+      actionGrants: [],
+      moduleGrants: [{ moduleId: '4eb98548-0e0e-48b2-a4c5-3d607e6b08ce', code: 'FX02', enabled: true, state: 'Ready', systemEnabled: true }]
+    })),
+    http.post(`*/api/v1/admin/users/${target.id}/access/preview`, async ({ request }) => {
+      previewCalls += 1;
+      expect(await request.json()).toEqual({ kind: 'role', role: 'Admin' });
+      return HttpResponse.json({ previewToken: 'signed-preview', expiresAt: '2026-09-30T00:02:00.000Z', etag: target.etag, changes: [{ field: 'role', before: 'User', after: 'Admin' }], blockers: [] });
+    }),
+    http.put(`*/api/v1/admin/users/${target.id}/access/role`, async ({ request }) => {
+      commitCalls += 1;
+      expect(request.headers.get('If-Match')).toBe(target.etag);
+      expect(await request.json()).toEqual({ kind: 'role', role: 'Admin', previewToken: 'signed-preview' });
+      return HttpResponse.json({ user: updated, actionGrants: [], moduleGrants: [{ moduleId: '4eb98548-0e0e-48b2-a4c5-3d607e6b08ce', code: 'FX02', enabled: true, state: 'Ready', systemEnabled: true }] });
+    })
   );
 
-  renderShell(syntheticProfile({ role: 'Admin', canViewAdminAccess: true }), { screen: 'admin' });
+  renderShell(syntheticProfile({ role: 'SuperAdmin', canViewAdminAccess: true }), { screen: 'admin' });
 
-  expect(screen.getByRole('button', { name: /Admin access$/ })).toBeInTheDocument();
-  expect(await screen.findByText('Read-only access')).toBeInTheDocument();
-  expect(await screen.findByRole('heading', { name: 'Operational target' })).toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Disable user' })).not.toBeInTheDocument();
-  expect(screen.queryByRole('button', { name: 'Save role' })).not.toBeInTheDocument();
-  expect(screen.getByRole('checkbox', { name: /FX02/ })).toBeDisabled();
+  await screen.findByRole('heading', { name: 'Managed account' });
+  await user.selectOptions(screen.getByLabelText('Role'), 'Admin');
+  await user.click(screen.getByRole('button', { name: 'Xem preview role' }));
+
+  await waitFor(() => expect(previewCalls).toBe(1));
+  const dialog = screen.getByRole('dialog', { name: 'Xem lại thay đổi role' });
+  expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  expect(within(dialog).getByText('User → Admin')).toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: 'Xác nhận commit' }));
+
+  await waitFor(() => expect(commitCalls).toBe(1));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Managed account' })).toBeInTheDocument();
+});
+
+test.each([409, 412])('a stale access preview (%s) keeps the review dialog open and prevents a blind retry', async (status) => {
+  const user = userEvent.setup();
+  const target = {
+    id: '3d890f25-0f66-4e96-9d13-2ec71627b5d2', email: 'stale@example.invalid', displayName: 'Stale target', state: 'Active', emailConfirmed: true,
+    role: 'User', personalSpaceId: 'e0667fcf-3f0e-4d2d-9ad9-12ad209ea7f1', personalSpaceState: 'Active',
+    createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z', etag: '"AQIDBAUGBwg="'
+  };
+  let commits = 0;
+  let reads = 0;
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
+    http.get('*/api/v1/admin/users', () => HttpResponse.json({ items: [target], nextCursor: null })),
+    http.get(`*/api/v1/admin/users/${target.id}/access`, () => {
+      reads += 1;
+      return HttpResponse.json({ user: { ...target, etag: reads > 1 ? '"CAcGBQQDAgE="' : target.etag }, actionGrants: [], moduleGrants: [] });
+    }),
+    http.post(`*/api/v1/admin/users/${target.id}/access/preview`, async ({ request }) => {
+      expect(await request.json()).toEqual({ kind: 'permissions', changes: [{ actionKey: 'access.user.read', effect: 'Allow' }] });
+      return HttpResponse.json({ previewToken: 'will-stale', expiresAt: '2026-09-30T00:02:00.000Z', etag: target.etag, changes: [{ field: 'permission:access.user.read', before: 'Unset', after: 'Allow' }], blockers: [] });
+    }),
+    http.put(`*/api/v1/admin/users/${target.id}/access/permissions`, () => {
+      commits += 1;
+      return HttpResponse.json({ code: status === 412 ? 'RevisionConflict' : 'PreviewStale', title: 'The access preview is stale.' }, { status });
+    })
+  );
+
+  renderShell(syntheticProfile({ role: 'SuperAdmin', canViewAdminAccess: true }), { screen: 'admin' });
+  await screen.findByRole('heading', { name: 'Stale target' });
+  await user.type(screen.getByLabelText('Action key'), 'access.user.read');
+  await user.click(screen.getByRole('button', { name: 'Xem preview quyền' }));
+  const dialog = await screen.findByRole('dialog', { name: 'Xem lại cập nhật quyền chi tiết' });
+  await user.click(within(dialog).getByRole('button', { name: 'Xác nhận commit' }));
+
+  await waitFor(() => expect(commits).toBe(1));
+  expect(screen.getByRole('dialog', { name: 'Xem lại cập nhật quyền chi tiết' })).toBeInTheDocument();
+  expect(within(dialog).getByRole('alert')).toHaveTextContent('The access preview is stale.');
+  expect(within(dialog).getByRole('button', { name: 'Xác nhận commit' })).toBeDisabled();
+  expect(screen.getByLabelText('Action key')).toHaveValue('access.user.read');
+  expect(reads).toBe(status === 412 ? 2 : 1);
+});
+
+test('a recent-auth challenge reauthenticates without losing the intended access change, then requests a fresh preview', async () => {
+  const user = userEvent.setup();
+  const target = {
+    id: '44d9cd84-b510-43db-91d9-15a7f7355ecd', email: 'reauth@example.invalid', displayName: 'Reauth target', state: 'Active', emailConfirmed: true,
+    role: 'User', personalSpaceId: 'd6c257aa-0ef4-4f41-a0e2-56b1878815c3', personalSpaceState: 'Active',
+    createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-02T00:00:00.000Z', etag: '"AQIDBAUGBwg="'
+  };
+  let previewCalls = 0;
+  let reauthCalls = 0;
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
+    http.get('*/api/v1/admin/users', () => HttpResponse.json({ items: [target], nextCursor: null })),
+    http.get(`*/api/v1/admin/users/${target.id}/access`, () => HttpResponse.json({ user: target, actionGrants: [], moduleGrants: [] })),
+    http.post(`*/api/v1/admin/users/${target.id}/access/preview`, () => {
+      previewCalls += 1;
+      return previewCalls === 1
+        ? HttpResponse.json({ code: 'RecentAuthenticationRequired', title: 'Reauthenticate before reviewing an access change.' }, { status: 428 })
+        : HttpResponse.json({ previewToken: 'fresh-after-reauth', expiresAt: '2026-09-30T00:02:00.000Z', etag: target.etag, changes: [{ field: 'role', before: 'User', after: 'Admin' }], blockers: [] });
+    }),
+    http.post('*/api/v1/auth/reauth', async ({ request }) => {
+      reauthCalls += 1;
+      expect(await request.json()).toEqual({ password: 'current-password' });
+      return new HttpResponse(null, { status: 204 });
+    })
+  );
+
+  renderShell(syntheticProfile({ role: 'SuperAdmin', canViewAdminAccess: true }), { screen: 'admin' });
+  await screen.findByRole('heading', { name: 'Reauth target' });
+  await user.selectOptions(screen.getByLabelText('Role'), 'Admin');
+  await user.click(screen.getByRole('button', { name: 'Xem preview role' }));
+
+  const reauthDialog = await screen.findByRole('dialog', { name: 'Xác minh lại danh tính' });
+  await user.type(within(reauthDialog).getByLabelText('Mật khẩu hiện tại'), 'current-password');
+  await user.click(within(reauthDialog).getByRole('button', { name: 'Xác minh và tiếp tục' }));
+
+  await waitFor(() => expect(reauthCalls).toBe(1));
+  expect(await screen.findByRole('dialog', { name: 'Xem lại thay đổi role' })).toBeInTheDocument();
+  expect(previewCalls).toBe(2);
+});
+
+test('module policy exposes dependency context and commits only after a policy preview', async () => {
+  const user = userEvent.setup();
+  const module = {
+    id: '8bb0f094-6c1a-47ea-bf22-24e5f53d52b8', code: 'FX99', name: 'Policy test module', state: 'Ready', systemEnabled: true,
+    registrationEnabled: true, policyRevision: '4', etag: '"BAAAAAAAAAA="', requiredDependencies: ['FX01'], requiredBy: ['FX100'], unavailableReason: null
+  };
+  let commitCalls = 0;
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
+    http.get('*/api/v1/admin/modules/', () => HttpResponse.json({ items: [module], nextCursor: null })),
+    http.post(`*/api/v1/admin/modules/${module.id}/preview`, async ({ request }) => {
+      expect(await request.json()).toEqual({ systemEnabled: false });
+      return HttpResponse.json({ previewToken: 'module-preview', expiresAt: '2026-09-30T00:02:00.000Z', etag: module.etag, changes: [{ field: 'systemEnabled', before: 'True', after: 'False' }], blockers: [] });
+    }),
+    http.put(`*/api/v1/admin/modules/${module.id}/policy`, async ({ request }) => {
+      commitCalls += 1;
+      expect(request.headers.get('If-Match')).toBe(module.etag);
+      expect(await request.json()).toEqual({ systemEnabled: false, previewToken: 'module-preview' });
+      return HttpResponse.json({ ...module, systemEnabled: false, policyRevision: '5', etag: '"BQAAAAAAAAA="' });
+    })
+  );
+
+  renderShell(syntheticProfile({ role: 'SuperAdmin', canViewModuleCatalog: true, canManageModulePolicy: true }), { screen: 'adminModules' });
+  await screen.findByRole('heading', { name: 'Module catalog' });
+  expect(screen.getByText('FX01')).toBeInTheDocument();
+  expect(screen.getByText('FX100')).toBeInTheDocument();
+  await user.click(screen.getByRole('checkbox', { name: 'System enabled' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Xem lại thay đổi FX99' }));
+
+  const dialog = await screen.findByRole('dialog', { name: 'Xem lại policy FX99' });
+  expect(within(dialog).getByText('True → False')).toBeInTheDocument();
+  await user.click(within(dialog).getByRole('button', { name: 'Xác nhận policy' }));
+  await waitFor(() => expect(commitCalls).toBe(1));
+  expect(screen.getByText(/System disabled/)).toBeInTheDocument();
 });
 
 test('mobile navigation exposes state through an accessible toggle', async () => {
@@ -245,6 +433,39 @@ test('mobile navigation exposes state through an accessible toggle', async () =>
   expect(navigate).toHaveBeenCalledWith('home');
   expect(toggle).toHaveAttribute('aria-expanded', 'false');
   expect(navigation).not.toHaveClass('mobile-open');
+});
+
+test('the profile dirty-state dialog traps focus, defaults to keep editing, and restores focus on Escape', async () => {
+  const user = userEvent.setup();
+  window.history.replaceState({}, '', '/settings/profile');
+  server.use(
+    http.get('*/api/v1/me', () => HttpResponse.json(syntheticProfile())),
+    http.get('*/api/v1/settings/preferences', () => HttpResponse.json({ items: [], nextCursor: null }))
+  );
+  render(<App />);
+
+  const displayName = await screen.findByLabelText('Display name');
+  await user.clear(displayName);
+  await user.type(displayName, 'Edited display name');
+  const home = screen.getByRole('button', { name: 'Home' });
+  await user.click(home);
+
+  const dialog = screen.getByRole('dialog', { name: 'You have unsaved changes' });
+  const keepEditing = within(dialog).getByRole('button', { name: 'Keep editing' });
+  expect(keepEditing).toHaveFocus();
+  const appContainer = home.closest('[inert]');
+  expect(appContainer).not.toBeNull();
+  expect(appContainer as HTMLElement).toHaveAttribute('aria-hidden', 'true');
+  expect(screen.queryByRole('heading', { name: 'Profile' })).not.toBeInTheDocument();
+
+  await user.tab({ shift: true });
+  expect(within(dialog).getByRole('button', { name: 'Save and continue' })).toHaveFocus();
+  await user.keyboard('{Escape}');
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(appContainer as HTMLElement).not.toHaveAttribute('inert');
+  expect(home).toHaveFocus();
+  expect(screen.getByRole('heading', { name: 'Profile' })).toBeInTheDocument();
 });
 
 test('navigation labels are concise for assistive technology and unavailable modules stay hidden', () => {
@@ -311,6 +532,47 @@ test('Files removes a trashed file from the active UI only after the confirmed s
   expect(screen.queryByText(file.originalName)).not.toBeInTheDocument();
 });
 
+test('Files keeps the Trash preview open and preserves the active row when the server rejects a stale or referenced file', async () => {
+  const user = userEvent.setup();
+  const file = {
+    id: 'd15f8388-9f41-478e-a245-82b2107f7f2b',
+    originalName: 'Referenced-contract.txt',
+    mediaType: 'text/plain',
+    byteLength: 42,
+    scanState: 'Clean',
+    lifecycle: 'Active',
+    currentRevision: 1,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    updatedAt: '2026-09-01T00:00:00.000Z',
+    etag: '"AQIDBAUGBwg="'
+  };
+  let trashCalls = 0;
+  server.use(
+    http.get('*/api/v1/files', () => HttpResponse.json({ items: [file], nextCursor: null })),
+    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
+    http.post(`*/api/v1/files/${file.id}/trash`, () => {
+      trashCalls += 1;
+      return HttpResponse.json({ code: 'FileAttached', title: 'The file is still referenced by an active resource.' }, { status: 409 });
+    })
+  );
+
+  renderShell(
+    syntheticProfile({ modules: [{ code: 'FX07', enabled: true, unavailableReason: null }] }),
+    { screen: 'files' }
+  );
+
+  await screen.findByText(file.originalName);
+  const fileCard = screen.getByText(file.originalName).closest('article');
+  expect(fileCard).not.toBeNull();
+  await user.click(within(fileCard as HTMLElement).getByRole('button', { name: 'Trash' }));
+  await user.click(screen.getByRole('button', { name: 'Đưa vào Trash' }));
+
+  await waitFor(() => expect(trashCalls).toBe(1));
+  const dialog = screen.getByRole('dialog', { name: `Đưa “${file.originalName}” vào Trash?` });
+  expect(within(dialog).getByRole('alert')).toHaveTextContent('The file is still referenced by an active resource.');
+  expect(screen.getByText(file.originalName)).toBeInTheDocument();
+});
+
 test('Files clears the native file input after upload so the same file can be selected again', async () => {
   const user = userEvent.setup();
   const upload = new File(['reusable fixture'], 'repeatable.txt', { type: 'text/plain' });
@@ -374,7 +636,7 @@ test('Files clears the native file input after upload so the same file can be se
   expect(screen.getByText(/Đã chọn: repeatable\.txt/)).toBeInTheDocument();
 });
 
-test('global Trash exposes File batches, supports restore, and retains a deliberate PURGE gate', async () => {
+test('global Trash previews restore and permanent deletion, with a deliberate in-dialog PURGE gate', async () => {
   const user = userEvent.setup();
   const batchId = 'ab01dd92-7a90-454f-b849-486b92a4d998';
   const item = {
@@ -402,14 +664,24 @@ test('global Trash exposes File batches, supports restore, and retains a deliber
   renderShell(syntheticProfile(), { screen: 'trash' });
 
   expect(await screen.findByText(`File · ${item.resourceId} · trạng thái trước: Active`)).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Purge' })).toBeDisabled();
-  await user.type(screen.getByRole('textbox', { name: 'Nhập PURGE để xóa vĩnh viễn batch' }), 'purge');
-  expect(screen.getByRole('button', { name: 'Purge' })).toBeDisabled();
-  await user.clear(screen.getByRole('textbox', { name: 'Nhập PURGE để xóa vĩnh viễn batch' }));
-  await user.type(screen.getByRole('textbox', { name: 'Nhập PURGE để xóa vĩnh viễn batch' }), 'PURGE');
-  expect(screen.getByRole('button', { name: 'Purge' })).toBeEnabled();
+  await user.click(screen.getByRole('button', { name: 'Delete permanently' }));
+  const purgeDialog = screen.getByRole('dialog', { name: 'Delete permanently?' });
+  expect(purgeDialog).toBeInTheDocument();
+  expect(within(purgeDialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  expect(within(purgeDialog).getByRole('button', { name: 'Delete permanently' })).toBeDisabled();
+  await user.type(within(purgeDialog).getByRole('textbox', { name: 'Nhập PURGE để xóa vĩnh viễn batch' }), 'purge');
+  expect(within(purgeDialog).getByRole('button', { name: 'Delete permanently' })).toBeDisabled();
+  await user.clear(within(purgeDialog).getByRole('textbox', { name: 'Nhập PURGE để xóa vĩnh viễn batch' }));
+  await user.type(within(purgeDialog).getByRole('textbox', { name: 'Nhập PURGE để xóa vĩnh viễn batch' }), 'PURGE');
+  expect(within(purgeDialog).getByRole('button', { name: 'Delete permanently' })).toBeEnabled();
+  expect(restoreCalls).toBe(0);
+  await user.click(within(purgeDialog).getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: 'Restore batch' }));
+  const restoreDialog = screen.getByRole('dialog', { name: 'Restore these items?' });
+  expect(restoreDialog).toBeInTheDocument();
+  await user.click(within(restoreDialog).getByRole('button', { name: 'Restore batch' }));
   await waitFor(() => expect(restoreCalls).toBe(1));
   expect(await screen.findByRole('heading', { name: 'Trash trống' })).toBeInTheDocument();
   expect(screen.getByText('Không có resource nào đang chờ restore hoặc purge.')).toBeInTheDocument();
@@ -481,6 +753,8 @@ test('Notifications keeps ETags from the list projection for read state and sele
   const removeSelected = screen.getByRole('button', { name: 'Xóa mục đã chọn' });
   expect(removeSelected).toBeEnabled();
   await user.click(removeSelected);
+  const deleteDialog = screen.getByRole('dialog', { name: 'Xóa 1 mục khỏi Inbox?' });
+  await user.click(within(deleteDialog).getByRole('button', { name: 'Xóa mục đã chọn' }));
   await waitFor(() => expect(deleteCalls).toBe(1));
   expect(screen.queryByText(read.title)).not.toBeInTheDocument();
   expect(screen.getByText(unread.title)).toBeInTheDocument();
@@ -575,6 +849,7 @@ test('the HTTP boundary refreshes CSRF once and retains a single idempotency key
 });
 
 test('session metadata uses the profile IANA zone rather than the browser default', async () => {
+  const user = userEvent.setup();
   const createdAt = '2026-01-01T00:00:00.000Z';
   const expectedProfileTime = dateTime(createdAt, 'Asia/Ho_Chi_Minh', 'en');
   const browserUtcTime = dateTime(createdAt, 'UTC', 'en');
@@ -602,7 +877,11 @@ test('session metadata uses the profile IANA zone rather than the browser defaul
   expect(await screen.findByText((_, element) =>
     element?.tagName === 'SPAN' && element.textContent === 'Created ' + expectedProfileTime
   )).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Revoke' })).toBeInTheDocument();
+  const revoke = screen.getByRole('button', { name: 'Revoke' });
+  await user.click(revoke);
+  const dialog = screen.getByRole('dialog', { name: 'Revoke this session?' });
+  expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveFocus();
+  expect(within(dialog).getByText(/Synthetic browser/)).toBeInTheDocument();
 });
 
 test('time helpers preserve a normal IANA instant and all-day date boundary', () => {

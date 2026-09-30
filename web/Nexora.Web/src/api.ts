@@ -25,6 +25,8 @@ export type ProfileResponse = {
   personalSpaceId: string | null;
   role: string;
   canViewAdminAccess?: boolean;
+  canViewModuleCatalog?: boolean;
+  canManageModulePolicy?: boolean;
   modules: ModuleProjection[];
 };
 
@@ -575,7 +577,44 @@ export type AdminUserPage = {
 export type AdminUserAccess = {
   user: AdminUserRecord;
   actionGrants: { actionKey: string; effect: string; status: string; updatedAt: string }[];
-  moduleGrants: { code: string; enabled: boolean; state: string; systemEnabled: boolean }[];
+  moduleGrants: { moduleId: string; code: string; enabled: boolean; state: string; systemEnabled: boolean }[];
+};
+
+export type AdminAccessChange =
+  | { kind: 'role'; role: string }
+  | { kind: 'permissions'; changes: { actionKey: string; effect: 'Allow' | 'Deny' | 'Unset' }[] }
+  | { kind: 'modules'; changes: { moduleId: string; enabled: boolean }[] };
+
+export type AdminAccessPreview = {
+  previewToken: string;
+  expiresAt: string;
+  etag: string;
+  changes: { field: string; before: string | null; after: string | null }[];
+  blockers: { code: string; message: string }[];
+};
+
+export type AdminModuleRecord = {
+  id: string;
+  code: string;
+  name: string;
+  state: string;
+  systemEnabled: boolean;
+  registrationEnabled: boolean;
+  policyRevision: string;
+  etag: string;
+  requiredDependencies: string[];
+  requiredBy: string[];
+  unavailableReason: string | null;
+};
+
+export type AdminModulePage = { items: AdminModuleRecord[]; nextCursor: string | null };
+
+export type ModulePolicyPreview = {
+  previewToken: string;
+  expiresAt: string;
+  etag: string;
+  changes: { field: string; before: string; after: string }[];
+  blockers: { code: string; message: string; field: string | null }[];
 };
 
 export type ShareLinkRecord = {
@@ -1809,27 +1848,49 @@ export function getAdminUserAccess(userId: string) {
   return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/access`);
 }
 
-export function setAdminUserRole(userId: string, etag: string, role: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<AdminUserAccess | undefined>(`/api/v1/admin/users/${encodeURIComponent(userId)}/role`, {
-    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ role, ifMatch: etag })
+export function previewAdminAccess(userId: string, change: AdminAccessChange) {
+  return apiFetch<AdminAccessPreview>(`/api/v1/admin/users/${encodeURIComponent(userId)}/access/preview`, {
+    method: 'POST', headers: jsonMutationHeaders(), body: JSON.stringify(change)
   });
 }
 
-export function setAdminActionGrant(userId: string, etag: string, actionKey: string, effect: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/permissions`, {
-    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ actionKey, effect, ifMatch: etag })
+export function commitAdminUserRole(userId: string, etag: string, role: string, previewToken: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminUserAccess | undefined>(`/api/v1/admin/users/${encodeURIComponent(userId)}/access/role`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ kind: 'role', role, previewToken })
   });
 }
 
-export function setAdminModuleGrant(userId: string, etag: string, moduleCode: string, enabled: boolean, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/modules/${encodeURIComponent(moduleCode)}`, {
-    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ enabled, ifMatch: etag })
+export function commitAdminActionGrant(userId: string, etag: string, changes: { actionKey: string; effect: 'Allow' | 'Deny' | 'Unset' }[], previewToken: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/access/permissions`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ kind: 'permissions', changes, previewToken })
   });
 }
 
-export function disableAdminUser(userId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<void>(`/api/v1/admin/users/${encodeURIComponent(userId)}/disable`, {
-    method: 'POST', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify({ confirmation: 'DISABLE', ifMatch: etag })
+export function commitAdminModuleGrant(userId: string, etag: string, changes: { moduleId: string; enabled: boolean }[], previewToken: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminUserAccess>(`/api/v1/admin/users/${encodeURIComponent(userId)}/access/modules`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ kind: 'modules', changes, previewToken })
+  });
+}
+
+export function reauthenticate(password: string) {
+  return apiFetch<void>('/api/v1/auth/reauth', {
+    method: 'POST', headers: jsonMutationHeaders(createIdempotencyKey()), body: JSON.stringify({ password })
+  });
+}
+
+export function listAdminModules() {
+  return apiFetch<AdminModulePage>('/api/v1/admin/modules/?limit=100');
+}
+
+export function previewModulePolicy(moduleId: string, change: { systemEnabled?: boolean; registrationEnabled?: boolean }) {
+  return apiFetch<ModulePolicyPreview>(`/api/v1/admin/modules/${encodeURIComponent(moduleId)}/preview`, {
+    method: 'POST', headers: jsonMutationHeaders(), body: JSON.stringify(change)
+  });
+}
+
+export function commitModulePolicy(moduleId: string, etag: string, change: { systemEnabled?: boolean; registrationEnabled?: boolean }, previewToken: string, idempotencyKey = createIdempotencyKey()) {
+  return apiFetch<AdminModuleRecord>(`/api/v1/admin/modules/${encodeURIComponent(moduleId)}/policy`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ ...change, previewToken })
   });
 }
 
