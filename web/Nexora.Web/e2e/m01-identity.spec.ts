@@ -8,7 +8,7 @@ if (!operatorCli) {
   throw new Error('E2E_BLOCKED: an operator CLI is required to read the approved local capture boundary.');
 }
 
-function readLatestSyntheticCode(purpose: string): string | undefined {
+function readSyntheticCodes(purpose: string): string[] {
   try {
     const output = execFileSync(operatorCli, ['read-account-messages'], {
       encoding: 'utf8',
@@ -19,19 +19,20 @@ function readLatestSyntheticCode(purpose: string): string | undefined {
 
     const prefix = purpose + ' ';
     const tokenMarker = ' token ';
-    const matching = output.split(/\r?\n/).find((line) => line.startsWith(prefix) && line.includes(tokenMarker));
-    const value = matching?.slice(matching.indexOf(tokenMarker) + tokenMarker.length).trim();
-    return value || undefined;
+    return output.split(/\r?\n/)
+      .filter((line) => line.startsWith(prefix) && line.includes(tokenMarker))
+      .map((line) => line.slice(line.indexOf(tokenMarker) + tokenMarker.length).trim())
+      .filter(Boolean);
   } catch {
     // CLI output can contain a synthetic secret. Never surface it in a test error.
-    return undefined;
+    return [];
   }
 }
 
-async function waitForSyntheticCode(purpose: string): Promise<string> {
+async function waitForSyntheticCode(purpose: string, previous: Set<string>): Promise<string> {
   let captured = '';
   await expect.poll(() => {
-    const value = readLatestSyntheticCode(purpose);
+    const value = readSyntheticCodes(purpose).find((code) => !previous.has(code));
     if (value) {
       captured = value;
     }
@@ -61,10 +62,11 @@ async function registerVerifyAndLogin(page: Page) {
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Mật khẩu').fill(password);
   await page.getByLabel('Timezone IANA').fill('Asia/Ho_Chi_Minh');
+  const previousCodes = new Set(readSyntheticCodes('EmailVerification'));
   await page.getByRole('button', { name: 'Tạo tài khoản' }).click();
   await expect(page).toHaveURL(/verify-email/);
 
-  const verificationCode = await waitForSyntheticCode('EmailVerification');
+  const verificationCode = await waitForSyntheticCode('EmailVerification', previousCodes);
   await page.getByLabel('Mã xác minh').fill(verificationCode);
   await page.getByRole('button', { name: 'Xác minh email' }).click();
   await expect(page.getByRole('heading', { name: 'Email đã được xác minh' })).toBeVisible();
@@ -72,13 +74,13 @@ async function registerVerifyAndLogin(page: Page) {
 
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Mật khẩu').fill(password);
-  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page).toHaveURL('/');
 
   return { email };
 }
 
-test('M01 register, local capture, verify, login, and keyboard-visible controls', async ({ page }) => {
+test('M01 register, local capture, verify, login, and keyboard-visible controls', async ({ page }, testInfo) => {
   await page.goto('/register');
   await expect(page.getByRole('heading', { name: 'Tạo tài khoản' })).toBeVisible();
   await page.keyboard.press('Tab');
@@ -89,21 +91,27 @@ test('M01 register, local capture, verify, login, and keyboard-visible controls'
 
   await registerVerifyAndLogin(page);
   await expect(page.getByText('PERSONAL SPACE')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true });
 });
 
 test('M01 password reset uses the local operator boundary and does not auto-login', async ({ page }) => {
   const account = await registerVerifyAndLogin(page);
 
+  await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+  await expect(page).toHaveURL('/login');
+
   await page.goto('/password/forgot');
   await page.getByLabel('Email').fill(account.email);
+  const previousCodes = new Set(readSyntheticCodes('PasswordReset'));
   await page.getByRole('button', { name: 'Gửi yêu cầu reset' }).click();
   await expect(page.getByText('Đã tiếp nhận yêu cầu')).toBeVisible();
 
-  const resetCode = await waitForSyntheticCode('PasswordReset');
+  const resetCode = await waitForSyntheticCode('PasswordReset', previousCodes);
   await page.getByRole('button', { name: 'Nhập mã reset' }).click();
   const replacementPassword = syntheticPassword(true);
   await page.getByLabel('Mã reset').fill(resetCode);
-  await page.getByLabel('Mật khẩu mới').fill(replacementPassword);
+  await page.getByLabel('Mật khẩu mới', { exact: true }).fill(replacementPassword);
   await page.getByLabel('Nhập lại mật khẩu mới').fill(replacementPassword);
   await page.getByRole('button', { name: 'Đặt mật khẩu mới' }).click();
 
@@ -111,6 +119,6 @@ test('M01 password reset uses the local operator boundary and does not auto-logi
   await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
   await page.getByLabel('Email').fill(account.email);
   await page.getByLabel('Mật khẩu').fill(replacementPassword);
-  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await expect(page).toHaveURL('/');
 });

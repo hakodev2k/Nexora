@@ -56,6 +56,41 @@ rejects that URL with `ERR_BLOCKED_BY_CLIENT`. Actual browser UI role flows,
 screenshots, responsive visual review and full E2E acceptance remain pending.
 The temporary public frontend must remain off.
 
+## Playwright UI verification — follow-up
+
+The user explicitly requested running Playwright. The local project Playwright
+suite now runs successfully against the real API and SQL Server: **4 passed**
+in 32.9 seconds, with one worker. Both Desktop Chrome and Pixel 5 mobile
+emulation cover registration, operator-captured email verification, login,
+logout, password reset, no reset auto-login, and login with the replacement
+password. Registration passes axe accessibility; Home is checked for horizontal
+overflow with a long synthetic name/email. Desktop/mobile Home screenshots are
+stored in the local Playwright output directory after authentication, without
+password or verification/reset forms.
+
+The run found and corrected insufficient text contrast, a long-email mobile
+header that interfered with logout, and overflowing Home headings. Test fixes
+use exact labels, logout before the public reset flow, and wait for a newly
+captured token rather than reusing a prior account's token. One worker protects
+the shared operator capture boundary across browser projects.
+
+The pinned Chromium download returned HTML instead of a ZIP. Google Chrome
+154.0.8037.92 was installed from Google's official package; the configuration
+supports `NEXORA_E2E_BROWSER_CHANNEL=chrome` while retaining the default bundled
+browser when unset. Existing Node packages, SQL state and frontend were reused.
+A separate synthetic `Nexora_Test_<GUID>` database, stable generated local
+secrets and capture directory are retained for continuation. Frontend/API
+readiness was verified through `/health/ready`. A fresh API process was used for
+the final run because earlier debugging runs hit the real request rate limit;
+no rate limit, CSRF, authentication or TLS browser check was disabled.
+
+Frontend production build passed after these changes. The cloud CUA browser's
+localhost block remains specific to that browser; it does not prevent the
+explicitly requested local Playwright tests. Mobile emulation is not a physical
+Android-device test. This suite covers User identity flows, not all roles,
+screens, controls, feature logic or visual/accessibility states. Those broader
+review gates below remain pending.
+
 ## Remaining review gates
 
 Continue the main-branch requirement/feature matrix and all-role UI workflows.

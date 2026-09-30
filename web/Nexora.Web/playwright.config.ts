@@ -35,6 +35,8 @@ export default defineConfig({
   timeout: 45_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
+  // The operator capture is shared across the desktop/mobile projects.
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   reporter: [
@@ -43,6 +45,7 @@ export default defineConfig({
   ],
   use: {
     baseURL,
+    channel: process.env.NEXORA_E2E_BROWSER_CHANNEL || undefined,
     ignoreHTTPSErrors: false,
     screenshot: 'off',
     video: 'off',
