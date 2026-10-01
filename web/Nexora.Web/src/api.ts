@@ -824,7 +824,7 @@ export function clearProfileRevision(): void {
   currentProfileETag = null;
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = init.method ?? 'GET';
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
   if (unsafe && csrfToken === null) {
@@ -958,7 +958,7 @@ function messageForStatus(status: number): string {
   }
 }
 
-function jsonMutationHeaders(idempotencyKey?: string, extra?: HeadersInit): HeadersInit {
+export function jsonMutationHeaders(idempotencyKey?: string, extra?: HeadersInit): HeadersInit {
   const headers = new Headers(extra);
   if (idempotencyKey) {
     headers.set('Idempotency-Key', idempotencyKey);

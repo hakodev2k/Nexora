@@ -1,3 +1,4 @@
+import { TimeTrackingScreen } from './TimeTrackingScreen';
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ResourceFormDialog, useResourceDialog } from './ResourceFormDialog';
@@ -464,7 +465,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
 
 const moduleScreenCodes = new Set([
   'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
-  'FX17', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX32'
+  'FX17', 'FX18', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX32'
 ]);
 
 function moduleDisplayName(code: string, locale: string): string {
@@ -571,7 +572,7 @@ function ModalLayer({ children, className = 'dialog-backdrop' }: { children: Rea
   return createPortal(<div ref={layerRef} className={className} role="presentation" data-modal-layer>{children}</div>, document.body);
 }
 
-function ActionDialog({
+export function ActionDialog({
   title,
   description,
   confirmLabel,
@@ -5360,6 +5361,7 @@ function ModuleScreen({
   }
 
   const normalizedCode = module.code.toUpperCase();
+  if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
     return <ProductivityScreen profile={profile} moduleCode={normalizedCode} navigate={navigate} onAuthLost={onAuthLost} />;
   }

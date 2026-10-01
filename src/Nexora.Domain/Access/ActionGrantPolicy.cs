@@ -222,6 +222,14 @@ public static class ActionGrantPolicy
         "settings.preference.update"
     };
 
+    // DEC-014 local unlinked Time Tracking slice; no purge, support or SYSTEM grant.
+    private static readonly HashSet<string> ApprovedTimeActions = new(StringComparer.Ordinal)
+    {
+        "time.timer.read", "time.timer.start", "time.timer.stop", "time.timer.resume",
+        "time.entry.read", "time.entry.create", "time.entry.update", "time.entry.trash",
+        "time.entry.restore", "time.entry.history", "time.report.read"
+    };
+
     public static PolicyDecision CanGrantAllow(string actionKey)
     {
         if (string.IsNullOrWhiteSpace(actionKey))
@@ -239,12 +247,12 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Network toolbox action is inactive until a future PO/network decision.");
         }
 
-        if (!ApprovedM01Actions.Contains(actionKey))
+        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 scope.");
         }
 
-        if (!AdminGrantableActions.Contains(actionKey))
+        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("ActionNotGrantable", "Action is not assignable as an Admin grant in the current action manifest.");
         }
@@ -252,7 +260,7 @@ public static class ActionGrantPolicy
         return PolicyDecision.Allow("GrantAllowed", "Action is approved for M01 grant mutation.");
     }
 
-    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey);
+    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeActions.Contains(actionKey);
 
-    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey);
+    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeActions.Contains(actionKey);
 }

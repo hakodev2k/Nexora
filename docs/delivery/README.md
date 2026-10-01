@@ -34,3 +34,5 @@ Chuẩn hóa các quyết định PO ngày 2026-09-09 và DEC-014 để unblock 
 ## Goals và acceptance trace
 
 [Goals](../goals/README.md) nối current scope với P00–P08, RM00–RM22 và từng FX; [task/evidence template](../goals/05-task-and-evidence-template.md) yêu cầu trace goal tới source AC/action và actual evidence. Goals không thay story contracts, không biến `Not run` thành `Pass`; code-only run hiện tại không thêm test/mock/demo data.
+
+[PR4 local API continuation and exact partial scope](09-pr4-local-module-implementation.md).

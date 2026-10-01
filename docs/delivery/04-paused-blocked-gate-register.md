@@ -109,3 +109,7 @@ If a module file and this register appear to disagree, use the stricter rule and
 | Full Release 1 | Local implementation may proceed slice-by-slice; no claim of complete/verified R1 until owner evidence exists for every committed capability. |
 | Production/public launch | No-go until Local Stable evidence plus production provider/capacity/RPO/RTO/SLA approval. |
 | FX30/FX34/FX35 real providers/workers | No-go; local-safe disabled code only. |
+
+## 2026-10-01 local Time Tracking amendment
+
+DEC-014 and the current user instruction authorize the local unlinked FX18 slice detailed in [PR4 continuation](09-pr4-local-module-implementation.md). Migration 0032 marks the installed subset Ready, preserving existing user/Admin grants. Whole-module acceptance remains Partial; source links, purge, conversion and required independent review remain open. This does not resume real paused providers.

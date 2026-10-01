@@ -40,6 +40,7 @@ public static class M01MigrationManifest
         "20260928_0028_bootstrap_ready_module_grants.sql",
         "20260929_0029_habit_trash_consistency.sql",
         "20260930_0030_access_preview_action.sql",
-        "20261001_0031_trash_source_permissions.sql"
+        "20261001_0031_trash_source_permissions.sql",
+        "20261001_0032_time_tracking_local.sql"
     ];
 }

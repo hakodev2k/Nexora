@@ -90,6 +90,11 @@ internal sealed class SqlSelfCapability
                             OR userRow.[State] <> 'Active'
                             OR userRow.[IsDeleted] <> 0
                             OR spaceRow.[State] <> 'Active'
+                            OR COALESCE((SELECT TOP(1) currentRole.[Code]
+                                FROM [identity].[UserRole] currentUserRole
+                                INNER JOIN [identity].[Role] currentRole ON currentRole.[Id]=currentUserRole.[RoleId]
+                                WHERE currentUserRole.[UserId]=userRow.[Id]
+                                ORDER BY CASE currentRole.[Code] WHEN 'SuperAdmin' THEN 3 WHEN 'Admin' THEN 2 ELSE 1 END DESC), 'User') <> @Role
                             OR
                             (
                                 NOT EXISTS

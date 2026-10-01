@@ -1,3 +1,6 @@
+using Nexora.Api.Features.TimeTracking;
+using Nexora.Application.TimeTracking;
+using Nexora.Infrastructure.TimeTracking;
 using System.Text.Json.Serialization;
 using Microsoft.Data.SqlClient;
 using Nexora.Api.Http;
@@ -227,6 +230,8 @@ builder.Services.Configure<RouteOptions>(options =>
     options.LowercaseQueryStrings = false;
 });
 
+builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+
 var app = builder.Build();
 
 app.UseExceptionHandler(errorApp =>
@@ -235,20 +240,21 @@ app.UseExceptionHandler(errorApp =>
     {
         var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
         var persistenceUnavailable = exception is SqlException or TimeoutException;
+        var invalidRequest = exception is BadHttpRequestException or System.Text.Json.JsonException;
         context.Response.Headers.CacheControl = "no-store";
         await Results.Problem(
-            title: persistenceUnavailable
+            title: invalidRequest ? "The request body is invalid." : persistenceUnavailable
                 ? "Persistence is temporarily unavailable."
                 : "The request could not be completed.",
-            statusCode: persistenceUnavailable
+            statusCode: invalidRequest ? StatusCodes.Status400BadRequest : persistenceUnavailable
                 ? StatusCodes.Status503ServiceUnavailable
                 : StatusCodes.Status500InternalServerError,
-            type: persistenceUnavailable
+            type: invalidRequest ? "/problems/InvalidRequest" : persistenceUnavailable
                 ? "/problems/PersistenceUnavailable"
                 : "/problems/InternalError",
             extensions: new Dictionary<string, object?>
             {
-                ["code"] = persistenceUnavailable ? "PersistenceUnavailable" : "InternalError",
+                ["code"] = invalidRequest ? "InvalidRequest" : persistenceUnavailable ? "PersistenceUnavailable" : "InternalError",
                 ["traceId"] = context.TraceIdentifier
             }).ExecuteAsync(context);
     });
@@ -275,6 +281,7 @@ app.MapProductivityEndpoints();
 app.MapPlannerEndpoints();
 app.MapReminderEndpoints();
 app.MapHabitEndpoints();
+app.MapTimeTrackingEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
 app.MapSettingsEndpoints();
