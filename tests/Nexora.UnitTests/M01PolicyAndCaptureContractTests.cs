@@ -46,7 +46,8 @@ public sealed class M01PolicyAndCaptureContractTests
                 "20260922_0027_sanitize_session_device_labels.sql",
                 "20260928_0028_bootstrap_ready_module_grants.sql",
                 "20260929_0029_habit_trash_consistency.sql",
-                "20260930_0030_access_preview_action.sql"
+            "20260930_0030_access_preview_action.sql",
+            "20261001_0031_trash_source_permissions.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);
@@ -99,6 +100,10 @@ public sealed class M01PolicyAndCaptureContractTests
         Assert.Equal("LocaleUnsupported", RegistrationPolicy.ValidateLocale("fr").Code);
         Assert.Equal("TimeZoneRequired", RegistrationPolicy.ValidateTimeZoneId(" ").Code);
         Assert.True(RegistrationPolicy.ValidateTimeZoneId("America/New_York").Allowed);
+        Assert.True(RegistrationPolicy.ValidateTimeZoneId("Etc/UTC").Allowed);
+        Assert.True(RegistrationPolicy.ValidateTimeZoneId(" Asia/Ho_Chi_Minh ").Allowed);
+        Assert.Equal("TimeZoneInvalid", RegistrationPolicy.ValidateTimeZoneId("Invalid/TimeZone").Code);
+        Assert.Equal("TimeZoneInvalid", RegistrationPolicy.ValidateTimeZoneId("Pacific Standard Time").Code);
     }
 
     [Fact]

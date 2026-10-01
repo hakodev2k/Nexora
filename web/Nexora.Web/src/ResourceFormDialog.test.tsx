@@ -18,4 +18,10 @@ describe('ResourceFormDialog', () => {
   it('traps keyboard focus and blocks Escape/cancel while a request is busy', async () => {
     const user = userEvent.setup(); render(<Fixture busy />); await user.click(screen.getByText('Open')); await user.keyboard('{Escape}'); expect(screen.getByRole('dialog')).toBeVisible(); expect(screen.getByText('Hủy')).toBeDisabled(); expect(screen.getByLabelText('Value')).toBeDisabled(); await user.tab({ shift: true }); expect(screen.getByRole('dialog')).toHaveFocus();
   });
+  it('focuses the first field when initial asynchronous loading finishes', async () => {
+    const user = userEvent.setup(); const view = render(<Fixture busy />);
+    await user.click(screen.getByText('Open')); expect(screen.getByRole('dialog')).toHaveFocus();
+    view.rerender(<Fixture busy={false} />);
+    await waitFor(() => expect(screen.getByLabelText('Value')).toHaveFocus());
+  });
 });

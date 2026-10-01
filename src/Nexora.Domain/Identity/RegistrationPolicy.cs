@@ -35,6 +35,11 @@ public static class RegistrationPolicy
             return PolicyDecision.Deny("TimeZoneInvalid", "timeZoneId is malformed.");
         }
 
-        return PolicyDecision.Allow("TimeZoneAccepted", "timeZoneId passes M01 syntactic validation.");
+        if (!TimeZoneInfo.TryConvertIanaIdToWindowsId(timeZoneId.Trim(), out _))
+        {
+            return PolicyDecision.Deny("TimeZoneInvalid", "timeZoneId must be a recognized IANA timezone.");
+        }
+
+        return PolicyDecision.Allow("TimeZoneAccepted", "timeZoneId is a recognized IANA timezone.");
     }
 }

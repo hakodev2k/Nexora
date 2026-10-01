@@ -1,12 +1,12 @@
 # Nexora functional QA — 2026-10-01
 
-Continue PR #4 (`impl/m01-s00-scaffold`), baseline `949dc9bde6d7857ab887b26819790440ec176648`. The user explicitly authorizes local test implementation, synthetic data, SQL/tool installation, UI popup fixes and continuation after interruption. This supersedes the earlier code-only amendment for this task. No merge, production/provider execution, real user data, secrets or force push.
+Continue PR #4 (`impl/m01-s00-scaffold`), recovery base `46f29ae41e5a8606c357cceeee679a9c9a92c640`. The user explicitly authorizes local test implementation, synthetic data, SQL/tool installation, UI popup fixes and continuation after interruption. This supersedes the earlier code-only amendment for this task. No merge, production/provider execution, real user data, secrets or force push.
 
 ## Scope and evidence rules
 
-The full plan covers 40 feature groups, 202 screen definitions and 733 action keys. The new suite has 18 concrete workflows over five viewports: 1920×1080, 1366×768, 768×1024, 390×844, 320×568 (90 scheduled executions). Seventeen workflows exercise real mutations; the Files workflow only checks the disabled baseline. Its positive upload/download/restore/purge scenarios are **Not run**, not passed.
+The full plan covers 40 feature groups, 202 screen definitions and 733 action keys. The new suite has 32 concrete workflows over five viewports: 1920×1080, 1366×768, 768×1024, 390×844, 320×568 (160 scheduled executions). Seventeen workflows exercise real mutations; the Files workflow only checks the disabled baseline. Its positive upload/download/restore/purge scenarios are **Not run**, not passed.
 
-The suite prepares only prerequisite synthetic sources through real API services. Tested operations use the browser's normal login and UI. No mocked successful responses, cookie injection, storageState or rate-limit changes. Each worker keeps a normally established browser session. UUID names separate data across workflows; SQL checks verify IDs, OwnerId=PersonalSpace, values, lifecycle and source preservation. API-only setup never earns UI coverage. Pure local tools require separate independent output oracles and are not covered by these CRUD workflows.
+The suite prepares only prerequisite synthetic sources through real API services. Tested operations use the browser's normal login and UI. No mocked successful responses, cookie injection, storageState or rate-limit changes. Each worker keeps a normally established browser session. UUID names separate data across workflows; SQL checks verify IDs, OwnerId=PersonalSpace, values, lifecycle and source preservation. API-only setup never earns UI coverage. Toolbox workflows use real authenticated tool endpoints with independent Node crypto/encoding/JSON oracles. Settings, Profile, Search and Dashboard now have dedicated workflows.
 
 The previous reported 18 desktop passes preceded an execution-host interruption. That source/evidence was not persisted and the host restored an older workspace. Do not reuse that count as evidence for this reconstructed source. Current SQL, integration, browser and multi-viewport results must be recorded afresh. JSON/JUnit are emitted by the new run, never filled with planned successes.
 
@@ -40,4 +40,10 @@ The transaction uses XACT_ABORT and protected existence checks; migration journa
 
 ## Gaps that must remain visible
 
-The 18 workflows are not exhaustive coverage of 733 actions. Identity/security/session/recovery, admin previews/grants, notification worker/channel states, sharing/support, Files positives, toolbox outputs, all pagination/boundaries/timezones and other domain slices need their dedicated suites. Keep unexecuted/gated/paused/retired scope separate. Coverage manifest rows are planned bindings only and cannot imply a passed action from a module's successful workflow.
+The 32 workflows are not exhaustive coverage of 733 actions. Identity/security/session/recovery, admin previews/grants, notification worker/channel states, sharing/support, Files positives, all pagination/boundaries/timezones and other domain slices need their dedicated suites. Keep unexecuted/gated/paused/retired scope separate. Coverage manifest rows are planned bindings only and cannot imply a passed action from a module's successful workflow.
+
+## Continuation checkpoint
+
+Fresh SQL Server 2025 ran successfully with 32 applied migrations and eight synthetic accounts. Current desktop execution: 30/30 passed. SQL integration: 15/15 passed; .NET unit: 12/12 passed; frontend unit: 69 passed, 1 skipped. Full 32 × 5 browser run is in progress; this checkpoint does not claim its result. Files positives and the full 733-action state matrix remain untested.
+
+Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing confirmation when clearing tool drafts, and backend acceptance of unknown IANA timezones. Added a SQL integration assertion that invalid Profile updates leave the row version unchanged. Component mocks are frontend regression evidence only. Independent review remains Pending.

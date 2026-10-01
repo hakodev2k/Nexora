@@ -1,117 +1,233 @@
 {
-  "baseline": "949dc9bde6d7857ab887b26819790440ec176648",
-  "testCount": 18,
+  "baseline": "46f29ae41e5a8606c357cceeee679a9c9a92c640",
+  "testCount": 32,
   "viewportCount": 5,
-  "plannedExecutions": 90,
-  "runtimeEvidence": "Not run on recovered host: SQL startup failed",
+  "plannedExecutions": 160,
+  "runtimeEvidence": "Fresh SQL Server 2025 isolated database: 32 migrations, 8 synthetic accounts; 30 desktop workflows passed, 15 SQL integration and 12 .NET unit tests passed. Final 160 executions running; do not infer full action completion.",
   "tests": [
     {
       "id": "FN-001",
       "title": "Documents: create/body version, publish, archive/unarchive, table/grid and reload",
       "file": "web/Nexora.Web/functional/content.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-002",
       "title": "Snippets: literal content, edit/version, archive/unarchive and SQL reload",
       "file": "web/Nexora.Web/functional/content.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-003",
       "title": "Read Later: add source, invalid/valid position, read/unread and remove preserves source",
       "file": "web/Nexora.Web/functional/content.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-004",
       "title": "Favorites: typed reference, rank popup, server route navigation/reload and delete preserves source",
       "file": "web/Nexora.Web/functional/content.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-005",
       "title": "Projects/Tasks: UI creation/edit, terminal cohort trash, restore and purge",
       "file": "web/Nexora.Web/functional/content.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-006",
       "title": "Calendar: timed/all-day UI create/edit, views, complete/cancel and SQL state",
       "file": "web/Nexora.Web/functional/content.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-007",
       "title": "Bookmark: validation, dirty discard, create/edit/archive/unarchive and SQL persistence",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-008",
       "title": "Tag: create, rename, cancel delete, delete and owner SQL",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-009",
       "title": "Finance: category, exact decimal record, edit, usage guard and unused delete",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-010",
       "title": "Bookmark: real two-tab conflict preserves draft and explicit revision recovery",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-011",
       "title": "Bookmark: offline failure retains draft, real retry commits one row",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-012",
       "title": "Owner isolation: real User B login cannot read User A bookmark in API or UI",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-013",
       "title": "Goal: title-only creation does not require optional numeric target",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-014",
       "title": "Goal: numeric progress and explicit completed/reopen/abandoned lifecycle",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-015",
       "title": "Planner: pin, move day, unpin preserves source Task",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-016",
       "title": "Habit: real check-in correction, future schedule and pause/archive lifecycle",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-017",
       "title": "Reminder: preset, None, Exact and remove retains None intent",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
     },
     {
       "id": "FN-018",
       "title": "Files: baseline availability gate is enforced in UI and direct API",
       "file": "web/Nexora.Web/functional/resources.spec.ts",
-      "result": "Not run"
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-019",
+      "title": "Toolbox Base64: Unicode round-trip, invalid decode recovery and confirmed clear",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-020",
+      "title": "Toolbox URL: exact codec output never navigates or fetches pasted URL",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-021",
+      "title": "Toolbox HTML: decoded hostile content remains literal text",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-022",
+      "title": "Toolbox Hash: all five algorithms match independent oracle and legacy warning",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-023",
+      "title": "Toolbox UUID: count boundaries, version, uniqueness and failed run clears old success",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-024",
+      "title": "Toolbox Password: bounds and memory-only reset without exposing generated values",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-025",
+      "title": "Toolbox JSON: semantic format/compact, parser error, retained input and recovery",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-026",
+      "title": "Toolbox Regex: matching, ignore-case, truncation, invalid pattern and bounded timeout",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-027",
+      "title": "Toolbox catalog: supported IDs, no persistent canary and unsupported network gate",
+      "file": "web/Nexora.Web/functional/toolbox.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-028",
+      "title": "Settings theme: explicit save, SQL owner/value, reload and unchanged module grants",
+      "file": "web/Nexora.Web/functional/settings.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-029",
+      "title": "Profile: invalid timezone preserves draft, vi/en persistence and Task instant unchanged",
+      "file": "web/Nexora.Web/functional/settings.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-030",
+      "title": "Profile: real two-tab conflict, explicit comparison retains draft, server version recovery",
+      "file": "web/Nexora.Web/functional/settings.spec.ts",
+      "result": "Desktop Passed",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-031",
+      "title": "Search: body-only authorized match, safe source navigation and archive filter",
+      "file": "web/Nexora.Web/functional/discovery.spec.ts",
+      "result": "Not run",
+      "fullViewportResult": "Running"
+    },
+    {
+      "id": "FN-032",
+      "title": "Dashboard: real recent document projection excludes body and archived source",
+      "file": "web/Nexora.Web/functional/discovery.spec.ts",
+      "result": "Not run",
+      "fullViewportResult": "Running"
     }
   ],
   "actions": [

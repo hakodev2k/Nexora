@@ -42,6 +42,27 @@ public sealed class SqlApiIntegrationTests
     }
 
     [Fact]
+    public async Task Unknown_IANA_profile_timezone_is_rejected_without_a_SQL_write()
+    {
+        _fixture.RequireAvailable();
+        var session = await _fixture.CreateActiveSessionAsync();
+        var csrf = await _fixture.GetCsrfAsync();
+        using var current = await _fixture.GetMeAsync(session.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, current.StatusCode);
+        var before = await _fixture.ScalarBytesAsync(
+            "SELECT [RowVersion] FROM [identity].[User] WHERE [Id] = @id;",
+            Parameter("@id", SqlDbType.UniqueIdentifier, session.UserId));
+        using var rejected = await _fixture.SendJsonAsync(HttpMethod.Patch, "/api/v1/me",
+            new { displayName = "Must not persist", timeZoneId = "Invalid/TimeZone", locale = "en" },
+            csrf, Guid.NewGuid(), session.RawSessionHandle, current.Headers.ETag?.Tag);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, rejected.StatusCode);
+        await AssertProblemCodeAsync(rejected, "ValidationFailed");
+        Assert.Equal(before, await _fixture.ScalarBytesAsync(
+            "SELECT [RowVersion] FROM [identity].[User] WHERE [Id] = @id;",
+            Parameter("@id", SqlDbType.UniqueIdentifier, session.UserId)));
+    }
+
+    [Fact]
     public async Task Local_background_workers_claim_an_empty_synthetic_queue_without_error()
     {
         _fixture.RequireAvailable();

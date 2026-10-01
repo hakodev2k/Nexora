@@ -66,7 +66,16 @@ test('Bookmark: offline failure retains draft, real retry commits one row', asyn
 test('Owner isolation: real User B login cannot read User A bookmark in API or UI', async ({ page, browser }) => {
   await page.goto('/'); const title = unique('owner-canary'); const item = await api(page, 'createBookmark', ['https://example.invalid/' + title, title, 'private synthetic data']); await record(page, 'listBookmarks', [true, title, 100], 'Bookmark', title);
   const context = await browser.newContext({ baseURL: process.env.NEXORA_E2E_BASE_URL }); const other = await context.newPage(); await login(other, 'UserB');
-  const status = await other.evaluate(async id => (await fetch('/api/v1/bookmarks/' + id)).status, item.id); expect(status).toBe(404); await other.goto('/modules/FX21'); await expect(card(other, title)).toHaveCount(0); expect(sql('Bookmark', item.id)).toHaveLength(1); await context.close();
+  const before = sql('Bookmark', item.id);
+  const status = await other.evaluate(async id => (await fetch('/api/v1/bookmarks/' + id)).status, item.id); expect(status).toBe(404);
+  const mutationStatuses = await other.evaluate(async item => {
+    const path = '/src/api.ts'; const m = await import(path); const results: number[] = [];
+    for (const action of [() => m.updateBookmark(item.id, item.etag, item.url, 'cross-owner attempt', null), () => m.transitionBookmark(item.id, item.etag, 'Archived')]) {
+      try { await action(); results.push(200); } catch (e: any) { results.push(e.status); }
+    }
+    return results;
+  }, item);
+  expect(mutationStatuses).toEqual([404, 404]); await other.goto('/modules/FX21'); await expect(card(other, title)).toHaveCount(0); expect(sql('Bookmark', item.id)).toEqual(before); await context.close();
 });
 
 test('Goal: title-only creation does not require optional numeric target', async ({ page }) => {
@@ -109,7 +118,7 @@ test('Reminder: preset, None, Exact and remove retains None intent', async ({ pa
 
 // The operational Files branch must not be reported as passed on the disabled baseline.
 test('Files: baseline availability gate is enforced in UI and direct API', async ({ page }, info) => {
-  await page.goto('/modules/FX07'); await expect(page.getByRole('heading', { name: 'Module không khả dụng', exact: true })).toBeVisible();
+  await page.goto('/modules/FX07'); await expect(page.getByRole('heading', { name: 'Module chưa khả dụng', exact: true })).toBeVisible();
   expect(await page.evaluate(async () => (await fetch('/api/v1/files')).status)).toBe(409);
   info.annotations.push({ type: 'gate', description: 'FX07 baseline disabled: upload/rename/download/restore/purge positive cases remain Not run.' });
 });

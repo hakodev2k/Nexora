@@ -19,17 +19,29 @@ if(args is ["inventory"]){
  }
  Console.WriteLine(JsonSerializer.Serialize(counts));return;
 }
+if(args is ["read-profile",var profileIdText]) {
+ if(!Guid.TryParse(profileIdText,out var profileId))throw new ArgumentException("A UUID is required");
+ // Explicit safe projection: never select password hashes, security stamps, tokens or MFA data.
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT Id,DisplayName,TimeZoneId,Locale,State FROM [identity].[User] WHERE Id=@id FOR JSON PATH",c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=profileId;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
 if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
   ["Bookmark"]="[knowledge].[Bookmark]",["Tag"]="[organization].[Tag]",["Category"]="[finance].[ManualCategory]",["Record"]="[finance].[ManualRecord]",
   ["Project"]="[productivity].[Project]",["Task"]="[productivity].[Task]",["Event"]="[calendar].[Event]",["Goal"]="[productivity].[Goal]",["GoalTarget"]="[productivity].[GoalTarget]",
   ["Habit"]="[productivity].[Habit]",["HabitCheckIn"]="[productivity].[HabitCheckIn]",["HabitSchedule"]="[productivity].[HabitSchedule]",["PlannerPin"]="[productivity].[PlannerPin]",
-  ["Reminder"]="[calendar].[Reminder]",["Document"]="[documents].[Page]",["Snippet"]="[knowledge].[Snippet]",["ReadingItem"]="[knowledge].[ReadingItem]",["Favorite"]="[discovery].[Favorite]"
+  ["Reminder"]="[calendar].[Reminder]",["Document"]="[documents].[Page]",["Snippet"]="[knowledge].[Snippet]",["ReadingItem"]="[knowledge].[ReadingItem]",["Favorite"]="[discovery].[Favorite]",["Preference"]="[platform].[Preference]"
  };
  if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- await using var q=new SqlCommand($"SELECT * FROM {table} WHERE Id=@id FOR JSON PATH",c);q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=id;
+ var query=kind=="Snippet"
+  ? "SELECT s.*,v.SourceText AS Body FROM [knowledge].[Snippet] s JOIN [knowledge].[SnippetVersion] v ON v.SnippetId=s.Id AND v.OwnerId=s.OwnerId AND v.VersionNumber=s.CurrentVersion WHERE s.Id=@id FOR JSON PATH"
+  : $"SELECT * FROM {table} WHERE Id=@id FOR JSON PATH";
+ await using var q=new SqlCommand(query,c);q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=id;
  await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
  Console.WriteLine(output.Length==0?"[]":output.ToString());return;
 }
@@ -37,7 +49,7 @@ if(args is ["migrate"]) {
  await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
  Console.WriteLine($"Applied {M01MigrationManifest.RequiredFileNames.Count} approved migrations.");return;
 }
-if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, or read-resource TYPE UUID");
+if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, read-profile UUID, or read-resource TYPE UUID");
 b.InitialCatalog="master";
 await using(var c=new SqlConnection(b.ConnectionString)){await c.OpenAsync();await using var q=new SqlCommand($"IF DB_ID(@db) IS NULL CREATE DATABASE [{db}]",c);q.Parameters.AddWithValue("@db",db);await q.ExecuteNonQueryAsync();}
 await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);

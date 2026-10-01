@@ -61,7 +61,11 @@ function OpenFormDialog({ title, busy, dirty, onClose, children }: {
       queueMicrotask(() => { if (trigger.current?.isConnected) trigger.current.focus(); });
     };
   }, []);
-  useEffect(() => { if (discard) resume.current?.focus(); else panel.current?.querySelector<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus(); }, [discard]);
+  useEffect(() => {
+    if (discard) resume.current?.focus();
+    else if (busy) panel.current?.focus();
+    else panel.current?.querySelector<HTMLElement>('input:not(:disabled),select:not(:disabled),textarea:not(:disabled),button:not(:disabled)')?.focus();
+  }, [discard, busy]);
   return createPortal(<div ref={layer} className="dialog-backdrop" role="presentation">
     <div ref={panel} className="dialog-panel resource-form-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <h2 id={titleId}>{title}</h2>

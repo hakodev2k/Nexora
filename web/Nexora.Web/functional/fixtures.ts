@@ -34,8 +34,15 @@ export async function api<T = any>(page: Page, name: string, args: unknown[] = [
 export function sql(kind: string, id: string): any[] {
   return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ['read-resource', kind, id], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
 }
+export function sqlProfile(id: string): any[] {
+  return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ['read-profile', id], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+}
 export async function record(page: Page, method: string, args: unknown[], kind: string, name: string, field: string = 'title') {
-  const list = await api(page, method, args); const item = list.items.find((i: any) => i[field] === name);
+  let item: any;
+  await expect.poll(async () => {
+    const list = await api(page, method, args); item = list.items.find((i: any) => i[field] === name);
+    return Boolean(item);
+  }, { message: `${kind} persisted through the real API` }).toBe(true);
   expect(item, `${kind} persisted through the real API`).toBeTruthy();
   const rows = sql(kind, item.id); expect(rows).toHaveLength(1);
   const profile = await api(page, 'getMe'); expect(rows[0].OwnerId.toLowerCase()).toBe(profile.personalSpaceId.toLowerCase());

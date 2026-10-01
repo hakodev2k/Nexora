@@ -4213,7 +4213,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       {sourceError && <Notice kind="info">Không tải được danh sách Bookmark nguồn; queue hiện có vẫn được hiển thị, nhưng không thể lưu nguồn mới. {sourceError.message}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { form.begin(); }}>Thêm vào Read Later</button><ResourceFormDialog open={form.open} title={'Thêm vào Read Later'} busy={busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
+          <button className="primary-button" type="button" disabled={loading || busy !== null} onClick={() => { form.begin(); }}>Thêm vào Read Later</button><ResourceFormDialog open={form.open} title={'Thêm vào Read Later'} busy={loading || busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
             <div className="section-heading"><h2>Lưu source</h2></div>
             <div className="field-group">
               <label htmlFor="read-later-source">Bookmark nguồn</label>
@@ -4461,6 +4461,7 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
 
   async function run(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setOutput(null);
     setError(null);
     setCopied(false);
     if (new TextEncoder().encode(input).length > 1024 * 1024) {
@@ -4523,7 +4524,7 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
           {selectedCode === 'json' && <label className="check-row"><input type="checkbox" checked={indent} onChange={(event) => setIndent(event.target.checked)} disabled={busy} /><span>Indent output</span></label>}
           {selectedCode === 'regex' && <><div className="field-group"><label htmlFor="tool-pattern">Regex pattern</label><input id="tool-pattern" value={pattern} onChange={(event) => setPattern(event.target.value)} maxLength={10000} disabled={busy} required /></div><label className="check-row"><input type="checkbox" checked={ignoreCase} onChange={(event) => setIgnoreCase(event.target.checked)} disabled={busy} /><span>Ignore case</span></label></>}
           <div className="field-group"><label htmlFor="tool-input">Input <span className="optional">(tối đa 1 MiB)</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); }} rows={12} maxLength={1024 * 1024} disabled={busy} spellCheck={false} /></div>
-          <div className="form-actions"><button className="secondary-button" type="button" onClick={clearWorkbench} disabled={busy}>Xóa</button><SubmitButton busy={busy}>Chạy tool</SubmitButton></div>
+          <div className="form-actions"><ConfirmActionButton className="secondary-button" confirmationTitle="Xóa input/output chưa lưu?" confirmationDescription="Input và output chỉ tồn tại trong memory; thao tác này sẽ xóa nội dung hiện tại." confirmLabel="Xóa input/output" disabled={busy} onConfirm={() => { clearWorkbench(); return true; }}>Xóa</ConfirmActionButton><SubmitButton busy={busy}>Chạy tool</SubmitButton></div>
         </form>
         <div className="resource-list">
           <div className="section-heading"><h2>Output</h2>{output && <button className="secondary-button" type="button" onClick={() => void copyOutput()}>{copied ? 'Đã copy' : 'Copy output'}</button>}</div>

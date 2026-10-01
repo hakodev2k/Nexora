@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, expect, test, vi } from 'vitest';
 import { Shell, type LocationState } from './App';
@@ -74,6 +75,37 @@ function visibleInteractiveControls(root: HTMLElement) {
   return Array.from(root.querySelectorAll<HTMLElement>('button, a[href], input:not([type="hidden"]), select, textarea'))
     .filter((element) => !element.closest('[hidden], [aria-hidden="true"]'));
 }
+
+function toolCatalog(code: string) {
+  server.use(
+    http.get('*/api/v1/developer/tools', () => HttpResponse.json({ items: [{ code, name: code, category: 'Local', description: 'Synthetic component test', actionKey: 'toolbox.' + code + '.run', executionMode: 'Local' }] })),
+    http.get('*/api/v1/auth/csrf', () => HttpResponse.json({ requestToken: 'synthetic-component-csrf', tokenType: 'csrf', expiresInSeconds: 60 }))
+  );
+}
+
+test('Toolbox removes the previous success when changed options fail and retains correction input', async () => {
+  const user = userEvent.setup(); toolCatalog('uuid');
+  server.use(http.post('*/api/v1/developer/tools/run', async ({ request }) => {
+    const body = await request.json() as { options: { count: string } };
+    return body.options.count === '21'
+      ? HttpResponse.json({ code: 'ValidationFailed', title: 'count must be between 1 and 20.' }, { status: 422 })
+      : HttpResponse.json({ toolCode: 'uuid', output: 'synthetic-prior-success', durationMilliseconds: 1 });
+  }));
+  renderEnabledShell({ screen: 'module', moduleCode: 'FX32' }); await screen.findByLabelText('Số UUID (1–20)');
+  await user.click(screen.getByRole('button', { name: 'Chạy tool' })); expect(await screen.findByLabelText('Tool output')).toHaveTextContent('synthetic-prior-success');
+  await user.clear(screen.getByLabelText('Số UUID (1–20)')); await user.type(screen.getByLabelText('Số UUID (1–20)'), '21');
+  await user.click(screen.getByRole('button', { name: 'Chạy tool' })); expect(await screen.findByRole('alert')).toHaveTextContent('count must be between 1 and 20.');
+  expect(screen.queryByLabelText('Tool output')).not.toBeInTheDocument(); expect(screen.getByLabelText('Số UUID (1–20)')).toHaveValue('21');
+});
+
+test('Toolbox clear requires confirmation and cancellation preserves pasted input', async () => {
+  const user = userEvent.setup(); toolCatalog('base64'); renderEnabledShell({ screen: 'module', moduleCode: 'FX32' });
+  const input = await screen.findByLabelText(/Input.*tối đa 1 MiB/); await user.type(input, 'synthetic unsaved input');
+  await user.click(screen.getByRole('button', { name: 'Xóa' })); expect(screen.getByRole('dialog')).toBeVisible();
+  await user.click(screen.getByRole('button', { name: 'Cancel' })); expect(input).toHaveValue('synthetic unsaved input');
+  await user.click(screen.getByRole('button', { name: 'Xóa' })); await user.click(screen.getByRole('button', { name: 'Xóa input/output' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument()); expect(input).toHaveValue('');
+});
 
 const surfaceMatrix: Array<{ label: string; location: LocationState }> = [
   { label: 'home', location: { screen: 'home' } },
