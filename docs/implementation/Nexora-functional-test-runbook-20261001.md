@@ -49,3 +49,11 @@ Final source `e226718830a701aa761143a997ba06e74318ef25`: 160/160 browser workflo
 Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing clear-draft confirmation and invalid IANA timezone acceptance. The timezone integration regression asserts the SQL row version does not change on rejection. Component mocks are only frontend regression evidence.
 
 The coverage manifest binds 94 exact actions to tested subsets and leaves their full result Partial coverage. Zero action keys receive exhaustive Passed. All remaining states and unbound actions stay explicitly unverified. Independent review remains Pending.
+
+## Verified continuation
+
+Full suite at `e226718830a701aa761143a997ba06e74318ef25`: 160/160 passed; supplemental session suite at `ea6a2d32a21f8411bc1b3ae9db9b4dd11e2bfde2`: 5/5 passed on five viewports, no retries or skips. The total 165 executions came from two runs, not a single all-33 run. Session tests respect the unchanged login limit using 7000ms setup pacing; no test retries or auth bypass. Fresh SQL Server 2025 used 32 migrations and eight synthetic fixture accounts. SQL integration: 15/15; .NET unit: 12/12; frontend unit: 69 passed and one skipped. Search opens an authorized read-only detail before navigating to the source editor. Theme testing now verifies the actual PUT payload and completion before SQL/reload checks.
+
+Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing clear-draft confirmation and invalid IANA timezone acceptance. The timezone integration regression asserts the SQL row version does not change on rejection. Component mocks are only frontend regression evidence.
+
+The coverage manifest binds 96 exact actions to tested subsets and leaves their full result Partial coverage. Zero action keys receive exhaustive Passed. All remaining states and unbound actions stay explicitly unverified. Independent review remains Pending.
