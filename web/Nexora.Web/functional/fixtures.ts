@@ -51,7 +51,13 @@ export function sqlProfile(id: string): any[] {
 export async function record(page: Page, method: string, args: unknown[], kind: string, name: string, field: string = 'title') {
   let item: any;
   await expect.poll(async () => {
-    const list = await api(page, method, args); item = list.items.find((i: any) => i[field] === name);
+    const cursorIndex: Record<string,number> = {listProjects:1,listTasks:2,listCalendarEvents:3};
+    const query=[...args];const seen=new Set<string>();
+    for(let n=0;n<100;n++){
+      const list=await api(page,method,query);item=list.items.find((i:any)=>i[field]===name);
+      if(item||!list.nextCursor||cursorIndex[method]===undefined)break;
+      if(seen.has(list.nextCursor))throw new Error('Repeated pagination cursor');seen.add(list.nextCursor);query[cursorIndex[method]]=list.nextCursor;
+    }
     return Boolean(item);
   }, { message: `${kind} persisted through the real API` }).toBe(true);
   expect(item, `${kind} persisted through the real API`).toBeTruthy();
@@ -82,4 +88,15 @@ export async function sourceTask(page: Page) {
 
 export function sqlSession(id: string): any[] {
   return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ['read-session', id], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+}
+
+// Follow visible pagination controls; never hide accumulated SQL data to make a case pass.
+export async function showPagedCard(page: Page,title:string,loadMoreLabel:string){
+ for(let n=0;n<100;n++){
+  if(await card(page,title).isVisible())return;
+  const next=page.getByRole('button',{name:loadMoreLabel,exact:true});await expect(next).toBeVisible();
+  const before=await page.locator('.resource-card').count();await next.click();
+  await expect.poll(()=>page.locator('.resource-card').count()).toBeGreaterThan(before);
+ }
+ throw new Error('Target not found after 100 visible pages');
 }

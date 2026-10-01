@@ -13,7 +13,7 @@ bindings={
 'FN-038':['modules.catalog.read','modules.policy.defaults'],
 'FN-039':['planner.plan.read','planner.plan.reorder'],
 'FN-040':['projects.project.read','projects.project.update','projects.project.skip']}
-r=json.loads((out/'platform-all-results.json').read_text());assert r['stats']['expected']==35 and all(r['stats'][k]==0 for k in ['unexpected','flaky','skipped'])
+r=json.loads((out/'full-200-results.json').read_text());assert r['stats']['expected']==200 and all(r['stats'][k]==0 for k in ['unexpected','flaky','skipped'])
 for a in l['actions']:
  if a['functionalResult']=='Excluded-retired':a['positiveResult']='Excluded-retired'
  ids=[k for k,v in bindings.items() if a['actionKey'] in v]
@@ -31,5 +31,5 @@ for kind in ['modules','screens','actions']:
   writer=csv.DictWriter(f,fieldnames=fields);writer.writeheader();writer.writerows({k:json.dumps(v,ensure_ascii=False,separators=(',',':')) if isinstance(v,(dict,list)) else v for k,v in row.items()} for row in rows)
 assert [len(l[k]) for k in ['modules','screens','actions']]==[40,202,733]
 (out/'full-plan-ledger.json').write_text(json.dumps(l,ensure_ascii=False,separators=(',',':'))+'\n')
-summary={'counts':l['counts'],'actionResults':dict(collections.Counter(a['functionalResult'] for a in l['actions'])),'positiveResults':dict(collections.Counter(a['positiveResult'] for a in l['actions'])),'fullScopePassed':False,'supplementalBrowser':r['stats'],'evidenceRule':l['evidenceRule']}
+summary={'counts':l['counts'],'actionResults':dict(collections.Counter(a['functionalResult'] for a in l['actions'])),'positiveResults':dict(collections.Counter(a['positiveResult'] for a in l['actions'])),'fullScopePassed':False,'browser':r['stats'],'evidenceRule':l['evidenceRule']}
 (out/'full-plan-summary.json').write_text(json.dumps(summary,indent=2)+'\n');print(json.dumps(summary))
