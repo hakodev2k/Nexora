@@ -53,3 +53,14 @@ Coverage: 112 action rows Partial coverage, 610 Not run, 11 Excluded-retired, ze
 Run `scripts/qa/reconcile-full-plan.py` to initialize the inventory, then `scripts/qa/full-inventory.cjs` against the actual running SQL/API/browser environment. Export after copying final 200-pass JSON to `full-200-results.json` in `NEXORA_QA_EVIDENCE_DIR`, using `NEXORA_QA_SOURCE_COMMIT` and `scripts/qa/export-full-ledger.py`. The exporter requires actual 200-pass statistics and unique 40/202/733 IDs, and cannot fabricate success from source or route references.
 
 Required independent review remains **Pending**. Historical integration/unit/axe/baseline E2E evidence is recorded in the continuation report separately and is not part of the 200 execution count.
+
+
+## Time/Focus API continuation (2026-10-01)
+
+PR4 product checkpoint: `ba692f8e0ac072079184676996c6ee4fe5000110`. Migration manifest is now 34 scripts. Run `scripts/dev/test-functional.sh --grep 'FN-04[123]'` against the same isolated SQL/API/Vite namespace, normal eight-account manifest and private capture/operator setup. These workflows add actual Time/Focus mutations and SQL readbacks; the earlier 40-workflow/200-run and 733-action inventories remain historical evidence on their stated source.
+
+Helpers use normal signed SuperAdmin access preview/commit to enable current test-user grants, preserving existing grants rather than changing all users. Focus retains its hard FX18 dependency. When testing Time module revocation on fresh fixtures where Focus is also enabled, the helper first requests dependent FX19 disable together with FX18 disable and explicitly restores both afterward; do not bypass dependency guards or write grant rows directly.
+
+Additional operator projections are allowlisted TimeEntry/FocusSession, safe Focus completion channel/status metadata (no notification body), and owner-scoped stopped-entry timestamp series (no description/category). Test fixtures remain synthetic and persistent. No production/provider secret is required. `etag` is the repository wire field; strict DTOs reject foreign-owner/state/source overrides.
+
+Observed final reconstruction evidence: 15/15 (3 workflows × 5 viewports), separate 5/5 stronger Time report oracle, 15/15 real SQL integration, 12/12 unit, frontend 69 pass/1 existing skip; compile/typecheck passed. See [exact evidence and limitations](evidence/time-focus-20261001/results.json) and [scope/contract trace](../delivery/09-pr4-local-module-implementation.md). Both modules remain Partial, independent review Pending, and 13 groups still lack candidate API handlers. No merge or full-scope sign-off.

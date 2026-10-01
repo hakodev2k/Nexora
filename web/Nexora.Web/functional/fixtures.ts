@@ -102,3 +102,5 @@ export async function showPagedCard(page: Page,title:string,loadMoreLabel:string
 }
 
 export function sqlFocusCompletion(id: string): any[] { return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ["read-focus-completion", id], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }
+
+export function sqlTimeReportSeries(owner: string): any[] { return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ["read-time-report-series", owner], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }

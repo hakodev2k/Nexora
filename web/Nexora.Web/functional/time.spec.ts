@@ -1,4 +1,4 @@
-import { test, expect, sql, card, confirm, unique } from './fixtures';
+import { test, expect, sql, card, confirm, unique, sqlTimeReportSeries, api } from './fixtures';
 import { moduleApi, response, enableForTest } from './time-focus-helpers';
 import type { Page } from '@playwright/test';
 async function showTimeCard(page: Page, name: string) {
@@ -37,6 +37,11 @@ test('FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, 
     expect((await response(page, '/api/v1/time/entries', 'POST', confirmed, undefined, replayKey)).body.id).toBe(created.body.id);
     expect((await response(page, '/api/v1/time/entries', 'POST', { ...confirmed, description: 'different' }, undefined, replayKey)).status).toBe(409);
     expect((await response(page, '/api/v1/time/entries', 'POST', { ...confirmed, ownerId: enabled.me.personalSpaceId })).status).toBe(400);
+    const report = await moduleApi(page, 'timeApi', 'timeReport'); const series = sqlTimeReportSeries(enabled.me.personalSpaceId);
+    const parseSqlUtc = (value: string) => Date.parse(value.endsWith('Z') ? value : value + 'Z');
+    const gross = series.reduce((total, row) => total + parseSqlUtc(row.EndAt) - parseSqlUtc(row.StartAt), 0);
+    expect(report.grossDurationMilliseconds).toBe(gross); expect(report.entryCount).toBe(series.length); expect(report.hasOverlaps).toBe(true);
+
     const running = await moduleApi(page, 'timeApi', 'timeTimer'); if (running) await moduleApi(page, 'timeApi', 'timeStop', [running, crypto.randomUUID()]);
     const starts = await Promise.all([response(page, '/api/v1/time/timer', 'POST', { description: 'race A', category: null }), response(page, '/api/v1/time/timer', 'POST', { description: 'race B', category: null })]); expect(starts.map(s => s.status).sort()).toEqual([201,409]);
     const timer = starts.find(s => s.status === 201)!.body; expect(sql('TimeEntry', timer.id)[0].Status).toBe('Running');
@@ -46,7 +51,13 @@ test('FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, 
     await row.getByRole('button', { name: 'Trash', exact: true }).click(); await page.getByRole('dialog').getByRole('button', { name: 'Hủy', exact: true }).click(); expect(sql('TimeEntry', entry.id)[0].Status).toBe('Stopped');
     await row.getByRole('button', { name: 'Trash', exact: true }).click(); await confirm(page, 'Trash'); await expect.poll(() => sql('TimeEntry', entry.id)[0].Status).toBe('Trash');
     await page.getByLabel('Thùng rác', { exact: true }).check(); await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited'); await row.getByRole('button', { name: 'Restore', exact: true }).click(); await confirm(page, 'Restore'); expect(sql('TimeEntry', entry.id)[0].Status).toBe('Stopped');
-    const snapshot = sql('TimeEntry', entry.id); await enabled.set(false); expect((await response(page, '/api/v1/time/entries/' + entry.id, 'GET')).status).toBe(403); expect(sql('TimeEntry', entry.id)).toEqual(snapshot); await enabled.set(true);
+    const snapshot = sql('TimeEntry', entry.id); const access = await api(enabled.admin, 'getAdminUserAccess', [enabled.me.id]); const focusGrant = access.moduleGrants.find((g: any) => g.code === 'FX19');
+    const setFocusGrant = async (value: boolean) => { const changes = [{ moduleId: focusGrant.moduleId, enabled: value }]; const preview = await api(enabled.admin, 'previewAdminAccess', [enabled.me.id, { kind: 'modules', changes }]); expect(preview.blockers).toEqual([]); await api(enabled.admin, 'commitAdminModuleGrant', [enabled.me.id, preview.etag, changes, preview.previewToken]); };
+    if (!focusGrant.enabled) await setFocusGrant(true);
+    await enabled.set(false); expect((await api(enabled.admin, 'getAdminUserAccess', [enabled.me.id])).moduleGrants.find((g: any) => g.code === 'FX19').enabled).toBe(false);
+    expect((await response(page, '/api/v1/time/entries/' + entry.id, 'GET')).status).toBe(403); expect(sql('TimeEntry', entry.id)).toEqual(snapshot);
+    await enabled.set(true); expect((await api(enabled.admin, 'getAdminUserAccess', [enabled.me.id])).moduleGrants.find((g: any) => g.code === 'FX19').enabled).toBe(true);
+    if (!focusGrant.enabled) await setFocusGrant(false);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   } finally { await enabled.close(); }
 });

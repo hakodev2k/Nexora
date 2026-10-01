@@ -51,6 +51,14 @@ if(args is ["read-profile",var profileIdText]) {
  await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
  Console.WriteLine(output.Length==0?"[]":output.ToString());return;
 }
+if(args is ["read-time-report-series",var ownerText]) {
+ if(!Guid.TryParse(ownerText,out var owner))throw new ArgumentException("A UUID is required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT Id,StartAt,EndAt FROM [time].[Entry] WHERE OwnerId=@owner AND Status='Stopped' ORDER BY Id FOR JSON PATH",c);
+ q.Parameters.AddWithValue("@owner",owner);
+ await using var r=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await r.ReadAsync())output.Append(r.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
 if(args is ["read-focus-completion",var focusText]) {
  if(!Guid.TryParse(focusText,out var focusId))throw new ArgumentException("A UUID is required");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
