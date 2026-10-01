@@ -4,11 +4,11 @@ Continue PR #4 (`impl/m01-s00-scaffold`), recovery base `46f29ae41e5a8606c357cce
 
 ## Scope and evidence rules
 
-The full plan covers 40 feature groups, 202 screen definitions and 733 action keys. The new suite has 32 concrete workflows over five viewports: 1920×1080, 1366×768, 768×1024, 390×844, 320×568 (160 scheduled executions). Seventeen workflows exercise real mutations; the Files workflow only checks the disabled baseline. Its positive upload/download/restore/purge scenarios are **Not run**, not passed.
+The full plan covers 40 feature groups, 202 screen definitions and 733 action keys. The suite has 40 concrete workflows over five viewports: 1920×1080, 1366×768, 768×1024, 390×844, 320×568 (200 scheduled executions). Mutations, identity sessions, admin signed previews/grants, Notifications and source-preserving lifecycle have concrete workflows; the Files workflow only checks the disabled baseline. Its positive upload/download/restore/purge scenarios are **Not run**, not passed.
 
 The suite prepares only prerequisite synthetic sources through real API services. Tested operations use the browser's normal login and UI. No mocked successful responses, cookie injection, storageState or rate-limit changes. Each worker keeps a normally established browser session. UUID names separate data across workflows; SQL checks verify IDs, OwnerId=PersonalSpace, values, lifecycle and source preservation. API-only setup never earns UI coverage. Toolbox workflows use real authenticated tool endpoints with independent Node crypto/encoding/JSON oracles. Settings, Profile, Search and Dashboard now have dedicated workflows.
 
-The previous reported 18 desktop passes preceded an execution-host interruption. That source/evidence was not persisted and the host restored an older workspace. Do not reuse that count as evidence for this reconstructed source. Current SQL, integration, browser and multi-viewport results must be recorded afresh. JSON/JUnit are emitted by the new run, never filled with planned successes.
+Current source and raw JSON/JUnit must identify the actual run. Development failures and interrupted runs are excluded from final pass totals. API prerequisites and metadata/route probes never earn UI-action credit.
 
 Goals: NXG-SYS-02/03/05/08/09/11/13/14/16; NXG-FX08/11/12/13/14/15/16/17/20/21/22/23/24/25/27-G01…G03. Exact assertions derive from current feature, API, UX and delivery contracts, especially FX-08-BR-003 (terminal Project restore retains children in Trash), optional numeric Goal target, Reminder remove retaining None intent, owner isolation, stale revision and finance decimal precision. Required independent migration/authorization/finance/cross-module review remains **Pending**. Self-review and green tests cannot close it.
 
@@ -22,7 +22,7 @@ Use .NET 10, installed npm dependencies, a Playwright-compatible Chromium execut
 - `NEXORA_E2E_RUN_ID`: `nexora-e2e-<unique id>`; existing `NEXORA_E2E_OPERATOR_CLI` for baseline local operator.
 - Optional `NEXORA_E2E_EXECUTABLE` and `NEXORA_E2E_SQL_OPERATOR`.
 
-Build `tests/Nexora.FunctionalTestOperator`; only explicit `seed` creates a generated test database and eight synthetic accounts. `migrate` applies approved migrations without reseeding. `inventory` and `read-resource TYPE UUID` are read-only. Unknown commands and non-test databases are rejected. Never use the operator against production or log account manifests.
+Build `tests/Nexora.FunctionalTestOperator`; only explicit `seed` creates a generated test database and eight synthetic accounts. `migrate` applies approved migrations without reseeding. `inventory`, `catalog`, `read-access UUID`, `read-profile UUID`, `read-session UUID` and `read-resource TYPE UUID` are read-only. Notification reads select only safe ID/owner/title/read/deleted fields; catalog/access JSON consumes all SQL FOR JSON chunks. Unknown commands and non-test databases are rejected. Never use the operator against production or log account manifests.
 
 Run `scripts/dev/test-functional.sh` for all viewports, or append `--project desktop` for a focused first run. Start SQL/API/frontend first. A failed SQL startup is **Blocked/Not run**; never substitute SQLite or fake API responses. `npm run test:unit --prefix web/Nexora.Web`, web build, and SQL integration are separate gates.
 
@@ -38,22 +38,18 @@ Bookmark, Tag, Finance category/record, Favorite add/rank, Read Later add/positi
 
 The transaction uses XACT_ABORT and protected existence checks; migration journal/checksum guards and integration replay apply. Manifest now has 32 scripts. Old code can tolerate the extra metadata, so application rollback does not need destructive down-migration. If a status is incorrect, stop further rollout and prepare a reviewed forward correction; do not delete production permission rows automatically. Fresh apply/replay, restore/purge assertions and independent review remain required before accepting this migration. No production execution is authorized.
 
-## Gaps that must remain visible
+## Verified full-scope continuation
 
-The 32 workflows are not exhaustive coverage of 733 actions. Identity/security/session/recovery, admin previews/grants, notification worker/channel states, sharing/support, Files positives, all pagination/boundaries/timezones and other domain slices need their dedicated suites. Keep unexecuted/gated/paused/retired scope separate. Coverage manifest rows are planned bindings only and cannot imply a passed action from a module's successful workflow.
+Executable test source `221603430c248013fb7912a0cd1c6c224aed294b`: **200/200** passed in one full run, 40 concrete workflows on five viewports, no retries/skips/flaky results. This is not exhaustive sign-off for all 40 feature groups, 202 definitions or 733 action keys. SQL remains real, isolated, synthetic and populated; 32 migrations and eight fixture accounts. The test respects unchanged login policy with `NEXORA_E2E_LOGIN_PACING_MS=7000`.
 
-## Verified continuation
+Seven workflows FN-034…040 add Notification mutations/retention/isolation, granted Admin API reads with denied administrative UI, SuperAdmin permission Allow/Deny/Unset and Admin SELF rechecks, entitlement dependency blockers and data retention, registration-default signed commits and paused-policy blockers, Planner reorder and Project edit/skip. A populated Calendar exposed test pagination assumptions; helpers now follow API cursors and visible UI Load more controls without clearing data or changing product page sizes.
 
-Final source `e226718830a701aa761143a997ba06e74318ef25`: 160/160 browser workflows passed on five viewports, no retries or skips. Fresh SQL Server 2025 used 32 migrations and eight synthetic fixture accounts. SQL integration: 15/15; .NET unit: 12/12; frontend unit: 69 passed and one skipped. Search opens an authorized read-only detail before navigating to the source editor. Theme testing now verifies the actual PUT payload and completion before SQL/reload checks.
+Inventory source `fa4e46053f533693c3b13e101345e335f99324fb`: 40 module entries/gates × five viewports = 200 observations; 202 first proposed routes × five = 1010 observations, no navigation assertions failed and no horizontal overflow. Only 25 definitions directly match the route map; 177 need alternate route/layout/state reconciliation. A Home fallback is not screen implementation evidence.
 
-Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing clear-draft confirmation and invalid IANA timezone acceptance. The timezone integration regression asserts the SQL row version does not change on rejection. Component mocks are only frontend regression evidence.
+SQL has 40 modules, 190 permission rows, 160 exact catalog action matches. Missing 573 metadata records do not automatically prove absent handlers, especially for delegated/public/legacy aliases. Eighteen modules are Blocked/Paused; fifteen feature groups lack candidate API handlers. Positive domain tests for these baseline gaps remain unexecuted. Do not unlock gates or resurrect retired scope to report success.
 
-The coverage manifest binds 94 exact actions to tested subsets and leaves their full result Partial coverage. Zero action keys receive exhaustive Passed. All remaining states and unbound actions stay explicitly unverified. Independent review remains Pending.
+Coverage: 112 action rows Partial coverage, 610 Not run, 11 Excluded-retired, zero exhaustive Passed. Every fullScopePassed remains false. Full per-row matrices: `full-plan-modules.csv` (40), `full-plan-screens.csv` (202), `full-plan-actions.csv` (733); raw JSON/JUnit and evidence pack are separate generated artifacts.
 
-## Verified continuation
+Run `scripts/qa/reconcile-full-plan.py` to initialize the inventory, then `scripts/qa/full-inventory.cjs` against the actual running SQL/API/browser environment. Export after copying final 200-pass JSON to `full-200-results.json` in `NEXORA_QA_EVIDENCE_DIR`, using `NEXORA_QA_SOURCE_COMMIT` and `scripts/qa/export-full-ledger.py`. The exporter requires actual 200-pass statistics and unique 40/202/733 IDs, and cannot fabricate success from source or route references.
 
-Full suite at `e226718830a701aa761143a997ba06e74318ef25`: 160/160 passed; supplemental session suite at `ea6a2d32a21f8411bc1b3ae9db9b4dd11e2bfde2`: 5/5 passed on five viewports, no retries or skips. The total 165 executions came from two runs, not a single all-33 run. Session tests respect the unchanged login limit using 7000ms setup pacing; no test retries or auth bypass. Fresh SQL Server 2025 used 32 migrations and eight synthetic fixture accounts. SQL integration: 15/15; .NET unit: 12/12; frontend unit: 69 passed and one skipped. Search opens an authorized read-only detail before navigating to the source editor. Theme testing now verifies the actual PUT payload and completion before SQL/reload checks.
-
-Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing clear-draft confirmation and invalid IANA timezone acceptance. The timezone integration regression asserts the SQL row version does not change on rejection. Component mocks are only frontend regression evidence.
-
-The coverage manifest binds 96 exact actions to tested subsets and leaves their full result Partial coverage. Zero action keys receive exhaustive Passed. All remaining states and unbound actions stay explicitly unverified. Independent review remains Pending.
+Required independent review remains **Pending**. Historical integration/unit/axe/baseline E2E evidence is recorded in the continuation report separately and is not part of the 200 execution count.

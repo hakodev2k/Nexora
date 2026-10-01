@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Reconcile all source definitions; code references and catalog records never imply functional pass."""
-import csv,json,re,hashlib,os
+import csv,json,re,hashlib,os,sys
 from pathlib import Path
 root=Path(__file__).resolve().parents[2]
 cat=list(csv.DictReader((root/'docs/action-catalog/catalog.csv').open()))
@@ -27,5 +27,19 @@ for s in screens:
 modules=[{'feature':f'FX-{n:02}','goal':f'NXG-FX{n:02}-G01','candidateEndpointModule':handlers.get(n,''),'actionCount':sum(r['feature']==f'FX-{n:02}' for r in rows),'screenCount':sum(s['feature']==f'FX-{n:02}' for s in screens),'functionalResult':'Incomplete'} for n in range(1,41)]
 for x in [*rows,*screens]:x['fullScopePassed']=False
 out=Path(os.environ.get('NEXORA_QA_EVIDENCE_DIR',str(root.parent/'evidence')))/'full-plan-ledger.json'
-out.write_text(json.dumps({'sourceCommit':'fa4e46053f533693c3b13e101345e335f99324fb','authorityCommit':'8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3','counts':{'features':40,'screenDefinitions':202,'actionKeys':733},'evidenceRule':'No source/catalog/route probe counts as full functional pass. Retired/gated/missing implementation remain separate.','modules':modules,'screens':screens,'actions':rows},ensure_ascii=False,separators=(',',':'))+'\n')
+plan_path=os.environ.get('NEXORA_QA_PLAN')
+if plan_path:
+ plan=Path(plan_path);source=plan.read_text();planned_actions={};planned_screens={}
+ for line in source.splitlines():
+  cells=[c.strip() for c in line.strip('|').split('|')]
+  if re.match(r'^\| QA-FX\d\d-A\d',line):planned_actions[cells[1].strip('`')]=cells[0]
+  if re.match(r'^\| FX\d\d-S\d\d \|',line):planned_screens[cells[0]]=cells[2].strip('`')
+ assert len(planned_actions)==733 and set(planned_actions)==set(refs)
+ assert all(planned_actions[a['actionKey']]==a['planningId'] for a in rows)
+ assert len(planned_screens)==202 and all(planned_screens[s['id']]==s['route'] for s in screens)
+ verification={'sourceFile':plan.name,'sha256':hashlib.sha256(plan.read_bytes()).hexdigest(),'features':40,'screenIdsAndRoutesMatched':202,'actionKeysAndPlanningIdsMatched':733,'result':'Exact source scope match; execution coverage is separate'}
+ (out.parent/'plan-source-reconciliation.json').write_text(json.dumps(verification,indent=2)+'\n')
+ if '--verify-only' in sys.argv:print(json.dumps(verification));raise SystemExit(0)
+elif '--verify-only' in sys.argv:raise SystemExit('NEXORA_QA_PLAN is required for verification')
+out.write_text(json.dumps({'sourceCommit':os.environ.get('NEXORA_QA_SOURCE_COMMIT','Unspecified; not certified'),'authorityCommit':'8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3','counts':{'features':40,'screenDefinitions':202,'actionKeys':733},'evidenceRule':'No source/catalog/route probe counts as full functional pass. Retired/gated/missing implementation remain separate.','modules':modules,'screens':screens,'actions':rows},ensure_ascii=False,separators=(',',':'))+'\n')
 print(json.dumps({'features':len(modules),'screens':len(screens),'actions':len(rows),'modulesWithCandidateEndpointFolders':len(handlers),'fullScopePassed':0}))
