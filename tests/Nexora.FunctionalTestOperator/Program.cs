@@ -51,10 +51,18 @@ if(args is ["read-profile",var profileIdText]) {
  await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
  Console.WriteLine(output.Length==0?"[]":output.ToString());return;
 }
+if(args is ["read-focus-completion",var focusText]) {
+ if(!Guid.TryParse(focusText,out var focusId))throw new ArgumentException("A UUID is required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT n.Id,n.OwnerUserId,n.LogicalKey,JSON_QUERY((SELECT d.Channel,d.State,d.Attempts,d.LastErrorCode FROM [notifications].[Delivery] d WHERE d.NotificationId=n.Id ORDER BY d.Channel FOR JSON PATH)) AS deliveries FROM [notifications].[Notification] n WHERE n.LogicalKey=@key FOR JSON PATH",c);
+ q.Parameters.AddWithValue("@key",$"focus.completed:{focusId:N}");
+ await using var r=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await r.ReadAsync())output.Append(r.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
 if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
-  ["Notification"]="[notifications].[Notification]",["Bookmark"]="[knowledge].[Bookmark]",["Tag"]="[organization].[Tag]",["Category"]="[finance].[ManualCategory]",["Record"]="[finance].[ManualRecord]",
+  ["TimeEntry"]="[time].[Entry]",["FocusSession"]="[time].[FocusSession]",["Notification"]="[notifications].[Notification]",["Bookmark"]="[knowledge].[Bookmark]",["Tag"]="[organization].[Tag]",["Category"]="[finance].[ManualCategory]",["Record"]="[finance].[ManualRecord]",
   ["Project"]="[productivity].[Project]",["Task"]="[productivity].[Task]",["Event"]="[calendar].[Event]",["Goal"]="[productivity].[Goal]",["GoalTarget"]="[productivity].[GoalTarget]",
   ["Habit"]="[productivity].[Habit]",["HabitCheckIn"]="[productivity].[HabitCheckIn]",["HabitSchedule"]="[productivity].[HabitSchedule]",["PlannerPin"]="[productivity].[PlannerPin]",
   ["Reminder"]="[calendar].[Reminder]",["Document"]="[documents].[Page]",["Snippet"]="[knowledge].[Snippet]",["ReadingItem"]="[knowledge].[ReadingItem]",["Favorite"]="[discovery].[Favorite]",["Preference"]="[platform].[Preference]"

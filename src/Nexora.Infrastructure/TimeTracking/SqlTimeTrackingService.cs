@@ -39,7 +39,7 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
         if (!Allowed(actor, "time.entry.read")) return Denied<TimeEntryPage>();
         using var c = connections.Create(); c.Open();
         // Running timers have a separate action, so entry.read never bypasses timer.read.
-        using var cmd = Command(c, null, "SELECT TOP(51) Id,StartAt,EndAt,Description,Category,Status,UpdatedAt,RowVersion FROM [time].[Entry] WHERE OwnerId=@Owner AND Status=@Status AND (@Cursor IS NULL OR Id<@Cursor) ORDER BY Id DESC", actor.OwnerId);
+        using var cmd = Command(c, null, "SELECT TOP(51) Id,StartAt,EndAt,Description,Category,Status,UpdatedAt,RowVersion FROM [time].[Entry] WHERE OwnerId=@Owner AND Status=@Status AND (@Cursor IS NULL OR StartAt<(SELECT StartAt FROM [time].[Entry] WHERE OwnerId=@Owner AND Id=@Cursor) OR (StartAt=(SELECT StartAt FROM [time].[Entry] WHERE OwnerId=@Owner AND Id=@Cursor) AND Id<@Cursor)) ORDER BY StartAt DESC,Id DESC", actor.OwnerId);
         Add(cmd, "@Status", trash ? "Trash" : "Stopped"); Add(cmd, "@Cursor", cursor);
         var items = Rows(cmd);
         return IdentityOperationResult<TimeEntryPage>.Success(new(items.Take(50).ToArray(), items.Count > 50 ? items[49].Id : null));
@@ -142,7 +142,7 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
     {
         if (!Allowed(actor, "time.entry.history")) return Denied<TimeHistoryPage>();
         using var c = connections.Create(); c.Open(); if (Read(c, null, actor.OwnerId, id) is null) return Missing<TimeHistoryPage>();
-        using var cmd = Command(c, null, "SELECT TOP(51) Id,Action,At,BeforeJson FROM [time].[Correction] WHERE OwnerId=@Owner AND EntryId=@Id AND (@Cursor IS NULL OR Id<@Cursor) ORDER BY Id DESC", actor.OwnerId);
+        using var cmd = Command(c, null, "SELECT TOP(51) Id,Action,At,BeforeJson FROM [time].[Correction] WHERE OwnerId=@Owner AND EntryId=@Id AND (@Cursor IS NULL OR At<(SELECT At FROM [time].[Correction] WHERE OwnerId=@Owner AND EntryId=@Id AND Id=@Cursor) OR (At=(SELECT At FROM [time].[Correction] WHERE OwnerId=@Owner AND EntryId=@Id AND Id=@Cursor) AND Id<@Cursor)) ORDER BY At DESC,Id DESC", actor.OwnerId);
         Add(cmd, "@Id", id); Add(cmd, "@Cursor", cursor);
         using var r = cmd.ExecuteReader(); var rows = new List<TimeCorrection>();
         while (r.Read()) rows.Add(new(r.GetGuid(0), r.GetString(1), Utc(r.GetDateTime(2)), JsonSerializer.Deserialize<TimeEntry>(r.GetString(3))!));

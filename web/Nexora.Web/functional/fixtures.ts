@@ -100,3 +100,5 @@ export async function showPagedCard(page: Page,title:string,loadMoreLabel:string
  }
  throw new Error('Target not found after 100 visible pages');
 }
+
+export function sqlFocusCompletion(id: string): any[] { return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ["read-focus-completion", id], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })); }

@@ -1,3 +1,6 @@
+using Nexora.Api.Features.Focus;
+using Nexora.Application.Focus;
+using Nexora.Infrastructure.Focus;
 using Nexora.Api.Features.TimeTracking;
 using Nexora.Application.TimeTracking;
 using Nexora.Infrastructure.TimeTracking;
@@ -232,6 +235,11 @@ builder.Services.Configure<RouteOptions>(options =>
 
 builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 
+builder.Services.AddSingleton<SqlFocusService>(s => new SqlFocusService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<IFocusService>(s => s.GetRequiredService<SqlFocusService>());
+builder.Services.AddSingleton<IFocusPhaseFinisher>(s => s.GetRequiredService<SqlFocusService>());
+builder.Services.AddHostedService<FocusPhaseWorker>();
+
 var app = builder.Build();
 
 app.UseExceptionHandler(errorApp =>
@@ -282,6 +290,7 @@ app.MapPlannerEndpoints();
 app.MapReminderEndpoints();
 app.MapHabitEndpoints();
 app.MapTimeTrackingEndpoints();
+app.MapFocusEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
 app.MapSettingsEndpoints();

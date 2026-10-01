@@ -18,7 +18,21 @@ UI: compact create/edit/start popup with shared accessible ActionDialog, retaine
 
 Migration enables the installed local FX18 subset and new-registration default only; existing user entitlements and Admin grants are preserved. Reversal: disable module system policy and deploy preceding build; retain Entry/Correction data. No destructive down migration.
 
-## Verification at this checkpoint
+## Second reconstructed slice: unlinked Focus
+
+Trace: NXG-FX19-G01/G02 (offline subset)/G03 (notification subset); FX-19-BR-001/002/004; AC-001/003; FX19-S01–S04 surfaces. Six SELF keys: `focus.session.read/start/pause/resume/cancel`, `focus.preference.update`. `focus.session.finish_phase` is an internal SYSTEM effect, never an Admin grant or public endpoint.
+
+Typed `/api/v1/focus` sessions/preferences/capabilities API rejects Task refs, elapsed/state/owner overrides. Commands use current SQL authority, UUID receipts and If-Match. Migration 0033 adds constrained owner preferences and one active slot (Running or Paused). Defaults/ranges are 25 (1–180), 5 (1–60), 15 (1–120), cycle 4 (1–12). Start pins planned duration; preference edits do not rewrite active sessions. Pause accumulates SQL elapsed; Resume starts a new server segment; Cancel retains history. Completion closes the one due phase at its exact planned server instant without offline cycle creation.
+
+Worker polls at five seconds, bounded to 100 due rows. Owner lock and current normalized SQL role/action are checked in the same transaction as phase completion, audit and notification deduplication. SQL failure rolls back effects; persisted retry backoff is 30 seconds, maximum five completion failures. Exhausted completion repair/retry UI is still open; no unbounded hidden retries. Module/entitlement revocation blocks completion until current authority qualifies. Retrying/restarting cannot duplicate an already completed phase.
+
+Notification-owned writer records one logical completion and three channel projections atomically. In-app is Delivered; local unavailable Email is NotApplicable/ProviderUnavailable and Push PermissionUnavailable/ProviderUnavailable. These are availability projections, not evidence of actual Email/Push transport. No provider call. Full configured delivery routing remains open.
+
+UI has shared preferences popup (four fields), explicit phase selection, Pause/Resume, cancel confirmation and paginated history. Remaining seconds are fetched from the server at each sync. Errors/denials clear protected data. No automatic next phase, linked Task, conversion, fake completion control, or break-as-work entry.
+
+FX18 remains a hard dependency in the current registry; test setup enables it through the normal signed SuperAdmin preview/commit flow, then restores dependent grants in reverse order. Existing grants are never globally rewritten by migration. FX19 installed local subset is Ready, whole module Partial. Rollback retains SQL records and disables the local module policy.
+
+## Verification at the first commit checkpoint
 
 - API Release build: succeeded, 0 warnings and 0 errors.
 - Frontend TypeScript and Vite production build: succeeded; existing bundle-size warning (533.26 kB).
@@ -27,6 +41,15 @@ Migration enables the installed local FX18 subset and new-registration default o
 
 ## Open implementation work
 
-FX18 linked Task/Project lifecycle contracts, manual purge/Trash provider, tag/date/source filters and Focus conversion remain open. FX19 reconstruction remains open. Other missing groups: FX10/28/29/30/31/33/34/35/36/37/38/39/40. FX04/05/07 already have candidate handlers but their module gates still need contract/evidence reconciliation. Paused FX30/34/35 real execution stays disabled; local simulation must be explicit and disabled by default. Vault must implement the approved cryptographic recovery/portability design, not metadata CRUD masquerading as Vault.
+FX18 linked Task/Project lifecycle contracts, manual purge/Trash provider, tag/date/source filters and Focus conversion remain open. FX19 source links and explicit Time conversion remain open. Other missing groups: FX10/28/29/30/31/33/34/35/36/37/38/39/40. FX04/05/07 already have candidate handlers but their module gates still need contract/evidence reconciliation. Paused FX30/34/35 real execution stays disabled; local simulation must be explicit and disabled by default. Vault must implement the approved cryptographic recovery/portability design, not metadata CRUD masquerading as Vault.
 
 The historical 200-workflow run and 733-action ledger are unchanged historical evidence. No action-wide, module-wide or R1 completion is asserted here.
+
+
+## Reconstruction checks and failure provenance
+
+API Release build after Focus: 0 warnings/errors. Frontend TypeScript/Vite build passed (539.08 kB chunk warning). Real SQL Server 2025 applied 34 manifest migrations successfully. Unit 12/12; frontend 69 passed / 1 pre-existing skip. Fresh tests are FN-041 Time, FN-042 Focus, FN-043 Admin/foreign-owner. One intermediate FN-042 desktop execution passed in 72.534 seconds; full final viewport evidence is pending at this writing.
+
+Attempt 1 found client `eTag` incompatible with the repo's `etag` wire naming and missing FX18 prerequisite in Focus setup. Fixed client naming and normal signed dependency grant setup. Attempt 2: Focus passed, Time edit selector waited on an implicit textarea label whose existing content changed its label text. Explicit htmlFor/id labels fix the product form. Attempt 3: Time reached retained Trash/Restore checks, but the intentionally overlapping fixture duplicated the edited row's name. Give that separate fixture a distinct name; do not weaken business selectors or clear SQL records. All failed evidence remains recorded; timeout extensions do not constitute a pass. Final current-source run and independent review remain required.
+
+Final desktop reconstruction run: **3/3 passed** (FN-041, FN-042, FN-043), real SQL/browser, no retries/skips. FN-042 also asserts one logical completion with exactly InApp/Email/BrowserPush availability projections; FN-043 verifies Admin Unset/Allow/Deny/Unset and foreign-owner read/update/history 404. Attempt 4 additionally exposed no-op access preview rejection and asynchronous Trash pagination setup; fixture helpers now check current effect and wait for the target card or visible next page. No business assertion or gate was relaxed. Five-viewport run is Pending.

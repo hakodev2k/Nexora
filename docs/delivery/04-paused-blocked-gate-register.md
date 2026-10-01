@@ -113,3 +113,5 @@ If a module file and this register appear to disagree, use the stricter rule and
 ## 2026-10-01 local Time Tracking amendment
 
 DEC-014 and the current user instruction authorize the local unlinked FX18 slice detailed in [PR4 continuation](09-pr4-local-module-implementation.md). Migration 0032 marks the installed subset Ready, preserving existing user/Admin grants. Whole-module acceptance remains Partial; source links, purge, conversion and required independent review remain open. This does not resume real paused providers.
+
+Migration 0033 also registers the unlinked FX19 Focus slice, with FX18 dependency preserved. Installed local FX18/19 subsets are Ready; both full modules remain Partial. Candidate API groups still missing: 13. Runtime gate counts after these migrations: 13 Blocked + 3 Paused, subject to current user entitlements. No full feature or full action sign-off.
