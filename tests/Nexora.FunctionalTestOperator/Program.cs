@@ -19,6 +19,20 @@ if(args is ["inventory"]){
  }
  Console.WriteLine(JsonSerializer.Serialize(counts));return;
 }
+if(args is ["catalog"]) {
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT JSON_QUERY((SELECT Code,State,SystemEnabled,RegistrationEnabled FROM [platform].[Module] ORDER BY Code FOR JSON PATH)) AS modules,JSON_QUERY((SELECT ActionKey,EffectiveStatus FROM [platform].[Permission] ORDER BY ActionKey FOR JSON PATH)) AS actions FOR JSON PATH, WITHOUT_ARRAY_WRAPPER",c);
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.ToString());return;
+}
+if(args is ["read-access",var userIdText]) {
+ if(!Guid.TryParse(userIdText,out var userId))throw new ArgumentException("A UUID is required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT JSON_QUERY((SELECT p.ActionKey,g.Effect FROM [platform].[AdminPermission] g JOIN [platform].[Permission] p ON p.Id=g.PermissionId WHERE g.UserId=@id FOR JSON PATH)) AS actionGrants,JSON_QUERY((SELECT m.Code,g.Enabled FROM [platform].[UserModuleGrant] g JOIN [platform].[Module] m ON m.Id=g.ModuleId WHERE g.UserId=@id FOR JSON PATH)) AS moduleGrants FOR JSON PATH, WITHOUT_ARRAY_WRAPPER",c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=userId;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.ToString());return;
+}
 if(args is ["read-session",var sessionIdText]) {
  if(!Guid.TryParse(sessionIdText,out var sessionId))throw new ArgumentException("A UUID is required");
  // Safe identity projection: no handle hash, security stamp, password or bearer token.
@@ -40,14 +54,16 @@ if(args is ["read-profile",var profileIdText]) {
 if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
-  ["Bookmark"]="[knowledge].[Bookmark]",["Tag"]="[organization].[Tag]",["Category"]="[finance].[ManualCategory]",["Record"]="[finance].[ManualRecord]",
+  ["Notification"]="[notifications].[Notification]",["Bookmark"]="[knowledge].[Bookmark]",["Tag"]="[organization].[Tag]",["Category"]="[finance].[ManualCategory]",["Record"]="[finance].[ManualRecord]",
   ["Project"]="[productivity].[Project]",["Task"]="[productivity].[Task]",["Event"]="[calendar].[Event]",["Goal"]="[productivity].[Goal]",["GoalTarget"]="[productivity].[GoalTarget]",
   ["Habit"]="[productivity].[Habit]",["HabitCheckIn"]="[productivity].[HabitCheckIn]",["HabitSchedule"]="[productivity].[HabitSchedule]",["PlannerPin"]="[productivity].[PlannerPin]",
   ["Reminder"]="[calendar].[Reminder]",["Document"]="[documents].[Page]",["Snippet"]="[knowledge].[Snippet]",["ReadingItem"]="[knowledge].[ReadingItem]",["Favorite"]="[discovery].[Favorite]",["Preference"]="[platform].[Preference]"
  };
  if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- var query=kind=="Snippet"
+ var query=kind=="Notification"
+  ? "SELECT Id,OwnerUserId,Title,ReadAt,DeletedAt FROM [notifications].[Notification] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="Snippet"
   ? "SELECT s.*,v.SourceText AS Body FROM [knowledge].[Snippet] s JOIN [knowledge].[SnippetVersion] v ON v.SnippetId=s.Id AND v.OwnerId=s.OwnerId AND v.VersionNumber=s.CurrentVersion WHERE s.Id=@id FOR JSON PATH"
   : $"SELECT * FROM {table} WHERE Id=@id FOR JSON PATH";
  await using var q=new SqlCommand(query,c);q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=id;
@@ -58,7 +74,7 @@ if(args is ["migrate"]) {
  await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
  Console.WriteLine($"Applied {M01MigrationManifest.RequiredFileNames.Count} approved migrations.");return;
 }
-if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, read-session UUID, read-profile UUID, or read-resource TYPE UUID");
+if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, catalog, read-access UUID, read-session UUID, read-profile UUID, or read-resource TYPE UUID");
 b.InitialCatalog="master";
 await using(var c=new SqlConnection(b.ConnectionString)){await c.OpenAsync();await using var q=new SqlCommand($"IF DB_ID(@db) IS NULL CREATE DATABASE [{db}]",c);q.Parameters.AddWithValue("@db",db);await q.ExecuteNonQueryAsync();}
 await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
