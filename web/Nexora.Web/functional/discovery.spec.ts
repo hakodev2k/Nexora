@@ -9,6 +9,9 @@ test('FN-031 Search: body-only authorized match, safe source navigation and arch
   await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
   const result = page.locator('.module-card').filter({ has: page.getByRole('heading', { name: title, exact: true }) });
   await expect(result).toBeVisible(); await result.getByRole('button', { name: 'Mở nguồn', exact: true }).click();
+  await expect(page.locator('.resource-body-preview')).toHaveText('# Body\n' + marker);
+  await page.getByRole('button', { name: 'Mở module nguồn', exact: true }).click();
+  await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click();
   await expect(page.locator('#document-body')).toHaveValue('# Body\n' + marker);
   expect(sql('Document', source.id)).toEqual(before);
   await page.getByRole('button', { name: 'Publish', exact: true }).click();

@@ -4,7 +4,11 @@ test('FN-028 Settings theme: explicit save, SQL owner/value, reload and unchange
   await page.goto('/settings/profile'); const before = await api(page, 'getMe');
   const save = page.getByRole('button', { name: 'Lưu preferences', exact: true });
   for (const mode of ['Dark', 'Light', 'System']) {
-    await page.locator('#theme-mode').selectOption(mode); await save.click();
+    await expect(save).toBeEnabled();
+    await page.locator('#theme-mode').selectOption(mode); await expect(page.locator('#theme-mode')).toHaveValue(mode);
+    const saved = page.waitForResponse(r => r.url().endsWith('/api/v1/settings/preferences/theme') && r.request().method() === 'PUT');
+    await save.click(); const response = await saved;
+    expect(JSON.parse(JSON.parse(response.request().postData()!).valueJson).mode).toBe(mode); expect(response.status()).toBe(200);
     await expect(save).toBeEnabled();
     let preference: any;
     await expect.poll(async () => {
