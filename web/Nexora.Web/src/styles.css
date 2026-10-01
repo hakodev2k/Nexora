@@ -1968,3 +1968,9 @@ progress::-moz-progress-bar {
 :root[data-theme="dark"] progress::-webkit-progress-bar {
   background: #34445d;
 }
+
+.resource-form-dialog { width: min(36rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.resource-form-dialog .form-panel { border: 0; box-shadow: none; padding: 0; }
+.resource-form-dialog [hidden] { display: none; }
+
+.resource-dialog-fields { margin: 0; padding: 0; border: 0; min-width: 0; }

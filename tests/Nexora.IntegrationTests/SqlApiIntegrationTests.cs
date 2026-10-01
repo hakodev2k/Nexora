@@ -19,7 +19,7 @@ public sealed class SqlApiIntegrationTests
     }
 
     [Fact]
-    public void Real_SQL_migration_upgrade_and_readiness_gate_are_available()
+    public async Task Real_SQL_migration_upgrade_and_readiness_gate_are_available()
     {
         _fixture.RequireAvailable();
 
@@ -34,6 +34,11 @@ public sealed class SqlApiIntegrationTests
         Assert.NotNull(_fixture.ReadinessAfterBootstrap);
         Assert.True(_fixture.ReadinessAfterBootstrap!.Ready);
         Assert.Equal("Ready", _fixture.ReadinessAfterBootstrap.Status);
+        Assert.Equal(4, await _fixture.ScalarIntAsync("""
+            SELECT COUNT(*) FROM [platform].[Permission]
+            WHERE ActionKey IN ('projects.project.restore','projects.project.purge','tasks.task.restore','tasks.task.purge')
+              AND EffectiveStatus = 'Resolved';
+            """));
     }
 
     [Fact]
