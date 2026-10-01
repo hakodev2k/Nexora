@@ -19,6 +19,15 @@ if(args is ["inventory"]){
  }
  Console.WriteLine(JsonSerializer.Serialize(counts));return;
 }
+if(args is ["read-session",var sessionIdText]) {
+ if(!Guid.TryParse(sessionIdText,out var sessionId))throw new ArgumentException("A UUID is required");
+ // Safe identity projection: no handle hash, security stamp, password or bearer token.
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT Id,UserId,DeviceLabel,CreatedAt,RevokedAt FROM [identity].[Session] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES",c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=sessionId;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
 if(args is ["read-profile",var profileIdText]) {
  if(!Guid.TryParse(profileIdText,out var profileId))throw new ArgumentException("A UUID is required");
  // Explicit safe projection: never select password hashes, security stamps, tokens or MFA data.
@@ -49,7 +58,7 @@ if(args is ["migrate"]) {
  await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
  Console.WriteLine($"Applied {M01MigrationManifest.RequiredFileNames.Count} approved migrations.");return;
 }
-if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, read-profile UUID, or read-resource TYPE UUID");
+if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, read-session UUID, read-profile UUID, or read-resource TYPE UUID");
 b.InitialCatalog="master";
 await using(var c=new SqlConnection(b.ConnectionString)){await c.OpenAsync();await using var q=new SqlCommand($"IF DB_ID(@db) IS NULL CREATE DATABASE [{db}]",c);q.Parameters.AddWithValue("@db",db);await q.ExecuteNonQueryAsync();}
 await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);

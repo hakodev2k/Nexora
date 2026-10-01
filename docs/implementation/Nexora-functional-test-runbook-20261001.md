@@ -42,8 +42,10 @@ The transaction uses XACT_ABORT and protected existence checks; migration journa
 
 The 32 workflows are not exhaustive coverage of 733 actions. Identity/security/session/recovery, admin previews/grants, notification worker/channel states, sharing/support, Files positives, all pagination/boundaries/timezones and other domain slices need their dedicated suites. Keep unexecuted/gated/paused/retired scope separate. Coverage manifest rows are planned bindings only and cannot imply a passed action from a module's successful workflow.
 
-## Continuation checkpoint
+## Verified continuation
 
-Fresh SQL Server 2025 ran successfully with 32 applied migrations and eight synthetic accounts. Current desktop execution: 30/30 passed. SQL integration: 15/15 passed; .NET unit: 12/12 passed; frontend unit: 69 passed, 1 skipped. Full 32 × 5 browser run is in progress; this checkpoint does not claim its result. Files positives and the full 733-action state matrix remain untested.
+Final source `e226718830a701aa761143a997ba06e74318ef25`: 160/160 browser workflows passed on five viewports, no retries or skips. Fresh SQL Server 2025 used 32 migrations and eight synthetic fixture accounts. SQL integration: 15/15; .NET unit: 12/12; frontend unit: 69 passed and one skipped. Search opens an authorized read-only detail before navigating to the source editor. Theme testing now verifies the actual PUT payload and completion before SQL/reload checks.
 
-Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing confirmation when clearing tool drafts, and backend acceptance of unknown IANA timezones. Added a SQL integration assertion that invalid Profile updates leave the row version unchanged. Component mocks are frontend regression evidence only. Independent review remains Pending.
+Fixed asynchronous dialog initial focus, stale Toolbox output after failed validation, missing clear-draft confirmation and invalid IANA timezone acceptance. The timezone integration regression asserts the SQL row version does not change on rejection. Component mocks are only frontend regression evidence.
+
+The coverage manifest binds 94 exact actions to tested subsets and leaves their full result Partial coverage. Zero action keys receive exhaustive Passed. All remaining states and unbound actions stay explicitly unverified. Independent review remains Pending.

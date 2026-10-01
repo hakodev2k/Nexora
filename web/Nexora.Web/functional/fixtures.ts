@@ -1,10 +1,21 @@
 import { test as base, expect, type Page, type BrowserContext } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
 export { expect };
 export async function login(page: Page, role = 'UserA') {
+  // Optional setup pacing respects the unchanged server limit (10 login requests/minute).
+  // Workers=1; the private timestamp coordinates ordinary form logins across worker processes.
+  const pacing = Number(process.env.NEXORA_E2E_LOGIN_PACING_MS ?? '0');
+  if (!Number.isFinite(pacing) || pacing < 0 || pacing > 60_000) throw new Error('Invalid login pacing interval');
+  if (pacing) {
+    const stamp = process.env.NEXORA_E2E_ACCOUNTS! + '.login-pacing';
+    const last = existsSync(stamp) ? Number(readFileSync(stamp, 'utf8')) : 0;
+    const wait = Math.max(0, last + pacing - Date.now());
+    if (wait) await page.waitForTimeout(Math.min(wait, 60_000));
+    writeFileSync(stamp, String(Date.now()), { mode: 0o600 });
+  }
   const account = JSON.parse(readFileSync(process.env.NEXORA_E2E_ACCOUNTS!, 'utf8')).find((a: { role: string }) => a.role === role);
   await page.goto('/login');
   await page.getByLabel('Email', { exact: true }).fill(account.email);
@@ -67,4 +78,8 @@ export async function sourceTask(page: Page) {
   const project = await api(page, 'createProject', [unique('source-project'), 'Prerequisite synthetic project', start, end]);
   const task = await api(page, 'createTask', [project.id, unique('source-task'), 'Prerequisite task', 'NotStarted', end, start, end]);
   return { project, task };
+}
+
+export function sqlSession(id: string): any[] {
+  return JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, ['read-session', id], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
 }
