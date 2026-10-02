@@ -58,6 +58,17 @@ test('FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, 
     expect((await response(page, '/api/v1/time/entries/' + entry.id, 'GET')).status).toBe(403); expect(sql('TimeEntry', entry.id)).toEqual(snapshot);
     await enabled.set(true); expect((await api(enabled.admin, 'getAdminUserAccess', [enabled.me.id])).moduleGrants.find((g: any) => g.code === 'FX19').enabled).toBe(true);
     if (!focusGrant.enabled) await setFocusGrant(false);
+    // Purge this workflow's own fixture through the normal Trash preview/dialog.
+    await page.reload(); await page.getByLabel('Thùng rác', { exact: true }).uncheck();
+    await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited');
+    await row.getByRole('button', { name: 'Trash', exact: true }).click(); await confirm(page, 'Trash');
+    await page.getByLabel('Thùng rác', { exact: true }).check();
+    await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited');
+    await row.getByRole('button', { name: 'Delete permanently', exact: true }).click();
+    await expect(page.getByRole('dialog')).toContainText(entry.id);
+    await page.getByRole('dialog').getByRole('button', { name: 'Hủy', exact: true }).click(); expect(sql('TimeEntry', entry.id)).toHaveLength(1);
+    await row.getByRole('button', { name: 'Delete permanently', exact: true }).click(); await confirm(page, 'Delete permanently');
+    expect(sql('TimeEntry', entry.id)).toEqual([]); await expect(row).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   } finally { await enabled.close(); }
 });

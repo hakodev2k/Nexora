@@ -222,14 +222,14 @@ public static class ActionGrantPolicy
         "settings.preference.update"
     };
 
-    // DEC-014 local unlinked Time Tracking slice; no purge, support or SYSTEM grant.
+    // Local Time/Focus SELF actions; support and SYSTEM actions are not grantable.
     private static readonly HashSet<string> ApprovedTimeAndFocusActions = new(StringComparer.Ordinal)
     {
         "time.timer.read", "time.timer.start", "time.timer.stop", "time.timer.resume",
         "time.entry.read", "time.entry.create", "time.entry.update", "time.entry.trash",
-        "time.entry.restore", "time.entry.history", "time.report.read",
+        "time.entry.restore", "time.entry.history", "time.entry.purge", "time.report.read",
         "focus.session.read", "focus.session.start", "focus.session.pause",
-        "focus.session.resume", "focus.session.cancel", "focus.preference.update"
+        "focus.session.resume", "focus.session.cancel", "focus.preference.update", "focus.session.record_time"
     };
 
     public static PolicyDecision CanGrantAllow(string actionKey)

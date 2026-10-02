@@ -16,7 +16,7 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
     private readonly SqlSelfCapability capabilities;
     private readonly SqlRequestReceiptStore receipts;
     public static readonly string[] Actions = ["time.timer.read", "time.timer.start", "time.timer.stop", "time.timer.resume",
-        "time.entry.read", "time.entry.create", "time.entry.update", "time.entry.trash", "time.entry.restore", "time.entry.history", "time.report.read"];
+        "time.entry.read", "time.entry.create", "time.entry.update", "time.entry.trash", "time.entry.restore", "time.entry.history", "time.entry.purge", "time.report.read"];
     public SqlTimeTrackingService(SqlConnectionFactory connections, string secret)
     {
         this.connections = connections;
@@ -87,7 +87,7 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
             // Stop has domain idempotency in addition to its durable request receipt.
             if (row.Status == "Stopped") return IdentityOperationResult<TimeEntry>.Success(row);
             if (row.Status != "Running") return Fail<TimeEntry>("LifecycleLocked", 409, "This entry is not running.");
-            var stale = Precondition(row, etag); if (stale is not null) return stale;
+            var stale = Precondition<TimeEntry>(row, etag); if (stale is not null) return stale;
             SaveBefore(c, tx, actor.OwnerId, row, "time.timer.stop");
             using var cmd = Command(c, tx, "UPDATE [time].[Entry] SET EndAt=CASE WHEN SYSUTCDATETIME()>StartAt THEN SYSUTCDATETIME() ELSE DATEADD(microsecond,1,StartAt) END,Status='Stopped',UpdatedAt=SYSUTCDATETIME() WHERE OwnerId=@Owner AND Id=@Id", actor.OwnerId);
             Add(cmd, "@Id", id); cmd.ExecuteNonQuery();
@@ -109,7 +109,7 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
                 var row = Read(c, tx, actor.OwnerId, existingId);
                 if (row is null) return Missing<TimeEntry>();
                 if (row.Status != "Stopped") return Fail<TimeEntry>("LifecycleLocked", 409, "Only stopped entries can be edited.");
-                var stale = Precondition(row, etag); if (stale is not null) return stale;
+                var stale = Precondition<TimeEntry>(row, etag); if (stale is not null) return stale;
                 SaveBefore(c, tx, actor.OwnerId, row, action);
             }
             using var overlap = Command(c, tx, "SELECT COUNT(*) FROM [time].[Entry] WHERE OwnerId=@Owner AND Status<>'Trash' AND (@Id IS NULL OR Id<>@Id) AND StartAt<@End AND (EndAt IS NULL OR EndAt>@Start)", actor.OwnerId);
@@ -130,7 +130,7 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
         return Mutate(actor, action, new { id, etag }, key, trace, (c, tx) =>
         {
             var row = Read(c, tx, actor.OwnerId, id); if (row is null) return Missing<TimeEntry>();
-            var stale = Precondition(row, etag); if (stale is not null) return stale;
+            var stale = Precondition<TimeEntry>(row, etag); if (stale is not null) return stale;
             if (row.Status != (restore ? "Trash" : "Stopped")) return Fail<TimeEntry>("LifecycleLocked", 409, "The entry state does not permit this transition.");
             SaveBefore(c, tx, actor.OwnerId, row, action);
             using var cmd = Command(c, tx, "UPDATE [time].[Entry] SET Status=@Status,UpdatedAt=SYSUTCDATETIME() WHERE OwnerId=@Owner AND Id=@Id", actor.OwnerId);
@@ -148,6 +148,34 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
         while (r.Read()) rows.Add(new(r.GetGuid(0), r.GetString(1), Utc(r.GetDateTime(2)), JsonSerializer.Deserialize<TimeEntry>(r.GetString(3))!));
         return IdentityOperationResult<TimeHistoryPage>.Success(new(rows.Take(50).ToArray(), rows.Count > 50 ? rows[49].Id : null));
     }
+    public IdentityOperationResult<TimePurgePreview> PreviewPurge(IdentityPrincipal actor, Guid id)
+    {
+        if (!Allowed(actor, "time.entry.purge")) return Denied<TimePurgePreview>();
+        using var c = connections.Create(); c.Open();
+        var row = Read(c, null, actor.OwnerId, id);
+        if (row is null) return Missing<TimePurgePreview>();
+        if (row.Status != "Trash") return Fail<TimePurgePreview>("LifecycleLocked", 409, "Only entries in Trash can be purged.");
+        using var cmd = Command(c, null, "SELECT (SELECT COUNT(*) FROM [time].[Correction] WHERE OwnerId=@Owner AND EntryId=@Id),(SELECT COUNT(*) FROM [time].[FocusConversion] WHERE OwnerId=@Owner AND EntryId=@Id)", actor.OwnerId);
+        Add(cmd, "@Id", id); using var r = cmd.ExecuteReader(); r.Read();
+        return IdentityOperationResult<TimePurgePreview>.Success(new(id, row.ETag, r.GetInt32(0), r.GetInt32(1) != 0));
+    }
+    public IdentityOperationResult<TimePurged> Purge(IdentityPrincipal actor, Guid id, string? etag,
+        TimePurgeCommand body, string key, string? trace) =>
+        Mutate(actor, "time.entry.purge", new { id, etag, body }, key, trace, (c, tx) =>
+        {
+            var row = Read(c, tx, actor.OwnerId, id); if (row is null) return Missing<TimePurged>();
+            var stale = Precondition<TimePurged>(row, etag); if (stale is not null) return stale;
+            if (row.Status != "Trash") return Fail<TimePurged>("LifecycleLocked", 409, "Only entries in Trash can be purged.");
+            if (!body.ConfirmPermanentDeletion) return Fail<TimePurged>("ConfirmationRequired", 422, "Confirm permanent deletion of this entry and its correction history.");
+            using (var pinned = Command(c, tx, "SELECT COUNT(*) FROM [time].[FocusConversion] WHERE OwnerId=@Owner AND EntryId=@Id", actor.OwnerId))
+            {
+                Add(pinned, "@Id", id);
+                if (Convert.ToInt32(pinned.ExecuteScalar()) != 0) return Fail<TimePurged>("ReferencePinned", 409, "A focus conversion still references this entry.");
+            }
+            using var cmd = Command(c, tx, "DELETE [time].[Correction] WHERE OwnerId=@Owner AND EntryId=@Id; DELETE [time].[Entry] WHERE OwnerId=@Owner AND Id=@Id;", actor.OwnerId);
+            Add(cmd, "@Id", id); cmd.ExecuteNonQuery();
+            return IdentityOperationResult<TimePurged>.Success(new(id));
+        });
     public IdentityOperationResult<TimeReport> Report(IdentityPrincipal actor)
     {
         if (!Allowed(actor, "time.report.read")) return Denied<TimeReport>();
@@ -155,30 +183,30 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
         using var cmd = Command(c, null, "SELECT COALESCE(SUM(DATEDIFF_BIG(millisecond,StartAt,EndAt)),0),COUNT(*),CASE WHEN EXISTS(SELECT 1 FROM [time].[Entry] a JOIN [time].[Entry] b ON a.OwnerId=b.OwnerId AND a.Id<b.Id AND a.StartAt<b.EndAt AND b.StartAt<a.EndAt WHERE a.OwnerId=@Owner AND a.Status='Stopped' AND b.Status='Stopped') THEN 1 ELSE 0 END FROM [time].[Entry] WHERE OwnerId=@Owner AND Status='Stopped'", actor.OwnerId);
         using var r = cmd.ExecuteReader(); r.Read(); return IdentityOperationResult<TimeReport>.Success(new(r.GetInt64(0), r.GetInt32(1), r.GetInt32(2) == 1));
     }
-    private IdentityOperationResult<TimeEntry> Mutate(IdentityPrincipal actor, string action, object request, string key, string? trace,
-        Func<SqlConnection, SqlTransaction, IdentityOperationResult<TimeEntry>> work)
+    private IdentityOperationResult<T> Mutate<T>(IdentityPrincipal actor, string action, object request, string key, string? trace,
+        Func<SqlConnection, SqlTransaction, IdentityOperationResult<T>> work)
     {
-        if (!Allowed(actor, action)) return Denied<TimeEntry>();
-        if (!Guid.TryParse(key, out _)) return Fail<TimeEntry>("IdempotencyKeyRequired", 422, "A UUID idempotency key is required.");
+        if (!Allowed(actor, action)) return Denied<T>();
+        if (!Guid.TryParse(key, out _)) return Fail<T>("IdempotencyKeyRequired", 422, "A UUID idempotency key is required.");
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
         using (var owner = Command(c, tx, "SELECT Id FROM [platform].[PersonalSpace] WITH(UPDLOCK,HOLDLOCK) WHERE Id=@Owner AND UserId=@User", actor.OwnerId))
-        { Add(owner, "@User", actor.UserId); if (owner.ExecuteScalar() is null) return Denied<TimeEntry>(); }
-        if (!capabilities.IsAllowed(c, tx, actor, "FX18", action)) return Denied<TimeEntry>();
+        { Add(owner, "@User", actor.UserId); if (owner.ExecuteScalar() is null) return Denied<T>(); }
+        if (!capabilities.IsAllowed(c, tx, actor, "FX18", action)) return Denied<T>();
         var claim = receipts.TryClaim(c, tx, actor.UserId, action, key, JsonSerializer.Serialize(request), DateTime.UtcNow);
-        if (claim.IsConflict) return Fail<TimeEntry>("IdempotencyConflict", 409, "The request key was used for another payload.");
+        if (claim.IsConflict) return Fail<T>("IdempotencyConflict", 409, "The request key was used for another payload.");
         if (claim.IsReplay && claim.ResultJson is { } saved)
-            return IdentityOperationResult<TimeEntry>.Success(JsonSerializer.Deserialize<TimeEntry>(saved)!, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
-        if (!claim.IsClaimed) return Fail<TimeEntry>("RequestInProgress", 409, "The request is already in progress.");
+            return IdentityOperationResult<T>.Success(JsonSerializer.Deserialize<T>(saved)!, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+        if (!claim.IsClaimed) return Fail<T>("RequestInProgress", 409, "The request is already in progress.");
         var result = work(c, tx);
         if (!result.Succeeded || result.Value is null) return result;
-        if (!capabilities.IsAllowed(c, tx, actor, "FX18", action)) return Denied<TimeEntry>();
+        if (!capabilities.IsAllowed(c, tx, actor, "FX18", action)) return Denied<T>();
         using var audit = Command(c, tx, "INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result,TraceId) VALUES(@User,@User,@Action,'time.Entry',@Id,'Succeeded',@Trace)", actor.OwnerId);
-        Add(audit, "@User", actor.UserId); Add(audit, "@Action", action); Add(audit, "@Id", result.Value.Id); Add(audit, "@Trace", trace); audit.ExecuteNonQuery();
+        Add(audit, "@User", actor.UserId); Add(audit, "@Action", action); Add(audit, "@Id", result.Value switch { TimeEntry entry => entry.Id, TimePurged purged => purged.EntryId, _ => throw new InvalidOperationException("Unknown Time mutation result.") }); Add(audit, "@Trace", trace); audit.ExecuteNonQuery();
         receipts.Complete(c, tx, claim, result.Code, result.StatusCode, JsonSerializer.Serialize(result.Value)); tx.Commit(); return result;
     }
-    private static IdentityOperationResult<TimeEntry>? Precondition(TimeEntry row, string? etag) => string.IsNullOrWhiteSpace(etag)
-        ? Fail<TimeEntry>("PreconditionRequired", 428, "If-Match is required.")
-        : etag == row.ETag ? null : Fail<TimeEntry>("RevisionConflict", 412, "Reload the current entry before retrying.");
+    private static IdentityOperationResult<T>? Precondition<T>(TimeEntry row, string? etag) => string.IsNullOrWhiteSpace(etag)
+        ? Fail<T>("PreconditionRequired", 428, "If-Match is required.")
+        : etag == row.ETag ? null : Fail<T>("RevisionConflict", 412, "Reload the current entry before retrying.");
     private static bool ValidText(string? description, string? category) => description is not { Length: > 2000 } && category is not { Length: > 200 };
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
     private static void Text(SqlCommand cmd, string? description, string? category) { Add(cmd, "@Description", description?.Trim()); Add(cmd, "@Category", category?.Trim()); }

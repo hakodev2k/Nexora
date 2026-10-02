@@ -13,3 +13,7 @@ export const timeSave = (body: TimeCommand, key: string, entry?: TimeEntry) => a
 export const timeStart = (description: string | null, category: string | null, key: string, resumeEntryId?: string) => apiFetch<TimeEntry>('/api/v1/time/timer', { method: 'POST', headers: jsonMutationHeaders(key), body: JSON.stringify({ description, category, resumeEntryId: resumeEntryId ?? null }) });
 export const timeStop = (entry: TimeEntry, key: string) => apiFetch<TimeEntry>(`/api/v1/time/timer/${entry.id}/stop`, { method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': entry.etag }) });
 export const timeTransition = (entry: TimeEntry, restore: boolean, key: string) => apiFetch<TimeEntry>(`/api/v1/time/entries/${entry.id}/${restore ? 'restore' : 'trash'}`, { method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': entry.etag }) });
+
+export type TimePurgePreview = { entryId: string; etag: string; correctionCount: number; hasConversionPin: boolean };
+export const timePreviewPurge = (id: string) => apiFetch<TimePurgePreview>(`/api/v1/time/entries/${id}/preview-purge`, { method: 'POST', headers: jsonMutationHeaders(crypto.randomUUID()) });
+export const timePurge = (preview: TimePurgePreview, key: string) => apiFetch<{ entryId: string }>(`/api/v1/time/entries/${preview.entryId}/purge`, { method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': preview.etag }), body: JSON.stringify({ confirmPermanentDeletion: true }) });

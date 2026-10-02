@@ -21,6 +21,22 @@ test('FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real
     await context.setOffline(true); await expect.poll(() => sql('FocusSession', session.id)[0].State, { timeout: 80000, intervals: [1000] }).toBe('Completed');
     expect(sql('FocusSession', session.id)[0].ElapsedMilliseconds).toBe(60000); const notifications = sqlFocusCompletion(session.id); expect(notifications).toHaveLength(1); expect(notifications[0].OwnerUserId.toLowerCase()).toBe(enabled.me.id.toLowerCase()); expect(notifications[0].deliveries.map((d: any) => [d.Channel, d.State])).toEqual([['BrowserPush', 'PermissionUnavailable'], ['Email', 'NotApplicable'], ['InApp', 'Delivered']]); await context.setOffline(false); await page.reload(); await expect(page.getByRole('button', { name: 'Start phase', exact: true })).toBeEnabled(); expect((await moduleApi(page, 'focusApi', 'focusList', [true])).items).toEqual([]);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    // Use the actual completed phase, not a rewritten SQL clock or session state.
+    const completedCard = page.locator('.resource-card').filter({ has: page.getByRole('heading', { name: 'Focus · Completed', exact: true }) }).first();
+    await completedCard.getByRole('button', { name: 'Save as Time Entry', exact: true }).click();
+    await page.getByRole('dialog').getByRole('checkbox').check();
+    const convertedResponse = page.waitForResponse(r => r.url().endsWith(`/sessions/${session.id}/record-time`) && r.request().method() === 'POST');
+    await confirm(page, 'Record time');
+    const converted = await (await convertedResponse).json();
+    expect(Object.keys(converted).sort()).toEqual(['entryId', 'sessionId']);
+    expect(converted.sessionId).toBe(session.id);
+    const convertedRows = sql('TimeEntry', converted.entryId);
+    expect(convertedRows).toHaveLength(1); expect(convertedRows[0].OwnerId.toLowerCase()).toBe(enabled.me.personalSpaceId.toLowerCase());
+    expect(convertedRows[0].Status).toBe('Stopped');
+    const utc = (v: string) => Date.parse(v.endsWith('Z') ? v : v + 'Z');
+    expect(utc(convertedRows[0].EndAt) - utc(convertedRows[0].StartAt)).toBe(60000);
+    expect((await moduleApi(page, 'focusApi', 'focusRecordTime', [session, true, crypto.randomUUID()])).entryId).toBe(converted.entryId);
+    await expect(page.getByRole('status').filter({ hasText: converted.entryId })).toBeVisible();
   } finally {
     await context.setOffline(false);
     if (original) { const current = await moduleApi(page, 'focusApi', 'focusPreferences'); await moduleApi(page, 'focusApi', 'focusSavePreferences', [{ ...original, etag: current.etag }, crypto.randomUUID()]); }

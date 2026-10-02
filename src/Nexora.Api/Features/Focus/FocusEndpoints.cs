@@ -21,6 +21,7 @@ public static class FocusEndpoints
             var action = verb;
             api.MapPost("/sessions/{id:guid}/" + action, (HttpContext c, Guid id, IFocusService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Transition(a, id, action, c.Request.Headers.IfMatch.ToString(), Key(c))));
         }
+        api.MapPost("/sessions/{id:guid}/record-time", (HttpContext c, Guid id, FocusRecordTimeCommand body, IFocusService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.RecordTime(a, id, c.Request.Headers.IfMatch.ToString(), body, Key(c))));
         return app;
     }
     private static string Key(HttpContext c) => c.Request.Headers["Idempotency-Key"].ToString();

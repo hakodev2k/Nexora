@@ -42,6 +42,7 @@ public static class M01MigrationManifest
         "20260930_0030_access_preview_action.sql",
         "20261001_0031_trash_source_permissions.sql",
         "20261001_0032_time_tracking_local.sql",
-        "20261001_0033_focus_local.sql"
+        "20261001_0033_focus_local.sql",
+        "20261002_0034_focus_conversion_time_purge.sql"
     ];
 }

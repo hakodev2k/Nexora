@@ -15,7 +15,7 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
     private readonly SqlConnectionFactory connections;
     private readonly SqlSelfCapability capabilities;
     private readonly SqlRequestReceiptStore receipts;
-    private static readonly string[] Actions = ["focus.session.read", "focus.session.start", "focus.session.pause", "focus.session.resume", "focus.session.cancel", "focus.preference.update"];
+    private static readonly string[] Actions = ["focus.session.read", "focus.session.start", "focus.session.pause", "focus.session.resume", "focus.session.cancel", "focus.preference.update", "focus.session.record_time"];
     public SqlFocusService(SqlConnectionFactory connections, string secret)
     { this.connections = connections; capabilities = new(connections); receipts = new(secret); }
     private static IdentityOperationResult<T> Fail<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
@@ -23,7 +23,7 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
     private bool Allowed(IdentityPrincipal actor, string action) => capabilities.IsAllowed(actor, "FX19", action);
     public IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor)
     {
-        var result = Actions.ToDictionary(a => a, a => Allowed(actor, a));
+        var result = Actions.ToDictionary(a => a, a => Allowed(actor, a) && (a != "focus.session.record_time" || capabilities.IsAllowed(actor, "FX18", "time.entry.create")));
         return result.Values.Any(x => x) ? IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result) : Denied<IReadOnlyDictionary<string, bool>>();
     }
     public IdentityOperationResult<FocusPage> List(IdentityPrincipal actor, Guid? cursor, bool activeOnly)
@@ -87,6 +87,46 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
             return IdentityOperationResult<FocusSession>.Success(Read(c, tx, actor.OwnerId, id)!);
         });
     }
+    public IdentityOperationResult<FocusTimeConversion> RecordTime(IdentityPrincipal actor, Guid id,
+        string? etag, FocusRecordTimeCommand body, string key)
+    {
+        // The wrapper never borrows target authority from its own action grant.
+        if (!capabilities.IsAllowed(actor, "FX18", "time.entry.create")) return Denied<FocusTimeConversion>();
+        return Mutate(actor, "focus.session.record_time", new { id, etag, body }, key, (c, tx) =>
+        {
+            if (!capabilities.IsAllowed(c, tx, actor, "FX18", "time.entry.create")) return Denied<FocusTimeConversion>();
+            var session = Read(c, tx, actor.OwnerId, id);
+            if (session is null) return Fail<FocusTimeConversion>("ResourceUnavailable", 404, "The resource is unavailable.");
+            // Domain deduplication survives different request keys and expired receipts.
+            using (var prior = Command(c, tx, "SELECT EntryId FROM [time].[FocusConversion] WHERE OwnerId=@Owner AND SessionId=@Id", actor.OwnerId))
+            {
+                Add(prior, "@Id", id);
+                if (prior.ExecuteScalar() is Guid existing) return IdentityOperationResult<FocusTimeConversion>.Success(new(id, existing));
+            }
+            var stale = Precondition<FocusTimeConversion>(session.ETag, etag); if (stale is not null) return stale;
+            if (session.Phase != "Focus" || session.State != "Completed" || session.CompletedAt is null || session.ElapsedMilliseconds <= 0)
+                return Fail<FocusTimeConversion>("LifecycleLocked", 409, "Only a completed work phase can be recorded as time.");
+            // Elapsed work excludes pauses. A conversion represents that duration
+            // ending at completion; it does not copy the wall-clock span as work.
+            var end = session.CompletedAt.Value.UtcDateTime;
+            var start = end.AddMilliseconds(-session.ElapsedMilliseconds);
+            using (var overlap = Command(c, tx, "SELECT COUNT(*) FROM [time].[Entry] WHERE OwnerId=@Owner AND Status<>'Trash' AND StartAt<@End AND (EndAt IS NULL OR EndAt>@Start)", actor.OwnerId))
+            {
+                Add(overlap, "@Start", start); Add(overlap, "@End", end);
+                if (Convert.ToInt32(overlap.ExecuteScalar()) > 0 && !body.ConfirmOverlap)
+                    return Fail<FocusTimeConversion>("OverlapConfirmationRequired", 409, "Confirm the overlapping gross work duration explicitly.");
+            }
+            var entry = Guid.NewGuid();
+            using (var insert = Command(c, tx, "INSERT [time].[Entry](Id,OwnerId,StartAt,EndAt,Description,Category,Status) VALUES(@Entry,@Owner,@Start,@End,NULL,'Focus','Stopped'); INSERT [time].[FocusConversion](OwnerId,SessionId,EntryId) VALUES(@Owner,@Id,@Entry);", actor.OwnerId))
+            {
+                Add(insert, "@Entry", entry); Add(insert, "@Id", id); Add(insert, "@Start", start); Add(insert, "@End", end); insert.ExecuteNonQuery();
+            }
+            if (!capabilities.IsAllowed(c, tx, actor, "FX18", "time.entry.create")) return Denied<FocusTimeConversion>();
+            Audit(c, tx, actor, "time.entry.create", entry);
+            return IdentityOperationResult<FocusTimeConversion>.Success(new(id, entry), 201);
+        });
+    }
+
     public Task FinishDueAsync(CancellationToken cancellationToken)
     {
         using var c = connections.Create(); c.Open(); var due = new List<(Guid Id, Guid Owner, Guid User, string Role)>();
@@ -139,13 +179,14 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
         if (!Guid.TryParse(key, out _)) return Fail<T>("IdempotencyKeyRequired", 422, "A UUID idempotency key is required.");
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable); LockOwner(c, tx, actor);
         if (!capabilities.IsAllowed(c, tx, actor, "FX19", action)) return Denied<T>();
+        if (action == "focus.session.record_time" && !capabilities.IsAllowed(c, tx, actor, "FX18", "time.entry.create")) return Denied<T>();
         var claim = receipts.TryClaim(c, tx, actor.UserId, action, key, JsonSerializer.Serialize(body), DateTime.UtcNow);
         if (claim.IsConflict) return Fail<T>("IdempotencyConflict", 409, "The request key was used for another payload.");
         if (claim.IsReplay && claim.ResultJson is { } saved) return IdentityOperationResult<T>.Success(JsonSerializer.Deserialize<T>(saved)!, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
         if (!claim.IsClaimed) return Fail<T>("RequestInProgress", 409, "The request is already in progress.");
         var result = work(c, tx); if (!result.Succeeded || result.Value is null) return result;
         if (!capabilities.IsAllowed(c, tx, actor, "FX19", action)) return Denied<T>();
-        Audit(c, tx, actor, action, result.Value is FocusSession session ? session.Id : actor.OwnerId);
+        Audit(c, tx, actor, action, result.Value is FocusSession session ? session.Id : result.Value is FocusTimeConversion conversion ? conversion.SessionId : actor.OwnerId);
         receipts.Complete(c, tx, claim, result.Code, result.StatusCode, JsonSerializer.Serialize(result.Value)); tx.Commit(); return result;
     }
     private static void LockOwner(SqlConnection c, SqlTransaction tx, IdentityPrincipal actor)
@@ -155,7 +196,8 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
     }
     private static void Audit(SqlConnection c, SqlTransaction tx, IdentityPrincipal actor, string action, Guid id, bool system = false)
     {
-        using var cmd = Command(c, tx, "INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result) VALUES(@Actor,@User,@Action,'time.Focus',@Id,'Succeeded')", actor.OwnerId);
+        using var cmd = Command(c, tx, "INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result) VALUES(@Actor,@User,@Action,@TargetType,@Id,'Succeeded')", actor.OwnerId);
+        Add(cmd, "@TargetType", action == "time.entry.create" ? "time.Entry" : "time.Focus");
         Add(cmd, "@Actor", system ? null : actor.UserId); Add(cmd, "@User", actor.UserId); Add(cmd, "@Action", action); Add(cmd, "@Id", id); cmd.ExecuteNonQuery();
     }
     private static IdentityOperationResult<T>? Precondition<T>(string current, string? etag) => string.IsNullOrWhiteSpace(etag)
@@ -187,7 +229,7 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
     { var cmd = c.CreateCommand(); cmd.Transaction = tx; cmd.CommandText = sql; Add(cmd, "@Owner", owner); return cmd; }
     private static void Add(SqlCommand cmd, string name, object? value)
     {
-        var type = value switch { Guid => SqlDbType.UniqueIdentifier, bool => SqlDbType.Bit, long => SqlDbType.BigInt, int => SqlDbType.Int, _ => SqlDbType.NVarChar };
+        var type = value switch { Guid => SqlDbType.UniqueIdentifier, bool => SqlDbType.Bit, long => SqlDbType.BigInt, int => SqlDbType.Int, DateTime => SqlDbType.DateTime2, _ => SqlDbType.NVarChar };
         if (name is "@Id" or "@Cursor" or "@User" or "@Owner" or "@Actor") type = SqlDbType.UniqueIdentifier;
         var p = cmd.Parameters.Add(name, type); if (type == SqlDbType.NVarChar) p.Size = -1; p.Value = value ?? DBNull.Value;
     }

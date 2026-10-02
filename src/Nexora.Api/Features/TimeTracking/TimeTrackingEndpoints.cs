@@ -37,6 +37,8 @@ public static class TimeTrackingEndpoints
             api.MapPost("/entries/{id:guid}/" + (restore ? "restore" : "trash"), (HttpContext c, Guid id, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
                 Run(c, i, cookies, a => s.Transition(a, id, c.Request.Headers.IfMatch.ToString(), isRestore, Key(c), c.TraceIdentifier)));
         }
+        api.MapPost("/entries/{id:guid}/preview-purge", (HttpContext c, Guid id, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.PreviewPurge(a, id)));
+        api.MapPost("/entries/{id:guid}/purge", (HttpContext c, Guid id, TimePurgeCommand body, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Purge(a, id, c.Request.Headers.IfMatch.ToString(), body, Key(c), c.TraceIdentifier)));
         return app;
     }
     private static string Key(HttpContext c) => c.Request.Headers["Idempotency-Key"].ToString();
