@@ -1,3 +1,4 @@
+import { WishlistScreen } from './WishlistScreen';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
@@ -187,6 +188,10 @@ type DirtyLeaveGuard = (continueAction: DirtyLeaveContinuation) => boolean;
 const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
 const DEFAULT_TIME_ZONE = 'UTC';
 const dirtyLeaveGuard: { current: DirtyLeaveGuard | null } = { current: null };
+export function registerDirtyLeaveGuard(guard: DirtyLeaveGuard) {
+  dirtyLeaveGuard.current = guard;
+  return () => { if (dirtyLeaveGuard.current === guard) dirtyLeaveGuard.current = null; };
+}
 const RESOURCE_TYPES = new Set<ResourceType>(['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal']);
 
 function safeReturnPath(value: string | null | undefined): string | undefined {
@@ -452,7 +457,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX28: { vi: 'Kho bảo mật', en: 'Vault' },
   FX29: { vi: 'Tin tức và nguồn cấp', en: 'News and feeds' },
   FX30: { vi: 'Theo dõi giá Shopee', en: 'Shopee price tracking' },
-  FX31: { vi: 'Bản ghi mua sắm', en: 'Shopping records' },
+  FX31: { vi: 'Mua sắm — Wishlist', en: 'Shopping — Wishlist' },
   FX32: { vi: 'Công cụ phát triển', en: 'Developer toolbox' },
   FX33: { vi: 'Khám phá GitHub', en: 'GitHub discovery' },
   FX34: { vi: 'Tự động hóa và lịch chạy', en: 'Automation and scheduler' },
@@ -466,7 +471,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
 
 const moduleScreenCodes = new Set([
   'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
-  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX32'
+  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX31', 'FX32'
 ]);
 
 function moduleDisplayName(code: string, locale: string): string {
@@ -5362,6 +5367,7 @@ function ModuleScreen({
   }
 
   const normalizedCode = module.code.toUpperCase();
+  if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
