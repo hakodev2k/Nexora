@@ -1,4 +1,5 @@
 import { WishlistScreen } from './WishlistScreen';
+import { SkillScreen } from './SkillScreen';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
@@ -466,12 +467,12 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX37: { vi: 'Tài sản cá nhân', en: 'Personal assets' },
   FX38: { vi: 'Tài sản số', en: 'Digital assets' },
   FX39: { vi: 'Nghề nghiệp và hồ sơ', en: 'Career and resumes' },
-  FX40: { vi: 'Học tập và nhật ký công việc', en: 'Learning and work log' }
+  FX40: { vi: 'Học tập — Skills', en: 'Learning — Skills' }
 };
 
 const moduleScreenCodes = new Set([
   'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
-  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX31', 'FX32'
+  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX31', 'FX32', 'FX40'
 ]);
 
 function moduleDisplayName(code: string, locale: string): string {
@@ -5368,6 +5369,7 @@ function ModuleScreen({
 
   const normalizedCode = module.code.toUpperCase();
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX40') return <SkillScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {

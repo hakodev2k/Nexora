@@ -1,4 +1,7 @@
 using Nexora.Api.Features.Focus;
+using Nexora.Api.Features.Learning;
+using Nexora.Application.Learning;
+using Nexora.Infrastructure.Learning;
 using Nexora.Api.Features.Shopping;
 using Nexora.Application.Shopping;
 using Nexora.Infrastructure.Shopping;
@@ -238,6 +241,7 @@ builder.Services.Configure<RouteOptions>(options =>
 
 builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IWishlistService>(s => new SqlWishlistService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 
 builder.Services.AddSingleton<SqlFocusService>(s => new SqlFocusService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IFocusService>(s => s.GetRequiredService<SqlFocusService>());
@@ -296,6 +300,7 @@ app.MapHabitEndpoints();
 app.MapTimeTrackingEndpoints();
 app.MapFocusEndpoints();
 app.MapWishlistEndpoints();
+app.MapSkillEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
 app.MapSettingsEndpoints();
