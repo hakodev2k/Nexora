@@ -1,0 +1,15 @@
+# FX18 query repair evidence — 2026-10-02
+
+Request authority: attached all-missing-APIs request authorizes isolated implementation, synthetic real SQL/API testing, commits and push to existing PR4, no merge. Requirements main revision `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3`; implementation starting head `d46ca6e52143677cbd22f778f1c3503b27d0deba`. Accountable owner: primary implementation agent. Mandatory startup/backend/database/security/verification/owner-isolation routes read; independent review expressly authorized by owner.
+
+Bound source: main features/18-time-tracking.md BR003/005, UX18 sections10–13, action catalog18 `time.entry.read` and `time.report.read`, NXG-SYS-02/03/05/11/14 and NXG-FX18-G03. Date ranges select overlaps, half-open UTC bounds; reports preserve full gross duration. No approval of an open story, provider effect or whole FX18 acceptance is inferred.
+
+Changes: optional from/to/category/literal description query on existing list/report; validation; owner/status/filter selection before 25-row keyset pagination; safe unavailable cursor; stopped-only selected totals and overlap flag. No schema, new permission or runtime catalog change. Rollback: deploy preceding binary.
+
+Executed focused command: `dotnet test tests/Nexora.IntegrationTests/Nexora.IntegrationTests.csproj -c Release --filter FullyQualifiedName~SqlTimeQueryTests --logger trx;LogFileName=time-query-reviewed.trx --results-directory out/evidence` with the existing fixture's validated Windows-authenticated loopback SQL Express target. Fixture creates and cleans a new `Nexora_Test_<GUID>` database, applies migrations/replay/upgrade/readiness/bootstrap and generates synthetic owner sessions. Result: 3 passed, 0 failed, 0 skipped. The command compiled the affected code. Private connection/credentials are excluded.
+
+Assertions: >25 same-owner entries, tied starts and complete cursor traversal; foreign/missing/filter-excluded cursor; literal wildcard text; offset-equivalent UTC range; overlap selection including an entry beginning before from; full gross totals; endpoint exclusion; filtered overlap flag; Running and Trash exclusion; anonymous401, Admin Unset403 and disabled-module403; equal/reversed ranges and overlong text422. Real API creates prerequisites and SQL verifies persisted counts.
+
+Independent reviewer `/root/independent_review` corrected the original start-only range interpretation to main's overlap rule and reviewed the final correction plus requested tied-cursor/running/module negative cases. No remaining implementation blocker reported. Reviewer did not execute tests. Initial pre-correction test result is superseded; only reviewed final result is used.
+
+Evidence artifact in isolated checkout: `out/evidence/time-query-reviewed.trx`. Source hashes in `time-query-source-hashes.json` identify the tested files. SQL rollback/restore/destructive/provider tests are not applicable to this read-only repair. No new browser UI was introduced by this repair. Whole FX18 remains Partial; Task/Project linking and other missing source actions are outside this bounded batch and remain in the parent task backlog.

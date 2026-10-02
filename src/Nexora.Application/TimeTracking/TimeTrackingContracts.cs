@@ -12,6 +12,8 @@ public sealed record TimerCommand(string? Description, string? Category, Guid? R
 public sealed record TimeCorrection(Guid Id, string Action, DateTimeOffset At, TimeEntry Before);
 public sealed record TimeHistoryPage(IReadOnlyList<TimeCorrection> Items, Guid? NextCursor);
 public sealed record TimeReport(long GrossDurationMilliseconds, int EntryCount, bool HasOverlaps);
+public sealed record TimeEntryFilter(DateTimeOffset? From = null, DateTimeOffset? To = null,
+    string? Category = null, string? Query = null);
 
 public sealed record TimePurgePreview(Guid EntryId, string ETag, int CorrectionCount, bool HasConversionPin);
 public sealed record TimePurgeCommand(bool ConfirmPermanentDeletion);
@@ -20,7 +22,7 @@ public sealed record TimePurged(Guid EntryId);
 public interface ITimeTrackingService
 {
     IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
-    IdentityOperationResult<TimeEntryPage> List(IdentityPrincipal actor, Guid? cursor, bool trash);
+    IdentityOperationResult<TimeEntryPage> List(IdentityPrincipal actor, Guid? cursor, bool trash, TimeEntryFilter? filter = null);
     IdentityOperationResult<TimeEntry> Get(IdentityPrincipal actor, Guid id);
     IdentityOperationResult<TimeEntry?> Timer(IdentityPrincipal actor);
     IdentityOperationResult<TimeEntry> Start(IdentityPrincipal actor, TimerCommand body, string key, string? trace);
@@ -31,5 +33,5 @@ public interface ITimeTrackingService
     IdentityOperationResult<TimeHistoryPage> History(IdentityPrincipal actor, Guid id, Guid? cursor);
     IdentityOperationResult<TimePurgePreview> PreviewPurge(IdentityPrincipal actor, Guid id);
     IdentityOperationResult<TimePurged> Purge(IdentityPrincipal actor, Guid id, string? etag, TimePurgeCommand body, string key, string? trace);
-    IdentityOperationResult<TimeReport> Report(IdentityPrincipal actor);
+    IdentityOperationResult<TimeReport> Report(IdentityPrincipal actor, TimeEntryFilter? filter = null);
 }

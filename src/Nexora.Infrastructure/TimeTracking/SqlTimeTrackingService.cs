@@ -34,15 +34,26 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
             ? IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result)
             : Denied<IReadOnlyDictionary<string, bool>>();
     }
-    public IdentityOperationResult<TimeEntryPage> List(IdentityPrincipal actor, Guid? cursor, bool trash)
+    public IdentityOperationResult<TimeEntryPage> List(IdentityPrincipal actor, Guid? cursor, bool trash, TimeEntryFilter? filter = null)
     {
         if (!Allowed(actor, "time.entry.read")) return Denied<TimeEntryPage>();
+        if (!ValidFilter(filter)) return InvalidFilter<TimeEntryPage>();
         using var c = connections.Create(); c.Open();
         // Running timers have a separate action, so entry.read never bypasses timer.read.
-        using var cmd = Command(c, null, "SELECT TOP(51) Id,StartAt,EndAt,Description,Category,Status,UpdatedAt,RowVersion FROM [time].[Entry] WHERE OwnerId=@Owner AND Status=@Status AND (@Cursor IS NULL OR StartAt<(SELECT StartAt FROM [time].[Entry] WHERE OwnerId=@Owner AND Id=@Cursor) OR (StartAt=(SELECT StartAt FROM [time].[Entry] WHERE OwnerId=@Owner AND Id=@Cursor) AND Id<@Cursor)) ORDER BY StartAt DESC,Id DESC", actor.OwnerId);
+        using var cmd = Command(c, null, FilteredEntriesSql + """
+
+            SELECT TOP(26) Id,StartAt,EndAt,Description,Category,Status,UpdatedAt,RowVersion
+            FROM selected
+            WHERE @Cursor IS NULL OR EXISTS
+                (SELECT 1 FROM selected boundary WHERE boundary.Id=@Cursor
+                 AND (selected.StartAt<boundary.StartAt OR
+                      (selected.StartAt=boundary.StartAt AND selected.Id<boundary.Id)))
+            ORDER BY StartAt DESC,Id DESC;
+            """, actor.OwnerId);
         Add(cmd, "@Status", trash ? "Trash" : "Stopped"); Add(cmd, "@Cursor", cursor);
+        BindFilter(cmd, filter);
         var items = Rows(cmd);
-        return IdentityOperationResult<TimeEntryPage>.Success(new(items.Take(50).ToArray(), items.Count > 50 ? items[49].Id : null));
+        return IdentityOperationResult<TimeEntryPage>.Success(new(items.Take(25).ToArray(), items.Count > 25 ? items[24].Id : null));
     }
     public IdentityOperationResult<TimeEntry> Get(IdentityPrincipal actor, Guid id)
     {
@@ -176,12 +187,46 @@ public sealed class SqlTimeTrackingService : ITimeTrackingService
             Add(cmd, "@Id", id); cmd.ExecuteNonQuery();
             return IdentityOperationResult<TimePurged>.Success(new(id));
         });
-    public IdentityOperationResult<TimeReport> Report(IdentityPrincipal actor)
+    public IdentityOperationResult<TimeReport> Report(IdentityPrincipal actor, TimeEntryFilter? filter = null)
     {
         if (!Allowed(actor, "time.report.read")) return Denied<TimeReport>();
+        if (!ValidFilter(filter)) return InvalidFilter<TimeReport>();
         using var c = connections.Create(); c.Open();
-        using var cmd = Command(c, null, "SELECT COALESCE(SUM(DATEDIFF_BIG(millisecond,StartAt,EndAt)),0),COUNT(*),CASE WHEN EXISTS(SELECT 1 FROM [time].[Entry] a JOIN [time].[Entry] b ON a.OwnerId=b.OwnerId AND a.Id<b.Id AND a.StartAt<b.EndAt AND b.StartAt<a.EndAt WHERE a.OwnerId=@Owner AND a.Status='Stopped' AND b.Status='Stopped') THEN 1 ELSE 0 END FROM [time].[Entry] WHERE OwnerId=@Owner AND Status='Stopped'", actor.OwnerId);
+        using var cmd = Command(c, null, FilteredEntriesSql + """
+
+            SELECT COALESCE(SUM(DATEDIFF_BIG(millisecond,StartAt,EndAt)),0),COUNT(*),
+                   CASE WHEN EXISTS(SELECT 1 FROM selected a JOIN selected b
+                       ON a.Id<b.Id AND a.StartAt<b.EndAt AND b.StartAt<a.EndAt)
+                   THEN 1 ELSE 0 END FROM selected;
+            """, actor.OwnerId);
+        Add(cmd, "@Status", "Stopped"); BindFilter(cmd, filter);
         using var r = cmd.ExecuteReader(); r.Read(); return IdentityOperationResult<TimeReport>.Success(new(r.GetInt64(0), r.GetInt32(1), r.GetInt32(2) == 1));
+    }
+    private const string FilteredEntriesSql = """
+        WITH selected AS
+        (
+            SELECT Id,StartAt,EndAt,Description,Category,Status,UpdatedAt,RowVersion
+            FROM [time].[Entry]
+            WHERE OwnerId=@Owner AND Status=@Status
+              AND (@From IS NULL OR EndAt>@From)
+              AND (@To IS NULL OR StartAt<@To)
+              AND (@Category IS NULL OR Category=@Category)
+              AND (@Query IS NULL OR CHARINDEX(@Query,Description)>0)
+        )
+        """;
+    private static bool ValidFilter(TimeEntryFilter? filter) => filter is null ||
+        (!(filter.From is { } from && filter.To is { } to && from >= to) &&
+         filter.Category is not { Length: > 200 } && filter.Query is not { Length: > 2000 });
+    private static IdentityOperationResult<T> InvalidFilter<T>() =>
+        Fail<T>("ValidationFailed", 422, "From must precede To; category and query must fit their limits.");
+    private static void BindFilter(SqlCommand cmd, TimeEntryFilter? filter)
+    {
+        cmd.Parameters.Add("@From", SqlDbType.DateTime2).Value = (object?)filter?.From?.UtcDateTime ?? DBNull.Value;
+        cmd.Parameters.Add("@To", SqlDbType.DateTime2).Value = (object?)filter?.To?.UtcDateTime ?? DBNull.Value;
+        cmd.Parameters.Add("@Category", SqlDbType.NVarChar, 200).Value =
+            string.IsNullOrWhiteSpace(filter?.Category) ? DBNull.Value : filter.Category.Trim();
+        cmd.Parameters.Add("@Query", SqlDbType.NVarChar, 2000).Value =
+            string.IsNullOrWhiteSpace(filter?.Query) ? DBNull.Value : filter.Query.Trim();
     }
     private IdentityOperationResult<T> Mutate<T>(IdentityPrincipal actor, string action, object request, string key, string? trace,
         Func<SqlConnection, SqlTransaction, IdentityOperationResult<T>> work)

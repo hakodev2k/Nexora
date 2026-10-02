@@ -1,0 +1,6 @@
+{
+  "src/Nexora.Infrastructure/TimeTracking/SqlTimeTrackingService.cs": "13ce5085f9b10d148828afe8d9f615496d0afc91a6323b6fe50506467752a485",
+  "src/Nexora.Api/Features/TimeTracking/TimeTrackingEndpoints.cs": "9afd8797801f466514ad77edaf067a01467d14a6620a36572180e3dfd92dc26e",
+  "tests/Nexora.IntegrationTests/SqlTimeQueryTests.cs": "b4d7ff6a8dd1acbaf795f18a64f82b5a82b3e7d52d0ff647934fa97a25160403",
+  "src/Nexora.Application/TimeTracking/TimeTrackingContracts.cs": "1e7a85e1ba6be47ac1bb08c2e0f6f2a1da288dfd34afea3d75ae05b7a020cbc6"
+}

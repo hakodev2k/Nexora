@@ -13,16 +13,18 @@ public static class TimeTrackingEndpoints
         var api = app.MapGroup("/api/v1/time").RequireCsrfForUnsafeMethods();
         api.MapGet("/capabilities", (HttpContext c, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
             Run(c, i, cookies, a => s.Capabilities(a)));
-        api.MapGet("/entries", (HttpContext c, Guid? cursor, bool? trash, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
-            Run(c, i, cookies, a => s.List(a, cursor, trash ?? false)));
+        api.MapGet("/entries", (HttpContext c, Guid? cursor, bool? trash, DateTimeOffset? from, DateTimeOffset? to,
+            string? category, string? query, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
+            Run(c, i, cookies, a => s.List(a, cursor, trash ?? false, new(from, to, category, query))));
         api.MapGet("/entries/{id:guid}", (HttpContext c, Guid id, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
             Run(c, i, cookies, a => s.Get(a, id)));
         api.MapGet("/entries/{id:guid}/history", (HttpContext c, Guid id, Guid? cursor, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
             Run(c, i, cookies, a => s.History(a, id, cursor)));
         api.MapGet("/timer", (HttpContext c, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
             Run(c, i, cookies, a => s.Timer(a)));
-        api.MapGet("/report", (HttpContext c, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
-            Run(c, i, cookies, a => s.Report(a)));
+        api.MapGet("/report", (HttpContext c, DateTimeOffset? from, DateTimeOffset? to, string? category, string? query,
+            ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
+            Run(c, i, cookies, a => s.Report(a, new(from, to, category, query))));
         api.MapPost("/timer", (HttpContext c, TimerCommand body, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
             Run(c, i, cookies, a => s.Start(a, body, Key(c), c.TraceIdentifier)));
         api.MapPost("/timer/{id:guid}/stop", (HttpContext c, Guid id, ITimeTrackingService s, IIdentityService i, SessionCookieService cookies) =>
