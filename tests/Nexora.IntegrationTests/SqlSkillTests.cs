@@ -37,7 +37,7 @@ public sealed class SqlSkillTests(SqlApiFixture fixture)
         fixture.RequireAvailable(); var super = await fixture.CreateActiveSessionAsync("SuperAdmin");
         var module = (await Get(super, "/api/v1/admin/modules?limit=100")).GetProperty("items").EnumerateArray().Single(m => m.GetProperty("code").GetString() == "FX40").Clone();
         Assert.Equal("Ready", module.GetProperty("state").GetString());
-        Assert.Contains("Skills only", module.GetProperty("name").GetString());
+        Assert.Contains("Skills and Courses only", module.GetProperty("name").GetString());
         var scope = new PolicyScope(this, super, module.GetProperty("id").GetGuid(), module.GetProperty("systemEnabled").GetBoolean(), module.GetProperty("registrationEnabled").GetBoolean());
         await Policy(scope, true, true); return scope;
     }

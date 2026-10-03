@@ -37,3 +37,6 @@ Rollback: preceding binary, disable installed subset by normal SuperAdmin policy
 ## Skill continuation
 
 Time repair was pushed as 5764509c0e3c7d60b4fdaa0a98409d3f31d91b94; Wishlist as b1e69224a067c2253b5a57575e8502572c5a7a54. PR4 remains open/unmerged, original checkout preserved. The next reviewed local contract is `learning-skill-contract.md`; actual results are `skill-evidence.md`. FX40 now has a Skills-only implementation and remains Partial. Nine Skill and nine Wishlist actions are installed; other committed actions remain in the parent implementation backlog. No source/requirement gate has been changed to manufacture full-scope completion.
+
+## Course continuation
+Skills was pushed as c5f37acca75b02005b2c63b71017f5fb14285c4e. Course adds twelve own-domain actions with typed SQL Course/milestone/history, exact progress, explicit completion, current authority and frozen aggregate lifecycle. Contract/evidence: learning-course-contract.md and course-evidence.md. Named installation is Skills and Courses only; whole Learning remains Partial. Full target-action coverage and full pre-existing browser regression remain open. The next contract review covers physical Assets; sensitive serial/share/support and cross-module sources remain closed or pending their exact contracts.

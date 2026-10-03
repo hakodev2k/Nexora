@@ -52,7 +52,8 @@ public sealed class M01PolicyAndCaptureContractTests
                 "20261001_0033_focus_local.sql",
                 "20261002_0034_focus_conversion_time_purge.sql",
             "20261002_0035_wishlist_local.sql",
-            "20261003_0036_learning_skills_local.sql"
+            "20261003_0036_learning_skills_local.sql",
+            "20261003_0037_learning_courses_local.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);

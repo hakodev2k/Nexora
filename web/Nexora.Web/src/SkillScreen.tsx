@@ -79,7 +79,7 @@ export function SkillScreen({ onAuthLost }: { onAuthLost: () => void }) {
   }
   const blocked = loading || busy;
   return <section className="content-section" aria-labelledby="skill-title">
-    <div className="content-heading"><div><p className="eyebrow">FX40 / LEARNING</p><h1 id="skill-title">Skills</h1><p>Kỹ năng cá nhân và mức độ tự đánh giá. Evidence, merge, Courses và Certifications chưa khả dụng trong phần này.</p></div><button className="secondary-button" disabled={blocked} onClick={() => void load()}>Tải lại</button></div>
+    <div className="content-heading"><div><p className="eyebrow">FX40 / LEARNING</p><h1 id="skill-title">Skills</h1><p>Kỹ năng cá nhân và mức độ tự đánh giá.</p></div><button className="secondary-button" disabled={blocked} onClick={() => void load()}>Tải lại</button></div>
     {error && <p role="alert">{error}</p>}{loading && <p role="status">Đang tải…</p>}
     <button className="primary-button" disabled={!can('create') || blocked} onClick={() => begin()}>New Skill</button>
     {can('read') && <>

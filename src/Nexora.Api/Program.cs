@@ -242,6 +242,7 @@ builder.Services.Configure<RouteOptions>(options =>
 builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IWishlistService>(s => new SqlWishlistService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 
 builder.Services.AddSingleton<SqlFocusService>(s => new SqlFocusService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IFocusService>(s => s.GetRequiredService<SqlFocusService>());
@@ -301,6 +302,7 @@ app.MapTimeTrackingEndpoints();
 app.MapFocusEndpoints();
 app.MapWishlistEndpoints();
 app.MapSkillEndpoints();
+app.MapCourseEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
 app.MapSettingsEndpoints();

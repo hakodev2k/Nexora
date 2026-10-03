@@ -1,5 +1,5 @@
 import { WishlistScreen } from './WishlistScreen';
-import { SkillScreen } from './SkillScreen';
+import { LearningScreen } from './LearningScreen';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
@@ -192,6 +192,9 @@ const dirtyLeaveGuard: { current: DirtyLeaveGuard | null } = { current: null };
 export function registerDirtyLeaveGuard(guard: DirtyLeaveGuard) {
   dirtyLeaveGuard.current = guard;
   return () => { if (dirtyLeaveGuard.current === guard) dirtyLeaveGuard.current = null; };
+}
+export function requestDirtyLeave(proceed: DirtyLeaveContinuation) {
+  if (!dirtyLeaveGuard.current?.(proceed)) proceed();
 }
 const RESOURCE_TYPES = new Set<ResourceType>(['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal']);
 
@@ -467,7 +470,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX37: { vi: 'Tài sản cá nhân', en: 'Personal assets' },
   FX38: { vi: 'Tài sản số', en: 'Digital assets' },
   FX39: { vi: 'Nghề nghiệp và hồ sơ', en: 'Career and resumes' },
-  FX40: { vi: 'Học tập — Skills', en: 'Learning — Skills' }
+  FX40: { vi: 'Học tập — Skills và Courses', en: 'Learning — Skills and Courses' }
 };
 
 const moduleScreenCodes = new Set([
@@ -5369,7 +5372,7 @@ function ModuleScreen({
 
   const normalizedCode = module.code.toUpperCase();
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
-  if (module.enabled && normalizedCode === 'FX40') return <SkillScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {

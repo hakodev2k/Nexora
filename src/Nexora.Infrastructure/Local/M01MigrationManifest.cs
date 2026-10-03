@@ -45,6 +45,7 @@ public static class M01MigrationManifest
         "20261001_0033_focus_local.sql",
         "20261002_0034_focus_conversion_time_purge.sql",
         "20261002_0035_wishlist_local.sql",
-        "20261003_0036_learning_skills_local.sql"
+        "20261003_0036_learning_skills_local.sql",
+        "20261003_0037_learning_courses_local.sql"
     ];
 }
