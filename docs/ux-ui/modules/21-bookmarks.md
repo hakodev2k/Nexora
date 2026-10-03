@@ -1,8 +1,8 @@
 # FX-21 — Bookmarks — UX/UI Specification
 
-> **Current decision amendment — 2026-09-07:** External URLs are inert metadata, no Open external. Auto-fetch scope unresolved under internal-first/paused integrations. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> **Current decision amendment — 2026-09-10:** External URLs are inert metadata, no Open external. The local UI slice supports manual metadata CRUD and Active/Archived lifecycle; auto-fetch, tags, collections and sharing remain gated. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md) and [slice evidence](../../implementation/bookmarks-manual-slice.md) apply. Conflicting older proposal paragraphs below are historical.
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Manual metadata UI slice implemented locally on PR #4; runtime verification remains owner work.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
 
@@ -78,7 +78,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Dimension | Specification |
 | --- | --- |
 | Purpose / profile | BROWSE — Title; domain; safe description excerpt; tags; health/freshness |
-| Entry / proposed route | /bookmarks; /bookmarks/collections/:collectionId; module/source navigation or authorized deep link. |
+| Entry / route | `/bookmarks` is implemented for the manual metadata slice; `/bookmarks/collections/:collectionId` remains a future contract; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Bookmark library / collection. Shared browse profile; header → controls → declared content → feedback. |
 | Primary action | Add Bookmark; available only when section15/context permits; otherwise explain lifecycle/policy. |
 | Secondary actions | Grid/List; Open; Archive; Trash. Back/Cancel always has authorized fallback. |
@@ -97,7 +97,7 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Dimension | Specification |
 | --- | --- |
 | Purpose / profile | FORM — URL; Title; description; extracted metadata preview/source; tags/collections |
-| Entry / proposed route | /bookmarks/new; /bookmarks/:bookmarkId/edit; module/source navigation or authorized deep link. |
+| Entry / route | `/bookmarks` inline create/edit is implemented for the manual metadata slice; `/bookmarks/new` and `/bookmarks/:bookmarkId/edit` remain future route contracts. |
 | Header / layout | Screen title: Add / edit Bookmark. Shared form profile; header → controls → declared content → feedback. |
 | Primary action | Save Bookmark; available only when section15/context permits; otherwise explain lifecycle/policy. |
 | Secondary actions | Fetch metadata; Cancel. Back/Cancel always has authorized fallback. |

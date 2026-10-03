@@ -1,0 +1,69 @@
+{
+  "stats": {
+    "startTime": "2026-10-03T05:49:18.808Z",
+    "duration": 92569.705,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "source": "functional/courses.spec.ts",
+  "tests": [
+    {
+      "title": "Course: exact progress, SQL persistence, dirty conflict, pagination and owned milestone cohort",
+      "project": "desktop-large",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 18050
+        }
+      ]
+    },
+    {
+      "title": "Course: exact progress, SQL persistence, dirty conflict, pagination and owned milestone cohort",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 19094
+        }
+      ]
+    },
+    {
+      "title": "Course: exact progress, SQL persistence, dirty conflict, pagination and owned milestone cohort",
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 16662
+        }
+      ]
+    },
+    {
+      "title": "Course: exact progress, SQL persistence, dirty conflict, pagination and owned milestone cohort",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 16598
+        }
+      ]
+    },
+    {
+      "title": "Course: exact progress, SQL persistence, dirty conflict, pagination and owned milestone cohort",
+      "project": "mobile-small",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 16528
+        }
+      ]
+    }
+  ],
+  "configuration": "functional.config.ts"
+}

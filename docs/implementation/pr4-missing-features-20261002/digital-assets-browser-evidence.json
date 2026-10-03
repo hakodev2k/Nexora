@@ -1,0 +1,77 @@
+{
+  "basePrHead": "fccfd544522b563122beaab8b7bdec54a0c2a181",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "workflow": "Normal login; preserved isolated synthetic SQL database; actual API/SQL persistence; unchanged login throttle; no data deletion or page-limit override",
+  "sourceHashes": "digital-assets-source-hashes.json",
+  "stats": {
+    "startTime": "2026-10-03T11:22:13.343Z",
+    "duration": 69640.746,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Digital Assets: typed SQL records, exact values, dirty conflicts, private paged history and lifecycle",
+      "project": "desktop-large",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 13238
+        }
+      ]
+    },
+    {
+      "title": "Digital Assets: typed SQL records, exact values, dirty conflicts, private paged history and lifecycle",
+      "project": "desktop",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 12752
+        }
+      ]
+    },
+    {
+      "title": "Digital Assets: typed SQL records, exact values, dirty conflicts, private paged history and lifecycle",
+      "project": "tablet",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 12914
+        }
+      ]
+    },
+    {
+      "title": "Digital Assets: typed SQL records, exact values, dirty conflicts, private paged history and lifecycle",
+      "project": "mobile",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 12740
+        }
+      ]
+    },
+    {
+      "title": "Digital Assets: typed SQL records, exact values, dirty conflicts, private paged history and lifecycle",
+      "project": "mobile-small",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 12687
+        }
+      ]
+    }
+  ],
+  "excludes": "Credentials, accounts, connection strings, raw logs, reports, traces and local runtime configuration"
+}

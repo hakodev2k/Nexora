@@ -6,6 +6,10 @@ Approved source behavior remains Approved; routine interaction choices below are
 
 ## 1. Scope
 
+Local PR #4 overlay: FX24-S01 binds Tag management to the owner-scoped catalog
+API. Collections, Templates and source assignment remain unavailable until
+their own contracts are implemented; a Tag never grants permission.
+
 Scoped tags, nonnested reference collections and typed content templates, not user-created modules.
 
 ## 2. Requirement sources

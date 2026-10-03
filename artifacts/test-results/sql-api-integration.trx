@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="2df41d6e-36f8-4bc0-bff9-2f0078594b16" name="hakodev@DESKTOP-S5418DT 2026-09-19 16:28:19" runUser="DESKTOP-S5418DT\hakodev" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-09-19T16:28:19.1491563+07:00" queuing="2026-09-19T16:28:19.1491566+07:00" start="2026-09-19T16:28:02.5151553+07:00" finish="2026-09-19T16:28:19.1537803+07:00" />
+  <TestSettings name="default" id="6ef9f4ab-9f1f-42ea-b9f7-64b93f8788fa">
+    <Deployment runDeploymentRoot="hakodev_DESKTOP-S5418DT_2026-09-19_16_28_19" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="826b7b89-8735-4cd3-9b57-09600630e4f4" testId="65b36876-96fd-5a61-b9c3-e0b391a1ba17" testName="Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available" computerName="DESKTOP-S5418DT" duration="00:00:00.0003428" startTime="2026-09-19T16:28:18.4045449+07:00" endTime="2026-09-19T16:28:18.4045450+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="826b7b89-8735-4cd3-9b57-09600630e4f4">
+      <Output>
+        <ErrorInfo>
+          <Message>BLOCKED: real SQL/API integration fixture is unavailable (NEXORA_TEST_SQL_CONNECTION was not supplied.).</Message>
+          <StackTrace>   at Nexora.IntegrationTests.SqlApiFixture.RequireAvailable() in D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiFixture.cs:line 176&#xD;
+   at Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available() in D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiIntegrationTests.cs:line 22&#xD;
+   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="519464d8-e2d1-4020-93ab-1e661126be2a" testId="2bd09ea6-f221-9aaf-d121-22d8554ed508" testName="Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts" computerName="DESKTOP-S5418DT" duration="00:00:00.0009542" startTime="2026-09-19T16:28:18.4035327+07:00" endTime="2026-09-19T16:28:18.4035328+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="519464d8-e2d1-4020-93ab-1e661126be2a">
+      <Output>
+        <ErrorInfo>
+          <Message>BLOCKED: real SQL/API integration fixture is unavailable (NEXORA_TEST_SQL_CONNECTION was not supplied.).</Message>
+          <StackTrace>   at Nexora.IntegrationTests.SqlApiFixture.RequireAvailable() in D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiFixture.cs:line 176&#xD;
+   at Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts() in D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiIntegrationTests.cs:line 40&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+    <UnitTestResult executionId="0e23a595-0d61-44cc-8d4f-63d9605c1d5f" testId="9645a0f1-f344-7a1c-9ab8-dd313c7311ee" testName="Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority" computerName="DESKTOP-S5418DT" duration="00:00:00.0042052" startTime="2026-09-19T16:28:18.3965765+07:00" endTime="2026-09-19T16:28:18.3965918+07:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Failed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="0e23a595-0d61-44cc-8d4f-63d9605c1d5f">
+      <Output>
+        <ErrorInfo>
+          <Message>BLOCKED: real SQL/API integration fixture is unavailable (NEXORA_TEST_SQL_CONNECTION was not supplied.).</Message>
+          <StackTrace>   at Nexora.IntegrationTests.SqlApiFixture.RequireAvailable() in D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiFixture.cs:line 176&#xD;
+   at Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority() in D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiIntegrationTests.cs:line 93&#xD;
+--- End of stack trace from previous location ---</StackTrace>
+        </ErrorInfo>
+      </Output>
+    </UnitTestResult>
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.integrationtests\bin\release\net10.0\nexora.integrationtests.dll" id="2bd09ea6-f221-9aaf-d121-22d8554ed508">
+      <Execution id="519464d8-e2d1-4020-93ab-1e661126be2a" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\bin\Release\net10.0\Nexora.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.IntegrationTests.SqlApiIntegrationTests" name="Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts" />
+    </UnitTest>
+    <UnitTest name="Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.integrationtests\bin\release\net10.0\nexora.integrationtests.dll" id="9645a0f1-f344-7a1c-9ab8-dd313c7311ee">
+      <Execution id="0e23a595-0d61-44cc-8d4f-63d9605c1d5f" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\bin\Release\net10.0\Nexora.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.IntegrationTests.SqlApiIntegrationTests" name="Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority" />
+    </UnitTest>
+    <UnitTest name="Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available" storage="d:\projects\asp_net_core_developer_2026\nexora\tests\nexora.integrationtests\bin\release\net10.0\nexora.integrationtests.dll" id="65b36876-96fd-5a61-b9c3-e0b391a1ba17">
+      <Execution id="826b7b89-8735-4cd3-9b57-09600630e4f4" />
+      <TestMethod codeBase="D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\bin\Release\net10.0\Nexora.IntegrationTests.dll" adapterTypeName="executor://xunit/VsTestRunner2/netcoreapp" className="Nexora.IntegrationTests.SqlApiIntegrationTests" name="Real_SQL_migration_upgrade_and_readiness_gate_are_available" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="65b36876-96fd-5a61-b9c3-e0b391a1ba17" executionId="826b7b89-8735-4cd3-9b57-09600630e4f4" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2bd09ea6-f221-9aaf-d121-22d8554ed508" executionId="519464d8-e2d1-4020-93ab-1e661126be2a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="9645a0f1-f344-7a1c-9ab8-dd313c7311ee" executionId="0e23a595-0d61-44cc-8d4f-63d9605c1d5f" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Failed">
+    <Counters total="3" executed="3" passed="0" failed="3" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 10.0.10)&#xD;
+[xUnit.net 00:00:00.08]   Discovering: Nexora.IntegrationTests&#xD;
+[xUnit.net 00:00:00.10]   Discovered:  Nexora.IntegrationTests&#xD;
+[xUnit.net 00:00:00.10]   Starting:    Nexora.IntegrationTests&#xD;
+[xUnit.net 00:00:00.53]       BLOCKED: real SQL/API integration fixture is unavailable (NEXORA_TEST_SQL_CONNECTION was not supplied.).&#xD;
+[xUnit.net 00:00:00.53]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.53]         D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiFixture.cs(176,0): at Nexora.IntegrationTests.SqlApiFixture.RequireAvailable()&#xD;
+[xUnit.net 00:00:00.53]         D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiIntegrationTests.cs(93,0): at Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority()&#xD;
+[xUnit.net 00:00:00.53]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.54]       BLOCKED: real SQL/API integration fixture is unavailable (NEXORA_TEST_SQL_CONNECTION was not supplied.).&#xD;
+[xUnit.net 00:00:00.54]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.54]         D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiFixture.cs(176,0): at Nexora.IntegrationTests.SqlApiFixture.RequireAvailable()&#xD;
+[xUnit.net 00:00:00.54]         D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiIntegrationTests.cs(40,0): at Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts()&#xD;
+[xUnit.net 00:00:00.54]         --- End of stack trace from previous location ---&#xD;
+[xUnit.net 00:00:00.54]       BLOCKED: real SQL/API integration fixture is unavailable (NEXORA_TEST_SQL_CONNECTION was not supplied.).&#xD;
+[xUnit.net 00:00:00.54]       Stack Trace:&#xD;
+[xUnit.net 00:00:00.54]         D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiFixture.cs(176,0): at Nexora.IntegrationTests.SqlApiFixture.RequireAvailable()&#xD;
+[xUnit.net 00:00:00.54]         D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\SqlApiIntegrationTests.cs(22,0): at Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available()&#xD;
+[xUnit.net 00:00:00.54]            at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)&#xD;
+[xUnit.net 00:00:00.54]            at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)&#xD;
+[xUnit.net 00:00:00.54]   Finished:    Nexora.IntegrationTests&#xD;
+</StdOut>
+    </Output>
+    <RunInfos>
+      <RunInfo computerName="DESKTOP-S5418DT" outcome="Error" timestamp="2026-09-19T16:28:18.3927918+07:00">
+        <Text>[xUnit.net 00:00:00.53]     Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="DESKTOP-S5418DT" outcome="Error" timestamp="2026-09-19T16:28:18.4034157+07:00">
+        <Text>[xUnit.net 00:00:00.54]     Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts [FAIL]</Text>
+      </RunInfo>
+      <RunInfo computerName="DESKTOP-S5418DT" outcome="Error" timestamp="2026-09-19T16:28:18.4044392+07:00">
+        <Text>[xUnit.net 00:00:00.54]     Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available [FAIL]</Text>
+      </RunInfo>
+    </RunInfos>
+    <CollectorDataEntries>
+      <Collector agentName="DESKTOP-S5418DT" uri="datacollector://microsoft/CoverletCodeCoverage/1.0" collectorDisplayName="XPlat code coverage">
+        <UriAttachments>
+          <UriAttachment>
+            <A href="DESKTOP-S5418DT\coverage.cobertura.xml"></A>
+          </UriAttachment>
+        </UriAttachments>
+      </Collector>
+    </CollectorDataEntries>
+  </ResultSummary>
+</TestRun>

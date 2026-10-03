@@ -1,0 +1,13 @@
+import { apiFetch, jsonMutationHeaders } from './api';
+const root = '/api/v1/transfer/calendar';
+export type ImportBatch = { id: string; fileId: string; state: string; timeZoneId: string; acceptedCount: number; skippedCount: number; appliedCount: number; totalCount: number; createdAt: string; etag: string };
+export type ImportAck = { batchId: string; state: string; acceptedCount: number; skippedCount: number; appliedCount: number; totalCount: number; etag: string };
+export type ImportCandidate = { title: string; description: string; uid: string; timeZoneId: string; isAllDay: boolean; startAt: string; endAt: string; startDate: string | null; endDateExclusive: string | null };
+export type ImportRow = { rowNumber: number; outcome: string; reasonCode: string | null; warnings: string[]; candidate: ImportCandidate | null; resultResourceId: string | null };
+export type ImportPage<T> = { items: T[]; nextCursor: string | number | null };
+export const importCapabilities = () => apiFetch<Record<string, boolean>>(root + '/capabilities');
+export const importBatches = (state = '', cursor?: string) => apiFetch<ImportPage<ImportBatch>>(root + '/imports?' + new URLSearchParams({ ...(state ? { state } : {}), ...(cursor ? { cursor } : {}) }));
+export const importBatch = (id: string) => apiFetch<ImportBatch>(root + '/imports/' + id);
+export const importRows = (id: string, outcome = '', cursor?: number) => apiFetch<ImportPage<ImportRow>>(root + '/imports/' + id + '/rows?' + new URLSearchParams({ ...(outcome ? { outcome } : {}), ...(cursor ? { cursor: String(cursor) } : {}) }));
+export const previewCalendarImport = (fileId: string, fileETag: string, key: string) => apiFetch<ImportAck>(root + '/imports', { method: 'POST', headers: jsonMutationHeaders(key), body: JSON.stringify({ fileId, fileETag }) });
+export const changeCalendarImport = (batch: ImportBatch, action: 'commit' | 'cancel', key: string) => apiFetch<ImportAck>(root + '/imports/' + batch.id + '/' + action, { method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': batch.etag }), body: JSON.stringify({ confirmed: true }) });

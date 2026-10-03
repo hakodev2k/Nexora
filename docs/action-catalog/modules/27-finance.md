@@ -1,6 +1,6 @@
 # FX-27 — Finance: action catalog v1.1
 
-Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/27-finance.md), [UX](../../ux-ui/modules/27-finance.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
+Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/27-finance.md), [UX](../../ux-ui/modules/27-finance.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). The manual-record action subset is implemented locally on PR #4 under DEC-20260909-014; advanced and sensitive rows remain gated, and runtime verification is owner-owned.
 
 New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
 
@@ -51,14 +51,14 @@ New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot 
 | <a id="finance-csv-export"></a>`finance.csv.export` — Export CSV | COMPOSITE / SELF | Yes when active | Blocked | Q-05-R: advanced ledger semantics not decided; use manual-record baseline | FX27-S12 |
 | <a id="finance-report-share"></a>`finance.report.share` — Quản lý link chỉ-đọc của report | COMPOSITE / SELF | Yes when active | Blocked | Q-05-R: advanced ledger semantics not decided; use manual-record baseline | FX27-S11 |
 | <a id="finance-support-read"></a>`finance.support.read` — Xem safe support projection của module | QUERY / SUPPORT | Yes when active | Blocked | Q-05-R: advanced ledger semantics not decided; use manual-record baseline | FX05-S03, FX05-S05 |
-| <a id="finance-manual-category-read"></a>`finance.manual_category.read` — Xem danh mục nhập tay | QUERY / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S15 |
-| <a id="finance-manual-category-create"></a>`finance.manual_category.create` — Tạo danh mục | COMMAND / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S15 |
-| <a id="finance-manual-category-update"></a>`finance.manual_category.update` — Sửa danh mục | COMMAND / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S15 |
-| <a id="finance-manual-category-remove"></a>`finance.manual_category.remove` — Xóa danh mục chưa dùng | COMMAND / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S15 |
-| <a id="finance-manual-record-read"></a>`finance.manual_record.read` — Xem khoản tiền nhập tay | QUERY / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S13 |
-| <a id="finance-manual-record-create"></a>`finance.manual_record.create` — Ghi danh mục và số tiền | COMMAND / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S14 |
-| <a id="finance-manual-record-update"></a>`finance.manual_record.update` — Sửa khoản tiền nhập tay | COMMAND / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S14 |
-| <a id="finance-manual-summary-read"></a>`finance.manual_summary.read` — Tổng hợp theo danh mục/đơn vị tiền | QUERY / SELF | Yes when active | Resolved delegated | DEC-20260907: approved business scope; action/guard Resolved delegated | FX27-S13 |
+| <a id="finance-manual-category-read"></a>`finance.manual_category.read` — Xem danh mục nhập tay | QUERY / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S15 |
+| <a id="finance-manual-category-create"></a>`finance.manual_category.create` — Tạo danh mục | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S15 |
+| <a id="finance-manual-category-update"></a>`finance.manual_category.update` — Sửa danh mục | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S15 |
+| <a id="finance-manual-category-remove"></a>`finance.manual_category.remove` — Xóa danh mục chưa dùng | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S15 |
+| <a id="finance-manual-record-read"></a>`finance.manual_record.read` — Xem khoản tiền nhập tay | QUERY / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S13 |
+| <a id="finance-manual-record-create"></a>`finance.manual_record.create` — Ghi danh mục và số tiền | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S14 |
+| <a id="finance-manual-record-update"></a>`finance.manual_record.update` — Sửa khoản tiền nhập tay | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S14 |
+| <a id="finance-manual-summary-read"></a>`finance.manual_summary.read` — Tổng hợp theo danh mục/đơn vị tiền | QUERY / SELF | Yes when active | SLICE_IMPLEMENTED (local) | DEC-014 + manual-record contract; SQL/API/UI present, runtime verification owner-owned | FX27-S13 |
 
 | Action | Exact guard / effect | Additional prerequisites |
 | --- | --- | --- |

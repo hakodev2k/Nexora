@@ -1,6 +1,6 @@
 # FX-22 — Snippets: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-10 · Text/version subset is `SLICE_IMPLEMENTED (local)` on PR #4; history, export, sharing and advanced lifecycle rows remain contract-gated. Source business decisions giữ nguyên; gated rows không được kích hoạt bằng grant alone.
 
 ## Sources và phạm vi
 
@@ -15,11 +15,11 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 
 | Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="snippets-snippet-read"></a>`snippets.snippet.read` — Xem Snippet | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S01, FX22-S03 |
-| <a id="snippets-snippet-create"></a>`snippets.snippet.create` — Tạo Snippet | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S01, FX22-S02 |
-| <a id="snippets-snippet-save"></a>`snippets.snippet.save` — Save Snippet thành version | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S02 |
-| <a id="snippets-snippet-archive"></a>`snippets.snippet.archive` — Archive snippet | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S01 |
-| <a id="snippets-snippet-unarchive"></a>`snippets.snippet.unarchive` — Unarchive snippet | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S01 |
+| <a id="snippets-snippet-read"></a>`snippets.snippet.read` — Xem Snippet | QUERY / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-scoped current text/version list/search; no execution | FX22-S01, FX22-S03 |
+| <a id="snippets-snippet-create"></a>`snippets.snippet.create` — Tạo Snippet | COMMAND / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-scoped title/language/source/description; escaped text only | FX22-S01, FX22-S02 |
+| <a id="snippets-snippet-save"></a>`snippets.snippet.save` — Save Snippet thành version | COMMAND / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): append-only version with ETag/If-Match and idempotency | FX22-S02 |
+| <a id="snippets-snippet-archive"></a>`snippets.snippet.archive` — Archive snippet | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | SLICE_IMPLEMENTED (local): Active → Archived, readonly current version and audit | FX22-S01 |
+| <a id="snippets-snippet-unarchive"></a>`snippets.snippet.unarchive` — Unarchive snippet | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | SLICE_IMPLEMENTED (local): Archived → Active with ETag/If-Match and audit | FX22-S01 |
 | <a id="snippets-snippet-trash"></a>`snippets.snippet.trash` — Đưa snippet vào Thùng rác | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S01 |
 | <a id="snippets-snippet-restore"></a>`snippets.snippet.restore` — Khôi phục snippet từ Thùng rác | COMMAND / SELF | Yes, gated | Lifecycle (Normal) | Resolved delegated: action contract; source business rules unchanged | FX22-S01 |
 | <a id="snippets-snippet-purge"></a>`snippets.snippet.purge` — Xóa vĩnh viễn snippet | COMMAND / SELF | Yes, gated | Destructive (Administrative) | Resolved delegated: action contract; source business rules unchanged | FX22-S01 |

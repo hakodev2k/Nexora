@@ -2,9 +2,15 @@
 
 Task gốc: PO yêu cầu viết goals từ phase đầu đến cuối và riêng mọi module, thêm docs vào GitHub. Authorization lúc tạo file gốc: documentation/add/update và PR; không application implementation/deployment.
 
-## Current addendum — 2026-09-09
+## Current addendum — DEC-20260909-014
 
-Product Owner đã approve `DEC-20260909-001`: **M01 stories S00-S11 + backend/frontend scaffold + local scripts** được phép implement local-first. Goals vẫn không tự cấp approval, nhưng implementation agents không được coi toàn bộ application là blocked nữa nếu task nằm đúng M01 package đã approved.
+Product Owner đã approve full documented Release 1 local E2E implementation trên PR #4, slice-by-slice khi contract API/DB/UX/acceptance/security/evidence đủ. DEC-014 supersedes M01-only and repeated-slice approval restrictions for local code; real providers, production, secrets/data and paid services remain unapproved. The current code-only run adds no tests, fixtures or mock/demo records; functional QA and runtime evidence remain owner responsibilities.
+
+Formerly paused FX30/34/35 may use local/simulated/integration-safe adapters only. Do not revive retired actions or infer external behavior from a local simulation.
+
+## Earlier addendum — 2026-09-09 (historical approval boundary)
+
+Product Owner đã approve `DEC-20260909-001`: **M01 stories S00-S11 + backend/frontend scaffold + local scripts** được phép implement local-first. This remains historical traceability; current local implementation authority is DEC-014 above.
 
 Current PO decision source mới: [requirements/11-owner-decisions-20260909-implementation-readiness.md](../requirements/11-owner-decisions-20260909-implementation-readiness.md). Decision status mới: [features/90-open-decisions.md](../features/90-open-decisions.md). Delivery boundary mới: [delivery/01-current-scope.md](../delivery/01-current-scope.md).
 
@@ -45,7 +51,7 @@ Skills/rules dùng cho lượt docs này: Nexora engineering startup; Technical 
 | Gate | Capability bị ảnh hưởng | Điều kiện trước khi mở / kết luận hoàn tất |
 | --- | --- | --- |
 | M01 implementation approval | M01 S00-S11 + backend/frontend scaffold + local scripts | **Approved by DEC-20260909-001**. Still requires implementation PR, tests and evidence before `Implemented`/`Verified locally`. |
-| Future implementation approval | Mọi slice ngoài M01 | PO/session approve bounded scope; không lấy M01 approval làm full Phase1/R1 approval |
+| Future implementation approval | Mọi slice ngoài M01 | DEC-014 allows local code when exact contracts are sufficient; it does not approve production/provider execution |
 | TOTP lost-device recovery implementation | MFA enrollment/recovery release | Product policy approved: recovery codes. Implementation still needs slice approval + schema/API/UX/AC/security review. |
 | Account restore implementation | Account restore/email reuse | Product policy approved: same-account restore only, no email reuse, no purge. Restore UI/API still outside M01. |
 | Sensitive share/support projections | Finance/Vault/Assets/Career/Learning share/support | Policy approved: allowlist/default-hidden/safe metadata. Each resource still needs concrete projection contracts and tests. |
@@ -53,7 +59,7 @@ Skills/rules dùng cho lượt docs này: Nexora engineering startup; Technical 
 | Advanced Finance | Ledger/debt/FX/budget/transfers/advanced deletion | Basic manual records approved first. Advanced Finance needs later PO decision and contracts. |
 | Task/Reminder extensions | Subtask/recurrence/snooze/standalone reminder/attachments | Flat Task + one reminder approved first. Extensions need later PO decision and contracts. |
 | Read-only outbound | News/GitHub/Monitoring public metadata/feed/probe | Boundary approved. Needs slice contract, allowlist, SSRF, redirect/payload/timeout/rate-limit and degraded-state evidence. |
-| Q-06/Q-07 Paused | FX30/34/35 | Still paused and not moved to R2. Resume requires explicit PO decision. |
+| Q-06/Q-07 local simulation | FX30/34/35 | Local/simulated code allowed by DEC-014; real provider execution remains blocked. |
 | Production/capacity | Full R1, provider, budget, RPO/RTO/SLA | Local Stable first. Production targets and Go/No-Go require later evidence and PO approval. |
 | Independent review | Security/data/lifecycle/cross-module changes theo AGENTS | Review thực của reviewer khác và disposition findings; thiếu thì Pending, không self-sign-off |
 | Local Stable / deployment / public Go | RM18 / RM21 / RM22 | Ba cổng khác nhau theo roadmap; M01 approval không deploy/publish/provision |
