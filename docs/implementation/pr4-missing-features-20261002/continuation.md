@@ -52,3 +52,8 @@ The current explicit user override of the later AGENTS code-only amendment autho
 ## Resumed Digital batch, 2026-10-03
 
 The new attached request resumed implementation after checkpoint fccfd544. Eleven SELF manual Digital metadata/history/renewal/lifecycle keys and six typed owned records now have API/UI, additive migration0039 and focused evidence. All independent findings were corrected; SQL/API46/46, focused5/5, backend12/12, native30+4existing skips, frontend71+1existing skip, browser5/5 and builds passed. Normal retained sandbox now has40migrations and running hidden API/Vite. Evidence/hashes/ledger are digital-assets-* files; resume-state.md reflects ACTIVE work. Full386-row inventory is70installed/22candidate/226missing/59paused/9retired with no full-action acceptance. Nine original no-handler groups and full existing browser regression remain. Keep PR4 OPEN/unmerged and main source/security/provider gates unchanged.
+
+
+## Reviewed Career batch, 2026-10-03
+
+Twelve manual Company/Job keys now have typed SQL, API, UI, immutable event history, signed exact Company merge and frozen Job lifecycle. Source base0ce56b6; main unchanged. Independent contract/backend/migration/authorization/UI review closed all findings. Full SQL54/54 includes8Career; browser5/5; backend12/12; native30passed/4existing skips; frontend71passed/1existing skip; builds pass with existing bundle warning. Retained sandbox41migrations applied/replayed; owned API/Vite stopped after browser for builds. Eight original no-handler groups remain; matrix386 records82installed/22candidate/214missing/59paused/9retired and no full acceptance. Continue active missing slices and full final regression; career-evidence.md records precise limitations.

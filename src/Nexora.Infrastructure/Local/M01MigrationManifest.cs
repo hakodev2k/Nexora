@@ -48,6 +48,7 @@ public static class M01MigrationManifest
         "20261003_0036_learning_skills_local.sql",
         "20261003_0037_learning_courses_local.sql",
             "20261003_0038_personal_assets_local.sql",
-            "20261003_0039_digital_assets_local.sql"
+            "20261003_0039_digital_assets_local.sql",
+            "20261003_0040_career_manual.sql"
     ];
 }

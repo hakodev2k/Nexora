@@ -1982,3 +1982,18 @@ progress::-moz-progress-bar {
 }
 .digital-asset-screen dl { min-width: 0; }
 .digital-asset-screen dd { margin-inline-start: 1rem; }
+
+.career-screen p, .career-screen h2, .career-screen h3, .career-screen input, .career-screen textarea { overflow-wrap: anywhere; min-width: 0; }
+.career-kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 1rem; }
+.career-kanban > section { min-width: 0; }
+.career-table-scroll { max-width: 100%; overflow-x: auto; }
+.career-table { border-collapse: collapse; width: 100%; min-width: 720px; table-layout: fixed; }
+.career-table th, .career-table td { padding: .6rem; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.career-table tr.resource-card { display: table-row; border-radius: 0; }
+.career-table .resource-actions { display: flex; flex-direction: column; }
+
+.career-form, .career-form fieldset, .career-form dl, .career-form dl > div, .career-form dd { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.career-form input:not([type="checkbox"]), .career-form textarea, .career-form select { min-width: 0; width: 100%; max-width: 100%; box-sizing: border-box; }
+.career-form p, .career-form label { overflow-wrap: anywhere; }
+.career-form dd { margin-left: 0; }
+.career-screen details dd { overflow-wrap: anywhere; margin-left: 0; }

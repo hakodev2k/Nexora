@@ -4854,13 +4854,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4872,13 +4872,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4890,13 +4890,13 @@
       "catalogCurrentScope": "true",
       "requires": "career.job.read",
       "screens": "FX39-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4908,13 +4908,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4926,13 +4926,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4944,13 +4944,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4962,13 +4962,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4980,13 +4980,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S07",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -4998,13 +4998,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -5016,13 +5016,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -5034,13 +5034,13 @@
       "catalogCurrentScope": "true",
       "requires": "career.company.read",
       "screens": "FX39-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -5052,13 +5052,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX39-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Career/CareerEndpoints.cs;src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "installedBinding": "career-manual-contract.md;typed career tables/migration0040;/api/v1/career;CareerScreen",
+      "focusedEvidence": "career-evidence.md;career-browser-evidence.json;career-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded manual Company/Job fields only. Contact/Resume/Calendar/source-reference and full module/AC acceptance remain open."
     },
     {
       "module": "FX-39",
@@ -6952,6 +6952,6 @@
     }
   ],
   "mainRevision": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
-  "implementationBaseRevision": "9097ff73f29b0d3c4030f71fea1b69c6e56859d9",
-  "includedBatch": "Reviewed PersonalAsset metadata/history source in this commit"
+  "implementationBaseRevision": "0ce56b636441534382b6fbe3afa1fa5dc35189ea",
+  "includedBatch": "Reviewed manual Career Company/Job source in this commit"
 }

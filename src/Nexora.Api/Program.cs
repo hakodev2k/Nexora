@@ -1,3 +1,6 @@
+using Nexora.Api.Features.Career;
+using Nexora.Application.Career;
+using Nexora.Infrastructure.Career;
 using Nexora.Api.Features.Assets;
 using Nexora.Application.Assets;
 using Nexora.Infrastructure.Assets;
@@ -246,6 +249,7 @@ builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingServ
 builder.Services.AddSingleton<IWishlistService>(s => new SqlWishlistService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IPersonalAssetService>(s => new SqlPersonalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
@@ -309,6 +313,7 @@ app.MapFocusEndpoints();
 app.MapWishlistEndpoints();
 app.MapPersonalAssetEndpoints();
 app.MapDigitalAssetEndpoints();
+app.MapCareerEndpoints();
 app.MapSkillEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();

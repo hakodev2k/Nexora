@@ -72,6 +72,7 @@ if(args is ["read-resource",var kind,var idText]) {
  var tables=new Dictionary<string,string> {
   ["WishlistItem"]="[shopping].[WishlistItem]",
   ["Skill"]="[learning].[Skill]",
+  ["Company"]="[career].[Company]",["JobApplication"]="[career].[JobApplication]",["ApplicationEvent"]="[career].[ApplicationEvent]",
   ["DigitalAsset"]="[assets].[DigitalAsset]",["DigitalAssetVersion"]="[assets].[DigitalAssetVersion]",["RenewalRecord"]="[assets].[RenewalRecord]",
   ["PersonalAsset"]="[assets].[PersonalAsset]",["AssetVersion"]="[assets].[AssetVersion]",
   ["Course"]="[learning].[Course]",["CourseMilestone"]="[learning].[CourseMilestone]",

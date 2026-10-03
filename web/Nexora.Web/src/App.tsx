@@ -1,3 +1,4 @@
+import { CareerScreen } from './CareerScreen';
 import { DigitalAssetScreen } from './DigitalAssetScreen';
 import { AssetScreen } from './PersonalAssetScreen';
 import { WishlistScreen } from './WishlistScreen';
@@ -469,9 +470,9 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX34: { vi: 'Tự động hóa và lịch chạy', en: 'Automation and scheduler' },
   FX35: { vi: 'Tích hợp và webhook', en: 'Integrations and webhooks' },
   FX36: { vi: 'Giám sát và vận hành jobs', en: 'Monitoring and job operations' },
+  FX39: { vi: 'Career — Company và Job thủ công', en: 'Career — Manual Companies and Jobs' },
   FX38: { vi: 'Tài sản số — Metadata và renewal', en: 'Digital Assets — Manual metadata and renewals' },
   FX37: { vi: 'Tài sản — Metadata và lịch sử', en: 'Personal Assets — Metadata and history' },
-  FX39: { vi: 'Nghề nghiệp và hồ sơ', en: 'Career and resumes' },
   FX40: { vi: 'Học tập — Skills và Courses', en: 'Learning — Skills and Courses' }
 };
 
@@ -5374,6 +5375,7 @@ function ModuleScreen({
 
   const normalizedCode = module.code.toUpperCase();
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX39') return <CareerScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX37') return <AssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;
@@ -6059,4 +6061,3 @@ export function App() {
       return <LoginScreen {...publicProps} onAuthenticated={authenticate} onPendingVerification={(email) => { setVerificationEmail(email); navigate('verify'); }} />;
   }
 }
-
