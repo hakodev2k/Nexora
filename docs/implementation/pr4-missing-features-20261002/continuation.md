@@ -47,3 +47,8 @@ FX37 Asset batch: ten metadata/state/history/lifecycle keys implemented and inde
 
 The current explicit user override of the later AGENTS code-only amendment authorizes isolated local testing; this clarification, rather than the attachment alone, governs future testing. The user has now requested a temporary stop and pushed checkpoint. Asset code/evidence is published at e902bb20b0c5424223efe70b8f43c37db9a73cd5. Digital is a draft only; full contract review and implementation remain pending. Resume from `resume-state.md`, refresh current GitHub/main authority, and preserve the existing local synthetic database. API/frontend sandbox listeners are stopped. Full parent scope and existing browser regression remain incomplete; no merge or automatic restart is authorized by this pause.
 
+
+
+## Resumed Digital batch, 2026-10-03
+
+The new attached request resumed implementation after checkpoint fccfd544. Eleven SELF manual Digital metadata/history/renewal/lifecycle keys and six typed owned records now have API/UI, additive migration0039 and focused evidence. All independent findings were corrected; SQL/API46/46, focused5/5, backend12/12, native30+4existing skips, frontend71+1existing skip, browser5/5 and builds passed. Normal retained sandbox now has40migrations and running hidden API/Vite. Evidence/hashes/ledger are digital-assets-* files; resume-state.md reflects ACTIVE work. Full386-row inventory is70installed/22candidate/226missing/59paused/9retired with no full-action acceptance. Nine original no-handler groups and full existing browser regression remain. Keep PR4 OPEN/unmerged and main source/security/provider gates unchanged.

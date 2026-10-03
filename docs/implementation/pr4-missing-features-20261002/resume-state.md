@@ -1,52 +1,35 @@
-# PR4 saved continuation state — 2026-10-03
+# PR4 current continuation state — 2026-10-03
 
-Status: PAUSED at the user's explicit request: temporarily stop, push all changed code, and save state to continue later. Do not resume implementation or restart services until the user resumes work. This checkpoint does not claim completion of the parent task.
+Status: ACTIVE after the user's new attachment resumed implementation. The earlier pause checkpoint is preserved at fccfd544522b563122beaab8b7bdec54a0c2a181. This current state supersedes its stopped-service and unimplemented-Digital statements. Parent eighteen-module task remains incomplete.
 
-## Git and workspace
+## Source and Git
 
-- Repository: hakodev2k/Nexora. Existing PR: https://github.com/hakodev2k/Nexora/pull/4, open draft, unmerged. Branch: `impl/m01-s00-scaffold`.
-- Latest product/evidence commit before this documentation checkpoint: `e902bb20b0c5424223efe70b8f43c37db9a73cd5`; tree `6e5d6a365b1d695f0a4d9e222a217d35d2126a9b`. The checkpoint commit follows this parent; retrieve its exact SHA from PR4 history rather than assuming a stale local HEAD is current.
-- Original checkout preserved: `D:/Projects/ASP_NET_Core_Developer_2026/Nexora`.
-- Active isolated source checkout: `D:/Projects/ASP_NET_Core_Developer_2026/Nexora/out/blocked-module-apis`.
-- This isolated checkout remains detached at `d46ca6e52143677cbd22f778f1c3503b27d0deba`; its local index was not advanced by GitHub connector commits. Modified/untracked status therefore includes already-published files. Do not reset/delete them or blindly recommit all status entries.
-- Requirements were explicitly exported from main at `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3` to `D:/Projects/ASP_NET_Core_Developer_2026/Nexora/out/main-contracts/docs`. Refresh current main and PR4 metadata before resuming, reconcile changes, and retain exact source authority.
-- Pause verification compared all 66 changed code/contract/evidence files with the complete GitHub Asset tree: 64 matched (allowing only BOM/CRLF representation), and only the task brief and Digital planning draft needed publication. The checkpoint updates four documentation files; it changes no product binaries or tests.
-- Generated reports, private runtime state and `web/Nexora.Web/vite.functional.local.ts` are intentionally local. Never upload raw artifacts, credentials, account state or private captures as part of a broad add/push.
+Repository hakodev2k/Nexora; existing PR https://github.com/hakodev2k/Nexora/pull/4; branch impl/m01-s00-scaffold, OPEN draft and UNMERGED. Base head for this Digital batch fccfd544522b563122beaab8b7bdec54a0c2a181; base tree e514bf713dc77aeb5792f6cfd5e8c938f92904a3. Retrieve latest connector PR head on each continuation; do not assume detached local HEAD is current.
 
-## Published batches and current evidence
+Original checkout D:/Projects/ASP_NET_Core_Developer_2026/Nexora is preserved. Isolated active checkout D:/Projects/ASP_NET_Core_Developer_2026/Nexora/out/blocked-module-apis remains locally detached at d46ca6e52143677cbd22f778f1c3503b27d0deba; its index is not advanced by connector commits. Its modified/untracked entries include already-published Time/Wishlist/Skills/Courses/Assets. Compare blob hashes to current complete remote tree and publish only genuine new changes. Do not reset/delete or broad-add raw artifacts.
 
-| Batch | Commit | Bounded outcome |
-| --- | --- | --- |
-| Time query repair | `5764509c0e3c7d60b4fdaa0a98409d3f31d91b94` | Owner/date/category/literal search before pagination and reporting; overlap date selection and gross durations |
-| Wishlist | `b1e69224a067c2253b5a57575e8502572c5a7a54` | Nine manual SELF actions, exact decimal strings, root lifecycle and SQL persistence |
-| Skills | `c5f37acca75b02005b2c63b71017f5fb14285c4e` | Nine SELF actions, explicit proficiency, owner uniqueness and root lifecycle |
-| Courses | `9097ff73f29b0d3c4030f71fea1b69c6e56859d9` | Twelve SELF actions, owned milestones, exact progress, explicit completion and immutable history |
-| Personal Assets | `e902bb20b0c5424223efe70b8f43c37db9a73cd5` | Ten metadata/state/history/lifecycle SELF actions, explicit kind/state, immutable private versions and root cohorts |
+Main requirements authority8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3 is explicitly exported at D:/Projects/ASP_NET_Core_Developer_2026/Nexora/out/main-contracts/docs; PR4 base checked unchanged before Digital publication. Refresh current main and PO decisions before subsequent slices; PR planning docs are not product authority.
 
-Asset final evidence is in `personal-assets-evidence.md`, source fingerprints and sanitized browser ledger. API/operator Release builds: zero warnings/errors. Real SQL/API regression: 41 passed, zero failed/skipped; final strengthened Asset cases: five passed against unchanged product binaries. Backend units: 12 passed. Native boundary runner: 30 passed and four pre-existing platform/identity skips. Frontend units: 71 passed and one existing DST-policy skip. TypeScript/Vite build passed with the existing bundle-size warning. Real normal-login Asset browser tests passed all five required viewports (1920/1366/768/390/320), no skips/flakiness. Earlier Wishlist/Skills/Course browser evidence is recorded per batch; this is not a full current-state rerun of all existing browser workflows.
+## Installed batches and evidence
 
-Independent source security/migration/authorization/UI review findings for published batches were corrected and rereviewed. Review did not independently run runtime tests. Exact evidence and limitations remain in the per-batch files; historical full-browser counts are not current acceptance.
+Time query5764509, Wishlist b1e6922, Skills c5f37ac, Courses9097ff7, Assets e902bb2 were previously published. Their exact contracts/evidence/hashes are retained in this folder. Digital batch adds eleven manual SELF keys and six typed owned subtypes, renewal/history/lifecycle API/UI and migration0039. Exact bindings and limitations are digital-assets-contract.md and digital-assets-evidence.md.
 
-The 386-row main action inventory remains: 59 installed subset keys with focused evidence, 22 source candidates awaiting exact review, 237 missing implementations, 59 preserved paused, and nine retired. No row claims full-action acceptance. Time, Focus, Shopping, Learning and Assets remain Partial. Remaining personal Asset fields/references/serial/loan/purchase/warranty and other missing handlers are unfinished; full existing browser regression remains pending.
+Current Digital state: real SQL/API regression46/46 and focused5/5 passed; backend units12/12; native Windows runner30 passed and4pre-existing skips; frontend71 passed with1pre-existing skip; TypeScript/Vite production build passed (existing617.68kB bundle warning); actual normal-login browser workflow5/5 at1920/1366/768/390/320; normal browser sandbox migration40approved files; independent source review corrections rereviewed. Reviewer did not run tests. Full current existing browser regression remains pending; historical browser counts do not establish final acceptance.
 
-## Next unfinished batch
+Full386-row inventory:70 installed subset keys,22 source candidates pending exact review,226 missing implementations,59 preserved paused,9 retired. Every fullActionAccepted is false. Nine original no-handler groups remain: FX10/28/29/30/33/34/35/36/39 (six active, three paused). Installed modules remain Partial because source references, richer semantic fields and cross-module/projection dependencies remain unfinished.
 
-`digital-assets-contract.md` is a DRAFT. Exact main feature/action/UX/P07/dictionary/classification/payload sources and module goals were read. Initial independent source guidance covered expiry clocks, type changes and lifecycle cohorts. The full written draft still needs independent review and any unresolved source-contract clarification before code.
+## Runtime preservation
 
-The proposal bounds eleven SELF manual metadata/history/lifecycle/renewal keys across six typed subtypes. No Digital API/UI/service code, migration 0039 or Digital tests have been created. Resume at contract review, not at a claim that Digital is implemented or Ready. DEC008 explicitly excludes Digital outbound and requires separate slice/PO approval and network guards; the draft preserves that gate.
+Retained local synthetic Nexora_Test_<GUID> SQL database is preserved; prior records were not reseeded/deleted. SQL service remains available. Owned hidden APIhttps://localhost:15443 and Vitehttp://127.0.0.1:15173 were restarted for the resumed browser work; revalidate process command lines and listener PIDs before any process action. Private out/runtime/state.secrets.json stores current PIDs, account-manifest path and connection; never print/upload it or accounts.secrets.json, captures, private files or local vite.functional.local.ts.
 
-## Preserved runtime and restart context
+Private helper scripts under out/runtime are local tooling only. restart.ps1 requires PowerShell7, rotates local runtime secrets and starts hidden services; it does not apply migrations despite its printed message. Migration0039 has now been applied normally to the retained sandbox via FunctionalTestOperator. Do not edit an applied migration's checksum for later schema changes; use a new migration. Browser-digital-assets.ps1 supplies private environment and unchanged6500ms normal-login pacing. Real SQL integration fixtures create disposable separate databases and clean them normally.
 
-Owned API (`https://localhost:15443`) and frontend (`http://127.0.0.1:15173`) processes were stopped after command-line/listener-PID ownership checks. Both ports had zero listening processes after stopping. SQL Server service was not stopped; the existing synthetic `Nexora_Test_<GUID>` database and its records/migrations remain intact. No cleanup, reseeding or database deletion was performed.
+Bundled Python C:/Users/hakodev/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe; use explicit UTF-8 file reads/writes. Generation scripts used to create Digital source are stale after review and must not be rerun over final edited source. Raw local reports are excluded; publish sanitized ledgers and canonical LF/no-BOM source hashes.
 
-Private local state: `out/runtime/state.secrets.json` beneath the isolated checkout, plus `accounts.secrets.json`, captures and private files. These contain credentials/connection details and must not be printed, logged, uploaded or committed. Stored process IDs describe stopped processes and must be revalidated before any future process action. SQL is local Windows-integrated `SQLEXPRESS`; do not touch production data.
+## Next work and authority gates
 
-After the user resumes and current authority/source checks pass, use the existing isolated runtime scripts and preserved database. `out/runtime/restart.ps1` requires PowerShell 7, starts hidden API/Vite processes, and rotates local runtime secrets; its final printed migration message is not proof that migrations ran. Apply any approved new migrations separately using the normal FunctionalTestOperator with the private connection and `NEXORA_MIGRATIONS_DIR`. Do not start the sandbox during this pause. Do not delete prior browser records to simplify pagination. Actual runtime migrations through 0038 were verified; no 0039 exists.
+Continue a bounded active missing vertical slice from exact current main requirements, completing DB/API/UX/security/acceptance/evidence contracts first. Career manual company/job/application records are a potential next group, subject to exact contract review; no implementation approval for invented semantics. Other active gaps include local transfer formats, Vault, read-only News/GitHub/Monitoring and incomplete installed module features. Full existing browser suite must eventually run against final source.
 
-Bundled Python, when needed: `C:/Users/hakodev/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe`. Native unit boundary checks use the Windows test executable. Docker was unavailable; the real SQL Express fixture supplied SQL evidence.
+FX30/34/35 remain59main-paused actions; preserve current PO resume gate. Digital outbound is separately excluded by DEC008. DEC004 Vault confidentiality and DEC005 projection policies are resolved, but concrete crypto/key/ADR/recovery and sensitive projection field contracts remain required. Operational backup/restore remains gated; no policy decision is invented or approved by engineering goals.
 
-## Authorization and gates on resume
-
-The user explicitly authorized independent review subagents. The user also explicitly answered “Yes—override the code-only amendment for isolated local testing” after automatic approval review rejected the initial SQL test command under the later AGENTS amendment. This persisted override permits isolated generated SQL/API/browser fixtures and verification; it grants no production/provider authority. Do not ask the same permission again.
-
-Keep existing PR4 open and unmerged; no new PR, production, real secrets/data, paid services, external destructive action or real-provider execution. Preserve main's FX30/34/35 paused actions, Vault crypto/key/ADR/recovery contracts, exact sensitive projection contracts, operational backup gates and Digital outbound approval gate. Goals do not override source requirements or authorize paused capabilities. Refresh current decisions and mandatory engineering instructions before continuing. No automation or scheduled restart was requested.
+Existing user authorization permits local implementation, isolated generated SQL/API/browser testing, independent review subagents, commits/push to PR4. The explicit answer Yes—override the code-only amendment for isolated local testing persists. No repeated permission request; no merge/newPR, production, real data/secrets, paid service, real-provider execution or destructive external actions. No automation or standalone new thread was requested.

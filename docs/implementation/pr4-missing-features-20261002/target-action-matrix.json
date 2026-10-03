@@ -4566,13 +4566,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S01;FX38-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4584,13 +4584,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4602,13 +4602,13 @@
       "catalogCurrentScope": "true",
       "requires": "digital.asset.read",
       "screens": "FX38-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4620,13 +4620,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4638,13 +4638,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4656,13 +4656,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4674,13 +4674,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4692,13 +4692,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4710,13 +4710,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4728,13 +4728,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S04",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",
@@ -4746,13 +4746,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX38-S04",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledBoundedSubset",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs;src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "installedBinding": "FX38 manual typed metadata and renewal subset; digital-assets-contract.md",
+      "focusedEvidence": "digital-assets-evidence.md; digital-assets-source-hashes.json; digital-assets-browser-evidence.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Six typed owner records and manual renewal/history/lifecycle only. Remaining refs, observations, reminders, source integration, sensitive projections and full AC/module acceptance stay open."
     },
     {
       "module": "FX-38",

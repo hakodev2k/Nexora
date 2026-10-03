@@ -69,6 +69,8 @@ public sealed class SqlApiFixture : IAsyncLifetime
 
     public HttpClient Client => _client ?? throw new InvalidOperationException("The SQL/API test host is unavailable.");
 
+    public FixtureTimeProvider DigitalClock { get; } = new();
+
     public bool Available =>
         BlockedReason is null &&
         ConnectionString is not null &&
@@ -215,7 +217,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             Require(ReadinessAfterBootstrap.Ready, "A fully migrated and bootstrapped database must be ready.");
 
             SetApiEnvironment();
-            _factory = new NexoraApiFactory();
+            _factory = new NexoraApiFactory(DigitalClock);
             _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
             {
                 AllowAutoRedirect = false,
@@ -229,6 +231,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             // capture content in test output. The type is enough to separate a
             // missing runtime from a product failure in the handoff.
             BlockedReason = "fixture setup failed: " + exception.GetType().Name;
+            if (exception is SqlException sql) BlockedReason += " (SQL error " + sql.Number + ", line " + sql.LineNumber + ")";
             await DisposeCreatedResourcesAsync();
         }
     }
@@ -705,11 +708,12 @@ public sealed class SqlApiFixture : IAsyncLifetime
         }
     }
 
-    private sealed class NexoraApiFactory : WebApplicationFactory<ApiProgram>
+    private sealed class NexoraApiFactory(TimeProvider clock) : WebApplicationFactory<ApiProgram>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Development");
+            builder.ConfigureServices(services => services.AddSingleton(clock));
         }
     }
 }
@@ -717,3 +721,9 @@ public sealed class SqlApiFixture : IAsyncLifetime
 public sealed record SyntheticSession(Guid UserId, Guid OwnerId, Guid SessionId, string RawSessionHandle);
 
 public sealed record CsrfContext(string RequestToken, string CookieHeader);
+
+public sealed class FixtureTimeProvider : TimeProvider
+{
+    public DateTimeOffset? Now { get; set; }
+    public override DateTimeOffset GetUtcNow() => Now ?? TimeProvider.System.GetUtcNow();
+}

@@ -1974,3 +1974,11 @@ progress::-moz-progress-bar {
 .resource-form-dialog [hidden] { display: none; }
 
 .resource-dialog-fields { margin: 0; padding: 0; border: 0; min-width: 0; }
+
+.digital-asset-screen :is(h2, h3, p, dd),
+.digital-asset-form :is(p, dd) {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.digital-asset-screen dl { min-width: 0; }
+.digital-asset-screen dd { margin-inline-start: 1rem; }
