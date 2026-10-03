@@ -249,12 +249,12 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Network toolbox action is inactive until a future PO/network decision.");
         }
 
-        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey))
+        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 scope.");
         }
 
-        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey))
+        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("ActionNotGrantable", "Action is not assignable as an Admin grant in the current action manifest.");
         }
@@ -262,6 +262,11 @@ public static class ActionGrantPolicy
         return PolicyDecision.Allow("GrantAllowed", "Action is approved for M01 grant mutation.");
     }
 
+    private static readonly HashSet<string> ApprovedPersonalAssetActions = new(StringComparer.Ordinal)
+    {
+        "assets.asset.read", "assets.asset.create", "assets.asset.update", "assets.asset.transition", "assets.asset.history",
+        "assets.asset.archive", "assets.asset.unarchive", "assets.asset.trash", "assets.asset.restore", "assets.asset.purge"
+    };
     private static readonly HashSet<string> ApprovedCourseActions = new(StringComparer.Ordinal)
     {
         "learning.course.read", "learning.course.create", "learning.course.update", "learning.course.progress", "learning.course.milestone",
@@ -281,7 +286,7 @@ public static class ActionGrantPolicy
         "shopping.wishlist.trash", "shopping.wishlist.restore", "shopping.wishlist.purge"
     };
 
-    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey);
+    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey);
 
-    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey);
+    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey);
 }

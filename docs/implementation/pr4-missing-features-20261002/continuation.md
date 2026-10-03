@@ -40,3 +40,6 @@ Time repair was pushed as 5764509c0e3c7d60b4fdaa0a98409d3f31d91b94; Wishlist as 
 
 ## Course continuation
 Skills was pushed as c5f37acca75b02005b2c63b71017f5fb14285c4e. Course adds twelve own-domain actions with typed SQL Course/milestone/history, exact progress, explicit completion, current authority and frozen aggregate lifecycle. Contract/evidence: learning-course-contract.md and course-evidence.md. Named installation is Skills and Courses only; whole Learning remains Partial. Full target-action coverage and full pre-existing browser regression remain open. The next contract review covers physical Assets; sensitive serial/share/support and cross-module sources remain closed or pending their exact contracts.
+
+FX37 Asset batch: ten metadata/state/history/lifecycle keys implemented and independently reviewed; real SQL/API full41 + strengthened5, browser5 viewports, backend12, native30/4 existing skips, frontend71/1 existing skip, build/API0/0 passed. Contract/evidence/source hashes/sanitized browser ledger accompany this batch. Parent scope still incomplete; target inventory386 rows retains59 paused9 retired and no full-action acceptance. Serial/loan/reference/purchase/warranty and remaining active modules remain open.
+

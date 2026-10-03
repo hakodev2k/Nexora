@@ -1,3 +1,6 @@
+using Nexora.Api.Features.Assets;
+using Nexora.Application.Assets;
+using Nexora.Infrastructure.Assets;
 using Nexora.Api.Features.Focus;
 using Nexora.Api.Features.Learning;
 using Nexora.Application.Learning;
@@ -241,6 +244,7 @@ builder.Services.Configure<RouteOptions>(options =>
 
 builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IWishlistService>(s => new SqlWishlistService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<IPersonalAssetService>(s => new SqlPersonalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 
@@ -301,6 +305,7 @@ app.MapHabitEndpoints();
 app.MapTimeTrackingEndpoints();
 app.MapFocusEndpoints();
 app.MapWishlistEndpoints();
+app.MapPersonalAssetEndpoints();
 app.MapSkillEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();

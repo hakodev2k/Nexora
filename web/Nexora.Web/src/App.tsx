@@ -1,3 +1,4 @@
+import { AssetScreen } from './PersonalAssetScreen';
 import { WishlistScreen } from './WishlistScreen';
 import { LearningScreen } from './LearningScreen';
 import { FocusScreen } from './FocusScreen';
@@ -467,7 +468,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX34: { vi: 'Tự động hóa và lịch chạy', en: 'Automation and scheduler' },
   FX35: { vi: 'Tích hợp và webhook', en: 'Integrations and webhooks' },
   FX36: { vi: 'Giám sát và vận hành jobs', en: 'Monitoring and job operations' },
-  FX37: { vi: 'Tài sản cá nhân', en: 'Personal assets' },
+  FX37: { vi: 'Tài sản — Metadata và lịch sử', en: 'Personal Assets — Metadata and history' },
   FX38: { vi: 'Tài sản số', en: 'Digital assets' },
   FX39: { vi: 'Nghề nghiệp và hồ sơ', en: 'Career and resumes' },
   FX40: { vi: 'Học tập — Skills và Courses', en: 'Learning — Skills and Courses' }
@@ -5372,6 +5373,7 @@ function ModuleScreen({
 
   const normalizedCode = module.code.toUpperCase();
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX37') return <AssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
