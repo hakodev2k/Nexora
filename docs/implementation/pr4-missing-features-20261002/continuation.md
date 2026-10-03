@@ -43,3 +43,7 @@ Skills was pushed as c5f37acca75b02005b2c63b71017f5fb14285c4e. Course adds twelv
 
 FX37 Asset batch: ten metadata/state/history/lifecycle keys implemented and independently reviewed; real SQL/API full41 + strengthened5, browser5 viewports, backend12, native30/4 existing skips, frontend71/1 existing skip, build/API0/0 passed. Contract/evidence/source hashes/sanitized browser ledger accompany this batch. Parent scope still incomplete; target inventory386 rows retains59 paused9 retired and no full-action acceptance. Serial/loan/reference/purchase/warranty and remaining active modules remain open.
 
+## Paused by the user, 2026-10-03
+
+The current explicit user override of the later AGENTS code-only amendment authorizes isolated local testing; this clarification, rather than the attachment alone, governs future testing. The user has now requested a temporary stop and pushed checkpoint. Asset code/evidence is published at e902bb20b0c5424223efe70b8f43c37db9a73cd5. Digital is a draft only; full contract review and implementation remain pending. Resume from `resume-state.md`, refresh current GitHub/main authority, and preserve the existing local synthetic database. API/frontend sandbox listeners are stopped. Full parent scope and existing browser regression remain incomplete; no merge or automatic restart is authorized by this pause.
+

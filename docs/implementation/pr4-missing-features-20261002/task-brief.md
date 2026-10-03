@@ -21,3 +21,10 @@ Current attachment: Pasted text.txt. Work continues in out/blocked-module-apis f
 
 Asset batch authorization clarification (2026-10-03): automatic approval review rejected SQL testing under the later AGENTS code-only amendment. The user explicitly answered: Yes—override the code-only amendment for isolated local testing. Real generated SQL/API/browser fixtures and tests are therefore authorized; no production/provider scope is added.
 
+
+Next batch FX38: main feature/action/UX/P07/dictionary/classification/payload sources read; goals NXG-P07-01 and NXG-FX38-G01/G02/G03 bound in digital-assets-contract.md. Plan eleven SELF manual typed metadata/lifecycle/history/renewal keys, six owned subtype records, SQL migration0039, exact expiry clocks and owner-safe UI. Independent expiry/type/cohort source review found delegated technical choices possible; implementation has not begun. Main DEC008 excludes Digital outbound and requires separate approval; that gate is preserved. Existing PR4 current head e902bb20b0c5424223efe70b8f43c37db9a73cd5, no merge.
+
+## User-requested pause, 2026-10-03
+
+The user explicitly requested a temporary stop, push of all changes and saved continuation state. Implementation is paused. All 64 existing changed code/contract/evidence files compared to the remote Asset tree match exactly allowing only UTF-8 BOM/line-ending representation differences; task brief and Digital draft were the only unpublished content before this checkpoint. The checkpoint commit adds these planning updates and `resume-state.md` to existing PR4 without merge. Owned API/frontend processes were verified against their command lines and listener PIDs, stopped, and both sandbox ports have zero listeners. Synthetic SQL database, credentials and private files remain local. No further tests or product changes were made for the pause. Current details and remaining gates are in `resume-state.md`.
+
