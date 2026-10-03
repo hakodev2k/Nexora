@@ -1,3 +1,4 @@
+import { CalendarImportScreen } from './CalendarImportScreen';
 import { CareerScreen } from './CareerScreen';
 import { DigitalAssetScreen } from './DigitalAssetScreen';
 import { AssetScreen } from './PersonalAssetScreen';
@@ -136,12 +137,11 @@ import {
   revokeSupportConsent,
   listSupportSessions,
   endSupportSession,
+  getFileCapabilities,
   listFiles,
   initiateFileUpload,
   completeFileUpload,
-  renameFile,
   fileContentUrl,
-  trashFile,
   resolveShareLink,
   getReminderSource,
   setReminder,
@@ -1589,115 +1589,67 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [selected, setSelected] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [caps, setCaps] = useState<Record<string, boolean>>({});
+  const [leave, setLeave] = useState<{ proceed: () => void } | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const page = await listFiles();
-      setFiles(page.items);
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally { setLoading(false); }
-  }
-
-  useEffect(() => { void load(); }, []);
-
-  async function upload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) {
-      setError(new NexoraApiError('Chọn một file trước khi upload.', 422, 'ValidationFailed'));
-      return;
-    }
-    if (selected.size > 25 * 1024 * 1024) {
-      setError(new NexoraApiError('File tối đa 25 MiB.', 422, 'ValidationFailed'));
-      return;
-    }
-    setBusy('upload');
-    setError(null);
-    try {
-      const session = await initiateFileUpload(selected.name, browserMediaType(selected), selected.size);
-      await completeFileUpload(session, selected);
-      setSelected(null);
+  const flight = useRef(false); const generation = useRef(0);
+  async function fail(requestError: unknown, stamp: number) {
+    if (stamp !== generation.current) return;
+    const apiError = asApiError(requestError); setError(apiError);
+    if ([401, 403].includes(apiError.status) || apiError.code === 'ModuleUnavailable') {
+      setFiles([]); setSelected(null); setCaps({}); setLeave(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
-      await load();
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
       if (apiError.status === 401) await onAuthLost();
-    } finally { setBusy(null); }
+    }
   }
-
-  async function rename(file: FileRecord, nextName: string) {
-    if (!nextName || nextName.trim() === file.originalName) return true;
-    setBusy(file.id);
+  async function refresh(stamp: number) {
+    const current = await getFileCapabilities(); if (stamp !== generation.current) return;
+    setCaps(current);
+    if (!current['files.file.read']) { setFiles([]); setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
+    const page = await listFiles(); if (stamp !== generation.current) return;
+    setFiles(page.items);
+  }
+  async function load() {
+    if (flight.current) return; flight.current = true;
+    const stamp = ++generation.current; setLoading(true); setError(null);
+    try { await refresh(stamp); } catch (e) { await fail(e, stamp); }
+    finally { if (stamp === generation.current) { flight.current = false; setLoading(false); } }
+  }
+  useEffect(() => { void load(); return () => { generation.current++; flight.current = false; }; }, []);
+  useEffect(() => registerDirtyLeaveGuard(proceed => { if (selected || busy) { setLeave({ proceed }); return true; } return false; }), [selected, busy]);
+  useEffect(() => { const protect = (event: BeforeUnloadEvent) => { if (selected || busy) { event.preventDefault(); event.returnValue = ''; } }; window.addEventListener('beforeunload', protect); return () => window.removeEventListener('beforeunload', protect); }, [selected, busy]);
+  async function upload(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (flight.current || !selected) return;
+    const source = selected; flight.current = true; const stamp = ++generation.current; setBusy(true); setError(null);
     try {
-      const updated = await renameFile(file.id, file.etag, nextName.trim());
-      setFiles((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
-      return true;
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-      return { error: apiError.message };
-    } finally { setBusy(null); }
+      const session = await initiateFileUpload(source.name, browserMediaType(source), source.size);
+      if (stamp !== generation.current) return;
+      await completeFileUpload(session, source); if (stamp !== generation.current) return;
+      setSelected(null); if (fileInputRef.current) fileInputRef.current.value = '';
+      await refresh(stamp);
+    } catch (e) { await fail(e, stamp); }
+    finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
-
-  async function trash(file: FileRecord) {
-    setBusy(file.id);
-    try {
-      await trashFile(file.id, file.etag);
-      await load();
-      return true;
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-      return { error: apiError.message };
-    } finally { setBusy(null); }
-  }
-
-  return (
-    <section className="content-section" aria-labelledby="files-title">
-      <div className="content-heading">
-        <div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload được staging và scan local trước khi attach. Storage private; mỗi download kiểm tra lại owner, lifecycle và scan state.</p></div>
-        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
-      </div>
-      {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      <form className="form-panel" onSubmit={upload} noValidate>
-        <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input ref={fileInputRef} id="file-upload" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx" onChange={(event) => { setSelected(event.target.files?.[0] ?? null); setError(null); }} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX · tối đa 25 MiB. SVG/script/external reference không được nhận.</p></div>
-        {selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}
-        <SubmitButton busy={busy === 'upload'}>Upload và scan</SubmitButton>
-      </form>
-      <div className="resource-list">
-        <div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file</span></div>
-        {loading ? <div className="loading-state" role="status">Đang tải file…</div> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Chưa có binary nào được server đánh dấu Clean.</p></div> : (
-          <div className="resource-cards">
-            {files.map((file) => (
-              <article className="resource-card" key={file.id}>
-                <div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div>
-                <div className="resource-actions">
-                  {file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}
-                  <PromptActionButton confirmationTitle="Đổi tên file" confirmationDescription="Tên mới chỉ thay đổi metadata; file binary và các kiểm tra access vẫn giữ nguyên." inputLabel="Tên file" initialValue={file.originalName} confirmLabel="Lưu tên mới" disabled={busy !== null || file.lifecycle === 'Purged'} onConfirm={(nextName) => rename(file, nextName)}>Đổi tên</PromptActionButton>
-                  {file.lifecycle === 'Active' && <ConfirmActionButton confirmationTitle={`Đưa “${file.originalName}” vào Trash?`} confirmationDescription={`File ${file.originalName} sẽ rời danh sách active. File còn được tham chiếu sẽ bị server từ chối; server revalidate trước khi commit.`} confirmLabel="Đưa vào Trash" disabled={busy !== null} onConfirm={() => trash(file)}>Trash</ConfirmActionButton>}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  );
+  return <section className="content-section" aria-labelledby="files-title">
+    <div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload và scan local, đọc danh sách, tải xuống private. Mỗi request kiểm tra owner, quyền hiện tại, lifecycle và scan state.</p></div><button className="secondary-button" type="button" disabled={loading || busy} onClick={() => void load()}>Tải lại</button></div>
+    {error && <Notice kind="error">{error.message}</Notice>}
+    <form className="form-panel" onSubmit={upload} noValidate>
+      <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input ref={fileInputRef} id="file-upload" type="file" disabled={loading || busy || !caps['files.file.upload']} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx,.ics" onChange={event => { setSelected(event.target.files?.[0] ?? null); setError(null); }} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX tối đa 25 MiB; ICS tối đa 1 MiB. Nội dung phải qua scan trước khi đọc.</p></div>
+      {selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}
+      <button className="primary-button" type="submit" disabled={loading || busy || !caps['files.file.upload'] || !selected}>{busy ? 'Đang upload / scan…' : 'Upload và scan'}</button>
+    </form>
+    <div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file trong trang hiện tại</span></div>
+      {loading ? <p role="status">Đang tải file…</p> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Không có file được phép hiển thị.</p></div> : <div className="resource-cards">{files.map(file => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{caps['files.file.download'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}</div></article>)}</div>}
+    </div>
+    {leave && <ActionDialog title="Rời upload đang chuẩn bị?" description="Selection sẽ bị bỏ khi rời trang. Upload đang xử lý cần hoàn tất trước khi rời." confirmLabel="Rời trang" onConfirm={() => { if (flight.current) return { error: 'Đợi upload hoàn tất trước khi rời trang.' }; setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; setLeave(null); leave.proceed(); return true; }} onClose={() => setLeave(null)} />}
+  </section>;
 }
 
 function browserMediaType(file: File): string {
   if (file.type) return file.type;
   const extension = file.name.toLowerCase().split('.').pop();
-  return extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : extension === 'md' || extension === 'markdown' ? 'text/markdown' : extension === 'csv' ? 'text/csv' : extension === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : extension === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/plain';
+  return extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : extension === 'md' || extension === 'markdown' ? 'text/markdown' : extension === 'csv' ? 'text/csv' : extension === 'ics' ? 'text/calendar' : extension === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : extension === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/plain';
 }
 
 function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
@@ -2640,6 +2592,8 @@ type ResourceView = {
   endAt?: string;
   timeZoneId?: string;
   isAllDay?: boolean;
+  startDate?: string | null;
+  endDateExclusive?: string | null;
   language?: string;
   versionNumber?: number;
   parentId?: string;
@@ -2680,7 +2634,7 @@ function ResourceScreen({ resourceType, resourceId, navigate, onAuthLost }: {
           }
           case 'Event': {
             const item = await getCalendarEvent(resourceId);
-            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, startAt: item.startAt, endAt: item.endAt, timeZoneId: item.timeZoneId, isAllDay: item.isAllDay, parentId: item.taskId ?? undefined };
+            next = { resourceType, id: item.id, title: item.title, description: item.description, status: item.status, updatedAt: item.updatedAt, startAt: item.startAt, endAt: item.endAt, timeZoneId: item.timeZoneId, isAllDay: item.isAllDay, startDate: item.startDate, endDateExclusive: item.endDateExclusive, parentId: item.taskId ?? undefined };
             break;
           }
           case 'Document': {
@@ -2723,7 +2677,7 @@ function ResourceScreen({ resourceType, resourceId, navigate, onAuthLost }: {
   if (error || !resource) return <section className="content-section"><div className="empty-state"><h1>Không thể mở resource</h1><p>{error?.status === 404 || error?.status === 403 ? 'Resource không tồn tại, đã bị ẩn hoặc quyền hiện tại không còn hợp lệ.' : error?.message ?? 'Server không trả projection được phép.'}</p></div></section>;
 
   const moduleCode = ({ Project: 'FX11', Task: 'FX12', Event: 'FX13', Document: 'FX20', Bookmark: 'FX21', Snippet: 'FX22', Goal: 'FX16' } as const)[resource.resourceType];
-  return <section className="content-section" aria-labelledby="resource-title"><div className="content-heading"><div><p className="eyebrow">RESOURCE / {resource.resourceType.toUpperCase()}</p><h1 id="resource-title">{resource.title}</h1><p className="lead">Detail resolver đã kiểm tra owner, module gate và lifecycle ở source.</p></div><button className="secondary-button" type="button" onClick={() => navigate('module', moduleCode)}>Mở module nguồn</button></div><article className="resource-card resource-detail-card"><div><p>{resource.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.status} · cập nhật {dateTime(resource.updatedAt, resource.timeZoneId)}</p>{resource.startAt && resource.endAt && <p className="muted">{dateTime(resource.startAt, resource.timeZoneId)} — {dateTime(resource.endAt, resource.timeZoneId)}{resource.timeZoneId ? ` · ${resource.timeZoneId}` : ''}{resource.isAllDay ? ' · All-day' : ''}</p>}{resource.parentId && <p className="muted">Parent source: {resource.parentId}</p>}{resource.language && <p className="muted">Language: {resource.language}{resource.versionNumber ? ` · version ${resource.versionNumber}` : ''}</p>}{resource.body !== undefined && <pre className="resource-body-preview">{resource.body}</pre>}</div></article></section>;
+  return <section className="content-section" aria-labelledby="resource-title"><div className="content-heading"><div><p className="eyebrow">RESOURCE / {resource.resourceType.toUpperCase()}</p><h1 id="resource-title">{resource.title}</h1><p className="lead">Detail resolver đã kiểm tra owner, module gate và lifecycle ở source.</p></div><button className="secondary-button" type="button" onClick={() => navigate('module', moduleCode)}>Mở module nguồn</button></div><article className="resource-card resource-detail-card"><div><p>{resource.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.status} · cập nhật {dateTime(resource.updatedAt, resource.timeZoneId)}</p>{resource.startAt && resource.endAt && <p className="muted">{resource.isAllDay && resource.startDate && resource.endDateExclusive ? `${resource.startDate} — ${resource.endDateExclusive} (end exclusive)` : `${dateTime(resource.startAt, resource.timeZoneId)} — ${dateTime(resource.endAt, resource.timeZoneId)}`}{resource.timeZoneId ? ` · ${resource.timeZoneId}` : ''}{resource.isAllDay ? ' · All-day' : ''}</p>}{resource.parentId && <p className="muted">Parent source: {resource.parentId}</p>}{resource.language && <p className="muted">Language: {resource.language}{resource.versionNumber ? ` · version ${resource.versionNumber}` : ''}</p>}{resource.body !== undefined && <pre className="resource-body-preview">{resource.body}</pre>}</div></article></section>;
 }
 
 const FAVORITE_RESOURCE_TYPES = ['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal'];
@@ -3010,8 +2964,8 @@ export function isoToLocalDate(value: string | null, timeZoneId: string): string
 }
 
 function allDayLabel(event: CalendarEventRecord): string {
-  const start = isoToLocalDate(event.startAt, event.timeZoneId);
-  const exclusiveEnd = isoToLocalDate(event.endAt, event.timeZoneId);
+  const start = event.startDate ?? isoToLocalDate(event.startAt, event.timeZoneId);
+  const exclusiveEnd = event.endDateExclusive ?? isoToLocalDate(event.endAt, event.timeZoneId);
   const end = exclusiveEnd ? addDateDays(exclusiveEnd, -1) : '';
   return start && end ? `${start} — ${end}` : 'All-day';
 }
@@ -3093,6 +3047,7 @@ function ProductivityScreen({
   const calendarRangeStart = new Date(calendarRange.from).getTime();
   const calendarRangeEnd = new Date(calendarRange.to).getTime();
   const calendarEventsForView = events.filter((item) => {
+    if (item.isAllDay && item.startDate && item.endDateExclusive) return item.startDate < isoToLocalDate(calendarRange.to, profile.timeZoneId) && item.endDateExclusive > isoToLocalDate(calendarRange.from, profile.timeZoneId);
     const start = new Date(item.startAt).getTime();
     const end = new Date(item.endAt).getTime();
     return Number.isFinite(start) && Number.isFinite(end) && start < calendarRangeEnd && end > calendarRangeStart;
@@ -3177,8 +3132,8 @@ function ProductivityScreen({
     setEventDraft({
       title: event.title,
       description: event.description ?? '',
-      startAt: event.isAllDay ? isoToLocalDate(event.startAt, event.timeZoneId) : isoToLocalInput(event.startAt, event.timeZoneId),
-      endAt: event.isAllDay ? addDateDays(isoToLocalDate(event.endAt, event.timeZoneId), -1) : isoToLocalInput(event.endAt, event.timeZoneId),
+      startAt: event.isAllDay ? (event.startDate ?? isoToLocalDate(event.startAt, event.timeZoneId)) : isoToLocalInput(event.startAt, event.timeZoneId),
+      endAt: event.isAllDay ? addDateDays(event.endDateExclusive ?? isoToLocalDate(event.endAt, event.timeZoneId), -1) : isoToLocalInput(event.endAt, event.timeZoneId),
       timeZoneId: event.timeZoneId,
       isAllDay: event.isAllDay
     });
@@ -3365,10 +3320,10 @@ function ProductivityScreen({
   async function saveEvent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const startAt = eventDraft.isAllDay
-      ? localDateToIso(eventDraft.startAt, eventDraft.timeZoneId)
+      ? `${eventDraft.startAt}T00:00:00Z`
       : localInputToIso(eventDraft.startAt, eventDraft.timeZoneId);
     const endAt = eventDraft.isAllDay
-      ? localDateToIso(addDateDays(eventDraft.endAt, 1), eventDraft.timeZoneId)
+      ? `${addDateDays(eventDraft.endAt, 1)}T00:00:00Z`
       : localInputToIso(eventDraft.endAt, eventDraft.timeZoneId);
     if (!eventDraft.title.trim() || !eventDraft.description.trim() || !startAt || !endAt) {
       setError(new NexoraApiError('Event cần Title, Description, Start và End.', 422, 'ValidationFailed'));
@@ -3379,8 +3334,8 @@ function ProductivityScreen({
     const requestKey = eventRequestKey.current ??= createIdempotencyKey();
     try {
       const saved = editingEvent
-        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey)
-        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey);
+        ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey, eventDraft.isAllDay ? { startDate: eventDraft.startAt, endDateExclusive: addDateDays(eventDraft.endAt, 1) } : undefined)
+        : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey, eventDraft.isAllDay ? { startDate: eventDraft.startAt, endDateExclusive: addDateDays(eventDraft.endAt, 1) } : undefined);
       setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetEvent();
     } catch (requestError) {
@@ -3489,7 +3444,7 @@ function ProductivityScreen({
             <div className="field-group"><label htmlFor="event-title">Title</label><input id="event-title" value={eventDraft.title} maxLength={200} onChange={(event) => setEventDraft({ ...eventDraft, title: event.target.value })} required /></div>
             <div className="field-group"><label htmlFor="event-description">Description</label><textarea id="event-description" value={eventDraft.description} maxLength={20000} onChange={(event) => setEventDraft({ ...eventDraft, description: event.target.value })} rows={3} required /></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="event-start">{eventDraft.isAllDay ? 'Ngày bắt đầu' : 'Bắt đầu'}</label><input id="event-start" type={eventDraft.isAllDay ? 'date' : 'datetime-local'} value={eventDraft.startAt} onChange={(event) => setEventDraft({ ...eventDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="event-end">{eventDraft.isAllDay ? 'Ngày kết thúc (bao gồm)' : 'Kết thúc'}</label><input id="event-end" type={eventDraft.isAllDay ? 'date' : 'datetime-local'} value={eventDraft.endAt} onChange={(event) => setEventDraft({ ...eventDraft, endAt: event.target.value })} required /></div></div>
-            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft((current) => { const nextZone = event.target.value; if (current.isAllDay || !nextZone.trim() || !current.timeZoneId.trim()) return { ...current, timeZoneId: nextZone }; const startIso = localInputToIso(current.startAt, current.timeZoneId); const endIso = localInputToIso(current.endAt, current.timeZoneId); return { ...current, timeZoneId: nextZone, startAt: startIso ? isoToLocalInput(startIso, nextZone) : current.startAt, endAt: endIso ? isoToLocalInput(endIso, nextZone) : current.endAt }; })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft((current) => event.target.checked ? { ...current, startAt: current.startAt.slice(0, 10), endAt: current.endAt.slice(0, 10), isAllDay: true } : { ...current, startAt: current.startAt ? `${current.startAt.slice(0, 10)}T00:00` : '', endAt: current.endAt ? `${addDateDays(current.endAt.slice(0, 10), 1)}T00:00` : '', isAllDay: false })} /> All-day</label><p className="field-help">Timed values preserve the instant. All-day values use date-only input, store the end boundary exclusively, and resolve both boundaries in this IANA timezone.</p></div>
+            <div className="field-group"><label htmlFor="event-timezone">Timezone IANA</label><input id="event-timezone" value={eventDraft.timeZoneId} onChange={(event) => setEventDraft((current) => { const nextZone = event.target.value; if (current.isAllDay || !nextZone.trim() || !current.timeZoneId.trim()) return { ...current, timeZoneId: nextZone }; const startIso = localInputToIso(current.startAt, current.timeZoneId); const endIso = localInputToIso(current.endAt, current.timeZoneId); return { ...current, timeZoneId: nextZone, startAt: startIso ? isoToLocalInput(startIso, nextZone) : current.startAt, endAt: endIso ? isoToLocalInput(endIso, nextZone) : current.endAt }; })} required /><label className="check-row"><input type="checkbox" checked={eventDraft.isAllDay} onChange={(event) => setEventDraft((current) => event.target.checked ? { ...current, startAt: current.startAt.slice(0, 10), endAt: current.endAt.slice(0, 10), isAllDay: true } : { ...current, startAt: current.startAt ? `${current.startAt.slice(0, 10)}T00:00` : '', endAt: current.endAt ? `${addDateDays(current.endAt.slice(0, 10), 1)}T00:00` : '', isAllDay: false })} /> All-day</label><p className="field-help">Timed values preserve the instant. All-day values use date-only input, store the end boundary exclusively, and preserve authoritative dates across timezone changes.</p></div>
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEvent} disabled={busy === 'event'}>Làm mới</button><SubmitButton busy={busy === 'event'}>{editingEvent ? 'Lưu sự kiện' : 'Tạo sự kiện'}</SubmitButton></div>
           </form>
           <div className="resource-list"><div className="section-heading"><div><h2>Lịch của bạn</h2><span className="muted">{calendarEventsForView.length} bản ghi trong chế độ {calendarView}</span></div><div className="module-tabs" role="tablist" aria-label="Calendar views">{(['day', 'week', 'month', 'agenda'] as const).map((view) => <button key={view} className={calendarView === view ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={calendarView === view} onClick={() => setCalendarView(view)}>{view === 'day' ? 'Day' : view === 'week' ? 'Week' : view === 'month' ? 'Month' : 'Agenda'}</button>)}</div></div>{events.length === 0 ? <div className="empty-state"><h3>Chưa có sự kiện</h3><p>Tạo lịch đầu tiên trong timezone của bạn.</p></div> : calendarEventsForView.length === 0 ? <div className="empty-state"><h3>Không có sự kiện trong chế độ này</h3><p>Chuyển sang Agenda để xem toàn bộ sự kiện.</p></div> : <div className="resource-cards">{calendarEventsForView.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p>{item.isAllDay ? allDayLabel(item) : `${dateTime(item.startAt, item.timeZoneId, profile.locale)} — ${dateTime(item.endAt, item.timeZoneId, profile.locale)}`}</p><span className="muted">{item.timeZoneId} · {item.status}{item.isAllDay ? ' · All-day' : ''}{item.taskId ? ' · Task projection' : ''}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEventEdit(item)} disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null}>Sửa</button>{item.status === 'Scheduled' && <button className="secondary-button" type="button" onClick={() => void completeEvent(item)} disabled={busy !== null || item.taskId !== null}>Hoàn tất</button>}<ConfirmActionButton confirmationTitle={`Hủy sự kiện “${item.title}”?`} confirmationDescription="Sự kiện sẽ bị hủy và không còn xuất hiện trong lịch của bạn." confirmLabel="Hủy sự kiện" disabled={busy !== null || item.status !== 'Scheduled' || item.taskId !== null} onConfirm={() => removeEvent(item)}>Hủy</ConfirmActionButton></div></article>)}</div>}{eventNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm sự kiện</button>}</div>
@@ -5374,6 +5329,7 @@ function ModuleScreen({
   }
 
   const normalizedCode = module.code.toUpperCase();
+  if (module.enabled && normalizedCode === 'FX10') return <CalendarImportScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX39') return <CareerScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;

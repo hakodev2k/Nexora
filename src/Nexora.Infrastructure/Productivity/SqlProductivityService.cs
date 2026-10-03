@@ -634,14 +634,14 @@ public sealed class SqlProductivityService : IProductivityService
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            SELECT TOP (@Limit) e.[Id], e.[Title], e.[Description], e.[StartAt], e.[EndAt], e.[TimeZoneId], e.[Status], e.[CreatedAt], e.[UpdatedAt], e.[RowVersion], e.[IsAllDay], e.[SourceUid], e.[SourceKind], e.[TaskId]
+            SELECT TOP (@Limit) e.[Id], e.[Title], e.[Description], e.[StartAt], e.[EndAt], e.[TimeZoneId], e.[Status], e.[CreatedAt], e.[UpdatedAt], e.[RowVersion], e.[IsAllDay], e.[SourceUid], e.[SourceKind], e.[TaskId], e.[StartDate], e.[EndDateExclusive]
             FROM [calendar].[Event] e
             LEFT JOIN [productivity].[Task] taskRow
               ON taskRow.[Id] = e.[TaskId] AND taskRow.[OwnerId] = e.[OwnerId]
             WHERE e.[OwnerId] = @OwnerId AND e.[Status] <> 'Deleted'
               AND (e.[TaskId] IS NULL OR (@TaskSourceAllowed = 1 AND taskRow.[Id] IS NOT NULL AND taskRow.[Status] <> 'Deleted'))
-              AND (@From IS NULL OR e.[EndAt] > @From)
-              AND (@To IS NULL OR e.[StartAt] < @To)
+              AND (@From IS NULL OR (e.IsAllDay=0 AND e.EndAt>@From) OR (e.IsAllDay=1 AND e.EndDateExclusive>@FromDate))
+              AND (@To IS NULL OR (e.IsAllDay=0 AND e.StartAt<@To) OR (e.IsAllDay=1 AND (e.StartDate<@ToDate OR (@ToIncludesDay=1 AND e.StartDate=@ToDate))))
               AND (@HasCursor = 0 OR e.[StartAt] > @CursorStartAt OR (e.[StartAt] = @CursorStartAt AND e.[Id] > @CursorId))
             ORDER BY e.[StartAt], e.[Id];
             """;
@@ -650,6 +650,10 @@ public sealed class SqlProductivityService : IProductivityService
         Add(command, "@TaskSourceAllowed", SqlDbType.Bit, taskSourceAllowed);
         Add(command, "@From", SqlDbType.DateTime2, (object?)from?.UtcDateTime ?? DBNull.Value);
         Add(command, "@To", SqlDbType.DateTime2, (object?)to?.UtcDateTime ?? DBNull.Value);
+        var displayZone = TimeZoneInfo.FindSystemTimeZoneById(ReadOwnerTimeZone(connection, transaction, actor.OwnerId));
+        Add(command, "@FromDate", SqlDbType.Date, (object?) (from is null ? null : TimeZoneInfo.ConvertTime(from.Value, displayZone).Date) ?? DBNull.Value);
+        Add(command, "@ToDate", SqlDbType.Date, (object?) (to is null ? null : TimeZoneInfo.ConvertTime(to.Value, displayZone).Date) ?? DBNull.Value);
+        Add(command, "@ToIncludesDay", SqlDbType.Bit, to is not null && TimeZoneInfo.ConvertTime(to.Value, displayZone).TimeOfDay > TimeSpan.Zero);
         Add(command, "@HasCursor", SqlDbType.Bit, cursor is not null);
         Add(command, "@CursorStartAt", SqlDbType.DateTime2, (object?)position?.StartAt ?? DBNull.Value);
         Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
@@ -706,7 +710,7 @@ public sealed class SqlProductivityService : IProductivityService
         var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor,
             "calendar.event.create",
             idempotencyKey,
-            $"title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|uid:{command.SourceUid}",
+            $"title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|dates:{command.StartDate}:{command.EndDateExclusive}|uid:{command.SourceUid}",
             out var receipt);
         if (receiptFailure is not null)
         {
@@ -716,8 +720,8 @@ public sealed class SqlProductivityService : IProductivityService
         using var insert = connection.CreateCommand();
         insert.Transaction = transaction;
         insert.CommandText = """
-            INSERT INTO [calendar].[Event] ([Id], [OwnerId], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [IsAllDay], [SourceUid], [SourceKind])
-            VALUES (@Id, @OwnerId, @Title, @Description, @StartAt, @EndAt, @TimeZoneId, @IsAllDay, @SourceUid, 'Manual');
+            INSERT INTO [calendar].[Event] ([Id], [OwnerId], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [IsAllDay], [SourceUid], [SourceKind], [StartDate], [EndDateExclusive])
+            VALUES (@Id, @OwnerId, @Title, @Description, @StartAt, @EndAt, @TimeZoneId, @IsAllDay, @SourceUid, 'Manual', @StartDate, @EndDate);
             """;
         Add(insert, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(insert, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
@@ -727,8 +731,10 @@ public sealed class SqlProductivityService : IProductivityService
         Add(insert, "@EndAt", SqlDbType.DateTime2, command.EndAt.UtcDateTime);
         Add(insert, "@TimeZoneId", SqlDbType.NVarChar, command.TimeZoneId.Trim(), 128);
         Add(insert, "@IsAllDay", SqlDbType.Bit, command.IsAllDay);
+        EventDates(insert, command);
         Add(insert, "@SourceUid", SqlDbType.NVarChar, (object?)TrimOrNull(command.SourceUid, 255) ?? DBNull.Value, 255);
         insert.ExecuteNonQuery();
+        SqlManualEventRegistry.Create(connection, transaction, actor, id);
         WriteAudit(connection, transaction, actor, id, "calendar.event.create", traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, id, forUpdate: false);
         CompleteReceipt(connection, transaction, receipt, "EventCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
@@ -755,7 +761,7 @@ public sealed class SqlProductivityService : IProductivityService
         var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor,
             receiptOperationKey,
             idempotencyKey,
-            $"event:{eventId:N}|etag:{ifMatch}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|uid:{command.SourceUid}|status:{command.Status}",
+            $"event:{eventId:N}|etag:{ifMatch}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|dates:{command.StartDate}:{command.EndDateExclusive}|uid:{command.SourceUid}|status:{command.Status}",
             out var receipt);
         if (receiptFailure is not null)
         {
@@ -789,7 +795,7 @@ public sealed class SqlProductivityService : IProductivityService
             UPDATE [calendar].[Event]
             SET [Title] = @Title, [Description] = @Description, [StartAt] = @StartAt,
                 [EndAt] = @EndAt, [TimeZoneId] = @TimeZoneId, [IsAllDay] = @IsAllDay,
-                [SourceUid] = @SourceUid, [Status] = COALESCE(@Status, [Status]), [UpdatedAt] = SYSUTCDATETIME()
+                [SourceUid] = @SourceUid, [StartDate]=@StartDate, [EndDateExclusive]=@EndDate, [Status] = COALESCE(@Status, [Status]), [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [Status] <> 'Deleted';
             """;
         Add(update, "@Title", SqlDbType.NVarChar, command.Title.Trim(), 200);
@@ -798,6 +804,7 @@ public sealed class SqlProductivityService : IProductivityService
         Add(update, "@EndAt", SqlDbType.DateTime2, command.EndAt.UtcDateTime);
         Add(update, "@TimeZoneId", SqlDbType.NVarChar, command.TimeZoneId.Trim(), 128);
         Add(update, "@IsAllDay", SqlDbType.Bit, command.IsAllDay);
+        EventDates(update, command);
         Add(update, "@SourceUid", SqlDbType.NVarChar, (object?)TrimOrNull(command.SourceUid, 255) ?? DBNull.Value, 255);
         Add(update, "@Status", SqlDbType.VarChar, (object?)command.Status ?? DBNull.Value, 16);
         Add(update, "@Id", SqlDbType.UniqueIdentifier, eventId);
@@ -808,6 +815,7 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<EventRecord>.Failure("RevisionConflict", 412, "Event revision changed.");
         }
+        SqlManualEventRegistry.Touch(connection, transaction, actor, eventId);
         WriteAudit(connection, transaction, actor, eventId, auditAction, traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, eventId, forUpdate: false);
         CompleteReceipt(connection, transaction, receipt, "EventUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
@@ -832,7 +840,7 @@ public sealed class SqlProductivityService : IProductivityService
         if (current.Status is "Completed" or "Canceled")
             return IdentityOperationResult<EventRecord>.Failure("EventTerminal", 409, "Completed or canceled events are read-only.");
         return UpdateEventCore(actor, eventId, ifMatch,
-            new EventCommand(current.Title, current.Description, current.StartAt, current.EndAt, current.TimeZoneId, current.IsAllDay, current.SourceUid, status),
+            new EventCommand(current.Title, current.Description, current.StartDate is { } first ? new DateTimeOffset(first.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)) : current.StartAt, current.EndDateExclusive is { } last ? new DateTimeOffset(last.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)) : current.EndAt, current.TimeZoneId, current.IsAllDay, current.SourceUid, status, current.StartDate, current.EndDateExclusive),
             idempotencyKey, traceId, "calendar.event.transition", "calendar.event.transition", EventTransitionAction(status));
     }
 
@@ -885,6 +893,7 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return IdentityOperationResult<object?>.Failure("RevisionConflict", 412, "Event revision changed.");
         }
+        SqlManualEventRegistry.Touch(connection, transaction, actor, eventId);
         WriteAudit(connection, transaction, actor, eventId, "calendar.event.delete", traceId);
         CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
         transaction.Commit();
@@ -939,12 +948,30 @@ public sealed class SqlProductivityService : IProductivityService
         var decision = RegistrationPolicy.ValidateTimeZoneId(command.TimeZoneId);
         if (!decision.Allowed)
             return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, decision.Message);
+        if (!command.IsAllDay && (command.StartDate is not null || command.EndDateExclusive is not null))
+            return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Timed events do not accept date-only fields.");
+        if (command.StartDate is not null || command.EndDateExclusive is not null)
+        {
+            if (!command.IsAllDay || command.StartDate is not { } first || command.EndDateExclusive is not { } last || last <= first ||
+                command.StartAt != new DateTimeOffset(first.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)) || command.EndAt != new DateTimeOffset(last.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)))
+                return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "Supply the exact all-day date pair and compatibility values.");
+            return null;
+        }
         if (command.IsAllDay && (!TryGetTimeZone(command.TimeZoneId, out var timeZone) ||
             TimeZoneInfo.ConvertTime(command.StartAt, timeZone).TimeOfDay != TimeSpan.Zero ||
             TimeZoneInfo.ConvertTime(command.EndAt, timeZone).TimeOfDay != TimeSpan.Zero ||
             TimeZoneInfo.ConvertTime(command.EndAt, timeZone).Date <= TimeZoneInfo.ConvertTime(command.StartAt, timeZone).Date))
             return IdentityOperationResult<EventRecord>.Failure("ValidationFailed", 422, "All-day events require local midnight boundaries and an exclusive end date after the start date.");
         return null;
+    }
+
+    private static void EventDates(SqlCommand sql, EventCommand command)
+    {
+        DateOnly? first = command.StartDate, last = command.EndDateExclusive;
+        if (command.IsAllDay && first is null && TryGetTimeZone(command.TimeZoneId, out var zone))
+        { first = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(command.StartAt, zone).Date); last = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(command.EndAt, zone).Date); }
+        Add(sql, "@StartDate", SqlDbType.Date, (object?)first?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
+        Add(sql, "@EndDate", SqlDbType.Date, (object?)last?.ToDateTime(TimeOnly.MinValue) ?? DBNull.Value);
     }
 
     private static bool TryGetTimeZone(string timeZoneId, out TimeZoneInfo timeZone)
@@ -1338,7 +1365,7 @@ public sealed class SqlProductivityService : IProductivityService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId] FROM [calendar].[Event] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId], [StartDate], [EndDateExclusive] FROM [calendar].[Event] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -1356,7 +1383,7 @@ public sealed class SqlProductivityService : IProductivityService
     }
 
     private static EventRecord ReadEvent(SqlDataReader reader) =>
-        new(reader.GetGuid(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), ToOffset(reader.GetDateTime(3)), ToOffset(reader.GetDateTime(4)), reader.GetString(5), reader.GetString(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.GetBoolean(10), reader.IsDBNull(11) ? null : reader.GetString(11), reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetGuid(13));
+        new(reader.GetGuid(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2), ToOffset(reader.GetDateTime(3)), ToOffset(reader.GetDateTime(4)), reader.GetString(5), reader.GetString(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.GetBoolean(10), reader.IsDBNull(11) ? null : reader.GetString(11), reader.GetString(12), reader.IsDBNull(13) ? null : reader.GetGuid(13), reader.IsDBNull(14) ? null : DateOnly.FromDateTime(reader.GetDateTime(14)), reader.IsDBNull(15) ? null : DateOnly.FromDateTime(reader.GetDateTime(15)));
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string action, string? traceId)
     {

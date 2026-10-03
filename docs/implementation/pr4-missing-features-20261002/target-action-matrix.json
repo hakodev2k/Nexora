@@ -246,13 +246,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX07-S01",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-07",
@@ -264,13 +264,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX07-S02",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-07",
@@ -283,12 +283,12 @@
       "requires": "",
       "screens": "FX07-S02",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -301,12 +301,12 @@
       "requires": "",
       "screens": "FX07-S01",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -337,12 +337,12 @@
       "requires": "",
       "screens": "FX07-S03",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -354,13 +354,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX07-S03",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-07",
@@ -373,12 +373,12 @@
       "requires": "",
       "screens": "FX07-S04",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -391,12 +391,12 @@
       "requires": "",
       "screens": "FX07-S05",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -409,12 +409,12 @@
       "requires": "",
       "screens": "FX07-S01",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -427,12 +427,12 @@
       "requires": "",
       "screens": "FX07-S01",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Trash\\SqlTrashService.cs;src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -445,12 +445,12 @@
       "requires": "",
       "screens": "FX07-S01",
       "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "effectiveGate": "UninstalledSubset",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Trash\\SqlTrashService.cs;src/Nexora.Infrastructure\\Files\\SqlFileService.cs",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Historical handler is explicitly unavailable under the all-role Files three-key gate. Exact lifecycle/source/impact contracts and independent/runtime review remain required."
     },
     {
       "module": "FX-07",
@@ -480,13 +480,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-10",
@@ -498,13 +498,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-10",
@@ -516,13 +516,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S04",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-10",
@@ -534,13 +534,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "PartialInstalledContract",
+      "handlerCandidateFiles": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs;src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs;src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "installedBinding": "calendar-ics-import-contract.md;migration0041;/api/v1/transfer/calendar;private Files subset",
+      "focusedEvidence": "calendar-ics-evidence.md;calendar-ics-browser-evidence.json;calendar-ics-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded Calendar ICS importer / Files source subset only. Other formats, exports, complete Files paging/receipt and full story/AC remain open."
     },
     {
       "module": "FX-10",
@@ -6952,6 +6952,6 @@
     }
   ],
   "mainRevision": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
-  "implementationBaseRevision": "0ce56b636441534382b6fbe3afa1fa5dc35189ea",
-  "includedBatch": "Reviewed manual Career Company/Job source in this commit"
+  "implementationBaseRevision": "b04643ac6612e3424e15fd9cf1bfa9cab0c4dc28",
+  "includedBatch": "Reviewed bounded Calendar ICS import and private Files source subset in this commit"
 }

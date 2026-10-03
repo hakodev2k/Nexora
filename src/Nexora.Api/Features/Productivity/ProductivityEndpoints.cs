@@ -85,12 +85,12 @@ public static class ProductivityEndpoints
 
         api.MapPost("/calendar/events", (HttpContext context, EventRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.CreateEvent(principal, new EventCommand(request.Title, request.Description, request.StartAt, request.EndAt, request.TimeZoneId, request.IsAllDay, request.SourceUid), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.CreateEvent(principal, new EventCommand(request.Title, request.Description, request.StartAt, request.EndAt, request.TimeZoneId, request.IsAllDay, request.SourceUid, null, request.StartDate, request.EndDateExclusive), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("createEvent");
 
         api.MapPut("/calendar/events/{eventId:guid}", (HttpContext context, Guid eventId, EventRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.UpdateEvent(principal, eventId, context.Request.Headers.IfMatch.ToString(), new EventCommand(request.Title, request.Description, request.StartAt, request.EndAt, request.TimeZoneId, request.IsAllDay, request.SourceUid), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.UpdateEvent(principal, eventId, context.Request.Headers.IfMatch.ToString(), new EventCommand(request.Title, request.Description, request.StartAt, request.EndAt, request.TimeZoneId, request.IsAllDay, request.SourceUid, null, request.StartDate, request.EndDateExclusive), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("updateEvent");
 
         api.MapPost("/calendar/events/{eventId:guid}/transition", (HttpContext context, Guid eventId, ProductivityTransitionRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
@@ -160,6 +160,6 @@ public static class ProductivityEndpoints
 
     private static ProjectResponse ToResponse(ProjectRecord value) => new(value.Id, value.Name, value.Description, value.Status, value.CreatedAt, value.UpdatedAt, value.ETag, value.StartAt, value.EndAt, value.Priority, value.TagsJson, value.Notes);
     private static TaskResponse ToResponse(TaskRecord value) => new(value.Id, value.ProjectId, value.Title, value.Description, value.Status, value.DueAt, value.CreatedAt, value.UpdatedAt, value.ETag, value.StartAt, value.EndAt, value.Priority, value.TagsJson, value.AcceptanceCriteriaJson, value.Rank, value.ReminderAt, value.IsOverdue);
-    private static EventResponse ToResponse(EventRecord value) => new(value.Id, value.Title, value.Description, value.StartAt, value.EndAt, value.TimeZoneId, value.Status, value.CreatedAt, value.UpdatedAt, value.ETag, value.IsAllDay, value.SourceUid, value.SourceKind, value.TaskId);
+    private static EventResponse ToResponse(EventRecord value) => new(value.Id, value.Title, value.Description, value.StartAt, value.EndAt, value.TimeZoneId, value.Status, value.CreatedAt, value.UpdatedAt, value.ETag, value.IsAllDay, value.SourceUid, value.SourceKind, value.TaskId, value.StartDate, value.EndDateExclusive);
 }
 

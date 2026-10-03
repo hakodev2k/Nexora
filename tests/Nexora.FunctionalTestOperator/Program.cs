@@ -71,6 +71,7 @@ if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
   ["WishlistItem"]="[shopping].[WishlistItem]",
+  ["ImportBatch"]="[operations].[ImportBatch]",
   ["Skill"]="[learning].[Skill]",
   ["Company"]="[career].[Company]",["JobApplication"]="[career].[JobApplication]",["ApplicationEvent"]="[career].[ApplicationEvent]",
   ["DigitalAsset"]="[assets].[DigitalAsset]",["DigitalAssetVersion"]="[assets].[DigitalAssetVersion]",["RenewalRecord"]="[assets].[RenewalRecord]",
@@ -83,7 +84,9 @@ if(args is ["read-resource",var kind,var idText]) {
  };
  if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- var query=kind=="Notification"
+ var query=kind=="ImportBatch"
+  ? "SELECT Id,OwnerId,FileObjectId,State,TotalCount,AcceptedCount,SkippedCount,AppliedCount FROM [operations].[ImportBatch] WHERE Id=@id FOR JSON PATH"
+  : kind=="Notification"
   ? "SELECT Id,OwnerUserId,Title,ReadAt,DeletedAt FROM [notifications].[Notification] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
   : kind=="Snippet"
   ? "SELECT s.*,v.SourceText AS Body FROM [knowledge].[Snippet] s JOIN [knowledge].[SnippetVersion] v ON v.SnippetId=s.Id AND v.OwnerId=s.OwnerId AND v.VersionNumber=s.CurrentVersion WHERE s.Id=@id FOR JSON PATH"

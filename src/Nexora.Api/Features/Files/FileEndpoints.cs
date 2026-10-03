@@ -13,6 +13,12 @@ public static class FileEndpoints
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
         var uploadApi = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(25 * 1024 * 1024);
 
+        api.MapGet("/files/capabilities", (HttpContext context, IFileService service,
+            IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Capabilities(principal), value => value))
+            .WithName("getFileCapabilities");
+
         api.MapGet("/files", (HttpContext context, int? limit, IFileService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),

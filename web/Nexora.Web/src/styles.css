@@ -1997,3 +1997,9 @@ progress::-moz-progress-bar {
 .career-form p, .career-form label { overflow-wrap: anywhere; }
 .career-form dd { margin-left: 0; }
 .career-screen details dd { overflow-wrap: anywhere; margin-left: 0; }
+
+.calendar-import-screen details, .calendar-import-screen .literal-text { overflow-wrap: anywhere; white-space: pre-wrap; }
+.calendar-import-screen .resource-card > div { min-width: 0; }
+
+.calendar-import-form { min-width: 0; overflow-wrap: anywhere; }
+.calendar-import-form input[type="file"] { min-width: 0; max-width: 100%; width: 100%; }

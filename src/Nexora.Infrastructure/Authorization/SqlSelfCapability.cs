@@ -52,6 +52,12 @@ internal sealed class SqlSelfCapability
         if (connection is null || actor is null || string.IsNullOrWhiteSpace(moduleCode) || actions.Length == 0)
             return SqlCapabilityStatus.ModuleUnavailable;
 
+        // FX07 is installed only for this reviewed private source subset.
+        // A Ready module name or stale Resolved permission cannot activate dormant handlers.
+        if (string.Equals(moduleCode, "FX07", StringComparison.Ordinal) &&
+            actions.Any(action => action is not ("files.file.read" or "files.file.upload" or "files.file.download")))
+            return SqlCapabilityStatus.ModuleUnavailable;
+
         // Admin SELF is an explicit grant context. A stale or hand-inserted
         // AdminPermission row cannot turn a PUBLIC/SUPER/CONTROL/SYSTEM action
         // into self access; the manifest projection is checked before SQL.
@@ -87,6 +93,16 @@ internal sealed class SqlSelfCapability
                        WHEN m.[State] <> 'Ready'
                             OR m.[SystemEnabled] <> 1
                             OR COALESCE(g.[Enabled], 0) <> 1
+                            OR (@ModuleCode = 'FX07' AND NOT EXISTS
+                            (
+                                SELECT 1 FROM [identity].[Session] liveSession
+                                WHERE liveSession.[Id] = @SessionId AND liveSession.[UserId] = @UserId
+                                  AND liveSession.[RevokedAt] IS NULL
+                                  AND liveSession.[IdleExpiresAt] > SYSUTCDATETIME()
+                                  AND liveSession.[AbsoluteExpiresAt] > SYSUTCDATETIME()
+                                  AND liveSession.[SecurityStamp] = userRow.[SecurityStamp]
+                                  AND userRow.[EmailConfirmed] = 1
+                            ))
                             OR userRow.[State] <> 'Active'
                             OR userRow.[IsDeleted] <> 0
                             OR spaceRow.[State] <> 'Active'
@@ -160,6 +176,7 @@ internal sealed class SqlSelfCapability
             OPTION (MAXRECURSION 32);
             """;
         command.Parameters.Add("@Role", SqlDbType.VarChar, 32).Value = actor.Role;
+        command.Parameters.Add("@SessionId", SqlDbType.UniqueIdentifier).Value = (object?)actor.SessionId ?? DBNull.Value;
         command.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = actor.UserId;
         command.Parameters.Add("@OwnerId", SqlDbType.UniqueIdentifier).Value = actor.OwnerId;
         command.Parameters.Add("@ModuleCode", SqlDbType.VarChar, 64).Value = moduleCode;

@@ -548,6 +548,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
     /// Configures one module catalog state only inside the generated test
     /// database. It is used to verify both fail-closed production defaults and
     /// a future approved activation without changing the checked-in catalog.
+    /// FX07 now has an installed named local subset; disabling policy preserves its Ready installation state.
     /// </summary>
     public Task SetModuleRuntimeAvailabilityAsync(string moduleCode, bool enabled)
     {
@@ -559,7 +560,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
 
         return ExecuteAsync(
             "UPDATE [platform].[Module] SET [State] = @state, [SystemEnabled] = @enabled, [RegistrationEnabled] = @enabled, [PolicyRevision] = [PolicyRevision] + 1, [UpdatedAt] = SYSUTCDATETIME() WHERE [Code] = @moduleCode;",
-            Parameter("@state", SqlDbType.VarChar, enabled ? "Ready" : "Blocked", 32),
+            Parameter("@state", SqlDbType.VarChar, enabled || moduleCode == "FX07" ? "Ready" : "Blocked", 32),
             Parameter("@enabled", SqlDbType.Bit, enabled),
             Parameter("@moduleCode", SqlDbType.VarChar, moduleCode, 64));
     }

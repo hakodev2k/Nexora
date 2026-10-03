@@ -1,3 +1,6 @@
+using Nexora.Api.Features.Transfer;
+using Nexora.Application.Transfer;
+using Nexora.Infrastructure.Transfer;
 using Nexora.Api.Features.Career;
 using Nexora.Application.Career;
 using Nexora.Infrastructure.Career;
@@ -235,7 +238,7 @@ builder.Services.AddSingleton<IToolboxService>(services =>
 builder.Services.AddSingleton<ITrashService>(services =>
     new SqlTrashService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<SqlFileService>(services =>
-    new SqlFileService(services.GetRequiredService<SqlConnectionFactory>(), localFileStorageRoot, idempotencySecret));
+    new SqlFileService(services.GetRequiredService<SqlConnectionFactory>(), localFileStorageRoot, idempotencySecret, new SqlImportFileRetention()));
 builder.Services.AddSingleton<IFileService>(services => services.GetRequiredService<SqlFileService>());
 builder.Services.AddSingleton<IFileCleanupService>(services => services.GetRequiredService<SqlFileService>());
 builder.Services.AddHostedService<FileCleanupWorker>();
@@ -249,6 +252,7 @@ builder.Services.AddSingleton<ITimeTrackingService>(s => new SqlTimeTrackingServ
 builder.Services.AddSingleton<IWishlistService>(s => new SqlWishlistService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IPersonalAssetService>(s => new SqlPersonalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ICalendarImportService>(s => new SqlCalendarImportService(s.GetRequiredService<SqlConnectionFactory>(), s.GetRequiredService<IFileService>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
@@ -314,6 +318,7 @@ app.MapWishlistEndpoints();
 app.MapPersonalAssetEndpoints();
 app.MapDigitalAssetEndpoints();
 app.MapCareerEndpoints();
+app.MapCalendarImportEndpoints();
 app.MapSkillEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();

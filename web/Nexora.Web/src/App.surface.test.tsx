@@ -47,6 +47,8 @@ function renderEnabledShell(location: LocationState, profile = enabledProfile())
 function emptyReadModel({ request }: { request: Request }) {
   const url = new URL(request.url);
   switch (url.pathname) {
+    case '/api/v1/files/capabilities':
+      return HttpResponse.json({ 'files.file.read': true, 'files.file.upload': true, 'files.file.download': true });
     case '/api/v1/dashboard':
       return HttpResponse.json({ timeZoneId: 'Etc/UTC', generatedAt: '2026-09-29T00:00:00.000Z', widgets: [] });
     case '/api/v1/search':
@@ -162,7 +164,7 @@ test('Files keeps a functional form visible alongside its API error state', asyn
 
   expect(await screen.findByRole('alert')).toHaveTextContent('Storage is temporarily unavailable.');
   expect(screen.getByLabelText('Chọn file')).toBeEnabled();
-  expect(screen.getByRole('button', { name: 'Upload và scan' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Upload và scan' })).toBeDisabled(); // Selection still required; upload capability remains available.
 });
 
 test('Files exposes a clear loading state before its empty state resolves', async () => {

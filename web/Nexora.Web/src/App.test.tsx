@@ -488,89 +488,29 @@ test('navigation labels are concise for assistive technology and unavailable mod
   expect(screen.queryByRole('button', { name: 'Finance' })).not.toBeInTheDocument();
 });
 
-test('Files removes a trashed file from the active UI only after the confirmed server mutation succeeds', async () => {
-  const user = userEvent.setup();
-  const file = {
-    id: '352d0d14-1ac8-4dbf-94a7-27ad8a7d1e03',
-    originalName: 'Quarterly-report.txt',
-    mediaType: 'text/plain',
-    byteLength: 42,
-    scanState: 'Clean',
-    lifecycle: 'Active',
-    currentRevision: 1,
-    createdAt: '2026-09-01T00:00:00.000Z',
-    updatedAt: '2026-09-01T00:00:00.000Z',
-    etag: '"AQIDBAUGBwg="'
-  };
-  let active = true;
-  let trashCalls = 0;
-  server.use(
-    http.get('*/api/v1/files', () => HttpResponse.json({ items: active ? [file] : [], nextCursor: null })),
-    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
-    http.post(`*/api/v1/files/${file.id}/trash`, ({ request }) => {
-      trashCalls += 1;
-      expect(request.headers.get('If-Match')).toBe(file.etag);
-      active = false;
-      return new HttpResponse(null, { status: 204 });
-    })
-  );
-
-  renderShell(
-    syntheticProfile({ modules: [{ code: 'FX07', enabled: true, unavailableReason: null }] }),
-    { screen: 'files' }
-  );
-
-  expect(await screen.findByRole('heading', { name: 'Files & attachments' })).toBeInTheDocument();
-  expect(await screen.findByText(file.originalName)).toBeInTheDocument();
-  const fileCard = screen.getByText(file.originalName).closest('article');
-  expect(fileCard).not.toBeNull();
-  await user.click(within(fileCard as HTMLElement).getByRole('button', { name: 'Trash' }));
-  await user.click(screen.getByRole('button', { name: 'Đưa vào Trash' }));
-
-  await waitFor(() => expect(trashCalls).toBe(1));
-  expect(await screen.findByRole('heading', { name: 'Chưa có file' })).toBeInTheDocument();
-  expect(screen.queryByText(file.originalName)).not.toBeInTheDocument();
+test('Files exposes the installed private subset and hides dormant lifecycle controls', async () => {
+  const file = { id: crypto.randomUUID(), originalName: 'Private-contract.txt', mediaType: 'text/plain', byteLength: 42, scanState: 'Clean', lifecycle: 'Active', currentRevision: 1, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', etag: '"AQIDBAUGBwg="' };
+  server.use(http.get('*/api/v1/files', () => HttpResponse.json({ items: [file], nextCursor: null })));
+  renderShell(syntheticProfile({ modules: [{ code: 'FX07', enabled: true, unavailableReason: null }] }), { screen: 'files' });
+  await screen.findByText(file.originalName);
+  expect(screen.getByRole('link', { name: 'Tải xuống' })).toBeInTheDocument();
+  expect(within(screen.getByText(file.originalName).closest('article')!).queryByRole('button', { name: 'Trash' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Đổi tên' })).not.toBeInTheDocument();
 });
 
-test('Files keeps the Trash preview open and preserves the active row when the server rejects a stale or referenced file', async () => {
-  const user = userEvent.setup();
-  const file = {
-    id: 'd15f8388-9f41-478e-a245-82b2107f7f2b',
-    originalName: 'Referenced-contract.txt',
-    mediaType: 'text/plain',
-    byteLength: 42,
-    scanState: 'Clean',
-    lifecycle: 'Active',
-    currentRevision: 1,
-    createdAt: '2026-09-01T00:00:00.000Z',
-    updatedAt: '2026-09-01T00:00:00.000Z',
-    etag: '"AQIDBAUGBwg="'
-  };
-  let trashCalls = 0;
+test('Files binds each action capability and clears protected rows on authority loss', async () => {
+  const user = userEvent.setup(); let revoked = false;
+  const file = { id: crypto.randomUUID(), originalName: 'Read-only-private.txt', mediaType: 'text/plain', byteLength: 42, scanState: 'Clean', lifecycle: 'Active', currentRevision: 1, createdAt: '2026-09-01T00:00:00Z', updatedAt: '2026-09-01T00:00:00Z', etag: '"AQIDBAUGBwg="' };
   server.use(
-    http.get('*/api/v1/files', () => HttpResponse.json({ items: [file], nextCursor: null })),
-    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
-    http.post(`*/api/v1/files/${file.id}/trash`, () => {
-      trashCalls += 1;
-      return HttpResponse.json({ code: 'FileAttached', title: 'The file is still referenced by an active resource.' }, { status: 409 });
-    })
+    http.get('*/api/v1/files/capabilities', () => revoked ? HttpResponse.json({ code: 'PermissionDenied', title: 'Current permission revoked.' }, { status: 403 }) : HttpResponse.json({ 'files.file.read': true, 'files.file.upload': false, 'files.file.download': false })),
+    http.get('*/api/v1/files', () => HttpResponse.json({ items: [file], nextCursor: null }))
   );
-
-  renderShell(
-    syntheticProfile({ modules: [{ code: 'FX07', enabled: true, unavailableReason: null }] }),
-    { screen: 'files' }
-  );
-
+  renderShell(syntheticProfile({ modules: [{ code: 'FX07', enabled: true, unavailableReason: null }] }), { screen: 'files' });
   await screen.findByText(file.originalName);
-  const fileCard = screen.getByText(file.originalName).closest('article');
-  expect(fileCard).not.toBeNull();
-  await user.click(within(fileCard as HTMLElement).getByRole('button', { name: 'Trash' }));
-  await user.click(screen.getByRole('button', { name: 'Đưa vào Trash' }));
-
-  await waitFor(() => expect(trashCalls).toBe(1));
-  const dialog = screen.getByRole('dialog', { name: `Đưa “${file.originalName}” vào Trash?` });
-  expect(within(dialog).getByRole('alert')).toHaveTextContent('The file is still referenced by an active resource.');
-  expect(screen.getByText(file.originalName)).toBeInTheDocument();
+  expect(screen.getByLabelText('Chọn file')).toBeDisabled();
+  expect(screen.queryByRole('link', { name: 'Tải xuống' })).not.toBeInTheDocument();
+  revoked = true; await user.click(screen.getByRole('button', { name: 'Tải lại' }));
+  await screen.findByRole('alert'); expect(screen.queryByText(file.originalName)).not.toBeInTheDocument();
 });
 
 test('Files clears the native file input after upload so the same file can be selected again', async () => {
@@ -621,6 +561,7 @@ test('Files clears the native file input after upload so the same file can be se
   );
 
   await screen.findByRole('heading', { name: 'Files & attachments' });
+  await waitFor(() => expect(screen.getByLabelText('Chọn file')).toBeEnabled());
   const input = screen.getByLabelText('Chọn file') as HTMLInputElement;
   await user.upload(input, upload);
   expect(screen.getByText(/Đã chọn: repeatable\.txt/)).toBeInTheDocument();

@@ -1,4 +1,5 @@
 using System.Data;
+using Nexora.Infrastructure.Productivity;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -45,6 +46,8 @@ public sealed class SqlMigrationRunner
                         throw new InvalidOperationException("An applied migration has changed; use a new migration.");
                     continue;
                 }
+                if (name == "20261003_0041_calendar_ics_import.sql")
+                    await CalendarDateMigration.PrepareAsync(connection, cancellationToken);
                 // Repository migrations own their transaction and are idempotent after a crash before journaling.
                 foreach (var batch in Regex.Split(content, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase))
                     if (!string.IsNullOrWhiteSpace(batch)) await Run(batch);

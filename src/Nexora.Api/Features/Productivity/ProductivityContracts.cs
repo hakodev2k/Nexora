@@ -67,7 +67,7 @@ public sealed record EventRequest(
     DateTimeOffset EndAt,
     string TimeZoneId,
     bool IsAllDay = false,
-    string? SourceUid = null);
+    string? SourceUid = null, DateOnly? StartDate = null, DateOnly? EndDateExclusive = null);
 
 public sealed record EventResponse(
     Guid Id,
@@ -83,7 +83,7 @@ public sealed record EventResponse(
     bool IsAllDay = false,
     string? SourceUid = null,
     string SourceKind = "Manual",
-    Guid? TaskId = null);
+    Guid? TaskId = null, DateOnly? StartDate = null, DateOnly? EndDateExclusive = null);
 
 public sealed record ProductivityTransitionRequest(string Status, string? Reason, bool Confirm = false);
 

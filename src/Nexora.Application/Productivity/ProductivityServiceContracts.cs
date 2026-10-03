@@ -76,7 +76,8 @@ public sealed record EventCommand(
     string TimeZoneId,
     bool IsAllDay = false,
     string? SourceUid = null,
-    string? Status = null);
+    string? Status = null,
+    DateOnly? StartDate = null, DateOnly? EndDateExclusive = null);
 
 public sealed record EventRecord(
     Guid Id,
@@ -92,7 +93,7 @@ public sealed record EventRecord(
     bool IsAllDay = false,
     string? SourceUid = null,
     string SourceKind = "Manual",
-    Guid? TaskId = null);
+    Guid? TaskId = null, DateOnly? StartDate = null, DateOnly? EndDateExclusive = null);
 
 public sealed record EventPage(IReadOnlyList<EventRecord> Items, string? NextCursor);
 

@@ -729,7 +729,7 @@ public sealed class SqlApiIntegrationTests
     }
 
     [Fact]
-    public async Task User_file_lifecycle_keeps_active_lists_private_content_and_global_trash_consistent()
+    public async Task User_private_file_subset_keeps_upload_read_download_isolated_and_lifecycle_unavailable()
     {
         _fixture.RequireAvailable();
         await _fixture.SetModuleRuntimeAvailabilityAsync("FX07", enabled: false);
@@ -741,10 +741,8 @@ public sealed class SqlApiIntegrationTests
         Assert.Equal(HttpStatusCode.Conflict, disabledFiles.StatusCode);
         await AssertProblemCodeAsync(disabledFiles, "ModuleUnavailable");
 
-        // FX07 is intentionally fail-closed in the shipped local catalog.
-        // Exercise its real operational path in the generated test database
-        // only, after proving that default. New synthetic users then receive
-        // the normal per-user grant at session creation.
+        // Exercise the installed upload/read/download subset under explicit local policy.
+        // Dormant lifecycle handlers remain unavailable even when FX07 is Ready.
         await _fixture.SetModuleRuntimeAvailabilityAsync("FX07", enabled: true);
         var owner = await _fixture.CreateActiveSessionAsync();
         var otherUser = await _fixture.CreateActiveSessionAsync();
@@ -798,122 +796,34 @@ public sealed class SqlApiIntegrationTests
             otherUser.RawSessionHandle);
         Assert.Equal(HttpStatusCode.NotFound, foreignContent.StatusCode);
 
-        using var renamed = await _fixture.SendJsonAsync(
-            HttpMethod.Patch,
-            $"/api/v1/files/{file.Id}",
-            new { originalName = "renamed-synthetic-lifecycle.txt" },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle,
-            file.ETag);
-        Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
-        var renamedFile = await ReadResourceAsync(renamed);
-
-        using var staleTrash = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            $"/api/v1/files/{file.Id}/trash",
-            new { },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle,
-            file.ETag);
-        Assert.Equal(HttpStatusCode.PreconditionFailed, staleTrash.StatusCode);
-        await AssertProblemCodeAsync(staleTrash, "RevisionConflict");
-
-        using var trashed = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            $"/api/v1/files/{file.Id}/trash",
-            new { },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle,
-            renamedFile.ETag);
-        Assert.Equal(HttpStatusCode.NoContent, trashed.StatusCode);
-
-        using var activeFilesAfterTrash = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            "/api/v1/files",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, activeFilesAfterTrash.StatusCode);
-        await AssertCollectionExcludesIdAsync(activeFilesAfterTrash, "items", file.Id, "id");
-
-        using var unavailableTrashedContent = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            $"/api/v1/files/{file.Id}/content",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.NotFound, unavailableTrashedContent.StatusCode);
-
-        using var firstTrashPage = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            "/api/v1/trash",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, firstTrashPage.StatusCode);
-        var firstBatchId = await ReadTrashBatchAsync(firstTrashPage, file.Id);
-
-        using var restored = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            $"/api/v1/trash/batches/{firstBatchId}/restore",
-            new { },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
-        await AssertIntegerPropertyAsync(restored, "restoredCount", 1);
-
-        using var activeFilesAfterRestore = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            "/api/v1/files",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, activeFilesAfterRestore.StatusCode);
-        await AssertCollectionContainsIdAsync(activeFilesAfterRestore, "items", file.Id, "id");
-
-        using var refreshedFile = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            $"/api/v1/files/{file.Id}",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, refreshedFile.StatusCode);
-        var restoredFile = await ReadResourceAsync(refreshedFile);
-
-        using var retrash = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            $"/api/v1/files/{file.Id}/trash",
-            new { },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle,
-            restoredFile.ETag);
-        Assert.Equal(HttpStatusCode.NoContent, retrash.StatusCode);
-
-        using var secondTrashPage = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            "/api/v1/trash",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.OK, secondTrashPage.StatusCode);
-        var secondBatchId = await ReadTrashBatchAsync(secondTrashPage, file.Id);
-
-        using var purged = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            $"/api/v1/trash/batches/{secondBatchId}/purge",
-            new { confirmation = "PURGE" },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.NoContent, purged.StatusCode);
-
-        using var missingFile = await _fixture.SendAuthenticatedAsync(
-            HttpMethod.Get,
-            $"/api/v1/files/{file.Id}",
-            owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.NotFound, missingFile.StatusCode);
+        // The previous test fixture forced all historical Files handlers on.
+        // With bounded readiness, assert unavailable rather than claim lifecycle acceptance.
+        foreach (var principal in new[] { owner, await _fixture.CreateActiveSessionAsync("SuperAdmin") })
+        {
+            foreach (var operation in new[] { "trash", "restore", "purge" })
+            {
+                using var blocked = await _fixture.SendJsonAsync(HttpMethod.Post,
+                    $"/api/v1/files/{file.Id}/{operation}", new { }, csrf,
+                    Guid.NewGuid(), principal.RawSessionHandle, file.ETag);
+                Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+                await AssertProblemCodeAsync(blocked, "ModuleUnavailable");
+            }
+            using var rename = await _fixture.SendJsonAsync(HttpMethod.Patch,
+                $"/api/v1/files/{file.Id}", new { originalName = "renamed-synthetic.txt" },
+                csrf, Guid.NewGuid(), principal.RawSessionHandle, file.ETag);
+            Assert.Equal(HttpStatusCode.Conflict, rename.StatusCode);
+            using var preview = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+                $"/api/v1/files/{file.Id}/content?inline=true", principal.RawSessionHandle);
+            Assert.Equal(HttpStatusCode.Conflict, preview.StatusCode);
+        }
+        using var retained = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}", owner.RawSessionHandle);
+        Assert.Equal(file.ETag, (await ReadResourceAsync(retained)).ETag);
+        using var activeFiles = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            "/api/v1/files", owner.RawSessionHandle);
+        await AssertCollectionContainsIdAsync(activeFiles, "items", file.Id, "id");
         Assert.Equal(0, await _fixture.ScalarIntAsync(
-            "SELECT COUNT(*) FROM [files].[FileObject] WHERE [OwnerId] = @ownerId AND [Id] = @fileId;",
-            Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId),
-            Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
-
-        var background = await _fixture.ProcessPendingBackgroundWorkAsync();
-        Assert.True(background.FileCleanups >= 1);
-        Assert.Equal(1, await _fixture.ScalarIntAsync(
-            "SELECT COUNT(*) FROM [files].[StorageCleanup] WHERE [OwnerId] = @ownerId AND [FileObjectId] = @fileId AND [State] = 'Completed';",
+            "SELECT COUNT(*) FROM [files].[StorageCleanup] WHERE OwnerId=@ownerId AND FileObjectId=@fileId;",
             Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId),
             Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
 

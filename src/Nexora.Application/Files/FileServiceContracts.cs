@@ -51,6 +51,7 @@ public sealed record FileDownload(Stream Content, string MediaType, string Downl
 
 public interface IFileService
 {
+    IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
     IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null);
     IdentityOperationResult<FileRecord> Get(IdentityPrincipal actor, Guid fileId);
     IdentityOperationResult<FileUploadSessionRecord> InitiateUpload(IdentityPrincipal actor, FileUploadCommand command,

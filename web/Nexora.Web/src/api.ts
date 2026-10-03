@@ -189,6 +189,8 @@ export type CalendarEventRecord = {
   sourceUid: string | null;
   sourceKind: string;
   taskId: string | null;
+  startDate?: string | null;
+  endDateExclusive?: string | null;
 };
 
 export type CalendarEventPage = {
@@ -1287,12 +1289,13 @@ export function createCalendarEvent(
   timeZoneId: string,
   isAllDay = false,
   sourceUid: string | null = null,
-  idempotencyKey = createIdempotencyKey()
+  idempotencyKey = createIdempotencyKey(),
+  dates?: { startDate: string; endDateExclusive: string }
 ) {
   return apiFetch<CalendarEventRecord>('/api/v1/calendar/events', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
-    body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid })
+    body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid, ...dates })
   });
 }
 
@@ -1306,12 +1309,13 @@ export function updateCalendarEvent(
   timeZoneId: string,
   isAllDay = false,
   sourceUid: string | null = null,
-  idempotencyKey = createIdempotencyKey()
+  idempotencyKey = createIdempotencyKey(),
+  dates?: { startDate: string; endDateExclusive: string }
 ) {
   return apiFetch<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid })
+    body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid, ...dates })
   });
 }
 
@@ -1970,6 +1974,8 @@ export function endSupportSession(id: string, etag: string, idempotencyKey = cre
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   });
 }
+
+export function getFileCapabilities() { return apiFetch<Record<string, boolean>>('/api/v1/files/capabilities'); }
 
 export function listFiles(limit = 100) {
   return apiFetch<FilePage>(`/api/v1/files?limit=${encodeURIComponent(limit)}`);

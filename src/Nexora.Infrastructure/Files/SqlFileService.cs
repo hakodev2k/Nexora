@@ -1,4 +1,5 @@
 using System.Data;
+using Nexora.Infrastructure.Transfer;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text;
@@ -28,6 +29,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         ["text/plain"] = new[] { ".txt" },
         ["text/markdown"] = new[] { ".md", ".markdown" },
         ["text/csv"] = new[] { ".csv" },
+        ["text/calendar"] = new[] { ".ics" },
         ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"] = new[] { ".docx" },
         ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"] = new[] { ".xlsx" }
     };
@@ -36,9 +38,11 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
     private readonly string _storageRoot;
+    private readonly IFileRetentionParticipant? _retention;
 
-    public SqlFileService(SqlConnectionFactory connections, string storageRoot, string? idempotencySecret = null)
+    public SqlFileService(SqlConnectionFactory connections, string storageRoot, string? idempotencySecret = null, IFileRetentionParticipant? retention = null)
     {
+        _retention = retention;
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
         _capabilities = new SqlSelfCapability(connections);
@@ -48,13 +52,27 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         Directory.CreateDirectory(Path.Combine(_storageRoot, ".staging"));
     }
 
+    public IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor)
+    {
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var result = new Dictionary<string, bool>(StringComparer.Ordinal);
+        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download" })
+            result[action] = _capabilities.IsAllowed(connection, transaction, actor, "FX07", action);
+        transaction.Commit();
+        return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
+    }
+
     public IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null)
     {
         if (!ModuleAvailable(actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
         var take = Math.Clamp(limit ?? 50, 1, 100);
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle],
                    [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion]
@@ -67,6 +85,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         using var reader = command.ExecuteReader();
         var items = new List<FileRecord>();
         while (reader.Read()) items.Add(ReadFile(reader));
+        reader.Close();
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
+        transaction.Commit();
         return IdentityOperationResult<FilePage>.Success(new FilePage(items, null));
     }
 
@@ -75,7 +96,11 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         if (!ModuleAvailable(actor, "FX07", "files.file.read")) return ModuleUnavailable<FileRecord>();
         using var connection = _connections.Create();
         connection.Open();
-        var file = ReadFile(connection, null, actor.OwnerId, fileId, forUpdate: false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FileRecord>();
+        var file = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FileRecord>();
+        transaction.Commit();
         return file is null ? Missing<FileRecord>() : IdentityOperationResult<FileRecord>.Success(file);
     }
 
@@ -91,6 +116,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) return ModuleUnavailable<FileUploadSessionRecord>();
         var receiptFailure = CheckReceipt<FileUploadSessionRecord>(connection, transaction, actor,
             "files.upload.initiate", idempotencyKey,
             $"name:{safeName}|media:{mediaType}|bytes:{command.ExpectedBytes}", out var receipt);
@@ -115,6 +141,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             transaction.Rollback();
             return PersistenceFailure<FileUploadSessionRecord>();
         }
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) return ModuleUnavailable<FileUploadSessionRecord>();
         CompleteReceipt(connection, transaction, receipt, "UploadSessionCreated");
         transaction.Commit();
         return IdentityOperationResult<FileUploadSessionRecord>.Success(ToResponse(created, rawHandle), 201, "UploadSessionCreated");
@@ -138,6 +165,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
 
         try
         {
+            if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) throw new FileAuthorityLostException();
             var digest = HashHandle(uploadHandle);
             var session = ReadUploadSession(connection, transaction, actor.OwnerId, uploadSessionId, digest, forUpdate: true);
             // Owner, session id, and the one-way upload handle are checked
@@ -172,6 +200,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             {
                 FailUpload(connection, transaction, session.Id, actor.OwnerId, "UploadExpired", 0);
                 CompleteReceipt(connection, transaction, receipt, "UploadRejected");
+                if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) throw new FileAuthorityLostException();
                 transaction.Commit();
                 TryFinalizeStorageCleanup(stagingCleanupId, previousStagePath);
                 return Failure<FileRecord>("UploadExpired", 422, "The upload session has expired.");
@@ -180,6 +209,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             {
                 FailUpload(connection, transaction, session.Id, actor.OwnerId, "ByteLengthMismatch", 0);
                 CompleteReceipt(connection, transaction, receipt, "UploadRejected");
+                if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) throw new FileAuthorityLostException();
                 transaction.Commit();
                 TryFinalizeStorageCleanup(stagingCleanupId, previousStagePath);
                 return Failure<FileRecord>("ByteLengthMismatch", 422, "The upload length does not match the initiated session.");
@@ -209,6 +239,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
                 stagingCleanupId = QueueStorageCleanup(connection, transaction, actor.OwnerId, session.Id, stagingKey, code);
                 FailUpload(connection, transaction, session.Id, actor.OwnerId, code, Math.Min(copied.Bytes, session.ExpectedBytes));
                 CompleteReceipt(connection, transaction, receipt, "UploadRejected");
+                if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) throw new FileAuthorityLostException();
                 transaction.Commit();
                 TryFinalizeStorageCleanup(stagingCleanupId);
                 return Failure<FileRecord>("UploadRejected", 422, "The file failed the local type, size or content safety checks.");
@@ -247,8 +278,15 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
                 return PersistenceFailure<FileRecord>();
             }
             CompleteReceipt(connection, transaction, receipt, "FileCreated");
+            if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.upload")) throw new FileAuthorityLostException();
             transaction.Commit();
             return IdentityOperationResult<FileRecord>.Success(file, 201, "FileCreated");
+        }
+        catch (FileAuthorityLostException)
+        {
+            transaction.Rollback();
+            TryDeleteOwned(stagePath); TryDeleteOwned(finalPath);
+            return ModuleUnavailable<FileRecord>();
         }
         catch (OperationCanceledException)
         {
@@ -413,15 +451,20 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         if (!ModuleAvailable(actor, "FX07", action)) return ModuleUnavailable<FileDownload>();
         using var connection = _connections.Create();
         connection.Open();
-        var file = ReadFileWithStorage(connection, null, actor.OwnerId, fileId, forUpdate: false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", action)) return ModuleUnavailable<FileDownload>();
+        var file = ReadFileWithStorage(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
         if (file is null || file.Value.Record.Lifecycle != "Active" || file.Value.Record.ScanState != "Clean")
             return Missing<FileDownload>();
         var path = ResolveStoragePath(file.Value.StorageKey);
         if (path is null || !File.Exists(path)) return Failure<FileDownload>("StorageUnavailable", 503, "Private file storage is unavailable.");
         try
         {
+            if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", action)) return ModuleUnavailable<FileDownload>();
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.SequentialScan);
+            try { transaction.Commit(); } catch { stream.Dispose(); throw; }
             return IdentityOperationResult<FileDownload>.Success(new FileDownload(
-                new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 64 * 1024, FileOptions.SequentialScan),
+                stream,
                 file.Value.Record.MediaType, file.Value.Record.OriginalName, file.Value.Record.ByteLength));
         }
         catch (IOException)
@@ -677,7 +720,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         safeName = SafeFileName(command.OriginalName) ?? string.Empty;
         mediaType = command.MediaType?.Trim().ToLowerInvariant() ?? string.Empty;
         if (safeName.Length == 0 || safeName.Length > 255 || !AllowedTypes.TryGetValue(mediaType, out var extensions) ||
-            !extensions.Contains(Path.GetExtension(safeName), StringComparer.OrdinalIgnoreCase) || command.ExpectedBytes <= 0 || command.ExpectedBytes > MaxBytes)
+            !extensions.Contains(Path.GetExtension(safeName), StringComparer.OrdinalIgnoreCase) || command.ExpectedBytes <= 0 || command.ExpectedBytes > MaxBytes || (mediaType == "text/calendar" && command.ExpectedBytes > CalendarIcsParser.MaxBytes))
             return Failure<FileUploadSessionRecord>("ValidationFailed", 422, "File name, type or size is invalid.");
         return null;
     }
@@ -734,6 +777,11 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         if (extension is ".jpg" or ".jpeg" && !(headerLength >= 3 && header[0] == 0xff && header[1] == 0xd8 && header[2] == 0xff)) return "JpegSignatureInvalid";
         if (extension == ".webp" && !(StartsWith(header, headerLength, Encoding.ASCII.GetBytes("RIFF")) && headerLength >= 12 && Encoding.ASCII.GetString(header, 8, 4) == "WEBP")) return "WebpSignatureInvalid";
         if (extension is ".docx" or ".xlsx" && !StartsWith(header, headerLength, new byte[] { 0x50, 0x4b, 0x03, 0x04 })) return "OfficeArchiveInvalid";
+        if (mediaType == "text/calendar")
+        {
+            if (input.Length > CalendarIcsParser.MaxBytes) return "FileLimitExceeded";
+            return CalendarIcsParser.Parse(File.ReadAllBytes(path), "UTC").Succeeded ? null : "InvalidCalendar";
+        }
         if (mediaType is "text/plain" or "text/markdown" or "text/csv") return ScanText(path);
         if (extension is ".docx" or ".xlsx") return ScanOfficeArchive(path);
         return null;
@@ -853,14 +901,14 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
 
     private static FileUploadSessionRecord ToResponse(UploadSessionData session, string rawHandle) => new(session.Id, session.ExpectedBytes, session.ReceivedBytes, session.State, session.ExpiresAt, rawHandle, session.ETag);
 
-    private static bool HasReferences(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid fileId)
+    private bool HasReferences(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid fileId)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = "SELECT CASE WHEN EXISTS (SELECT 1 FROM [files].[FileReference] WHERE [OwnerId] = @OwnerId AND [FileObjectId] = @FileId) THEN 1 ELSE 0 END;";
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@FileId", SqlDbType.UniqueIdentifier, fileId);
-        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1;
+        return Convert.ToInt32(command.ExecuteScalar() ?? 0) == 1 || _retention is null || _retention.IsRetained(connection, transaction, ownerId, fileId);
     }
 
     private static bool TrashBatchExists(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid fileId, Guid? deletionBatchId)
@@ -920,6 +968,8 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         Execute(connection, transaction, "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @OwnerUser, @Action, N'files.FileObject', @Target, 'Succeeded', @TraceId);",
             ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@OwnerUser", SqlDbType.UniqueIdentifier, (object)actor.UserId),
             ("@Action", SqlDbType.NVarChar, (object)action), ("@Target", SqlDbType.UniqueIdentifier, (object)targetId), ("@TraceId", SqlDbType.NVarChar, (object?)traceId ?? DBNull.Value));
+
+    private sealed class FileAuthorityLostException : Exception { }
 
     private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) => _capabilities.IsAllowed(actor, moduleCode, actionKeys);
 
