@@ -895,6 +895,17 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return (await response.json()) as T;
 }
 
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  let response: Response;
+  try { response = await fetch(path, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'text/calendar' } }); }
+  catch { throw new NexoraApiError('Không thể kết nối Nexora API local.', 0, 'NetworkUnavailable'); }
+  if (!response.ok) throw await toApiError(response);
+  const rotatedCsrf = response.headers.get('X-CSRF-Token'); if (rotatedCsrf) csrfToken = rotatedCsrf;
+  const blob = await response.blob();
+  if (blob.size > 1048576 || !blob.type.toLowerCase().startsWith('text/calendar')) throw new NexoraApiError('File ICS trả về không hợp lệ.', 0, 'ArtifactUnavailable');
+  return blob;
+}
+
 async function toApiError(response: Response): Promise<NexoraApiError> {
   const fallback = messageForStatus(response.status);
   const contentType = response.headers.get('Content-Type') ?? '';
@@ -2049,4 +2060,3 @@ export function purgeFile(id: string, etag: string, idempotencyKey = createIdemp
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   });
 }
-

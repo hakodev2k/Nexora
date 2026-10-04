@@ -35,12 +35,12 @@ internal sealed class SqlImportAuthority(SqlConnectionFactory connections,TimePr
         SqlImportUnit.Add(command,"@Id",SqlDbType.UniqueIdentifier,id);
         if(command.ExecuteNonQuery()!=1)throw new InvalidOperationException("Calendar resource contribution is unavailable.");return id;
     }
-    internal void Audit(SqlImportUnit unit,Guid id,string action,string? trace)
+    internal void Audit(SqlImportUnit unit,Guid id,string action,string? trace,string targetType="ImportBatch")
     {
         using var command=unit.Command("""
             INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result,TraceId)
-            VALUES(@User,@User,@Action,N'ImportBatch',@Id,'Succeeded',@Trace);
+            VALUES(@User,@User,@Action,@TargetType,@Id,'Succeeded',@Trace);
             """);
-        SqlImportUnit.Add(command,"@Id",SqlDbType.UniqueIdentifier,id);SqlImportUnit.Add(command,"@Action",SqlDbType.NVarChar,action,160);SqlImportUnit.Add(command,"@Trace",SqlDbType.NVarChar,trace,100);command.ExecuteNonQuery();
+        SqlImportUnit.Add(command,"@Id",SqlDbType.UniqueIdentifier,id);SqlImportUnit.Add(command,"@Action",SqlDbType.NVarChar,action,160);SqlImportUnit.Add(command,"@Trace",SqlDbType.NVarChar,trace,100);SqlImportUnit.Add(command,"@TargetType",SqlDbType.NVarChar,targetType,100);command.ExecuteNonQuery();
     }
 }

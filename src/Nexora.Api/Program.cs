@@ -253,6 +253,7 @@ builder.Services.AddSingleton<IWishlistService>(s => new SqlWishlistService(s.Ge
 builder.Services.AddSingleton<IPersonalAssetService>(s => new SqlPersonalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ICalendarImportService>(s => new SqlCalendarImportService(s.GetRequiredService<SqlConnectionFactory>(), s.GetRequiredService<IFileService>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<ICalendarExportService>(s => new SqlCalendarExportService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
@@ -319,6 +320,7 @@ app.MapPersonalAssetEndpoints();
 app.MapDigitalAssetEndpoints();
 app.MapCareerEndpoints();
 app.MapCalendarImportEndpoints();
+app.MapCalendarExportEndpoints();
 app.MapSkillEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();

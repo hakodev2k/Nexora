@@ -2003,3 +2003,9 @@ progress::-moz-progress-bar {
 
 .calendar-import-form { min-width: 0; overflow-wrap: anywhere; }
 .calendar-import-form input[type="file"] { min-width: 0; max-width: 100%; width: 100%; }
+.calendar-export-form, .calendar-export-form fieldset { min-width: 0; overflow-wrap: anywhere; }
+.calendar-export-form fieldset { display: grid; gap: .5rem; }
+.calendar-export-form fieldset label { display: flex; align-items: center; gap: .5rem; }
+.calendar-export-form input[type="checkbox"] { width: auto; flex: 0 0 auto; }
+.calendar-export-form input[type="date"], .calendar-export-form select { min-width: 0; max-width: 100%; width: 100%; }
+.calendar-export-screen p { overflow-wrap: anywhere; }

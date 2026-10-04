@@ -40,6 +40,12 @@
           "Microsoft.Extensions.Options": "10.0.11"
         }
       },
+      "NodaTime": {
+        "type": "Direct",
+        "requested": "[3.3.3, )",
+        "resolved": "3.3.3",
+        "contentHash": "EwouHZv99j5hraq34yQqvCQGDR59dynxPHlxFm2vY/sw2N2aR8cFel29ZxPqohjBWp9Qsnld7QCY+7uZ2PESGg=="
+      },
       "Azure.Core": {
         "type": "Transitive",
         "resolved": "1.50.0",

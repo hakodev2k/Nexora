@@ -1,12 +1,12 @@
 # Current target action reconciliation
 
-Authority: main `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3` catalog.csv, current effective implementation overlay and owner decisions. Implementation: PR4 `impl/m01-s00-scaffold`, base `b04643ac6612e3424e15fd9cf1bfa9cab0c4dc28` plus the reviewed ICS/Files batch in this commit. Machine ledgers: `target-action-matrix.csv` and `.json`; these cover all 386 main catalog rows in the requested eighteen modules. Current local user authorization is recorded separately from source gates; a catalog `CurrentScope=false` flag alone is not retirement or blanket pause.
+Authority: main `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3` catalog.csv, current effective implementation overlay and owner decisions. Implementation: PR4 `impl/m01-s00-scaffold`, base `4da80f588962a8b906a91d3a5089a6cdf487f7d9` plus the reviewed Calendar ICS export batch in this commit. Machine ledgers: `target-action-matrix.csv` and `.json`; these cover all 386 main catalog rows in the requested eighteen modules. Current local user authorization is recorded separately from source gates; a catalog `CurrentScope=false` flag alone is not retirement or blanket pause.
 
 | Disposition | Rows | Meaning |
 | --- | ---: | --- |
-| Installed subset with focused evidence | 89 | Time12, Focus7, Wishlist9, Skills9, Courses12, Assets10, Digital11, Career12, ICS transfer4, Files source3 (Calendar ICS2 is outside this target inventory). Actual contracts/source/test artifacts apply only to documented fields/states; remaining semantic/dependency/UI gaps remain open. |
+| Installed subset with focused evidence | 92 | Time12, Focus7, Wishlist9, Skills9, Courses12, Assets10, Digital11, Career12, ICS transfer7, Files source3 (Calendar ICS3 is outside this target inventory). Actual contracts/source/test artifacts apply only to documented fields/states; remaining semantic/dependency/UI gaps remain open. |
 | Source candidate, review pending | 19 | Literal key exists in API/infrastructure source. This is not proof of an active handler, correct guard, persistence or complete behavior. Sharing/Support and dormant Files actions fall here or in missing rows; they still need concrete installed contracts and evidence. |
-| Missing implementation | 210 | No registered installed subset and no literal candidate detected; named source/reference/crypto/network/operations gates are retained separately. Missing code alone is not called a PO blocker. |
+| Missing implementation | 207 | No registered installed subset and no literal candidate detected; named source/reference/crypto/network/operations gates are retained separately. Missing code alone is not called a PO blocker. |
 | Preserved paused | 59 | FX30/34/35 remain explicitly paused by current main decisions. No implementation/grant/default activation. |
 | Excluded retired | 9 | Three Vault owner recovery/purge/version-restore and six standalone Career interview keys remain superseded. |
 

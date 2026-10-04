@@ -552,13 +552,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S03",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "BoundedCalendarIcsOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Transfer/SqlCalendarExportService.cs",
+      "installedBinding": "calendar-ics-export-contract.md; CalendarExportEndpoints; SqlCalendarExportService",
+      "focusedEvidence": "calendar-ics-export-evidence.md; calendar-ics-export-browser-evidence.json; calendar-ics-export-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded local Calendar ICS Manual/Task only. Other formats/operational backup remain incomplete. Exact source-current authorization and artifact expiry apply; full acceptance false."
     },
     {
       "module": "FX-10",
@@ -570,13 +570,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S04",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "BoundedCalendarIcsOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Transfer/SqlCalendarExportService.cs",
+      "installedBinding": "calendar-ics-export-contract.md; CalendarExportEndpoints; SqlCalendarExportService",
+      "focusedEvidence": "calendar-ics-export-evidence.md; calendar-ics-export-browser-evidence.json; calendar-ics-export-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded local Calendar ICS Manual/Task only. Other formats/operational backup remain incomplete. Exact source-current authorization and artifact expiry apply; full acceptance false."
     },
     {
       "module": "FX-10",
@@ -588,13 +588,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX10-S04",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "BoundedCalendarIcsOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Transfer/SqlCalendarExportService.cs",
+      "installedBinding": "calendar-ics-export-contract.md; CalendarExportEndpoints; SqlCalendarExportService",
+      "focusedEvidence": "calendar-ics-export-evidence.md; calendar-ics-export-browser-evidence.json; calendar-ics-export-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded local Calendar ICS Manual/Task only. Other formats/operational backup remain incomplete. Exact source-current authorization and artifact expiry apply; full acceptance false."
     },
     {
       "module": "FX-10",
@@ -6952,6 +6952,6 @@
     }
   ],
   "mainRevision": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
-  "implementationBaseRevision": "b04643ac6612e3424e15fd9cf1bfa9cab0c4dc28",
-  "includedBatch": "Reviewed bounded Calendar ICS import and private Files source subset in this commit"
+  "implementationBaseRevision": "4da80f588962a8b906a91d3a5089a6cdf487f7d9",
+  "includedBatch": "Reviewed Calendar ICS import/Files + Calendar ICS export focused subset"
 }

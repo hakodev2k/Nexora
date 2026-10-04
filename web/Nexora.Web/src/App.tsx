@@ -1,4 +1,4 @@
-import { CalendarImportScreen } from './CalendarImportScreen';
+import { CalendarTransferScreen } from './CalendarTransferScreen';
 import { CareerScreen } from './CareerScreen';
 import { DigitalAssetScreen } from './DigitalAssetScreen';
 import { AssetScreen } from './PersonalAssetScreen';
@@ -3403,6 +3403,7 @@ function ProductivityScreen({
         {canTasks && <button className={moduleCode === 'FX12' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX12'} onClick={() => navigate('module', 'FX12')}>Tasks</button>}
         {canCalendar && <button className={moduleCode === 'FX13' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX13'} onClick={() => navigate('module', 'FX13')}>Calendar</button>}
       </div>
+      {moduleCode === 'FX13' && profile.modules.some(item => item.code === 'FX10' && item.enabled) && <button className="secondary-button" type="button" disabled={busy !== null} onClick={() => navigate('module', 'FX10')}>ICS Import / Export</button>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}{error.status === 412 && ' Hãy tải lại revision rồi áp dụng lại thay đổi.'}</Notice>}
       {timeWarning && <ActionDialog title={timeWarning.title} description={timeWarning.description} confirmLabel={timeWarning.confirmLabel} tone="primary" onConfirm={timeWarning.retry} onClose={() => setTimeWarning(null)} />}
 
@@ -5329,7 +5330,7 @@ function ModuleScreen({
   }
 
   const normalizedCode = module.code.toUpperCase();
-  if (module.enabled && normalizedCode === 'FX10') return <CalendarImportScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX10') return <CalendarTransferScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX39') return <CareerScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;

@@ -183,7 +183,7 @@ public sealed class SqlCalendarImportTests(SqlApiFixture fixture)
         {
             using(var create=new SqlCommand($"CREATE DATABASE [{name}]",control))await create.ExecuteNonQueryAsync();created=true;
             var runner=new SqlMigrationRunner();var directory=Path.Combine(AppContext.BaseDirectory,"migrations");
-            await runner.ApplyAsync(target.ConnectionString,directory,M01MigrationManifest.RequiredFileNames.Take(M01MigrationManifest.RequiredFileNames.Count-1).ToArray());
+            await runner.ApplyAsync(target.ConnectionString,directory,M01MigrationManifest.RequiredFileNames.TakeWhile(name=>name!="20261003_0041_calendar_ics_import.sql").ToArray());
             await using var connection=new SqlConnection(target.ConnectionString);await connection.OpenAsync();var owner=Guid.NewGuid();var user=Guid.NewGuid();var first=Guid.NewGuid();var second=Guid.NewGuid();
             using(var seed=new SqlCommand("""
                 INSERT [identity].[User](Id,Email,NormalizedEmail,PasswordHash,SecurityStamp,State,EmailConfirmed,IsDeleted,DisplayName,TimeZoneId,Locale)

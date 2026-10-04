@@ -57,7 +57,8 @@ public sealed class M01PolicyAndCaptureContractTests
             "20261003_0038_personal_assets_local.sql",
             "20261003_0039_digital_assets_local.sql",
             "20261003_0040_career_manual.sql",
-            "20261003_0041_calendar_ics_import.sql"
+            "20261003_0041_calendar_ics_import.sql",
+            "20261004_0042_calendar_ics_export.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);

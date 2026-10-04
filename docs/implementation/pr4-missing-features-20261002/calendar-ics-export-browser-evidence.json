@@ -1,0 +1,52 @@
+{
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "baseHead": "4da80f588962a8b906a91d3a5089a6cdf487f7d9",
+  "sourceBinding": "calendar-ics-export-source-hashes.json",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts calendar-export.spec.ts --max-failures=1",
+  "stats": {
+    "startTime": "2026-10-04T06:57:52.143Z",
+    "duration": 62543.117,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "projects": [
+    {
+      "project": "desktop-large",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "desktop",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "tablet",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile-small",
+      "status": "expected",
+      "attempts": 1
+    }
+  ],
+  "viewports": [
+    "1920x1080",
+    "1366x768",
+    "768x1024",
+    "390x844",
+    "320x568"
+  ],
+  "normalLoginPacingMs": 6500,
+  "workers": 1,
+  "dataPreserved": true,
+  "privacy": "No raw traces, download bytes, credentials, session tokens, accounts, SQL connection or screenshots included."
+}
