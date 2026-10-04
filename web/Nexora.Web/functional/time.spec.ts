@@ -1,6 +1,14 @@
 import { test, expect, sql, card, confirm, unique, sqlTimeReportSeries, api } from './fixtures';
 import { moduleApi, response, enableForTest } from './time-focus-helpers';
 import type { Page } from '@playwright/test';
+async function selectTimeTrash(page: Page, trash: boolean) {
+  const toggle = page.getByLabel('Thùng rác', { exact: true });
+  if (await toggle.isChecked() !== trash) {
+    const loaded = page.waitForResponse(r => r.request().method() === 'GET' && new URL(r.url()).pathname === '/api/v1/time/entries' && new URL(r.url()).searchParams.get('trash') === String(trash) && !new URL(r.url()).searchParams.has('cursor'));
+    await toggle.setChecked(trash); await loaded;
+  }
+  await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled();
+}
 async function showTimeCard(page: Page, name: string) {
   for (let n = 0; n < 100; n++) {
     const next = page.getByRole('button', { name: 'Load more entries', exact: true });
@@ -50,7 +58,7 @@ test('FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, 
     await page.reload(); await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited'); const row = card(page, name + '-edited');
     await row.getByRole('button', { name: 'Trash', exact: true }).click(); await page.getByRole('dialog').getByRole('button', { name: 'Hủy', exact: true }).click(); expect(sql('TimeEntry', entry.id)[0].Status).toBe('Stopped');
     await row.getByRole('button', { name: 'Trash', exact: true }).click(); await confirm(page, 'Trash'); await expect.poll(() => sql('TimeEntry', entry.id)[0].Status).toBe('Trash');
-    await page.getByLabel('Thùng rác', { exact: true }).check(); await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited'); await row.getByRole('button', { name: 'Restore', exact: true }).click(); await confirm(page, 'Restore'); expect(sql('TimeEntry', entry.id)[0].Status).toBe('Stopped');
+    await selectTimeTrash(page, true); await showTimeCard(page, name + '-edited'); await row.getByRole('button', { name: 'Restore', exact: true }).click(); await confirm(page, 'Restore'); expect(sql('TimeEntry', entry.id)[0].Status).toBe('Stopped');
     const snapshot = sql('TimeEntry', entry.id); const access = await api(enabled.admin, 'getAdminUserAccess', [enabled.me.id]); const focusGrant = access.moduleGrants.find((g: any) => g.code === 'FX19');
     const setFocusGrant = async (value: boolean) => { const changes = [{ moduleId: focusGrant.moduleId, enabled: value }]; const preview = await api(enabled.admin, 'previewAdminAccess', [enabled.me.id, { kind: 'modules', changes }]); expect(preview.blockers).toEqual([]); await api(enabled.admin, 'commitAdminModuleGrant', [enabled.me.id, preview.etag, changes, preview.previewToken]); };
     if (!focusGrant.enabled) await setFocusGrant(true);
@@ -59,10 +67,10 @@ test('FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, 
     await enabled.set(true); expect((await api(enabled.admin, 'getAdminUserAccess', [enabled.me.id])).moduleGrants.find((g: any) => g.code === 'FX19').enabled).toBe(true);
     if (!focusGrant.enabled) await setFocusGrant(false);
     // Purge this workflow's own fixture through the normal Trash preview/dialog.
-    await page.reload(); await page.getByLabel('Thùng rác', { exact: true }).uncheck();
+    await page.reload(); await selectTimeTrash(page, false);
     await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited');
     await row.getByRole('button', { name: 'Trash', exact: true }).click(); await confirm(page, 'Trash');
-    await page.getByLabel('Thùng rác', { exact: true }).check();
+    await selectTimeTrash(page, true);
     await expect(page.getByRole('button', { name: 'Tải lại', exact: true })).toBeEnabled(); await showTimeCard(page, name + '-edited');
     await row.getByRole('button', { name: 'Delete permanently', exact: true }).click();
     await expect(page.getByRole('dialog')).toContainText(entry.id);
