@@ -602,6 +602,7 @@ export type AdminModuleRecord = {
   state: string;
   systemEnabled: boolean;
   registrationEnabled: boolean;
+  sharingEnabled: boolean;
   policyRevision: string;
   etag: string;
   requiredDependencies: string[];
@@ -617,6 +618,8 @@ export type ModulePolicyPreview = {
   etag: string;
   changes: { field: string; before: string; after: string }[];
   blockers: { code: string; message: string; field: string | null }[];
+  affectedSharingLinks: number;
+  affectedUsers: number;
 };
 
 export type ShareLinkRecord = {
@@ -642,12 +645,12 @@ export type SharedTask = {
   title: string;
   description: string | null;
   status: string;
-  dueAt: string | null;
   startAt: string;
   endAt: string;
   priority: string | null;
   tagsJson: string;
   isOverdue: boolean;
+  acceptanceCriteriaJson: string | null;
 };
 
 export type SharedResource = {
@@ -1897,13 +1900,13 @@ export function listAdminModules() {
   return apiFetch<AdminModulePage>('/api/v1/admin/modules/?limit=100');
 }
 
-export function previewModulePolicy(moduleId: string, change: { systemEnabled?: boolean; registrationEnabled?: boolean }) {
+export function previewModulePolicy(moduleId: string, change: { systemEnabled?: boolean; registrationEnabled?: boolean; sharingEnabled?: boolean }) {
   return apiFetch<ModulePolicyPreview>(`/api/v1/admin/modules/${encodeURIComponent(moduleId)}/preview`, {
     method: 'POST', headers: jsonMutationHeaders(), body: JSON.stringify(change)
   });
 }
 
-export function commitModulePolicy(moduleId: string, etag: string, change: { systemEnabled?: boolean; registrationEnabled?: boolean }, previewToken: string, idempotencyKey = createIdempotencyKey()) {
+export function commitModulePolicy(moduleId: string, etag: string, change: { systemEnabled?: boolean; registrationEnabled?: boolean; sharingEnabled?: boolean }, previewToken: string, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<AdminModuleRecord>(`/api/v1/admin/modules/${encodeURIComponent(moduleId)}/policy`, {
     method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ ...change, previewToken })
   });

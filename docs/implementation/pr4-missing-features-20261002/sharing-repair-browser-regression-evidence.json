@@ -1,0 +1,105 @@
+{
+  "baseHead": "30e27b29d746264b3c499f579de36d3adefc8392",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "finalSourceBinding": "sharing-repair-source-hashes.json",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts --max-failures=1",
+  "stats": {
+    "expected": 260,
+    "unexpected": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "duration": 1656215.2480000001
+  },
+  "projects": {
+    "desktop": {
+      "expected": 52
+    },
+    "desktop-large": {
+      "expected": 52
+    },
+    "mobile": {
+      "expected": 52
+    },
+    "mobile-small": {
+      "expected": 52
+    },
+    "tablet": {
+      "expected": 52
+    }
+  },
+  "files": {
+    "calendar-export.spec.ts": {
+      "expected": 5
+    },
+    "calendar-import.spec.ts": {
+      "expected": 5
+    },
+    "career.spec.ts": {
+      "expected": 5
+    },
+    "content.spec.ts": {
+      "expected": 30
+    },
+    "courses.spec.ts": {
+      "expected": 5
+    },
+    "digital-assets.spec.ts": {
+      "expected": 5
+    },
+    "discovery.spec.ts": {
+      "expected": 10
+    },
+    "focus.spec.ts": {
+      "expected": 5
+    },
+    "personal-assets.spec.ts": {
+      "expected": 5
+    },
+    "platform.spec.ts": {
+      "expected": 25
+    },
+    "remaining.spec.ts": {
+      "expected": 10
+    },
+    "resources.spec.ts": {
+      "expected": 60
+    },
+    "security.spec.ts": {
+      "expected": 5
+    },
+    "settings.spec.ts": {
+      "expected": 15
+    },
+    "sharing-repair.spec.ts": {
+      "expected": 5
+    },
+    "skills.spec.ts": {
+      "expected": 5
+    },
+    "time-access.spec.ts": {
+      "expected": 5
+    },
+    "time.spec.ts": {
+      "expected": 5
+    },
+    "toolbox.spec.ts": {
+      "expected": 45
+    },
+    "wishlist.spec.ts": {
+      "expected": 5
+    }
+  },
+  "assertion": "260 expected; zero unexpected/skipped/flaky; one attempt each; zero report errors",
+  "workers": 1,
+  "normalLoginPacingMs": 6500,
+  "viewports": [
+    "1920x1080",
+    "1366x768",
+    "768x1024",
+    "390x844",
+    "320x568"
+  ],
+  "dataPreserved": true,
+  "review": "Independent bounded Sharing authority/policy/migration/backup review PASS; test-only response helper matches existing one pre-handler CSRF refresh retaining UUID/body/ETag. Reviewers ran no tests.",
+  "privacy": "Aggregate statuses/source binding only; no raw tokens/hash values/credentials/accounts/cookies/SQL connection/traces/screenshots."
+}

@@ -96,6 +96,9 @@ using Nexora.Infrastructure.Trash;
 using Nexora.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+// Default request-start/finish logs include the path, which may hold a share
+// capability. Keep those framework diagnostics free of plaintext tokens.
+builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting.Diagnostics", LogLevel.Warning);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {

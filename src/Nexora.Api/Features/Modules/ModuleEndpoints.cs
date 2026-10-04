@@ -20,12 +20,12 @@ public static class ModuleEndpoints
 
         modules.MapPost("/{moduleId:guid}/preview", (HttpContext context, Guid moduleId, ModulePolicyChangeRequest request, IModulePolicyService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.Preview(moduleId, new ModulePolicyChange(request.SystemEnabled, request.RegistrationEnabled), principal), ToResponse))
+                service.Preview(moduleId, new ModulePolicyChange(request.SystemEnabled, request.RegistrationEnabled, request.SharingEnabled), principal), ToResponse))
             .WithName("previewModule");
 
         modules.MapPut("/{moduleId:guid}/policy", (HttpContext context, Guid moduleId, ModulePolicyCommitRequest request, IModulePolicyService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.Commit(moduleId, context.Request.Headers.IfMatch.ToString(), new ModulePolicyCommit(new ModulePolicyChange(request.SystemEnabled, request.RegistrationEnabled), request.PreviewToken), principal, context.Request.Headers["Idempotency-Key"].ToString(), context.TraceIdentifier), ToResponse))
+                service.Commit(moduleId, context.Request.Headers.IfMatch.ToString(), new ModulePolicyCommit(new ModulePolicyChange(request.SystemEnabled, request.RegistrationEnabled, request.SharingEnabled), request.PreviewToken), principal, context.Request.Headers["Idempotency-Key"].ToString(), context.TraceIdentifier), ToResponse))
             .WithName("setModulePolicy");
 
         return app;
@@ -61,12 +61,15 @@ public static class ModuleEndpoints
         value.ETag,
         value.RequiredDependencies,
         value.RequiredBy,
-        value.UnavailableReason);
+        value.UnavailableReason,
+        value.SharingEnabled);
 
     private static ModulePolicyPreviewResponse ToResponse(ModulePolicyPreview value) => new(
         value.PreviewToken,
         value.ExpiresAt,
         value.ETag,
         value.Changes.Select(change => new ModuleChangeDiff(change.Field, change.Before, change.After)).ToArray(),
-        value.Blockers.Select(blocker => new ModulePolicyBlocker(blocker.Code, blocker.Message, blocker.Field)).ToArray());
+        value.Blockers.Select(blocker => new ModulePolicyBlocker(blocker.Code, blocker.Message, blocker.Field)).ToArray(),
+        value.AffectedSharingLinks,
+        value.AffectedUsers);
 }

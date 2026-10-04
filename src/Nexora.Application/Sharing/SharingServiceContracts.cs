@@ -38,12 +38,12 @@ public sealed record SharedTaskProjection(
     string Title,
     string? Description,
     string Status,
-    DateTimeOffset? DueAt,
     DateTimeOffset StartAt,
     DateTimeOffset EndAt,
-    string Priority,
+    string? Priority,
     string TagsJson,
-    bool IsOverdue);
+    bool IsOverdue,
+    string? AcceptanceCriteriaJson = null);
 
 public sealed record SharedProjectProjection(
     Guid Id,

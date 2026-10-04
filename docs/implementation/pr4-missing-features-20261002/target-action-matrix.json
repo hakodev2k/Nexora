@@ -12,13 +12,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX04-S01;FX04-S02",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Sharing\\SqlSharingService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "installedBinding": "sharing-authority-policy-repair-contract.md; SqlSharingService/source-owned Project/Document projection; migrations0043/0044",
+      "focusedEvidence": "sharing-repair-evidence.md; sharing-repair-browser-evidence.json; sharing-repair-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded authority/policy/projection repair only. Owner list real paging, creation disclosure preview, full owner update/copy/lost-ACK workflows remain incomplete; no full action acceptance."
     },
     {
       "module": "FX-04",
@@ -30,13 +30,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX04-S01",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Sharing\\SqlSharingService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "installedBinding": "sharing-authority-policy-repair-contract.md; SqlSharingService/source-owned Project/Document projection; migrations0043/0044",
+      "focusedEvidence": "sharing-repair-evidence.md; sharing-repair-browser-evidence.json; sharing-repair-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded authority/policy/projection repair only. Owner list real paging, creation disclosure preview, full owner update/copy/lost-ACK workflows remain incomplete; no full action acceptance."
     },
     {
       "module": "FX-04",
@@ -48,13 +48,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX04-S01",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Sharing\\SqlSharingService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "installedBinding": "sharing-authority-policy-repair-contract.md; SqlSharingService/source-owned Project/Document projection; migrations0043/0044",
+      "focusedEvidence": "sharing-repair-evidence.md; sharing-repair-browser-evidence.json; sharing-repair-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded authority/policy/projection repair only. Owner list real paging, creation disclosure preview, full owner update/copy/lost-ACK workflows remain incomplete; no full action acceptance."
     },
     {
       "module": "FX-04",
@@ -66,13 +66,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX04-S02",
-      "disposition": "SourceCandidateReviewPending",
-      "effectiveGate": "ContractPending",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
       "handlerCandidateFiles": "src/Nexora.Infrastructure\\Sharing\\SqlSharingService.cs",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "installedBinding": "sharing-authority-policy-repair-contract.md; SqlSharingService/source-owned Project/Document projection; migrations0043/0044",
+      "focusedEvidence": "sharing-repair-evidence.md; sharing-repair-browser-evidence.json; sharing-repair-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded authority/policy/projection repair only. Owner list real paging, creation disclosure preview, full owner update/copy/lost-ACK workflows remain incomplete; no full action acceptance."
     },
     {
       "module": "FX-04",
@@ -84,13 +84,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX04-S03;FX04-S04",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
       "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "installedBinding": "sharing-authority-policy-repair-contract.md; SqlSharingService/source-owned Project/Document projection; migrations0043/0044",
+      "focusedEvidence": "sharing-repair-evidence.md; sharing-repair-browser-evidence.json; sharing-repair-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded authority/policy/projection repair only. Owner list real paging, creation disclosure preview, full owner update/copy/lost-ACK workflows remain incomplete; no full action acceptance."
     },
     {
       "module": "FX-04",

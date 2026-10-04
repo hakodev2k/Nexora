@@ -8,6 +8,8 @@ using Nexora.Application.Sharing;
 using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
+using Nexora.Infrastructure.Productivity;
+using Nexora.Infrastructure.Documents;
 
 namespace Nexora.Infrastructure.Sharing;
 
@@ -32,38 +34,56 @@ public sealed class SqlSharingService : ISharingService
 
     public IdentityOperationResult<ShareLinkPage> List(IdentityPrincipal actor, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX04", "sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();
-        var take = Math.Clamp(limit ?? 50, 1, 100);
-        using var connection = _connections.Create();
-        connection.Open();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT TOP (@Limit) sl.[Id], sl.[ResourceType], sl.[ResourceId], sl.[Mode],
-                   sl.[ExpiresAt], sl.[RevokedAt], sl.[ProjectionVersion], sl.[CreatedAt],
-                   sl.[UpdatedAt], sl.[RowVersion],
-                   CASE WHEN sl.[RevokedAt] IS NULL
-                              AND (sl.[ExpiresAt] IS NULL OR sl.[ExpiresAt] > SYSUTCDATETIME())
-                              AND sl.[IssuedSharingEpoch] = m.[SharingEpoch]
-                        THEN CONVERT(bit, 1) ELSE CONVERT(bit, 0) END AS [IsActive]
-            FROM [security].[ShareLink] sl
-            INNER JOIN [platform].[Module] m ON m.[Code] = 'FX04'
-            WHERE sl.[OwnerId] = @OwnerId AND sl.[IsDeleted] = 0
-            ORDER BY sl.[UpdatedAt] DESC, sl.[Id] DESC;
-            """;
-        Add(command, "@Limit", SqlDbType.Int, take);
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        var links = new List<ShareLinkRecord>();
-        using (var reader = command.ExecuteReader())
+        if (!ModuleAvailable(actor,"FX04","sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();
+        var take=Math.Clamp(limit ?? 50,1,100);
+        using var connection=_connections.Create(); connection.Open();
+        if (!SqlCurrentActor.IsLive(connection,null,actor)) return ModuleUnavailable<ShareLinkPage>();
+        var advisory=ReadListAdvisories(connection,actor.OwnerId,take);
+        using var transaction=connection.BeginTransaction(IsolationLevel.Serializable);
+        var module=ReadSharingModule(connection,transaction,forUpdate:false);
+        if (!SqlCurrentActor.IsLive(connection,transaction,actor) || module is null || !module.Value.Available ||
+            !ModuleAvailable(connection,transaction,actor,"FX04","sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();
+        var eligible=new Dictionary<Guid,ShareLinkAdvisory>();
+        // Source locks precede every definitive link lock, matching source-delete triggers.
+        foreach(var candidate in advisory.OrderBy(item=>item.ResourceType,StringComparer.Ordinal).ThenBy(item=>item.ResourceId))
+            if (OwnerSourceAllowed(connection,transaction,actor,candidate.ResourceType,candidate.ResourceId,creating:false))
+                eligible[candidate.Id]=candidate;
+        var links=new List<ShareLinkRecord>();
+        if (eligible.Count!=0)
         {
-            while (reader.Read()) links.Add(ReadLink(reader));
+            using var command=connection.CreateCommand();command.Transaction=transaction;
+            var parameters=eligible.Keys.Select((id,index)=>{var name="@Link"+index;Add(command,name,SqlDbType.UniqueIdentifier,id);return name;}).ToArray();
+            command.CommandText=$"""
+                SELECT sl.Id,sl.ResourceType,sl.ResourceId,sl.Mode,sl.ExpiresAt,sl.RevokedAt,
+                       sl.ProjectionVersion,sl.CreatedAt,sl.UpdatedAt,sl.RowVersion,
+                       CASE WHEN sl.RevokedAt IS NULL AND (sl.ExpiresAt IS NULL OR sl.ExpiresAt>SYSUTCDATETIME()) THEN CONVERT(bit,1) ELSE CONVERT(bit,0) END
+                FROM [security].[ShareLink] sl JOIN [platform].[Module] m ON m.Code='FX04'
+                WHERE sl.OwnerId=@Owner AND sl.IsDeleted=0 AND sl.IssuedSharingEpoch=m.SharingEpoch
+                  AND sl.Id IN({string.Join(',',parameters)}) ORDER BY sl.UpdatedAt DESC,sl.Id DESC;
+                """;
+            Add(command,"@Owner",SqlDbType.UniqueIdentifier,actor.OwnerId);
+            using var reader=command.ExecuteReader();
+            while(reader.Read())
+            {
+                var link=ReadLink(reader);var candidate=eligible[link.Id];
+                if(link.ResourceType==candidate.ResourceType && link.ResourceId==candidate.ResourceId)links.Add(link);
+            }
         }
+        var allowed=ReadAllowedUsers(connection,transaction,actor.OwnerId,links.Select(link=>link.Id).ToArray());
+        links=links.Select(link=>link with {AllowedUserIds=allowed.TryGetValue(link.Id,out var users)?users:Array.Empty<Guid>()}).ToList();
+        if (!SqlCurrentActor.IsLive(connection,transaction,actor)) return ModuleUnavailable<ShareLinkPage>();
+        transaction.Commit();return IdentityOperationResult<ShareLinkPage>.Success(new(links,null));
+    }
 
-        var allowed = ReadAllowedUsers(connection, null, actor.OwnerId, links.Select(link => link.Id).ToArray());
-        links = links.Select(link => link with
-        {
-            AllowedUserIds = allowed.TryGetValue(link.Id, out var users) ? users : Array.Empty<Guid>()
-        }).ToList();
-        return IdentityOperationResult<ShareLinkPage>.Success(new ShareLinkPage(links, null));
+    private sealed record ShareLinkAdvisory(Guid Id,string ResourceType,Guid ResourceId);
+    private static List<ShareLinkAdvisory> ReadListAdvisories(SqlConnection connection,Guid owner,int take)
+    {
+        using var command=connection.CreateCommand();
+        command.CommandText="SELECT TOP(@Limit) Id,ResourceType,ResourceId FROM [security].[ShareLink] WHERE OwnerId=@Owner AND IsDeleted=0 ORDER BY UpdatedAt DESC,Id DESC;";
+        Add(command,"@Owner",SqlDbType.UniqueIdentifier,owner);Add(command,"@Limit",SqlDbType.Int,take);
+        var items=new List<ShareLinkAdvisory>();using var reader=command.ExecuteReader();
+        while(reader.Read())items.Add(new(reader.GetGuid(0),reader.GetString(1),reader.GetGuid(2)));
+        return items;
     }
 
     public IdentityOperationResult<ShareLinkRecord> Create(IdentityPrincipal actor, ShareLinkCreateCommand command,
@@ -82,6 +102,16 @@ public sealed class SqlSharingService : ISharingService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var policyBoundary=ReadSharingModule(connection,transaction,forUpdate:true);
+        if (policyBoundary is null || !policyBoundary.Value.Available)
+        { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
+
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.create") ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read"))
+        { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
+        if (!OwnerSourceAllowed(connection, transaction, actor, resourceType, command.ResourceId, creating:true))
+        { transaction.Rollback(); return Missing<ShareLinkRecord>(); }
         var receiptFailure = CheckReceipt<ShareLinkRecord>(connection, transaction, actor,
             "sharing.link.create", idempotencyKey,
             $"resource:{resourceType}|id:{command.ResourceId:N}|mode:{mode}|expiry:{expiryDescriptor}|users:{string.Join(',', allowedUsers.OrderBy(id => id).Select(id => id.ToString("N")))}",
@@ -101,14 +131,6 @@ public sealed class SqlSharingService : ISharingService
         {
             transaction.Rollback();
             return IdentityOperationResult<ShareLinkRecord>.Failure("ResourceUnavailable", 404, "The resource is unavailable for sharing.");
-        }
-
-        var sourceModule = resourceType == "Project" ? "FX11" : "FX20";
-        var sourceReadAction = resourceType == "Project" ? "projects.project.read" : "documents.page.read";
-        if (!ModuleAvailable(connection, transaction, actor, sourceModule, sourceReadAction))
-        {
-            transaction.Rollback();
-            return ModuleUnavailable<ShareLinkRecord>();
         }
 
         if (!ValidateAllowedUsers(connection, transaction, allowedUsers, mode))
@@ -150,6 +172,8 @@ public sealed class SqlSharingService : ISharingService
             transaction.Rollback();
             return PersistenceFailure<ShareLinkRecord>();
         }
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+        { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
         CompleteReceipt(connection, transaction, receipt, "ShareLinkCreated");
         transaction.Commit();
         return IdentityOperationResult<ShareLinkRecord>.Success(created with { RawToken = rawToken }, 201, "ShareLinkCreated");
@@ -169,7 +193,24 @@ public sealed class SqlSharingService : ISharingService
         var expiryDescriptor = command.NoExpiry ? "no-expiry" : command.ExpiresAt is null ? "default-7d" : command.ExpiresAt.Value.UtcDateTime.ToString("O", CultureInfo.InvariantCulture);
         using var connection = _connections.Create();
         connection.Open();
+        if (!SqlCurrentActor.IsLive(connection,null,actor)) return ModuleUnavailable<ShareLinkRecord>();
+        var advisory=ReadLink(connection,null,actor.OwnerId,shareLinkId,forUpdate:false);
+        if (advisory is null) return Missing<ShareLinkRecord>();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var policyBoundary=ReadSharingModule(connection,transaction,forUpdate:true);
+        if (policyBoundary is null || !policyBoundary.Value.Available)
+        { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
+
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.update") ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read"))
+        { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
+        if (!OwnerSourceAllowed(connection,transaction,actor,advisory.ResourceType,advisory.ResourceId,creating:false))
+        { transaction.Rollback(); return Missing<ShareLinkRecord>(); }
+        var authorizedLink=ReadLink(connection,transaction,actor.OwnerId,shareLinkId,forUpdate:true);
+        if (authorizedLink is null || authorizedLink.ResourceType!=advisory.ResourceType || authorizedLink.ResourceId!=advisory.ResourceId ||
+            !LinkEpochCurrent(connection,transaction,shareLinkId,actor.OwnerId))
+        { transaction.Rollback(); return Missing<ShareLinkRecord>(); }
         var receiptFailure = CheckReceipt<ShareLinkRecord>(connection, transaction, actor,
             "sharing.link.update", idempotencyKey,
             $"id:{shareLinkId:N}|etag:{ifMatch}|mode:{mode}|expiry:{expiryDescriptor}|users:{string.Join(',', allowedUsers.OrderBy(id => id).Select(id => id.ToString("N")))}",
@@ -223,6 +264,8 @@ public sealed class SqlSharingService : ISharingService
             transaction.Rollback();
             return PersistenceFailure<ShareLinkRecord>();
         }
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+        { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
         CompleteReceipt(connection, transaction, receipt, "ShareLinkUpdated");
         transaction.Commit();
         return IdentityOperationResult<ShareLinkRecord>.Success(updated);
@@ -235,7 +278,24 @@ public sealed class SqlSharingService : ISharingService
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
+        if (!SqlCurrentActor.IsLive(connection,null,actor)) return ModuleUnavailable<object?>();
+        var advisory=ReadLink(connection,null,actor.OwnerId,shareLinkId,forUpdate:false);
+        if (advisory is null) return Missing<object?>();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var policyBoundary=ReadSharingModule(connection,transaction,forUpdate:true);
+        if (policyBoundary is null || !policyBoundary.Value.Available)
+        { transaction.Rollback(); return ModuleUnavailable<object?>(); }
+
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.revoke") ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read"))
+        { transaction.Rollback(); return ModuleUnavailable<object?>(); }
+        if (!OwnerSourceAllowed(connection,transaction,actor,advisory.ResourceType,advisory.ResourceId,creating:false))
+        { transaction.Rollback(); return Missing<object?>(); }
+        var authorizedLink=ReadLink(connection,transaction,actor.OwnerId,shareLinkId,forUpdate:true);
+        if (authorizedLink is null || authorizedLink.ResourceType!=advisory.ResourceType || authorizedLink.ResourceId!=advisory.ResourceId ||
+            !LinkEpochCurrent(connection,transaction,shareLinkId,actor.OwnerId))
+        { transaction.Rollback(); return Missing<object?>(); }
         var receiptFailure = CheckReceipt<object?>(connection, transaction, actor,
             "sharing.link.revoke", idempotencyKey, $"id:{shareLinkId:N}|etag:{ifMatch}", out var receipt);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
@@ -263,6 +323,8 @@ public sealed class SqlSharingService : ISharingService
             ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId),
             ("@RowVersion", SqlDbType.Binary, (object)expectedVersion));
         WriteAudit(connection, transaction, actor, shareLinkId, "sharing.link.revoke", traceId);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+        { transaction.Rollback(); return ModuleUnavailable<object?>(); }
         CompleteReceipt(connection, transaction, receipt, "NoContent");
         transaction.Commit();
         return IdentityOperationResult<object?>.NoContent();
@@ -276,38 +338,46 @@ public sealed class SqlSharingService : ISharingService
         var digest = HashToken(token);
         using var connection = _connections.Create();
         connection.Open();
-        var now = DateTimeOffset.UtcNow;
-        var link = ReadResolvableLink(connection, digest, now);
+        var now=DateTimeOffset.UtcNow;
+        var advisory=ReadResolvableLink(connection,null,digest,now);
+        if (advisory is null) return SharedUnavailable();
+        using var transaction=connection.BeginTransaction(IsolationLevel.Serializable);
+        var policyBoundary=ReadSharingModule(connection,transaction,forUpdate:false);
+        if (policyBoundary is null || !policyBoundary.Value.Available) return SharedUnavailable();
+        var sourceState=ReadSource(connection,transaction,advisory.Value.ResourceType,advisory.Value.ResourceId,advisory.Value.OwnerId);
+        if (sourceState is null || sourceState.Value.Status=="Deleted") return SharedUnavailable();
+        var link=ReadResolvableLink(connection,transaction,digest,DateTimeOffset.UtcNow);
+        if (link is null || link.Value.Id!=advisory.Value.Id || link.Value.OwnerId!=advisory.Value.OwnerId ||
+            link.Value.ResourceType!=advisory.Value.ResourceType || link.Value.ResourceId!=advisory.Value.ResourceId) return SharedUnavailable();
         if (link is null || !string.Equals(link.Value.ProjectionVersion, ProjectionVersion, StringComparison.Ordinal))
             return SharedUnavailable();
 
         if (link.Value.Mode is "AuthenticatedLink" or "RestrictedUsers")
         {
-            if (viewer is null || !ViewerIsEligible(connection, viewer.UserId, link.Value.OwnerId,
+            if (viewer is null || !SqlCurrentActor.IsLive(connection, transaction, viewer) || !ViewerIsEligible(connection, transaction, viewer.UserId, link.Value.OwnerId,
                     link.Value.Mode == "RestrictedUsers" ? link.Value.Id : null))
                 return SharedUnavailable();
         }
 
         var sourceModule = link.Value.ResourceType == "Project" ? "FX11" : "FX20";
-        if (!SourceModuleAvailable(connection, link.Value.OwnerId, sourceModule))
+        if (!SourceModuleAvailable(connection, transaction, link.Value.OwnerId, sourceModule) ||
+            !SqlSharedLinkAuthority.SourceActionsAllowed(connection, transaction, link.Value.OwnerId, sourceModule))
             return SharedUnavailable();
 
-        if (link.Value.ResourceType == "Project")
-        {
-            var project = ReadSharedProject(connection, link.Value.OwnerId, link.Value.ResourceId, now);
-            return project is null
-                ? SharedUnavailable()
-                : IdentityOperationResult<SharedResource>.Success(new SharedResource(
-                    "Project", link.Value.ResourceId, link.Value.Mode, link.Value.ExpiresAt,
-                    link.Value.ProjectionVersion, project, null));
-        }
-
-        var document = ReadSharedDocument(connection, link.Value.OwnerId, link.Value.ResourceId);
-        return document is null
-            ? SharedUnavailable()
-            : IdentityOperationResult<SharedResource>.Success(new SharedResource(
-                "Document", link.Value.ResourceId, link.Value.Mode, link.Value.ExpiresAt,
-                link.Value.ProjectionVersion, null, document));
+        var sourceContext = new SharedLinkSourceContext(link.Value.OwnerId, link.Value.ResourceId);
+        var project = link.Value.ResourceType == "Project"
+            ? SqlProjectSharedSource.ReadProjection(connection, transaction, sourceContext, now) : null;
+        var document = link.Value.ResourceType == "Document"
+            ? SqlDocumentSharedSource.ReadProjection(connection, transaction, sourceContext) : null;
+        if (project is null && document is null) return SharedUnavailable();
+        // Recheck time-based expiry/session boundaries after projection materialization.
+        if (ReadResolvableLink(connection, transaction, digest, DateTimeOffset.UtcNow) is null ||
+            (link.Value.Mode != "PublicLink" && (viewer is null || !SqlCurrentActor.IsLive(connection, transaction, viewer))))
+            return SharedUnavailable();
+        transaction.Commit();
+        return IdentityOperationResult<SharedResource>.Success(new SharedResource(
+            link.Value.ResourceType, link.Value.ResourceId, link.Value.Mode, link.Value.ExpiresAt,
+            link.Value.ProjectionVersion, project, document));
     }
 
     private static IdentityOperationResult<ShareLinkRecord>? ValidateCreate(ShareLinkCreateCommand command)
@@ -378,7 +448,7 @@ public sealed class SqlSharingService : ISharingService
         }
     }
 
-    private static ShareLinkRecord? ReadLink(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid id,
+    private static ShareLinkRecord? ReadLink(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid id,
         bool forUpdate = false, bool includeDeleted = false)
     {
         using var command = connection.CreateCommand();
@@ -388,7 +458,7 @@ public sealed class SqlSharingService : ISharingService
                    sl.[ProjectionVersion], sl.[CreatedAt], sl.[UpdatedAt], sl.[RowVersion],
                    CASE WHEN sl.[RevokedAt] IS NULL AND (sl.[ExpiresAt] IS NULL OR sl.[ExpiresAt] > SYSUTCDATETIME())
                               AND sl.[IssuedSharingEpoch] = m.[SharingEpoch] THEN CONVERT(bit, 1) ELSE CONVERT(bit, 0) END
-            FROM [security].[ShareLink] sl WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")})
+            FROM [security].[ShareLink] sl WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "HOLDLOCK")})
             INNER JOIN [platform].[Module] m ON m.[Code] = 'FX04'
             WHERE sl.[Id] = @Id AND sl.[OwnerId] = @OwnerId {(includeDeleted ? string.Empty : "AND sl.[IsDeleted] = 0")};
             """;
@@ -438,9 +508,10 @@ public sealed class SqlSharingService : ISharingService
     }
 
     private static (Guid Id, Guid OwnerId, string ResourceType, Guid ResourceId, string Mode,
-        DateTimeOffset? ExpiresAt, string ProjectionVersion)? ReadResolvableLink(SqlConnection connection, byte[] digest, DateTimeOffset now)
+        DateTimeOffset? ExpiresAt, string ProjectionVersion)? ReadResolvableLink(SqlConnection connection, SqlTransaction? transaction, byte[] digest, DateTimeOffset now)
     {
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (1) sl.[Id], sl.[OwnerId], sl.[ResourceType], sl.[ResourceId], sl.[Mode],
                    sl.[ExpiresAt], sl.[ProjectionVersion]
@@ -454,7 +525,7 @@ public sealed class SqlSharingService : ISharingService
               AND sl.[RevokedAt] IS NULL
               AND (sl.[ExpiresAt] IS NULL OR sl.[ExpiresAt] > @Now)
               AND sl.[IssuedSharingEpoch] = m.[SharingEpoch]
-              AND m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND m.[RegistrationEnabled] = 1
+              AND m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND m.[SharingEnabled] = 1
               AND ownerUser.[State] = 'Active' AND ownerUser.[IsDeleted] = 0;
             """;
         Add(command, "@TokenHash", SqlDbType.Binary, digest, 32);
@@ -465,9 +536,10 @@ public sealed class SqlSharingService : ISharingService
             reader.IsDBNull(5) ? null : ToOffset(reader.GetDateTime(5)), reader.GetString(6));
     }
 
-    private static bool ViewerIsEligible(SqlConnection connection, Guid viewerId, Guid ownerId, Guid? restrictedLinkId)
+    private static bool ViewerIsEligible(SqlConnection connection, SqlTransaction transaction, Guid viewerId, Guid ownerId, Guid? restrictedLinkId)
     {
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = restrictedLinkId is null
             ? "SELECT 1 FROM [identity].[User] WHERE [Id] = @UserId AND [State] = 'Active' AND [IsDeleted] = 0 AND [EmailConfirmed] = 1;"
             : "SELECT 1 FROM [identity].[User] u INNER JOIN [security].[ShareAllowedUser] allowRow ON allowRow.[UserId] = u.[Id] WHERE u.[Id] = @UserId AND u.[State] = 'Active' AND u.[IsDeleted] = 0 AND u.[EmailConfirmed] = 1 AND allowRow.[OwnerId] = @OwnerId AND allowRow.[ShareLinkId] = @LinkId;";
@@ -480,11 +552,12 @@ public sealed class SqlSharingService : ISharingService
         return command.ExecuteScalar() is not null;
     }
 
-    private static bool SourceModuleAvailable(SqlConnection connection, Guid ownerId, string moduleCode)
+    private static bool SourceModuleAvailable(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, string moduleCode)
     {
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
-            SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND m.[RegistrationEnabled] = 1
+            SELECT CASE WHEN m.[State] = 'Ready' AND m.[SystemEnabled] = 1 AND m.[SharingEnabled] = 1
                               AND ownerSpace.[State] = 'Active'
                               AND ownerUser.[State] = 'Active' AND ownerUser.[IsDeleted] = 0
                               AND COALESCE(grantRow.[Enabled], 0) = 1
@@ -502,83 +575,41 @@ public sealed class SqlSharingService : ISharingService
     }
 
     private static (Guid OwnerId, string Status)? ReadSource(SqlConnection connection, SqlTransaction? transaction,
-        string resourceType, Guid resourceId, Guid ownerId)
-    {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = resourceType == "Project"
-            ? "SELECT [OwnerId], [Status] FROM [productivity].[Project] WHERE [Id] = @Id AND [OwnerId] = @OwnerId;"
-            : "SELECT [OwnerId], CASE WHEN [DeletedAt] IS NOT NULL THEN 'Deleted' ELSE [Status] END FROM [documents].[Page] WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
-        Add(command, "@Id", SqlDbType.UniqueIdentifier, resourceId);
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? (reader.GetGuid(0), reader.GetString(1)) : null;
-    }
-
-    private static SharedProjectProjection? ReadSharedProject(SqlConnection connection, Guid ownerId, Guid projectId, DateTimeOffset now)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT [Id], [Name], [Description], [Status], [StartAt], [EndAt], [Priority], [TagsJson]
-            FROM [productivity].[Project]
-            WHERE [Id] = @ProjectId AND [OwnerId] = @OwnerId AND [Status] <> 'Deleted';
-            """;
-        Add(command, "@ProjectId", SqlDbType.UniqueIdentifier, projectId);
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        SharedProjectProjection? project;
-        using (var reader = command.ExecuteReader())
-        {
-            if (!reader.Read()) return null;
-            project = new SharedProjectProjection(reader.GetGuid(0), reader.GetString(1), reader.IsDBNull(2) ? null : reader.GetString(2),
-                reader.GetString(3), ToOffset(reader.GetDateTime(4)), ToOffset(reader.GetDateTime(5)), reader.GetString(6), reader.GetString(7), Array.Empty<SharedTaskProjection>());
-        }
-
-        using var tasks = connection.CreateCommand();
-        tasks.CommandText = """
-            SELECT [Id], [Title], [Description], [Status], [DueAt], [StartAt], [EndAt], [Priority], [TagsJson]
-            FROM [productivity].[Task]
-            WHERE [OwnerId] = @OwnerId AND [ProjectId] = @ProjectId AND [Status] <> 'Deleted'
-            ORDER BY [Rank], [DueAt], [Id];
-            """;
-        Add(tasks, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        Add(tasks, "@ProjectId", SqlDbType.UniqueIdentifier, projectId);
-        var items = new List<SharedTaskProjection>();
-        using var taskReader = tasks.ExecuteReader();
-        while (taskReader.Read())
-        {
-            var status = taskReader.GetString(3);
-            DateTimeOffset? dueAt = taskReader.IsDBNull(4) ? null : ToOffset(taskReader.GetDateTime(4));
-            items.Add(new SharedTaskProjection(taskReader.GetGuid(0), taskReader.GetString(1), taskReader.IsDBNull(2) ? null : taskReader.GetString(2),
-                status, dueAt, ToOffset(taskReader.GetDateTime(5)), ToOffset(taskReader.GetDateTime(6)), taskReader.GetString(7), taskReader.GetString(8),
-                dueAt is not null && dueAt < now && status is not ("Completed" or "Skipped")));
-        }
-        return project! with { Tasks = items };
-    }
-
-    private static SharedDocumentProjection? ReadSharedDocument(SqlConnection connection, Guid ownerId, Guid documentId)
-    {
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [VersionNumber], [UpdatedAt]
-            FROM [documents].[Page]
-            WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [DeletedAt] IS NULL AND [Status] IN ('Published','Archived');
-            """;
-        Add(command, "@Id", SqlDbType.UniqueIdentifier, documentId);
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        using var reader = command.ExecuteReader();
-        return !reader.Read()
-            ? null
-            : new SharedDocumentProjection(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetString(5), reader.GetInt64(6), ToOffset(reader.GetDateTime(7)));
-    }
+        string resourceType, Guid resourceId, Guid ownerId) => resourceType == "Project"
+        ? SqlProjectSharedSource.ReadState(connection, transaction, ownerId, resourceId)
+        : SqlDocumentSharedSource.ReadState(connection, transaction, ownerId, resourceId);
 
     private (bool Available, long Epoch)? ReadSharingModule(SqlConnection connection, SqlTransaction? transaction, bool forUpdate)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [State], [SystemEnabled], [RegistrationEnabled], [SharingEpoch] FROM [platform].[Module] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Code] = 'FX04';";
+        command.CommandText = $"SELECT [State], [SystemEnabled], [SharingEnabled], [SharingEpoch] FROM [platform].[Module] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "HOLDLOCK")}) WHERE [Code] = 'FX04';";
         using var reader = command.ExecuteReader();
         if (!reader.Read()) return null;
         return (reader.GetString(0) == "Ready" && reader.GetBoolean(1) && reader.GetBoolean(2), reader.GetInt64(3));
+    }
+
+    private bool OwnerSourceAllowed(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        string type, Guid id, bool creating)
+    {
+        var module=type=="Project"?"FX11":"FX20";
+        var prefix=type=="Project"?"projects.project":"documents.page";
+        if (!ModuleAvailable(connection,transaction,actor,module,prefix+".read") ||
+            !ModuleAvailable(connection,transaction,actor,module,prefix+".share") ||
+            !SourceModuleAvailable(connection,transaction,actor.OwnerId,module)) return false;
+        var sharing=ReadSharingModule(connection,transaction,forUpdate:false);
+        if (sharing is null || !sharing.Value.Available) return false;
+        var source=ReadSource(connection,transaction,type,id,actor.OwnerId);
+        return source is not null && source.Value.Status!="Deleted" &&
+            (!creating || type!="Document" || source.Value.Status=="Published");
+    }
+
+    private static bool LinkEpochCurrent(SqlConnection connection, SqlTransaction transaction, Guid id, Guid owner)
+    {
+        using var command=connection.CreateCommand(); command.Transaction=transaction;
+        command.CommandText="SELECT 1 FROM [security].[ShareLink] l JOIN [platform].[Module] m ON m.Code='FX04' WHERE l.Id=@Id AND l.OwnerId=@Owner AND l.IsDeleted=0 AND l.IssuedSharingEpoch=m.SharingEpoch;";
+        Add(command,"@Id",SqlDbType.UniqueIdentifier,id); Add(command,"@Owner",SqlDbType.UniqueIdentifier,owner);
+        return command.ExecuteScalar() is not null;
     }
 
     private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>

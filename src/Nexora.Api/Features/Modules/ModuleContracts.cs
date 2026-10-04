@@ -13,21 +13,25 @@ public sealed record ModuleResponse(
     string ETag,
     IReadOnlyList<string> RequiredDependencies,
     IReadOnlyList<string> RequiredBy,
-    string? UnavailableReason);
+    string? UnavailableReason,
+    bool SharingEnabled = false);
 
-public sealed record ModulePolicyChangeRequest(bool? SystemEnabled, bool? RegistrationEnabled);
+public sealed record ModulePolicyChangeRequest(bool? SystemEnabled, bool? RegistrationEnabled, bool? SharingEnabled = null);
 
 public sealed record ModulePolicyCommitRequest(
     bool? SystemEnabled,
     bool? RegistrationEnabled,
-    string PreviewToken);
+    string PreviewToken,
+    bool? SharingEnabled = null);
 
 public sealed record ModulePolicyPreviewResponse(
     string PreviewToken,
     DateTimeOffset ExpiresAt,
     string ETag,
     IReadOnlyList<ModuleChangeDiff> Changes,
-    IReadOnlyList<ModulePolicyBlocker> Blockers);
+    IReadOnlyList<ModulePolicyBlocker> Blockers,
+    long AffectedSharingLinks = 0,
+    long AffectedUsers = 0);
 
 public sealed record ModuleChangeDiff(string Field, string Before, string After);
 

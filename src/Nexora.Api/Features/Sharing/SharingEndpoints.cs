@@ -108,7 +108,7 @@ public static class SharingEndpoints
         value.Project is null ? null : new SharedProjectResponse(value.Project.Id, value.Project.Name, value.Project.Description,
             value.Project.Status, value.Project.StartAt, value.Project.EndAt, value.Project.Priority, value.Project.TagsJson,
             value.Project.Tasks.Select(task => new SharedTaskResponse(task.Id, task.Title, task.Description, task.Status,
-                task.DueAt, task.StartAt, task.EndAt, task.Priority, task.TagsJson, task.IsOverdue)).ToArray()),
+                task.StartAt, task.EndAt, task.Priority, task.TagsJson, task.IsOverdue, task.AcceptanceCriteriaJson)).ToArray()),
         value.Document is null ? null : new SharedDocumentResponse(value.Document.Id, value.Document.Title,
             value.Document.DocumentType, value.Document.EditorMode, value.Document.Body, value.Document.Status,
             value.Document.VersionNumber, value.Document.UpdatedAt));

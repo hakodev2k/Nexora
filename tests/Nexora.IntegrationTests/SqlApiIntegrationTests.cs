@@ -845,7 +845,10 @@ public sealed class SqlApiIntegrationTests
             await AssertProblemCodeAsync(disabledLinks, "ModuleUnavailable");
         }
 
+        var originalRootSharing=await _fixture.ScalarIntAsync("SELECT CONVERT(int,SharingEnabled) FROM [platform].[Module] WHERE Code='FX04'");
+        var originalSourceSharing=await _fixture.ScalarIntAsync("SELECT CONVERT(int,SharingEnabled) FROM [platform].[Module] WHERE Code='FX11'");
         await _fixture.SetModuleRuntimeAvailabilityAsync("FX04", enabled: true);
+        await _fixture.ExecuteAsync("UPDATE [platform].[Module] SET SharingEnabled=1 WHERE Code IN ('FX04','FX11')");
         try
         {
             var owner = await _fixture.CreateActiveSessionAsync();
@@ -1001,6 +1004,8 @@ public sealed class SqlApiIntegrationTests
         finally
         {
             await _fixture.SetModuleRuntimeAvailabilityAsync("FX04", enabled: false);
+            await _fixture.ExecuteAsync("UPDATE [platform].[Module] SET SharingEnabled=@Enabled WHERE Code='FX04'", new SqlParameter("@Enabled",SqlDbType.Bit){Value=originalRootSharing==1});
+            await _fixture.ExecuteAsync("UPDATE [platform].[Module] SET SharingEnabled=@Enabled WHERE Code='FX11'", new SqlParameter("@Enabled",SqlDbType.Bit){Value=originalSourceSharing==1});
         }
     }
 

@@ -130,6 +130,9 @@ public sealed class SqlWishlistTests(SqlApiFixture fixture)
         var marker = "list_" + Guid.NewGuid().ToString("N") + "_%["; var expected = new HashSet<Guid>(); JsonElement firstCreated = default;
         for (var index = 0; index < 31; index++) { var created = await Create(owner, marker + index); if (index == 0) firstCreated = created; expected.Add(created.GetProperty("itemId").GetGuid()); }
         var firstId = firstCreated.GetProperty("itemId").GetGuid();
+        // Separate the synthetic prior-write clock from the actual update; SQL millisecond ties use Id order.
+        await fixture.ExecuteAsync("UPDATE [shopping].[WishlistItem] SET UpdatedAt=DATEADD(day,-1,SYSUTCDATETIME()) WHERE OwnerId=@Owner",Id("@Owner",owner.OwnerId));
+        firstCreated=await Get(owner,$"{Root}/{firstId}");
         using (var update = await Send(owner, HttpMethod.Put, $"{Root}/{firstId}", Body(marker + "updated"), firstCreated.GetProperty("etag").GetString())) await Json(update);
         var foreignId = (await Create(foreign, marker + "foreign")).GetProperty("itemId").GetGuid();
         var filtered = (await Create(owner, "Not in filter")).GetProperty("itemId").GetGuid();

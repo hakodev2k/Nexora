@@ -10,6 +10,7 @@ using Nexora.Infrastructure.Local;
 var cs=LocalSqlTarget.Validate(Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING"),"Development");
 var b=new SqlConnectionStringBuilder(cs);var db=b.InitialCatalog;
 if(!Regex.IsMatch(db,"^Nexora_Test_[0-9a-f]{32}$"))throw new Exception("Isolated database required");
+if(args is ["verify-sharing-backup"]) { await SharingBackupProof.RunAsync(cs); return; }
 
 if(args is ["inventory"]){
  await using var inventory=new SqlConnection(cs);await inventory.OpenAsync();
@@ -21,7 +22,7 @@ if(args is ["inventory"]){
 }
 if(args is ["catalog"]) {
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- await using var q=new SqlCommand("SELECT JSON_QUERY((SELECT Code,State,SystemEnabled,RegistrationEnabled FROM [platform].[Module] ORDER BY Code FOR JSON PATH)) AS modules,JSON_QUERY((SELECT ActionKey,EffectiveStatus FROM [platform].[Permission] ORDER BY ActionKey FOR JSON PATH)) AS actions FOR JSON PATH, WITHOUT_ARRAY_WRAPPER",c);
+ await using var q=new SqlCommand("SELECT JSON_QUERY((SELECT Code,State,SystemEnabled,RegistrationEnabled,SharingEnabled,SharingEpoch,PolicyRevision FROM [platform].[Module] ORDER BY Code FOR JSON PATH)) AS modules,JSON_QUERY((SELECT ActionKey,EffectiveStatus FROM [platform].[Permission] ORDER BY ActionKey FOR JSON PATH)) AS actions FOR JSON PATH, WITHOUT_ARRAY_WRAPPER",c);
  await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
  Console.WriteLine(output.ToString());return;
 }
@@ -73,6 +74,7 @@ if(args is ["read-resource",var kind,var idText]) {
   ["WishlistItem"]="[shopping].[WishlistItem]",
   ["ImportBatch"]="[operations].[ImportBatch]",
   ["ExportJob"]="[operations].[ExportJob]",
+  ["ShareLink"]="[security].[ShareLink]",
   ["Skill"]="[learning].[Skill]",
   ["Company"]="[career].[Company]",["JobApplication"]="[career].[JobApplication]",["ApplicationEvent"]="[career].[ApplicationEvent]",
   ["DigitalAsset"]="[assets].[DigitalAsset]",["DigitalAssetVersion"]="[assets].[DigitalAssetVersion]",["RenewalRecord"]="[assets].[RenewalRecord]",
@@ -85,7 +87,9 @@ if(args is ["read-resource",var kind,var idText]) {
  };
  if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- var query=kind=="ExportJob"
+ var query=kind=="ShareLink"
+  ? "SELECT Id,OwnerId,ResourceType,ResourceId,Mode,ExpiresAt,RevokedAt,IsDeleted,InvalidatedAt,InvalidationReason,IssuedSharingEpoch FROM [security].[ShareLink] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="ExportJob"
   ? "SELECT j.Id,j.OwnerId,j.FileObjectId,j.State,j.EventCount,j.CreatedAt,j.ExpiresAt,DATALENGTH(a.Content) AS ArtifactBytes,(SELECT COUNT(*) FROM [operations].[ExportSource] s WHERE s.JobId=j.Id AND s.OwnerId=j.OwnerId) AS SourceCount FROM [operations].[ExportJob] j JOIN [operations].[ExportArtifact] a ON a.JobId=j.Id AND a.OwnerId=j.OwnerId WHERE j.Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
   : kind=="ImportBatch"
   ? "SELECT Id,OwnerId,FileObjectId,State,TotalCount,AcceptedCount,SkippedCount,AppliedCount FROM [operations].[ImportBatch] WHERE Id=@id FOR JSON PATH"

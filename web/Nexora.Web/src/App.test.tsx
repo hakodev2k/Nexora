@@ -4,6 +4,7 @@ import { HttpResponse, http } from 'msw';
 import { afterEach, test, expect, vi } from 'vitest';
 import {
   App,
+  SharedResourceScreen,
   ConfirmActionButton,
   RegisterScreen,
   SecurityScreen,
@@ -18,6 +19,24 @@ import {
 } from './App';
 import { registerUser, type ProfileResponse } from './api';
 import { LocaleContext } from './i18n';
+
+test('shared Project renders approved nullable Task details and literal ordered checklist without legacy Due', async () => {
+  const token = 'synthetic-memory-only-sharing-component';
+  server.use(http.get(`*/api/v1/sharing/resolve/${token}`, () => HttpResponse.json({
+    resourceType: 'Project', resourceId: 'synthetic-project', mode: 'PublicLink', expiresAt: null, projectionVersion: 'v1', document: null,
+    project: { id: 'synthetic-project', name: 'Approved shared projection', description: 'Approved source', status: 'InProgress', startAt: '2001-01-01T00:00:00Z', endAt: '2001-01-02T00:00:00Z', priority: 'P2', tagsJson: '[]',
+      tasks: [{ id: 'synthetic-task', title: 'Approved Task', description: '<script>literal task text</script>', status: 'NotStarted', startAt: '2001-01-01T00:00:00Z', endAt: '2001-01-02T00:00:00Z', priority: null, tagsJson: '["Approved tag"]', isOverdue: true, acceptanceCriteriaJson: '["Literal <img src=x onerror=alert(1)>",{"text":"Ordered checked item","checked":true}]' }] }
+  })));
+  const { container } = render(<SharedResourceScreen token={token} />);
+  expect(await screen.findByRole('heading', { name: 'Approved shared projection' })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: 'Start / End' })).toBeInTheDocument();
+  expect(screen.getByRole('columnheader', { name: 'Acceptance criteria' })).toBeInTheDocument();
+  expect(screen.getByText('Approved tag')).toBeInTheDocument();
+  expect(screen.getByText(/☑ Ordered checked item/)).toBeInTheDocument();
+  expect(screen.getByText('<script>literal task text</script>')).toBeInTheDocument();
+  expect(container.querySelector('script, img')).toBeNull();
+  expect(screen.queryByRole('columnheader', { name: 'Due' })).not.toBeInTheDocument();
+});
 import { server } from './test/server';
 
 afterEach(() => {
@@ -383,7 +402,7 @@ test('module policy exposes dependency context and commits only after a policy p
   const user = userEvent.setup();
   const module = {
     id: '8bb0f094-6c1a-47ea-bf22-24e5f53d52b8', code: 'FX99', name: 'Policy test module', state: 'Ready', systemEnabled: true,
-    registrationEnabled: true, policyRevision: '4', etag: '"BAAAAAAAAAA="', requiredDependencies: ['FX01'], requiredBy: ['FX100'], unavailableReason: null
+    registrationEnabled: true, sharingEnabled: true, policyRevision: '4', etag: '"BAAAAAAAAAA="', requiredDependencies: ['FX01'], requiredBy: ['FX100'], unavailableReason: null
   };
   let commitCalls = 0;
   server.use(

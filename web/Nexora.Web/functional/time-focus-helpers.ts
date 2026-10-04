@@ -5,9 +5,16 @@ export async function moduleApi(page: Page, file: 'timeApi' | 'focusApi', name: 
 }
 export async function response(page: Page, path: string, method: string, body?: unknown, etag?: string, key = crypto.randomUUID()) {
   return page.evaluate(async ({ path, method, body, etag, key }) => {
-    const apiPath = '/src/api.ts'; const a = await import(apiPath); const csrf = await a.getCsrf();
-    const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.requestToken, 'Idempotency-Key': key, ...(etag ? { 'If-Match': etag } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    return { status: r.status, body: await r.json() };
+    const apiPath = '/src/api.ts'; const a = await import(apiPath);
+    const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
+    for (let attempt = 0; ; attempt += 1) {
+      const csrf = await a.getCsrf(attempt === 1);
+      const r = await fetch(path, { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf.requestToken, 'Idempotency-Key': key, ...(etag ? { 'If-Match': etag } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+      const result = { status: r.status, body: await r.json() };
+      // Match the real API client's one pre-handler CSRF refresh; retain the exact UUID/body/ETag.
+      if (unsafe && attempt === 0 && r.status === 403 && result.body?.code === 'CsrfInvalid') continue;
+      return result;
+    }
   }, { path, method, body, etag, key });
 }
 export async function enableForTest(browser: Browser, page: Page, code: string) {

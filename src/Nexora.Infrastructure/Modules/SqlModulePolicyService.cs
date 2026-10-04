@@ -6,6 +6,8 @@ using Nexora.Application.Identity;
 using Nexora.Application.Modules;
 using Nexora.Domain.Modules;
 using Nexora.Infrastructure.Identity;
+using Nexora.Infrastructure.Authorization;
+using Nexora.Infrastructure.Sharing;
 using Nexora.Infrastructure.Persistence;
 
 namespace Nexora.Infrastructure.Modules;
@@ -48,7 +50,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         using var command = connection.CreateCommand();
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Code], [Name], [State], [SystemEnabled],
-                   [RegistrationEnabled], [PolicyRevision]
+                   [RegistrationEnabled], [PolicyRevision], [SharingEnabled]
             FROM [platform].[Module]
             ORDER BY [Code];
             """;
@@ -73,7 +75,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
                     ETag(reader.GetInt64(6)),
                     Array.Empty<string>(),
                     Array.Empty<string>(),
-                    UnavailableReason(state)));
+                    UnavailableReason(state), reader.GetBoolean(7)));
             }
         }
 
@@ -100,7 +102,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             return RecentAuthRequired<ModulePolicyPreview>();
         }
 
-        if (change.SystemEnabled is null && change.RegistrationEnabled is null)
+        if (change.SystemEnabled is null && change.RegistrationEnabled is null && change.SharingEnabled is null)
         {
             return IdentityOperationResult<ModulePolicyPreview>.Failure(
                 "ValidationFailed", 422, "At least one editable module policy field is required.");
@@ -108,29 +110,33 @@ public sealed class SqlModulePolicyService : IModulePolicyService
 
         using var connection = _connections.Create();
         connection.Open();
-        if (!CanControlPlane(connection, null, actor, RequiredActions(change)))
+        using var transaction=connection.BeginTransaction(System.Data.IsolationLevel.Serializable);
+        if (!CanControlPlane(connection, transaction, actor, RequiredActions(change)))
         {
             return Denied<ModulePolicyPreview>();
         }
-        var module = ReadModule(connection, moduleId, forUpdate: false);
+        var module = ReadModule(connection, transaction, moduleId, forUpdate: false);
         if (module is null)
         {
             return IdentityOperationResult<ModulePolicyPreview>.Failure("ResourceUnavailable", 404, "Module unavailable.");
         }
 
-        var blockers = EvaluateBlockers(connection, module, change);
+        var blockers = EvaluateBlockers(connection, transaction, module, change);
         var changes = BuildDiffs(module, change);
         if (changes.Count == 0)
         {
             return IdentityOperationResult<ModulePolicyPreview>.Failure(
                 "ValidationFailed", 422, "The requested policy change does not alter the current state.");
         }
+        var impact=ReadSharingImpact(connection,transaction,module,change);
+        var affectedUsers=ReadAffectedUsers(connection,transaction,module,change);
         var expiresAt = DateTimeOffset.UtcNow.Add(PreviewTtl);
         // Bind the short-lived capability to the SuperAdmin who requested it.
         // A valid preview must never be transferable to another principal.
-        var token = SignPreview(new PreviewPayload(actor.UserId, actor.SessionId, module.Id, module.PolicyRevision, change.SystemEnabled, change.RegistrationEnabled, expiresAt));
+        var token = SignPreview(new PreviewPayload(actor.UserId, actor.SessionId, module.Id, module.PolicyRevision, change.SystemEnabled, change.RegistrationEnabled, expiresAt, change.SharingEnabled, impact.LinkCount, impact.CohortDigest, affectedUsers));
+        transaction.Commit();
         return IdentityOperationResult<ModulePolicyPreview>.Success(
-            new ModulePolicyPreview(token, expiresAt, ETag(module.PolicyRevision), changes, blockers));
+            new ModulePolicyPreview(token, expiresAt, ETag(module.PolicyRevision), changes, blockers, impact.LinkCount, affectedUsers));
     }
 
     public IdentityOperationResult<ModulePolicyRecord> Commit(Guid moduleId, string? ifMatch, ModulePolicyCommit command, IdentityPrincipal actor, string? idempotencyKey = null, string? traceId = null)
@@ -158,6 +164,13 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(System.Data.IsolationLevel.Serializable);
+        // Coordinate source sharing policies with commands before acquiring link-cohort locks.
+        using (var boundary=connection.CreateCommand())
+        {
+            boundary.Transaction=transaction;
+            boundary.CommandText="SELECT SharingEpoch FROM [platform].[Module] WITH(UPDLOCK,HOLDLOCK) WHERE Code='FX04';";
+            if (boundary.ExecuteScalar() is null) { transaction.Rollback(); return Denied<ModulePolicyRecord>(); }
+        }
         if (!CanControlPlane(connection, transaction, actor, RequiredActions(command.Change)))
         {
             transaction.Rollback();
@@ -172,7 +185,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
 
         var receipt = _receipts.TryClaim(connection, transaction, actor.UserId,
             "modules.policy.update", idempotencyKey ?? string.Empty,
-            $"module:{moduleId:N}|etag:{ifMatch}|change:{command.Change.SystemEnabled}|registration:{command.Change.RegistrationEnabled}|preview:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(command.PreviewToken ?? string.Empty)))}",
+            $"module:{moduleId:N}|etag:{ifMatch}|change:{command.Change.SystemEnabled}|registration:{command.Change.RegistrationEnabled}|sharing:{command.Change.SharingEnabled}|preview:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(command.PreviewToken ?? string.Empty)))}",
             DateTime.UtcNow);
         if (!string.IsNullOrWhiteSpace(idempotencyKey) && !receipt.IsClaimed)
         {
@@ -183,7 +196,8 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         }
 
         if (preview.SystemEnabled != command.Change.SystemEnabled ||
-            preview.RegistrationEnabled != command.Change.RegistrationEnabled)
+            preview.RegistrationEnabled != command.Change.RegistrationEnabled ||
+            preview.SharingEnabled != command.Change.SharingEnabled)
         {
             transaction.Rollback();
             return IdentityOperationResult<ModulePolicyRecord>.Failure("PreviewStale", 409, "The requested changes differ from the reviewed module policy.");
@@ -204,20 +218,30 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             return IdentityOperationResult<ModulePolicyRecord>.Failure(blocker.Code, 409, blocker.Message);
         }
 
+        var impact=ReadSharingImpact(connection,transaction,module,command.Change);
+        var affectedUsers=ReadAffectedUsers(connection,transaction,module,command.Change);
+        if (preview.AffectedSharingLinks!=impact.LinkCount || preview.SharingCohortDigest!=impact.CohortDigest || preview.AffectedUsers!=affectedUsers)
+        {
+            transaction.Rollback();
+            return IdentityOperationResult<ModulePolicyRecord>.Failure("PreviewStale",409,"Policy impact changed; request a fresh preview and confirmation.");
+        }
         var newSystemEnabled = command.Change.SystemEnabled ?? module.SystemEnabled;
         var newRegistrationEnabled = command.Change.RegistrationEnabled ?? module.RegistrationEnabled;
+        var newSharingEnabled = command.Change.SharingEnabled ?? module.SharingEnabled;
         using var update = connection.CreateCommand();
         update.Transaction = transaction;
         update.CommandText = """
             UPDATE [platform].[Module]
             SET [SystemEnabled] = @SystemEnabled,
                 [RegistrationEnabled] = @RegistrationEnabled,
+                [SharingEnabled] = @SharingEnabled,
                 [PolicyRevision] = [PolicyRevision] + 1,
                 [UpdatedAt] = SYSUTCDATETIME()
             WHERE [Id] = @Id AND [PolicyRevision] = @PolicyRevision;
             """;
         update.Parameters.Add(new SqlParameter("@SystemEnabled", System.Data.SqlDbType.Bit) { Value = newSystemEnabled });
         update.Parameters.Add(new SqlParameter("@RegistrationEnabled", System.Data.SqlDbType.Bit) { Value = newRegistrationEnabled });
+        update.Parameters.Add(new SqlParameter("@SharingEnabled", System.Data.SqlDbType.Bit) { Value = newSharingEnabled });
         update.Parameters.Add(new SqlParameter("@Id", System.Data.SqlDbType.UniqueIdentifier) { Value = module.Id });
         update.Parameters.Add(new SqlParameter("@PolicyRevision", System.Data.SqlDbType.BigInt) { Value = module.PolicyRevision });
         if (update.ExecuteNonQuery() != 1)
@@ -227,19 +251,20 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         }
 
         WriteAudit(connection, transaction, actor, module.Id, "modules.policy.update", "Succeeded", traceId);
+        if (newSharingEnabled != module.SharingEnabled)
+            WriteAudit(connection, transaction, actor, module.Id, "modules.policy.sharing", "Succeeded", traceId);
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
             _receipts.Complete(connection, transaction, receipt, "ModulePolicyUpdated");
         }
-        transaction.Commit();
-
-        return IdentityOperationResult<ModulePolicyRecord>.Success(module with
+        var finalModule = ReadModule(connection, transaction, moduleId, forUpdate: true);
+        if (finalModule is null || !CanControlPlane(connection, transaction, actor, RequiredActions(command.Change)))
         {
-            SystemEnabled = newSystemEnabled,
-            RegistrationEnabled = newRegistrationEnabled,
-            PolicyRevision = module.PolicyRevision + 1,
-            ETag = ETag(module.PolicyRevision + 1)
-        });
+            transaction.Rollback();
+            return Denied<ModulePolicyRecord>();
+        }
+        transaction.Commit();
+        return IdentityOperationResult<ModulePolicyRecord>.Success(finalModule);
     }
 
     private static bool IsSuperAdmin(IdentityPrincipal actor) =>
@@ -257,6 +282,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         if (change.SystemEnabled is true) actions.Add("modules.policy.enable");
         if (change.SystemEnabled is false) actions.Add("modules.policy.disable");
         if (change.RegistrationEnabled is not null) actions.Add("modules.policy.defaults");
+        if (change.SharingEnabled is not null) actions.Add("modules.policy.sharing");
         return actions;
     }
 
@@ -268,6 +294,8 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         IReadOnlyList<string> actions)
     {
         if (!IsSuperAdmin(actor) || actions.Count == 0) return false;
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor,
+                requireRecentAuthentication: actions.Any(action => action != "modules.catalog.read"))) return false;
 
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -299,7 +327,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT [Id], [Code], [Name], [State], [SystemEnabled], [RegistrationEnabled], [PolicyRevision]
+            SELECT [Id], [Code], [Name], [State], [SystemEnabled], [RegistrationEnabled], [PolicyRevision], [SharingEnabled]
             FROM [platform].[Module] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "HOLDLOCK")})
             WHERE [Id] = @Id;
             """;
@@ -311,7 +339,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         }
 
         var revision = reader.GetInt64(6);
-        return new ModulePolicyRecord(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetBoolean(4), reader.GetBoolean(5), revision, ETag(revision), Array.Empty<string>(), Array.Empty<string>(), UnavailableReason(reader.GetString(3)));
+        return new ModulePolicyRecord(reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetBoolean(4), reader.GetBoolean(5), revision, ETag(revision), Array.Empty<string>(), Array.Empty<string>(), UnavailableReason(reader.GetString(3)), reader.GetBoolean(7));
     }
 
     private static IReadOnlyList<string> ReadDependencies(SqlConnection connection, Guid moduleId, bool incoming)
@@ -334,6 +362,10 @@ public sealed class SqlModulePolicyService : IModulePolicyService
     {
         var blockers = new List<ModulePolicyBlocker>();
         var systemEnabled = change.SystemEnabled ?? module.SystemEnabled;
+        if (change.SharingEnabled is true && module.Code is not ("FX04" or "FX11" or "FX20"))
+            blockers.Add(new ModulePolicyBlocker("ProviderContractUnavailable", "Sharing is unavailable for this module until its exact projection contract is installed.", "sharingEnabled"));
+        if (change.SharingEnabled is true && (!systemEnabled || module.State != "Ready"))
+            blockers.Add(new ModulePolicyBlocker("DependencyUnavailable", "Sharing cannot be enabled while the module is unavailable.", "sharingEnabled"));
 
         if (systemEnabled && !module.SystemEnabled)
         {
@@ -386,6 +418,21 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         return values;
     }
 
+    private static SharingPolicyImpact ReadSharingImpact(SqlConnection connection, SqlTransaction transaction,
+        ModulePolicyRecord module, ModulePolicyChange change) => SqlSharingPolicyImpact.Read(connection,transaction,module.Code,
+            (change.SystemEnabled is false && module.SystemEnabled) || (change.SharingEnabled is false && module.SharingEnabled));
+
+    private static long ReadAffectedUsers(SqlConnection connection, SqlTransaction transaction, ModulePolicyRecord module, ModulePolicyChange change)
+    {
+        var changed=(change.SystemEnabled is { } system && system!=module.SystemEnabled) ||
+            (change.SharingEnabled is { } sharing && sharing!=module.SharingEnabled);
+        if (!changed) return 0;
+        using var command=connection.CreateCommand(); command.Transaction=transaction;
+        command.CommandText="SELECT COUNT_BIG(*) FROM [platform].[UserModuleGrant] g JOIN [identity].[User] u ON u.Id=g.UserId JOIN [platform].[PersonalSpace] p ON p.UserId=u.Id WHERE g.ModuleId=@Module AND g.Enabled=1 AND u.State='Active' AND u.IsDeleted=0 AND p.State='Active';";
+        command.Parameters.Add("@Module",System.Data.SqlDbType.UniqueIdentifier).Value=module.Id;
+        return Convert.ToInt64(command.ExecuteScalar());
+    }
+
     private static IReadOnlyList<ModulePolicyDiff> BuildDiffs(ModulePolicyRecord module, ModulePolicyChange change)
     {
         var diffs = new List<ModulePolicyDiff>();
@@ -393,6 +440,8 @@ public sealed class SqlModulePolicyService : IModulePolicyService
             diffs.Add(new ModulePolicyDiff("systemEnabled", module.SystemEnabled.ToString(), systemEnabled.ToString()));
         if (change.RegistrationEnabled is { } registrationEnabled && registrationEnabled != module.RegistrationEnabled)
             diffs.Add(new ModulePolicyDiff("registrationEnabled", module.RegistrationEnabled.ToString(), registrationEnabled.ToString()));
+        if (change.SharingEnabled is { } sharingEnabled && sharingEnabled != module.SharingEnabled)
+            diffs.Add(new ModulePolicyDiff("sharingEnabled", module.SharingEnabled.ToString(), sharingEnabled.ToString()));
         return diffs;
     }
 
@@ -459,5 +508,5 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         }
     }
 
-    private sealed record PreviewPayload(Guid ActorUserId, Guid? ActorSessionId, Guid ModuleId, long PolicyRevision, bool? SystemEnabled, bool? RegistrationEnabled, DateTimeOffset ExpiresAt);
+    private sealed record PreviewPayload(Guid ActorUserId, Guid? ActorSessionId, Guid ModuleId, long PolicyRevision, bool? SystemEnabled, bool? RegistrationEnabled, DateTimeOffset ExpiresAt, bool? SharingEnabled, long AffectedSharingLinks, string SharingCohortDigest, long AffectedUsers);
 }

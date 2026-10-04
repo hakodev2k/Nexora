@@ -13,11 +13,12 @@ public sealed record ModulePolicyRecord(
     string ETag,
     IReadOnlyList<string> RequiredDependencies,
     IReadOnlyList<string> RequiredBy,
-    string? UnavailableReason);
+    string? UnavailableReason,
+    bool SharingEnabled = false);
 
 public sealed record ModulePolicyPage(IReadOnlyList<ModulePolicyRecord> Items, string? NextCursor);
 
-public sealed record ModulePolicyChange(bool? SystemEnabled, bool? RegistrationEnabled);
+public sealed record ModulePolicyChange(bool? SystemEnabled, bool? RegistrationEnabled, bool? SharingEnabled = null);
 
 public sealed record ModulePolicyDiff(string Field, string Before, string After);
 
@@ -28,7 +29,9 @@ public sealed record ModulePolicyPreview(
     DateTimeOffset ExpiresAt,
     string ETag,
     IReadOnlyList<ModulePolicyDiff> Changes,
-    IReadOnlyList<ModulePolicyBlocker> Blockers);
+    IReadOnlyList<ModulePolicyBlocker> Blockers,
+    long AffectedSharingLinks = 0,
+    long AffectedUsers = 0);
 
 public sealed record ModulePolicyCommit(ModulePolicyChange Change, string PreviewToken);
 

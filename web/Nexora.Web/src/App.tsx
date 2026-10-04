@@ -1398,6 +1398,21 @@ function NavItemContent({ icon, label }: { icon: string; label: string }) {
   return <><span className="nav-icon" aria-hidden="true">{icon}</span><span>{label}</span></>;
 }
 
+function sharedCriteriaText(raw: string | null): string {
+  if (!raw) return '—';
+  try {
+    const data: unknown = JSON.parse(raw);
+    if (typeof data === 'string') return data;
+    if (!Array.isArray(data)) return raw;
+    return data.map((item: unknown) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object' && 'text' in item && typeof item.text === 'string' && 'checked' in item && typeof item.checked === 'boolean')
+        return `${item.checked ? '☑' : '☐'} ${item.text}`;
+      return JSON.stringify(item);
+    }).join('\n') || '—';
+  } catch { return raw; }
+}
+
 export function SharedResourceScreen({ token, onLogin }: { token?: string; onLogin?: () => void }) {
   const [resource, setResource] = useState<SharedResource | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1430,7 +1445,7 @@ export function SharedResourceScreen({ token, onLogin }: { token?: string; onLog
   return (
     <div className="full-page-state shared-resource-page">
       <div className="loading-mark" aria-hidden="true">N</div>
-      {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p>{onLogin ? <button className="secondary-button" type="button" onClick={onLogin}>Đăng nhập để kiểm tra quyền</button> : <p className="field-help">Nếu đây là link yêu cầu tài khoản, hãy đăng xuất rồi đăng nhập bằng account có quyền truy cập.</p>}</> : resource?.project ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / PROJECT</p><h1>{resource.project.name}</h1><p>{resource.project.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.project.status} · {dateTime(resource.project.startAt)} – {dateTime(resource.project.endAt)}</p><h2>Tasks</h2>{resource.project.tasks.length === 0 ? <p>Project chưa có Task.</p> : <div className="table-wrap"><table><caption>Task detail được phép chia sẻ</caption><thead><tr><th scope="col">Task</th><th scope="col">Trạng thái</th><th scope="col">Due</th></tr></thead><tbody>{resource.project.tasks.map((task) => <tr key={task.id}><td><strong>{task.title}</strong>{task.description && <span className="muted">{task.description}</span>}</td><td>{task.status}{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}</td><td>{task.dueAt ? dateTime(task.dueAt) : '—'}</td></tr>)}</tbody></table></div>}<p className="field-help">Chế độ read-only: không có history, reason, reminder, private notes hoặc thao tác chỉnh sửa.</p></article> : resource?.document ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / DOCUMENT</p><h1>{resource.document.title}</h1><p className="muted">{resource.document.status} · version {resource.document.versionNumber} · cập nhật {dateTime(resource.document.updatedAt)}</p><pre className="shared-document-body">{resource.document.body}</pre><p className="field-help">Nội dung được render như text, không diễn giải HTML/script.</p></article> : <><h1>Không có nội dung</h1><p>Server không trả projection được phép.</p></>}
+      {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p>{onLogin ? <button className="secondary-button" type="button" onClick={onLogin}>Đăng nhập để kiểm tra quyền</button> : <p className="field-help">Nếu đây là link yêu cầu tài khoản, hãy đăng xuất rồi đăng nhập bằng account có quyền truy cập.</p>}</> : resource?.project ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / PROJECT</p><h1>{resource.project.name}</h1><p>{resource.project.description ?? 'Không có mô tả.'}</p><p className="muted">{resource.project.status} · {dateTime(resource.project.startAt)} – {dateTime(resource.project.endAt)}</p><h2>Tasks</h2>{resource.project.tasks.length === 0 ? <p>Project chưa có Task.</p> : <div className="table-wrap"><table><caption>Task detail được phép chia sẻ</caption><thead><tr><th scope="col">Task</th><th scope="col">Trạng thái</th><th scope="col">Start / End</th><th scope="col">Priority / Tags</th><th scope="col">Acceptance criteria</th></tr></thead><tbody>{resource.project.tasks.map((task) => <tr key={task.id}><td><strong>{task.title}</strong>{task.description && <span className="muted">{task.description}</span>}</td><td>{task.status}{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}</td><td>{dateTime(task.startAt)}<br />{dateTime(task.endAt)}</td><td>{task.priority ?? '—'}<pre>{sharedCriteriaText(task.tagsJson)}</pre></td><td><pre>{sharedCriteriaText(task.acceptanceCriteriaJson)}</pre></td></tr>)}</tbody></table></div>}<p className="field-help">Chế độ read-only: không có history, reason, reminder, private notes hoặc thao tác chỉnh sửa.</p></article> : resource?.document ? <article className="shared-resource-card"><p className="eyebrow">READ-ONLY / DOCUMENT</p><h1>{resource.document.title}</h1><p className="muted">{resource.document.status} · version {resource.document.versionNumber} · cập nhật {dateTime(resource.document.updatedAt)}</p><pre className="shared-document-body">{resource.document.body}</pre><p className="field-help">Nội dung được render như text, không diễn giải HTML/script.</p></article> : <><h1>Không có nội dung</h1><p>Server không trả projection được phép.</p></>}
     </div>
   );
 }
@@ -2381,21 +2396,21 @@ function AdminAccessScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =>
 
 type PendingModulePolicyPreview = {
   module: AdminModuleRecord;
-  change: { systemEnabled?: boolean; registrationEnabled?: boolean };
+  change: { systemEnabled?: boolean; registrationEnabled?: boolean; sharingEnabled?: boolean };
   preview: ModulePolicyPreview;
   stale: boolean;
 };
 
 function ModulePolicyScreen({ onAuthLost, readOnly = false }: { onAuthLost: () => Promise<void>; readOnly?: boolean }) {
   const requestKeys = useRef<Record<string, string>>({});
-  const [drafts, setDrafts] = useState<Record<string, { systemEnabled: boolean; registrationEnabled: boolean }>>({});
+  const [drafts, setDrafts] = useState<Record<string, { systemEnabled: boolean; registrationEnabled: boolean; sharingEnabled: boolean }>>({});
   const [modules, setModules] = useState<AdminModuleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [pendingPreview, setPendingPreview] = useState<PendingModulePolicyPreview | null>(null);
-  const [reauthRetry, setReauthRetry] = useState<{ module: AdminModuleRecord; change: { systemEnabled?: boolean; registrationEnabled?: boolean } } | null>(null);
-  const [retryAfterReauth, setRetryAfterReauth] = useState<{ module: AdminModuleRecord; change: { systemEnabled?: boolean; registrationEnabled?: boolean } } | null>(null);
+  const [reauthRetry, setReauthRetry] = useState<{ module: AdminModuleRecord; change: { systemEnabled?: boolean; registrationEnabled?: boolean; sharingEnabled?: boolean } } | null>(null);
+  const [retryAfterReauth, setRetryAfterReauth] = useState<{ module: AdminModuleRecord; change: { systemEnabled?: boolean; registrationEnabled?: boolean; sharingEnabled?: boolean } } | null>(null);
 
   async function load() {
     setLoading(true);
@@ -2419,7 +2434,7 @@ function ModulePolicyScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =
     void requestPreview(retryAfterReauth.module, retryAfterReauth.change, true);
   }, [retryAfterReauth]);
 
-  async function requestPreview(module: AdminModuleRecord, change: { systemEnabled?: boolean; registrationEnabled?: boolean }, afterReauthentication = false) {
+  async function requestPreview(module: AdminModuleRecord, change: { systemEnabled?: boolean; registrationEnabled?: boolean; sharingEnabled?: boolean }, afterReauthentication = false) {
     setBusy(`preview:${module.id}`);
     setError(null);
     try {
@@ -2468,18 +2483,19 @@ function ModulePolicyScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =
   }
 
   return <section className="content-section" aria-labelledby="module-policy-title">
-    <div className="content-heading"><div><p className="eyebrow">FX03 / MODULE POLICY</p><h1 id="module-policy-title">Module catalog</h1><p className="lead">Catalog hiển thị dependency, trạng thái runtime và policy hiện tại. Thay đổi system/default luôn qua preview ký số rồi mới commit.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading || busy !== null}>Tải lại</button></div>
+    <div className="content-heading"><div><p className="eyebrow">FX03 / MODULE POLICY</p><h1 id="module-policy-title">Module catalog</h1><p className="lead">Catalog hiển thị dependency, trạng thái runtime và policy hiện tại. Thay đổi system, registration default và sharing luôn qua preview rồi mới xác nhận.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading || busy !== null}>Tải lại</button></div>
     {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
     {readOnly && <div className="security-policy" role="status"><strong>Read-only catalog</strong><span>Quyền policy hiện tại không cho phép thay đổi module. Server vẫn kiểm tra lại quyền này tại preview và commit.</span></div>}
     {loading ? <div className="loading-state" role="status">Đang tải module catalog…</div> : modules.length === 0 ? <div className="empty-state"><h2>Chưa có module</h2><p>Catalog hiện không trả module khả dụng.</p></div> : <div className="module-grid">{modules.map((module) => <article className="module-card" key={module.id}>
       <div className="module-card-heading"><div><h2>{module.name}</h2><span className="module-code">{module.code}</span></div><span className={`state-pill ${module.systemEnabled ? 'state-active' : ''}`}>{module.state}</span></div>
-      <p className="muted">Policy revision {module.policyRevision} · {module.systemEnabled ? 'System enabled' : 'System disabled'} · registration {module.registrationEnabled ? 'enabled' : 'disabled'}</p>
+      <p className="muted">Policy revision {module.policyRevision} · {module.systemEnabled ? 'System enabled' : 'System disabled'} · registration {module.registrationEnabled ? 'enabled' : 'disabled'} · sharing {module.sharingEnabled ? 'enabled' : 'disabled'}</p>
       {module.unavailableReason && <Notice kind="info">{module.unavailableReason}</Notice>}
       <div className="check-grid" aria-label={`Policy controls for ${module.code}`}>
-        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.systemEnabled ?? module.systemEnabled} onChange={(event) => { const value = event.target.checked; setDrafts((current) => ({ ...current, [module.id]: { ...(current[module.id] ?? { systemEnabled: module.systemEnabled, registrationEnabled: module.registrationEnabled }), systemEnabled: value } })); }} disabled={readOnly || busy !== null} /> System enabled</label>
-        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.registrationEnabled ?? module.registrationEnabled} onChange={(event) => { const value = event.target.checked; setDrafts((current) => ({ ...current, [module.id]: { ...(current[module.id] ?? { systemEnabled: module.systemEnabled, registrationEnabled: module.registrationEnabled }), registrationEnabled: value } })); }} disabled={readOnly || busy !== null} /> Registration default</label>
+        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.systemEnabled ?? module.systemEnabled} onChange={(event) => { const value = event.target.checked; setDrafts((current) => ({ ...current, [module.id]: { ...(current[module.id] ?? { systemEnabled: module.systemEnabled, registrationEnabled: module.registrationEnabled, sharingEnabled: module.sharingEnabled }), systemEnabled: value } })); }} disabled={readOnly || busy !== null} /> System enabled</label>
+        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.registrationEnabled ?? module.registrationEnabled} onChange={(event) => { const value = event.target.checked; setDrafts((current) => ({ ...current, [module.id]: { ...(current[module.id] ?? { systemEnabled: module.systemEnabled, registrationEnabled: module.registrationEnabled, sharingEnabled: module.sharingEnabled }), registrationEnabled: value } })); }} disabled={readOnly || busy !== null} /> Registration default</label>
+        <label className="check-row"><input type="checkbox" checked={drafts[module.id]?.sharingEnabled ?? module.sharingEnabled} onChange={(event) => { const value=event.target.checked; setDrafts((current)=>({...current,[module.id]:{...(current[module.id] ?? {systemEnabled:module.systemEnabled,registrationEnabled:module.registrationEnabled,sharingEnabled:module.sharingEnabled}),sharingEnabled:value}})); }} disabled={readOnly || busy !== null || !['FX04','FX11','FX20'].includes(module.code)} /> Sharing enabled</label>
       </div>
-      {!readOnly && <button className="primary-button" type="button" disabled={busy !== null || !drafts[module.id] || (drafts[module.id].systemEnabled === module.systemEnabled && drafts[module.id].registrationEnabled === module.registrationEnabled)} onClick={() => { const draft = drafts[module.id]; if (draft) void requestPreview(module, { ...(draft.systemEnabled !== module.systemEnabled ? { systemEnabled: draft.systemEnabled } : {}), ...(draft.registrationEnabled !== module.registrationEnabled ? { registrationEnabled: draft.registrationEnabled } : {}) }); }}>Xem lại thay đổi {module.code}</button>}
+      {!readOnly && <button className="primary-button" type="button" disabled={busy !== null || !drafts[module.id] || (drafts[module.id].systemEnabled === module.systemEnabled && drafts[module.id].registrationEnabled === module.registrationEnabled && drafts[module.id].sharingEnabled === module.sharingEnabled)} onClick={() => { const draft = drafts[module.id]; if (draft) void requestPreview(module, { ...(draft.systemEnabled !== module.systemEnabled ? { systemEnabled: draft.systemEnabled } : {}), ...(draft.registrationEnabled !== module.registrationEnabled ? { registrationEnabled: draft.registrationEnabled } : {}), ...(draft.sharingEnabled !== module.sharingEnabled ? { sharingEnabled: draft.sharingEnabled } : {}) }); }}>Xem lại thay đổi {module.code}</button>}
       <div className="module-dependencies"><p><strong>Requires:</strong> {module.requiredDependencies.length ? module.requiredDependencies.join(', ') : 'None'}</p><p><strong>Required by:</strong> {module.requiredBy.length ? module.requiredBy.join(', ') : 'None'}</p></div>
     </article>)}</div>}
     {reauthRetry && <ReauthenticateDialog onClose={() => setReauthRetry(null)} onAuthenticated={() => { setReauthRetry(null); setRetryAfterReauth(reauthRetry); }} />}
@@ -2491,11 +2507,13 @@ function ModulePolicyScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =
           ? 'Preview không còn hợp lệ. Đóng hộp thoại, tải trạng thái mới và tạo preview lại.'
           : 'So sánh dưới đây là snapshot policy đã ký. Server sẽ recheck quyền, revision và dependency ngay trước khi commit.'}
       confirmLabel="Xác nhận policy"
-      tone={pendingPreview.change.systemEnabled === false ? 'danger' : 'primary'}
+      tone={pendingPreview.change.systemEnabled === false || pendingPreview.change.sharingEnabled === false ? 'danger' : 'primary'}
       confirmDisabled={pendingPreview.preview.blockers.length > 0 || pendingPreview.stale || busy !== null}
       onConfirm={commitPreview}
       onClose={() => setPendingPreview(null)}
     >
+      <p>{pendingPreview.preview.affectedUsers} người dùng hiện tại bị ảnh hưởng.</p>
+      {(pendingPreview.change.sharingEnabled === false || pendingPreview.change.systemEnabled === false) && <p role="status">{pendingPreview.preview.affectedSharingLinks} link chia sẻ hiện có sẽ mất hiệu lực vĩnh viễn. Bật lại không phục hồi những link này.</p>}
       <div className="dialog-preview"><p><strong>Hết hạn:</strong> {dateTime(pendingPreview.preview.expiresAt)}</p><p><strong>Revision:</strong> {pendingPreview.preview.etag}</p>{pendingPreview.preview.changes.length === 0 ? <p className="muted">Không có thay đổi hiệu lực.</p> : <ul className="grant-list">{pendingPreview.preview.changes.map((change) => <li key={`${change.field}:${change.before}:${change.after}`}><code>{change.field}</code><span>{change.before} → {change.after}</span></li>)}</ul>}{pendingPreview.preview.blockers.length > 0 && <div className="security-policy" role="alert"><strong>Blockers</strong><ul>{pendingPreview.preview.blockers.map((blocker) => <li key={`${blocker.code}:${blocker.field}:${blocker.message}`}>{blocker.message}</li>)}</ul></div>}</div>
     </ActionDialog>}
   </section>;
