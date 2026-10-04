@@ -93,8 +93,11 @@ export function sqlSession(id: string): any[] {
 // Follow visible pagination controls; never hide accumulated SQL data to make a case pass.
 export async function showPagedCard(page: Page,title:string,loadMoreLabel:string){
  for(let n=0;n<100;n++){
-  if(await card(page,title).isVisible())return;
-  const next=page.getByRole('button',{name:loadMoreLabel,exact:true});await expect(next).toBeVisible();
+  const target=card(page,title),next=page.getByRole('button',{name:loadMoreLabel,exact:true});
+  // isVisible alone does not wait for the initial async list load.
+  await expect.poll(async()=>await target.isVisible()||await next.isVisible()).toBe(true);
+  if(await target.isVisible())return;
+  await expect(next).toBeVisible();
   const before=await page.locator('.resource-card').count();await next.click();
   await expect.poll(()=>page.locator('.resource-card').count()).toBeGreaterThan(before);
  }
