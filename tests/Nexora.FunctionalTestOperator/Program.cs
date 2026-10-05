@@ -71,6 +71,7 @@ if(args is ["read-focus-completion",var focusText]) {
 if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
+  ["Monitor"]="[monitoring].[Monitor]",
   ["WishlistItem"]="[shopping].[WishlistItem]",
   ["ImportBatch"]="[operations].[ImportBatch]",
   ["ExportJob"]="[operations].[ExportJob]",
@@ -87,7 +88,9 @@ if(args is ["read-resource",var kind,var idText]) {
  };
  if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- var query=kind=="ShareLink"
+ var query=kind=="Monitor"
+  ? "SELECT Id,OwnerId,Title,Kind,Target,IntervalSeconds,ExpectedStatus,Enabled,State,LastObservedAt,CreatedAt,UpdatedAt FROM [monitoring].[Monitor] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="ShareLink"
   ? "SELECT Id,OwnerId,ResourceType,ResourceId,Mode,ExpiresAt,RevokedAt,IsDeleted,InvalidatedAt,InvalidationReason,IssuedSharingEpoch FROM [security].[ShareLink] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
   : kind=="ExportJob"
   ? "SELECT j.Id,j.OwnerId,j.FileObjectId,j.State,j.EventCount,j.CreatedAt,j.ExpiresAt,DATALENGTH(a.Content) AS ArtifactBytes,(SELECT COUNT(*) FROM [operations].[ExportSource] s WHERE s.JobId=j.Id AND s.OwnerId=j.OwnerId) AS SourceCount FROM [operations].[ExportJob] j JOIN [operations].[ExportArtifact] a ON a.JobId=j.Id AND a.OwnerId=j.OwnerId WHERE j.Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"

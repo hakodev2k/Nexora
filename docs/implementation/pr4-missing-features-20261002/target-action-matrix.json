@@ -1939,12 +1939,12 @@
       "requires": "",
       "screens": "FX30-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -1957,12 +1957,12 @@
       "requires": "",
       "screens": "FX30-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -1975,12 +1975,12 @@
       "requires": "prices.tracker.read",
       "screens": "FX30-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -1993,12 +1993,12 @@
       "requires": "",
       "screens": "FX30-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2011,12 +2011,12 @@
       "requires": "",
       "screens": "FX30-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2029,12 +2029,12 @@
       "requires": "",
       "screens": "FX30-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2047,12 +2047,12 @@
       "requires": "",
       "screens": "FX30-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2065,12 +2065,12 @@
       "requires": "",
       "screens": "FX30-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2083,12 +2083,12 @@
       "requires": "",
       "screens": "FX30-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2101,12 +2101,12 @@
       "requires": "",
       "screens": "FX30-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2119,12 +2119,12 @@
       "requires": "prices.alert.read",
       "screens": "FX30-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2137,12 +2137,12 @@
       "requires": "",
       "screens": "FX30-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2155,12 +2155,12 @@
       "requires": "",
       "screens": "FX30-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2173,12 +2173,12 @@
       "requires": "",
       "screens": "FX30-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2191,12 +2191,12 @@
       "requires": "",
       "screens": "FX30-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2209,12 +2209,12 @@
       "requires": "",
       "screens": "",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-30",
@@ -2227,12 +2227,12 @@
       "requires": "",
       "screens": "",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-31",
@@ -3127,12 +3127,12 @@
       "requires": "",
       "screens": "FX34-S01;FX34-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3145,12 +3145,12 @@
       "requires": "",
       "screens": "FX34-S01;FX34-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3163,12 +3163,12 @@
       "requires": "",
       "screens": "FX34-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3181,12 +3181,12 @@
       "requires": "",
       "screens": "FX34-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3199,12 +3199,12 @@
       "requires": "",
       "screens": "FX34-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3217,12 +3217,12 @@
       "requires": "",
       "screens": "FX34-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3235,12 +3235,12 @@
       "requires": "",
       "screens": "FX34-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3253,12 +3253,12 @@
       "requires": "",
       "screens": "FX34-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3271,12 +3271,12 @@
       "requires": "",
       "screens": "FX34-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3289,12 +3289,12 @@
       "requires": "",
       "screens": "FX34-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3307,12 +3307,12 @@
       "requires": "",
       "screens": "FX34-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3325,12 +3325,12 @@
       "requires": "",
       "screens": "FX34-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3343,12 +3343,12 @@
       "requires": "",
       "screens": "FX34-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3361,12 +3361,12 @@
       "requires": "",
       "screens": "FX34-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3379,12 +3379,12 @@
       "requires": "",
       "screens": "FX34-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3397,12 +3397,12 @@
       "requires": "",
       "screens": "FX34-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3415,12 +3415,12 @@
       "requires": "",
       "screens": "FX34-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3433,12 +3433,12 @@
       "requires": "",
       "screens": "FX34-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-34",
@@ -3451,12 +3451,12 @@
       "requires": "",
       "screens": "",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3469,12 +3469,12 @@
       "requires": "",
       "screens": "FX35-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3487,12 +3487,12 @@
       "requires": "",
       "screens": "FX35-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3505,12 +3505,12 @@
       "requires": "integrations.connection.read",
       "screens": "FX35-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3523,12 +3523,12 @@
       "requires": "",
       "screens": "FX35-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3541,12 +3541,12 @@
       "requires": "",
       "screens": "FX35-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3559,12 +3559,12 @@
       "requires": "",
       "screens": "FX35-S02",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3577,12 +3577,12 @@
       "requires": "",
       "screens": "FX35-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3595,12 +3595,12 @@
       "requires": "",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3613,12 +3613,12 @@
       "requires": "",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3631,12 +3631,12 @@
       "requires": "integrations.webhook.read",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3649,12 +3649,12 @@
       "requires": "",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3667,12 +3667,12 @@
       "requires": "",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3685,12 +3685,12 @@
       "requires": "",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3703,12 +3703,12 @@
       "requires": "",
       "screens": "FX35-S03",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3721,12 +3721,12 @@
       "requires": "",
       "screens": "FX35-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3739,12 +3739,12 @@
       "requires": "",
       "screens": "FX35-S04",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3757,12 +3757,12 @@
       "requires": "",
       "screens": "FX35-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3775,12 +3775,12 @@
       "requires": "",
       "screens": "FX35-S01",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3793,12 +3793,12 @@
       "requires": "",
       "screens": "",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -3811,12 +3811,12 @@
       "requires": "",
       "screens": "",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-36",
@@ -3828,13 +3828,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX36-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "installedBinding": "monitoring-local-config-contract.md; local HTTP metadata only; migration0045",
+      "focusedEvidence": "monitoring-evidence.md; monitoring-browser-evidence.json; monitoring-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded private HTTP configuration only. No DNS/outbound/probes/jobs/observations/incidents/TLS/Cron heartbeat/Digital association/removal/support; no full action acceptance."
     },
     {
       "module": "FX-36",
@@ -3846,13 +3846,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX36-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "installedBinding": "monitoring-local-config-contract.md; local HTTP metadata only; migration0045",
+      "focusedEvidence": "monitoring-evidence.md; monitoring-browser-evidence.json; monitoring-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded private HTTP configuration only. No DNS/outbound/probes/jobs/observations/incidents/TLS/Cron heartbeat/Digital association/removal/support; no full action acceptance."
     },
     {
       "module": "FX-36",
@@ -3864,13 +3864,13 @@
       "catalogCurrentScope": "true",
       "requires": "monitoring.monitor.read",
       "screens": "FX36-S02",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "installedBinding": "monitoring-local-config-contract.md; local HTTP metadata only; migration0045",
+      "focusedEvidence": "monitoring-evidence.md; monitoring-browser-evidence.json; monitoring-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded private HTTP configuration only. No DNS/outbound/probes/jobs/observations/incidents/TLS/Cron heartbeat/Digital association/removal/support; no full action acceptance."
     },
     {
       "module": "FX-36",
@@ -3882,13 +3882,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX36-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "installedBinding": "monitoring-local-config-contract.md; local HTTP metadata only; migration0045",
+      "focusedEvidence": "monitoring-evidence.md; monitoring-browser-evidence.json; monitoring-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded private HTTP configuration only. No DNS/outbound/probes/jobs/observations/incidents/TLS/Cron heartbeat/Digital association/removal/support; no full action acceptance."
     },
     {
       "module": "FX-36",
@@ -3900,13 +3900,13 @@
       "catalogCurrentScope": "true",
       "requires": "",
       "screens": "FX36-S01",
-      "disposition": "MissingImplementation",
-      "effectiveGate": "ContractPending",
-      "handlerCandidateFiles": "",
-      "installedBinding": "",
-      "focusedEvidence": "",
+      "disposition": "InstalledSubsetWithFocusedEvidence",
+      "effectiveGate": "InstalledLocalSubsetOnly",
+      "handlerCandidateFiles": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "installedBinding": "monitoring-local-config-contract.md; local HTTP metadata only; migration0045",
+      "focusedEvidence": "monitoring-evidence.md; monitoring-browser-evidence.json; monitoring-source-hashes.json",
       "fullActionAccepted": false,
-      "note": "Current user authorizes local unaffected implementation; concrete slice contracts/source integration and execution evidence remain required."
+      "note": "Bounded private HTTP configuration only. No DNS/outbound/probes/jobs/observations/incidents/TLS/Cron heartbeat/Digital association/removal/support; no full action acceptance."
     },
     {
       "module": "FX-36",
@@ -6475,12 +6475,12 @@
       "requires": "",
       "screens": "FX05-S03;FX05-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-31",
@@ -6529,12 +6529,12 @@
       "requires": "",
       "screens": "FX05-S03;FX05-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-35",
@@ -6547,12 +6547,12 @@
       "requires": "",
       "screens": "FX05-S03;FX05-S05",
       "disposition": "PreservedPaused",
-      "effectiveGate": "PO_PAUSED",
+      "effectiveGate": "REAL_PROVIDER_EXECUTION_UNAPPROVED; LOCAL_CONTRACT_REQUIRED",
       "handlerCandidateFiles": "",
       "installedBinding": "",
       "focusedEvidence": "",
       "fullActionAccepted": false,
-      "note": "Main DEC-20260909-009 and effective overlay: explicit PO resume required; no handler/UI/worker/default enablement."
+      "note": "DEC-20260909-014 supersedes DEC009 local-code pause: local/simulated implementation permitted after sufficient exact API/DB/UX/AC/security/evidence contracts. Real provider execution, real secrets/data and external effects remain unapproved; no blanket requirement for repeated local PO resume."
     },
     {
       "module": "FX-36",

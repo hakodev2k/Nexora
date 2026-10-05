@@ -2009,3 +2009,8 @@ progress::-moz-progress-bar {
 .calendar-export-form input[type="checkbox"] { width: auto; flex: 0 0 auto; }
 .calendar-export-form input[type="date"], .calendar-export-form select { min-width: 0; max-width: 100%; width: 100%; }
 .calendar-export-screen p { overflow-wrap: anywhere; }
+
+.monitoring-screen .resource-card > div:first-child { min-width: 0; flex: 1; }
+.monitoring-screen h2, .monitoring-screen dd { overflow-wrap: anywhere; }
+.monitoring-screen dd { margin-inline-start: 0; }
+.monitoring-form-fields { min-width: 0; max-width: 100%; box-sizing: border-box; }

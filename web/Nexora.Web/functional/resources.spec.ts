@@ -92,7 +92,13 @@ test('Goal: numeric progress and explicit completed/reopen/abandoned lifecycle',
 });
 
 test('Planner: pin, move day, unpin preserves source Task', async ({ page }) => {
-  await page.goto('/'); const { task } = await sourceTask(page); const before = sql('Task', task.id); await page.goto('/modules/FX15'); const date = await page.locator('#planner-date').inputValue(); const modal = await dialog(page, 'Thêm pin'); await page.locator('#planner-task').selectOption(task.id); await page.locator('#planner-notes').fill('planning only'); await modal.getByRole('button', { name: 'Pin vào plan', exact: true }).click(); await expect(modal).toHaveCount(0);
+  await page.goto('/'); const { task } = await sourceTask(page); const before = sql('Task', task.id); await page.goto('/modules/FX15'); const date = await page.locator('#planner-date').inputValue(); const modal = await dialog(page, 'Thêm pin'); for (let n = 0; n < 150; n++) {
+    await expect(page.locator('#planner-task')).toBeEnabled();
+    if (await page.locator('#planner-task option').evaluateAll((options, id) => options.some(option => (option as HTMLOptionElement).value === id), task.id)) break;
+    const more = modal.getByRole('button', { name: 'Load more Task choices', exact: true });
+    await expect(more).toBeVisible(); await more.click();
+  }
+  await page.locator('#planner-task').selectOption(task.id); await page.locator('#planner-notes').fill('planning only'); await modal.getByRole('button', { name: 'Pin vào plan', exact: true }).click(); await expect(modal).toHaveCount(0);
   const plan = await api(page, 'listPlanner', [date, date]); const pin = plan.pins.find((p: any) => p.taskId === task.id); expect(sql('PlannerPin', pin.id)[0].Notes).toBe('planning only');
   const row = page.locator('.resource-card').filter({ hasText: task.title }); await row.getByRole('button', { name: 'Ngày sau →' }).click(); await expect.poll(() => sql('PlannerPin', pin.id)[0].PlanDate.slice(0, 10)).not.toBe(date);
   await page.locator('#planner-date').fill(sql('PlannerPin', pin.id)[0].PlanDate.slice(0, 10)); await row.getByRole('button', { name: 'Unpin', exact: true }).click(); await confirm(page, 'Unpin'); await expect.poll(() => sql('PlannerPin', pin.id)).toHaveLength(0); expect(sql('Task', task.id)).toEqual(before);
@@ -108,7 +114,12 @@ test('Habit: real check-in correction, future schedule and pause/archive lifecyc
 });
 
 test('Reminder: preset, None, Exact and remove retains None intent', async ({ page }) => {
-  await page.goto('/'); const { task } = await sourceTask(page); await page.goto('/modules/FX14'); await page.locator('#reminder-source').selectOption('Task:' + task.id);
+  await page.goto('/'); const { task } = await sourceTask(page); await page.goto('/modules/FX14');
+  const sourceChoice = page.locator('#reminder-source');
+  for (let pageIndex = 0; pageIndex < 150 && await sourceChoice.locator('option').evaluateAll((options, value) => !options.some(option => (option as HTMLOptionElement).value === value), 'Task:' + task.id); pageIndex++) {
+    const more = page.getByRole('button', { name: 'Load more Task sources', exact: true }); await expect(more).toBeVisible(); await expect(more).toBeEnabled(); await more.click(); await expect.poll(async () => await more.count() === 0 || await more.isEnabled()).toBe(true);
+  }
+  await expect(sourceChoice).toBeEnabled(); await sourceChoice.selectOption('Task:' + task.id);
   let modal = await dialog(page, 'Cấu hình reminder'); await modal.getByRole('button', { name: /Đặt reminder|Lưu thay đổi/ }).click(); await expect(modal).toHaveCount(0);
   const view = await api(page, 'getReminderSource', ['Task', task.id]); const id = view.reminder.id; expect(sql('Reminder', id)[0].ConfigType).toBe('BeforeStart15m');
   modal = await dialog(page, 'Cấu hình reminder'); await page.locator('#reminder-config').selectOption('None'); await modal.getByRole('button', { name: 'Lưu thay đổi' }).click(); await expect(modal).toHaveCount(0); expect(sql('Reminder', id)[0].State).toBe('None');

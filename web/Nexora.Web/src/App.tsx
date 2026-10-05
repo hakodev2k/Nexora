@@ -1,3 +1,4 @@
+import { MonitoringScreen } from './MonitoringScreen';
 import { CalendarTransferScreen } from './CalendarTransferScreen';
 import { CareerScreen } from './CareerScreen';
 import { DigitalAssetScreen } from './DigitalAssetScreen';
@@ -469,7 +470,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX33: { vi: 'Khám phá GitHub', en: 'GitHub discovery' },
   FX34: { vi: 'Tự động hóa và lịch chạy', en: 'Automation and scheduler' },
   FX35: { vi: 'Tích hợp và webhook', en: 'Integrations and webhooks' },
-  FX36: { vi: 'Giám sát và vận hành jobs', en: 'Monitoring and job operations' },
+  FX36: { vi: 'Monitoring — Cấu hình HTTP local', en: 'Monitoring — Local HTTP configuration' },
   FX39: { vi: 'Career — Company và Job thủ công', en: 'Career — Manual Companies and Jobs' },
   FX38: { vi: 'Tài sản số — Metadata và renewal', en: 'Digital Assets — Manual metadata and renewals' },
   FX37: { vi: 'Tài sản — Metadata và lịch sử', en: 'Personal Assets — Metadata and history' },
@@ -478,7 +479,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
 
 const moduleScreenCodes = new Set([
   'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
-  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX31', 'FX32', 'FX40'
+  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX31', 'FX32', 'FX36', 'FX40'
 ]);
 
 function moduleDisplayName(code: string, locale: string): string {
@@ -3019,6 +3020,7 @@ function ProductivityScreen({
   onAuthLost: () => Promise<void>;
 }) {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const projectPickerEpoch = useRef(0), projectPickerFlight = useRef(false), productivityMounted = useRef(true);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [events, setEvents] = useState<CalendarEventRecord[]>([]);
   const [projectNextCursor, setProjectNextCursor] = useState<string | null>(null);
@@ -3071,7 +3073,16 @@ function ProductivityScreen({
     return Number.isFinite(start) && Number.isFinite(end) && start < calendarRangeEnd && end > calendarRangeStart;
   });
 
+  function clearProtectedProductivity() {
+    setProjects([]); setTasks([]); setEvents([]);
+    setProjectNextCursor(null); setTaskNextCursor(null); setEventNextCursor(null);
+    resetProject(); resetTask(); resetEvent(); setTaskDraft(old => ({ ...old, projectId: '' }));
+    setTimeWarning(null); actionRequestKeys.current = {};
+  }
+
   async function load(append = false) {
+    if (!productivityMounted.current) return;
+    const stamp = ++projectPickerEpoch.current;
     setLoading(true);
     setError(null);
     try {
@@ -3080,6 +3091,7 @@ function ProductivityScreen({
         canTasks ? listTasks(undefined, 25, append && moduleCode === 'FX12' ? taskNextCursor ?? '' : '') : Promise.resolve(null),
         canCalendar ? listCalendarEvents(calendarRange.from, calendarRange.to, 25, append && moduleCode === 'FX13' ? eventNextCursor ?? '' : '') : Promise.resolve(null)
       ]);
+      if (!productivityMounted.current || stamp !== projectPickerEpoch.current) return;
       if (projectPage) {
         const items = Array.isArray(projectPage.items) ? projectPage.items : [];
         setProjects((current) => append && moduleCode === 'FX11' ? [...current, ...items] : items);
@@ -3096,13 +3108,33 @@ function ProductivityScreen({
         setEventNextCursor(eventPage.nextCursor ?? null);
       }
     } catch (requestError) {
+      if (!productivityMounted.current || stamp !== projectPickerEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status)) clearProtectedProductivity();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (productivityMounted.current && stamp === projectPickerEpoch.current) setLoading(false);
     }
   }
+
+  async function loadMoreProjectChoices() {
+    if (!productivityMounted.current || !projectNextCursor || projectPickerFlight.current || loading || busy !== null) return;
+    projectPickerFlight.current = true; const stamp = projectPickerEpoch.current; setBusy('project-picker');
+    try {
+      const page = await listProjects(25, projectNextCursor);
+      if (!productivityMounted.current || stamp !== projectPickerEpoch.current) return;
+      setProjects(old => [...new Map([...old, ...page.items].map(project => [project.id, project])).values()]);
+      setProjectNextCursor(page.nextCursor);
+    } catch (requestError) {
+      if (!productivityMounted.current || stamp !== projectPickerEpoch.current) return;
+      const apiError = asApiError(requestError); setError(apiError);
+      if (apiError.status === 401) clearProtectedProductivity();
+      else if ([403, 404].includes(apiError.status)) { setProjects([]); setProjectNextCursor(null); resetProject(); setTaskDraft(old => ({ ...old, projectId: '' })); setTimeWarning(null); }
+      if (apiError.status === 401) await onAuthLost();
+    } finally { projectPickerFlight.current = false; if (productivityMounted.current) setBusy(current => current === 'project-picker' ? null : current); }
+  }
+  useEffect(() => { productivityMounted.current = true; return () => { productivityMounted.current = false; projectPickerEpoch.current++; }; }, []);
 
   useEffect(() => {
     void load();
@@ -3443,7 +3475,7 @@ function ProductivityScreen({
         <div className="resource-layout">
           <form className="form-panel resource-form" onSubmit={saveTask} noValidate>
             <div className="section-heading"><h2>{editingTask ? 'Sửa Task' : 'Tạo Task'}</h2>{editingTask && <button className="link-button" type="button" onClick={resetTask}>Hủy sửa</button>}</div>
-            <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>
+            <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={loading || busy !== null || projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>{projectNextCursor && <button type="button" disabled={loading || busy !== null} onClick={() => void loadMoreProjectChoices()}>Load more Project choices</button>}
             <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={200} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
             <div className="field-group"><label htmlFor="task-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="task-description" value={taskDraft.description} maxLength={4000} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} rows={3} /></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên <span className="optional">(tùy chọn)</span></label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="">Không đặt</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
@@ -3495,14 +3527,54 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [conflict, setConflict] = useState(false);
   const requestKey = useRef<{ signature: string; key: string } | null>(null);
   const removeRequestKey = useRef<string | null>(null);
+  const [taskCursor, setTaskCursor] = useState<string | null>(null);
+  const [eventCursor, setEventCursor] = useState<string | null>(null);
+  const poolEpoch = useRef(0);
+  const detailEpoch = useRef(0);
+  const pickerFlight = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; poolEpoch.current++; detailEpoch.current++; }; }, []);
 
   const form = useResourceDialog({ configType, exactAt }, value => { setConfigType(value.configType); setExactAt(value.exactAt); });
 
+  function clearProtectedSources() {
+    poolEpoch.current++; detailEpoch.current++;
+    setSources([]); setSelectedKey(''); setSource(null); setTaskCursor(null); setEventCursor(null);
+    setConfigType('BeforeStart15m'); setExactAt(''); setConflict(false);
+    setLoading(false); setSourceLoading(false);
+    requestKey.current = null; removeRequestKey.current = null; form.finish();
+  }
+
+  async function loadMoreSources(kind: 'Task' | 'CalendarEvent') {
+    const cursor = kind === 'Task' ? taskCursor : eventCursor;
+    if (!mounted.current || !cursor || loading || sourceLoading || busy !== null || pickerFlight.current || form.open) return;
+    pickerFlight.current = true; const epoch = poolEpoch.current; setBusy('picker'); setError(null);
+    try {
+      const page = kind === 'Task' ? await listTasks(undefined, 25, cursor) : await listCalendarEvents(undefined, undefined, 25, cursor);
+      if (!mounted.current || epoch !== poolEpoch.current) return;
+      const added: ReminderSourceOption[] = kind === 'Task'
+        ? (page.items as TaskRecord[]).filter(item => !['Completed', 'Skipped', 'Deleted'].includes(item.status)).map(item => ({ key: `Task:${item.id}`, sourceType: 'Task', id: item.id, title: item.title, startAt: item.startAt, detail: 'Task' }))
+        : (page.items as CalendarEventRecord[]).filter(item => item.status === 'Scheduled' && item.sourceKind === 'Manual' && item.taskId === null).map(item => ({ key: `CalendarEvent:${item.id}`, sourceType: 'CalendarEvent', id: item.id, title: item.title, startAt: item.startAt, detail: 'Calendar Event' }));
+      setSources(current => [...current, ...added.filter(item => !current.some(existing => existing.key === item.key))].sort((a, b) => a.startAt.localeCompare(b.startAt)));
+      setSelectedKey(current => current || added[0]?.key || '');
+      if (kind === 'Task') setTaskCursor(page.nextCursor ?? null); else setEventCursor(page.nextCursor ?? null);
+    } catch (requestError) {
+      if (!mounted.current || epoch !== poolEpoch.current) return;
+      const apiError = asApiError(requestError); setError(apiError);
+      if ([401, 403, 404].includes(apiError.status)) clearProtectedSources();
+      if (apiError.status === 401) await onAuthLost();
+    } finally { pickerFlight.current = false; if (mounted.current) setBusy(current => current === 'picker' ? null : current); }
+  }
+
   async function loadSources() {
+    if (!mounted.current) return;
+    const epoch = ++poolEpoch.current;
     setLoading(true);
     setError(null);
     try {
-      const [taskPage, eventPage] = await Promise.all([listTasks(undefined, 100), listCalendarEvents(undefined, undefined, 100)]);
+      const [taskPage, eventPage] = await Promise.all([listTasks(undefined, 25), listCalendarEvents(undefined, undefined, 25)]);
+      if (!mounted.current || epoch !== poolEpoch.current) return;
+      setTaskCursor(taskPage.nextCursor ?? null); setEventCursor(eventPage.nextCursor ?? null);
       const taskSources = (taskPage.items ?? [])
         .filter((task) => !['Completed', 'Skipped', 'Deleted'].includes(task.status))
         .map((task): ReminderSourceOption => ({ key: `Task:${task.id}`, sourceType: 'Task', id: task.id, title: task.title, startAt: task.startAt, detail: 'Task' }));
@@ -3512,31 +3584,41 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       const nextSources = [...taskSources, ...eventSources].sort((left, right) => left.startAt.localeCompare(right.startAt));
       setSources(nextSources);
       setSelectedKey((current) => nextSources.some((item) => item.key === current) ? current : nextSources[0]?.key ?? '');
+      const currentOption = nextSources.find(item => item.key === selectedKey);
+      if (currentOption) void loadSource(currentOption);
     } catch (requestError) {
+      if (!mounted.current || epoch !== poolEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status)) clearProtectedSources();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (mounted.current && epoch === poolEpoch.current) setLoading(false);
     }
   }
 
   async function loadSource(option: ReminderSourceOption) {
+    if (!mounted.current) return;
+    const epoch = ++detailEpoch.current;
+    setSource(null);
     setSourceLoading(true);
     setError(null);
     setConflict(false);
     try {
       const view = await getReminderSource(option.sourceType, option.id);
+      if (!mounted.current || epoch !== detailEpoch.current) return;
       setSource(view);
       setConfigType(view.reminder?.configType === 'Exact' ? 'Exact' : view.reminder?.configType === 'None' ? 'None' : 'BeforeStart15m');
       setExactAt(isoToLocalInput(view.reminder?.exactAt ?? null, view.timeZoneId));
     } catch (requestError) {
+      if (!mounted.current || epoch !== detailEpoch.current) return;
       const apiError = asApiError(requestError);
       setSource(null);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status)) clearProtectedSources();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setSourceLoading(false);
+      if (mounted.current && epoch === detailEpoch.current) setSourceLoading(false);
     }
   }
 
@@ -3547,9 +3629,11 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (option) {
       void loadSource(option);
     } else {
+      detailEpoch.current++;
       setSource(null);
+      setSourceLoading(false);
     }
-  }, [selectedKey, sources]);
+  }, [selectedKey]);
 
   function handleSourceChange(value: string) {
     requestKey.current = null;
@@ -3630,12 +3714,13 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     <section className="content-section" aria-labelledby="reminders-title">
       <div className="content-heading">
         <div><p className="eyebrow">FX14 / LOCAL SCHEDULING</p><h1 id="reminders-title">Reminders</h1><p className="lead">Mỗi Task hoặc Calendar Event thủ công có tối đa một reminder trong PersonalSpace hiện tại. Email và browser push không được gọi; khi đến hạn, local worker chỉ tạo in-app projection và báo rõ provider unavailable.</p></div>
-        <button className="secondary-button" type="button" onClick={() => void loadSources()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+        <button className="secondary-button" type="button" onClick={() => void loadSources()} disabled={loading || busy !== null || form.open}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
       {conflict && <Notice kind="error"><span>Reminder hoặc nguồn đã thay đổi ở nơi khác. Đã tải lại revision hiện tại.</span></Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <div className="form-actions">{taskCursor && <button type="button" className="secondary-button" disabled={loading || sourceLoading || busy !== null || form.open} onClick={() => void loadMoreSources("Task")}>Load more Task sources</button>}{eventCursor && <button type="button" className="secondary-button" disabled={loading || sourceLoading || busy !== null || form.open} onClick={() => void loadMoreSources("CalendarEvent")}>Load more Calendar Event sources</button>}</div>
       {loading ? <div className="loading-state" role="status">Đang tải Task và Calendar Event khả dụng…</div> : sources.length === 0 ? <div className="empty-state"><h2>Chưa có nguồn có thể nhắc</h2><p>Tạo Task đang hoạt động hoặc Calendar Event thủ công trong tương lai trước khi đặt reminder.</p></div> : <div className="resource-layout">
-        <div className="form-panel"><div className="field-group"><label htmlFor="reminder-source">Nguồn</label><select id="reminder-source" value={selectedKey} onChange={(event) => handleSourceChange(event.target.value)} disabled={sourceLoading || busy !== null}>{sources.map((item) => <option key={item.key} value={item.key}>{item.detail}: {item.title} · {dateTime(item.startAt)}</option>)}</select></div>{source?.reminder && <ConfirmActionButton confirmationTitle={`Gỡ reminder cho “${source.sourceTitle}”?`} confirmationDescription="Intent reminder và các lần delivery liên quan sẽ không còn hoạt động; Task hoặc Calendar Event nguồn vẫn được giữ nguyên." confirmLabel="Gỡ reminder" disabled={busy !== null} onConfirm={remove}>{busy === 'remove' ? 'Đang gỡ…' : 'Gỡ reminder'}</ConfirmActionButton>}</div><button className="primary-button" type="button" disabled={busy !== null} onClick={() => { form.begin(); }}>Cấu hình reminder</button><ResourceFormDialog open={form.open} title={'Cấu hình reminder'} busy={busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>
+        <div className="form-panel"><div className="field-group"><label htmlFor="reminder-source">Nguồn</label><select id="reminder-source" value={selectedKey} onChange={(event) => handleSourceChange(event.target.value)} disabled={loading || sourceLoading || busy !== null || form.open}>{sources.map((item) => <option key={item.key} value={item.key}>{item.detail}: {item.title} · {dateTime(item.startAt)}</option>)}</select></div>{source?.reminder && <ConfirmActionButton confirmationTitle={`Gỡ reminder cho “${source.sourceTitle}”?`} confirmationDescription="Intent reminder và các lần delivery liên quan sẽ không còn hoạt động; Task hoặc Calendar Event nguồn vẫn được giữ nguyên." confirmLabel="Gỡ reminder" disabled={loading || sourceLoading || busy !== null || form.open} onConfirm={remove}>{busy === 'remove' ? 'Đang gỡ…' : 'Gỡ reminder'}</ConfirmActionButton>}</div><button className="primary-button" type="button" disabled={loading || sourceLoading || busy !== null || !source} onClick={() => { form.begin(); }}>Cấu hình reminder</button><ResourceFormDialog open={form.open} title={'Cấu hình reminder'} busy={busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>Cấu hình reminder</h2><span className="muted">ETag-protected</span></div>
 
           {sourceLoading ? <div className="loading-state" role="status">Đang tải revision reminder…</div> : source && <>
@@ -4766,6 +4851,8 @@ function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthL
   const [view, setView] = useState<'day' | 'week'>('day');
   const [plan, setPlan] = useState<PlannerPlan | null>(null);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
+  const [taskCursor, setTaskCursor] = useState<string | null>(null);
+  const pickerEpoch = useRef(0), pickerFlight = useRef(false), pickerMounted = useRef(true);
   const [taskId, setTaskId] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
@@ -4777,21 +4864,42 @@ function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthL
   const form = useResourceDialog({ taskId, notes }, value => { setTaskId(value.taskId); setNotes(value.notes); });
 
   async function load() {
+    if (!pickerMounted.current) return;
+    const stamp = ++pickerEpoch.current;
     setLoading(true);
     setError(null);
     try {
       const range = plannerRange(planDate, view);
-      const [planner, taskPage] = await Promise.all([listPlanner(range.from, range.to), listTasks(undefined, 100)]);
+      const [planner, taskPage] = await Promise.all([listPlanner(range.from, range.to), listTasks(undefined, 25)]);
+      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
       setPlan(planner);
       setTasks((taskPage.items ?? []).filter((task) => task.status === 'NotStarted' || task.status === 'InProgress'));
+      setTaskCursor(taskPage.nextCursor);
     } catch (requestError) {
+      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status)) { setTasks([]); setTaskCursor(null); setTaskId(''); setPlan(null); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (pickerMounted.current && stamp === pickerEpoch.current) setLoading(false);
     }
   }
+  async function loadMoreTasks() {
+    if (!pickerMounted.current || !taskCursor || pickerFlight.current || loading || busy !== null) return;
+    pickerFlight.current = true; const stamp = pickerEpoch.current; setBusy('picker');
+    try {
+      const page = await listTasks(undefined, 25, taskCursor);
+      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
+      setTasks(old => [...new Map([...old, ...page.items.filter(task => task.status === 'NotStarted' || task.status === 'InProgress')].map(task => [task.id, task])).values()]);
+      setTaskCursor(page.nextCursor);
+    } catch (requestError) {
+      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
+      const apiError = showError(requestError);
+      if ([401, 403, 404].includes(apiError.status)) { setTasks([]); setTaskCursor(null); setTaskId(''); setPlan(null); }
+    } finally { pickerFlight.current = false; if (pickerMounted.current) setBusy(current => current === 'picker' ? null : current); }
+  }
+  useEffect(() => { pickerMounted.current = true; return () => { pickerMounted.current = false; pickerEpoch.current++; }; }, []);
 
   useEffect(() => { setPlanDate(todayDateInput(timeZoneId)); }, [timeZoneId]);
   useEffect(() => { void load(); }, [planDate, timeZoneId, view]);
@@ -4890,7 +4998,7 @@ function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthL
         <div className="form-panel">
           <div className="section-heading"><h2>Pin existing Task</h2><span className="state-pill state-active">Task lens</span></div>
           <div className="form-grid"><div className="field-group"><label htmlFor="planner-date">Ngày plan</label><input id="planner-date" type="date" value={planDate} onChange={(event) => { setPlanDate(event.target.value); requestKey.current = null; }} required /></div><div className="field-group"><label htmlFor="planner-view">View</label><select id="planner-view" value={view} onChange={(event) => setView(event.target.value as 'day' | 'week')}><option value="day">Day</option><option value="week">Week (Monday start)</option></select></div></div>
-          </div><button className="primary-button" type="button" disabled={busy !== null} onClick={() => { form.begin(); }}>Thêm pin</button><ResourceFormDialog open={form.open} title={'Thêm pin'} busy={busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={pin} noValidate><div className="field-group"><label htmlFor="planner-task">Task đang hoạt động</label><select id="planner-task" value={taskId} onChange={(event) => { setTaskId(event.target.value); requestKey.current = null; }} disabled={loading || busy !== null} required><option value="">Chọn Task</option>{tasks.map((task) => <option key={task.id} value={task.id}>{task.title} · {task.status}</option>)}</select></div>
+          </div><button className="primary-button" type="button" disabled={loading || busy !== null} onClick={() => { form.begin(); }}>Thêm pin</button><ResourceFormDialog open={form.open} title={'Thêm pin'} busy={busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={pin} noValidate><div className="field-group"><label htmlFor="planner-task">Task đang hoạt động</label><select id="planner-task" value={taskId} onChange={(event) => { setTaskId(event.target.value); requestKey.current = null; }} disabled={loading || busy !== null} required><option value="">Chọn Task</option>{tasks.map((task) => <option key={task.id} value={task.id}>{task.title} · {task.status}</option>)}</select></div>{taskCursor && <button type="button" disabled={loading || busy !== null} onClick={() => void loadMoreTasks()}>Load more Task choices</button>}
           <div className="field-group"><label htmlFor="planner-notes">Planning note <span className="optional">(tùy chọn)</span></label><textarea id="planner-notes" value={notes} maxLength={2000} rows={3} onChange={(event) => { setNotes(event.target.value); requestKey.current = null; }} /></div>
           <SubmitButton busy={busy === 'pin'}>Pin vào plan</SubmitButton>
           <p className="field-help">Task terminal hoặc Project terminal sẽ bị server từ chối; cross-user Task không được tiết lộ.</p>
@@ -5353,6 +5461,7 @@ function ModuleScreen({
   if (module.enabled && normalizedCode === 'FX39') return <CareerScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX37') return <AssetScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX36') return <MonitoringScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;

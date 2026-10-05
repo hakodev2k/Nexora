@@ -1,0 +1,41 @@
+{
+  "baseHead": "680197d1d97bf8febf1bc0a4ec2e1a56e6f352b5",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts resources.spec.ts --grep \"Planner: pin\" --max-failures=1",
+  "stats": {
+    "startTime": "2026-10-05T15:40:21.536Z",
+    "duration": 30971.252,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "projects": [
+    {
+      "project": "desktop-large",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "desktop",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "tablet",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile-small",
+      "status": "expected",
+      "attempts": 1
+    }
+  ],
+  "scope": "Actual25-row source Task picker cursor traversal, modal initial focus, pin/move/unpin and unchanged source SQL at all5viewports; retained synthetic data and normal login pacing.",
+  "sourceStage": "Historical focused Planner run before later Productivity picker/denied-editor repairs; final full regression supplies final source binding."
+}

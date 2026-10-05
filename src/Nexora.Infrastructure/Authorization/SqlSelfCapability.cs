@@ -58,6 +58,11 @@ internal sealed class SqlSelfCapability
             actions.Any(action => action is not ("files.file.read" or "files.file.upload" or "files.file.download")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
+        // FX36 installs only inert HTTP configuration, for every role. Stale grant rows cannot start a probe.
+        if (string.Equals(moduleCode, "FX36", StringComparison.Ordinal) &&
+            actions.Any(action => action is not ("monitoring.monitor.read" or "monitoring.monitor.create" or "monitoring.monitor.update" or "monitoring.monitor.pause" or "monitoring.monitor.resume")))
+            return SqlCapabilityStatus.ModuleUnavailable;
+
         // Admin SELF is an explicit grant context. A stale or hand-inserted
         // AdminPermission row cannot turn a PUBLIC/SUPER/CONTROL/SYSTEM action
         // into self access; the manifest projection is checked before SQL.

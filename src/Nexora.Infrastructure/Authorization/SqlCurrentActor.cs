@@ -4,7 +4,7 @@ using Nexora.Application.Identity;
 
 namespace Nexora.Infrastructure.Authorization;
 
-/// <summary>Current SQL account, owner, role and session for Sharing and its policy commands.</summary>
+/// <summary>Current SQL account, owner, role and session for reviewed local owner services and policy commands.</summary>
 internal static class SqlCurrentActor
 {
     internal static bool IsLive(SqlConnection connection, SqlTransaction? transaction,

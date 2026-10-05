@@ -39,6 +39,20 @@ test('shared Project renders approved nullable Task details and literal ordered 
 });
 import { server } from './test/server';
 
+test('a denied Productivity reload clears the previously authorized Project editor and private draft', async () => {
+  const user = userEvent.setup(); let denied = false;
+  const project = { id: 'synthetic-owned-project', name: 'Previously authorized project', description: 'Private source description', status: 'NotStarted', createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: 'synthetic-etag', startAt: '2026-10-01T00:00:00Z', endAt: '2026-10-02T00:00:00Z', priority: 'P3', tagsJson: '[]', notes: null };
+  server.use(http.get('*/api/v1/projects', () => denied ? HttpResponse.json({ code: 'ModuleUnavailable', title: 'Unavailable' }, { status: 403 }) : HttpResponse.json({ items: [project], nextCursor: null })));
+  renderShell(syntheticProfile({ modules: [{ code: 'FX11', enabled: true, unavailableReason: null }] }), { screen: 'module', moduleCode: 'FX11' });
+  await user.click(await screen.findByRole('button', { name: 'Sửa' }));
+  expect(screen.getByLabelText('Description')).toHaveValue(project.description);
+  denied = true; await user.click(screen.getByRole('button', { name: 'Tải lại' }));
+  await waitFor(() => expect(screen.getByLabelText('Description')).toHaveValue(''));
+  expect(screen.getByLabelText('Title')).toHaveValue('');
+  expect(screen.queryByText(project.name)).toBeNull();
+  expect(screen.queryByRole('heading', { name: 'Sửa Project' })).toBeNull();
+});
+
 afterEach(() => {
   window.history.replaceState({}, '', '/');
 });

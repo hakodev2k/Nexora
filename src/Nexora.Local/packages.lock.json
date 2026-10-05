@@ -343,6 +343,11 @@
         "resolved": "1.0.0",
         "contentHash": "N4KeF3cpcm1PUHym1RmakkzfkEv3GRMyofVv40uXsQhCQeglr2OHNcUk2WOG51AKpGO8ynGpo9M/kFXSzghwug=="
       },
+      "NodaTime": {
+        "type": "Transitive",
+        "resolved": "3.3.3",
+        "contentHash": "EwouHZv99j5hraq34yQqvCQGDR59dynxPHlxFm2vY/sw2N2aR8cFel29ZxPqohjBWp9Qsnld7QCY+7uZ2PESGg=="
+      },
       "System.ClientModel": {
         "type": "Transitive",
         "resolved": "1.8.0",
@@ -406,7 +411,8 @@
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.11, )",
           "Microsoft.Extensions.Identity.Core": "[10.0.11, )",
           "Nexora.Application": "[1.0.0, )",
-          "Nexora.Domain": "[1.0.0, )"
+          "Nexora.Domain": "[1.0.0, )",
+          "NodaTime": "[3.3.3, )"
         }
       }
     }

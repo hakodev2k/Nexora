@@ -53,6 +53,7 @@ public static class M01MigrationManifest
             "20261003_0041_calendar_ics_import.sql",
             "20261004_0042_calendar_ics_export.sql",
             "20261004_0043_sharing_policy_authority.sql",
-            "20261004_0044_sharing_subset_readiness.sql"
+            "20261004_0044_sharing_subset_readiness.sql",
+            "20261004_0045_monitoring_http_config.sql"
     ];
 }
