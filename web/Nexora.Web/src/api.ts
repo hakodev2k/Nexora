@@ -2069,3 +2069,7 @@ export function purgeFile(id: string, etag: string, idempotencyKey = createIdemp
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   });
 }
+
+export function previewShareDisclosure(resourceType: string, resourceId: string) {
+  return apiFetch<SharedResource>(`/api/v1/sharing/preview?${new URLSearchParams({ resourceType, resourceId })}`);
+}

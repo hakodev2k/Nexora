@@ -77,6 +77,7 @@ public sealed record SharedResource(
 
 public interface ISharingService
 {
+    IdentityOperationResult<SharedResource> Preview(IdentityPrincipal actor, string resourceType, Guid resourceId);
     IdentityOperationResult<ShareLinkRecord> Get(IdentityPrincipal actor, Guid shareLinkId);
     IdentityOperationResult<bool> CanCopyCreated(IdentityPrincipal actor, Guid shareLinkId);
     IdentityOperationResult<ShareLinkPage> List(IdentityPrincipal actor, int? limit = null);

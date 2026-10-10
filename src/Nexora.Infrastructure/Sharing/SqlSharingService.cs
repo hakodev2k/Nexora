@@ -391,6 +391,33 @@ public sealed class SqlSharingService : ISharingService
         return IdentityOperationResult<object?>.NoContent();
     }
 
+    public IdentityOperationResult<SharedResource> Preview(IdentityPrincipal actor, string resourceType, Guid resourceId)
+    {
+        if (!ModuleAvailable(actor, "FX04", "sharing.link.create") ||
+            !ModuleAvailable(actor, "FX04", "sharing.link.read")) return ModuleUnavailable<SharedResource>();
+        resourceType = resourceType?.Trim() ?? "";
+        if (resourceType is not ("Project" or "Document") || resourceId == Guid.Empty)
+            return Failure<SharedResource>("ValidationFailed", 422, "The share resource is invalid.");
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var boundary = ReadSharingModule(connection, transaction, forUpdate: false);
+        if (boundary is null || !boundary.Value.Available || !SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.create") ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read"))
+            return ModuleUnavailable<SharedResource>();
+        if (!OwnerSourceAllowed(connection, transaction, actor, resourceType, resourceId, creating: true))
+            return Missing<SharedResource>();
+        var source = new SharedLinkSourceContext(actor.OwnerId, resourceId);
+        var project = resourceType == "Project" ? SqlProjectSharedSource.ReadProjection(connection, transaction, source, DateTimeOffset.UtcNow) : null;
+        var document = resourceType == "Document" ? SqlDocumentSharedSource.ReadProjection(connection, transaction, source) : null;
+        if (project is null && document is null) return Missing<SharedResource>();
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor)) return ModuleUnavailable<SharedResource>();
+        transaction.Commit();
+        // Owner preview is not a link, grants no audience authority and creates no token or receipt.
+        return IdentityOperationResult<SharedResource>.Success(new SharedResource(resourceType, resourceId,
+            "OwnerPreview", null, ProjectionVersion, project, document));
+    }
+
     public IdentityOperationResult<SharedResource> Resolve(string token, IdentityPrincipal? viewer)
     {
         if (string.IsNullOrWhiteSpace(token) || token.Length > 256)
