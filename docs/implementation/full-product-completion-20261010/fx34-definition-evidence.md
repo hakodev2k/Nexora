@@ -19,4 +19,6 @@ Independent source reviewer `/root/baseline_review` identified malformed escaped
 
 Remaining: current SQL authority/resources/contributions validation, definition/version persistence, API/UX, actual Task dispatch adapter, schedule/timezone/cron, version-bound runs, dedupe/leasing/recovery/cancel/retries, simulation implementation, safe history/support, import/export and human QA acceptance. `SupportsVerifiedDryRun` returns unavailable for current closed registry; never invokes any action. No evidence from the older baseline test suite is reused as FX34 acceptance.
 
+Published source revision `128e601e5d4ac651c6923967d774bbba79ee5d51`; both source blobs fetched back from GitHub match held built content exactly. Canonical LF SHA256: registry `b321bb417d223ef53ab4687a9c7f54c95917dbb966df55b75feed34f697f5d33`, parser `cd2cd026426113a0128a3bfa627032dd464ef3a62a24ffe53a69cca9d1720f7a`. Agent baseline38025102414 PASS. Existing automatic CI38025102459: backend/frontend/Linux PASS; Windows ACL FAIL; SQL/API and browser fail at isolated configuration gates, functional result BLOCKED. Those existing suites do not exercise the new parser and are not FX34 acceptance. No new tests or runner configuration were introduced.
+
 Rollback: revert only these new Application contract files and corresponding docs; no database or user state rollback. Release1 remains incomplete.
