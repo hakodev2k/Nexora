@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiFetch, getFileCapabilities, type FileRecord } from './api';
+import { apiFetch, fileContentUrl, getFileCapabilities, type FileRecord } from './api';
 import { ResourceFormDialog } from './ResourceFormDialog';
 
 export function FileMetadataDialog({ fileId, onClose, onDenied }: {
@@ -8,11 +8,12 @@ export function FileMetadataDialog({ fileId, onClose, onDenied }: {
   const generation = useRef(0);
   const [record, setRecord] = useState<FileRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [canDownload, setCanDownload] = useState(false);
   const [error, setError] = useState('');
   const [reload, setReload] = useState(0);
   useEffect(() => {
     const stamp = ++generation.current;
-    setRecord(null); setLoading(true); setError('');
+    setRecord(null); setCanDownload(false); setLoading(true); setError('');
     void Promise.all([
       apiFetch<FileRecord>(`/api/v1/files/${encodeURIComponent(fileId)}`),
       getFileCapabilities()
@@ -29,6 +30,7 @@ export function FileMetadataDialog({ fileId, onClose, onDenied }: {
         setError('Không thể xác nhận metadata file. Hãy tải lại.'); return;
       }
       setRecord(value);
+      setCanDownload(caps['files.file.download'] === true && value.lifecycle === 'Active' && value.scanState === 'Clean');
     }).catch(e => {
       if (stamp !== generation.current) return;
       const failure = e as { status?: number; code?: string };
@@ -53,8 +55,11 @@ export function FileMetadataDialog({ fileId, onClose, onDenied }: {
       <dt>Tạo lúc</dt><dd>{date(record.createdAt)}</dd>
       <dt>Cập nhật lúc</dt><dd>{date(record.updatedAt)}</dd>
     </dl>}
+    {record && (canDownload
+      ? <a className="primary-button" href={fileContentUrl(record.id)} target="_blank" rel="noreferrer">Tải xuống</a>
+      : <p className="field-help">Tải xuống không khả dụng: file cần Clean/Active và quyền download hiện tại.</p>)}
     <p className="field-help">Đây là metadata; nội dung và tham chiếu không được tải trong dialog này.</p>
     <button type="button" className="secondary-button" disabled={loading}
-      onClick={() => { setRecord(null); setReload(value => value + 1); }}>Tải lại metadata</button>
+      onClick={() => { setRecord(null); setCanDownload(false); setReload(value => value + 1); }}>Tải lại metadata</button>
   </ResourceFormDialog>;
 }
