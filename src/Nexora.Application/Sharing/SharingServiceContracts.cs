@@ -18,6 +18,8 @@ public sealed record ShareLinkRecord(
     string? RawToken = null);
 
 public sealed record ShareLinkPage(IReadOnlyList<ShareLinkRecord> Items, string? NextCursor);
+public sealed record ShareLinkListQuery(string? Cursor = null, string? Mode = null, string? State = null,
+    string? ResourceType = null, Guid? ResourceId = null);
 
 public sealed record ShareLinkCreateCommand(
     string ResourceType,
@@ -80,7 +82,7 @@ public interface ISharingService
     IdentityOperationResult<SharedResource> Preview(IdentityPrincipal actor, string resourceType, Guid resourceId);
     IdentityOperationResult<ShareLinkRecord> Get(IdentityPrincipal actor, Guid shareLinkId);
     IdentityOperationResult<bool> CanCopyCreated(IdentityPrincipal actor, Guid shareLinkId);
-    IdentityOperationResult<ShareLinkPage> List(IdentityPrincipal actor, int? limit = null);
+    IdentityOperationResult<ShareLinkPage> List(IdentityPrincipal actor, int? limit = null, ShareLinkListQuery? query = null);
     IdentityOperationResult<ShareLinkRecord> Create(IdentityPrincipal actor, ShareLinkCreateCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<ShareLinkRecord> Update(IdentityPrincipal actor, Guid shareLinkId, string? ifMatch,

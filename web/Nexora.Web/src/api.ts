@@ -1916,13 +1916,16 @@ export function commitModulePolicy(moduleId: string, etag: string, change: { sys
   });
 }
 
-export function listShareLinks(limit = 100) {
-  return apiFetch<ShareLinkPage>(`/api/v1/sharing/links?limit=${encodeURIComponent(limit)}`);
+export function listShareLinks(limit = 25, filters: { mode?: string; state?: string; resourceType?: string; resourceId?: string; cursor?: string } = {}) {
+  const query = new URLSearchParams({ limit: String(limit) });
+  for (const [key, value] of Object.entries(filters)) if (value) query.set(key, value);
+  return apiFetch<ShareLinkPage>('/api/v1/sharing/links?' + query);
 }
 
 export function getShareLink(id: string) {
   return apiFetch<ShareLinkRecord>(`/api/v1/sharing/links/${encodeURIComponent(id)}`);
 }
+
 
 export function createShareLink(resourceType: string, resourceId: string, mode: string, expiresAt: string | null, allowedUserIds: string[] = [], noExpiry = false, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<ShareLinkRecord>('/api/v1/sharing/links', {
@@ -1949,6 +1952,10 @@ export function revokeShareLink(id: string, etag: string, idempotencyKey = creat
 
 export function resolveShareLink(token: string) {
   return apiFetch<SharedResource>(`/api/v1/sharing/resolve/${encodeURIComponent(token)}`);
+}
+
+export function previewShareDisclosure(resourceType: string, resourceId: string) {
+  return apiFetch<SharedResource>(`/api/v1/sharing/preview?${new URLSearchParams({ resourceType, resourceId })}`);
 }
 
 export function listSupportGrants(limit = 100) {
@@ -2072,8 +2079,4 @@ export function purgeFile(id: string, etag: string, idempotencyKey = createIdemp
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   });
-}
-
-export function previewShareDisclosure(resourceType: string, resourceId: string) {
-  return apiFetch<SharedResource>(`/api/v1/sharing/preview?${new URLSearchParams({ resourceType, resourceId })}`);
 }

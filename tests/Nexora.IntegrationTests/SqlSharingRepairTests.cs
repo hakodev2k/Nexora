@@ -379,6 +379,34 @@ public sealed class SqlSharingRepairTests
     }
 
     [Fact]
+    public async Task Owner_links_page_25_with_confidential_scoped_cursor_and_exact_state_filters()
+    {
+        await using var scope = await Enable(); var owner = await fixture.CreateActiveSessionAsync();
+        var project = await Project(owner); var links = new List<JsonElement>();
+        for (var n = 0; n < 31; n++) links.Add(await Create(owner, I(project)));
+        var filter = $"?resourceType=Project&resourceId={I(project)}";
+        var first = await Get(owner, Links + filter); Assert.Equal(25, first.GetProperty("items").GetArrayLength());
+        var cursor = first.GetProperty("nextCursor").GetString()!; Assert.StartsWith("sl1.", cursor); Assert.Equal(74, cursor.Length);
+        var second = await Get(owner, Links + filter + "&cursor=" + Uri.EscapeDataString(cursor));
+        Assert.Equal(6, second.GetProperty("items").GetArrayLength()); Assert.Equal(JsonValueKind.Null, second.GetProperty("nextCursor").ValueKind);
+        var ids = first.GetProperty("items").EnumerateArray().Concat(second.GetProperty("items").EnumerateArray()).Select(I).ToArray(); Assert.Equal(31, ids.Distinct().Count());
+        var other = await fixture.CreateActiveSessionAsync();
+        foreach (var path in new[] { Links + filter + "&cursor=" + cursor + "&mode=AuthenticatedLink", Links + filter + "&cursor=" + cursor[..8] + (cursor[8] == 'A' ? "B" : "A") + cursor[9..] })
+        { using var invalid = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle); Assert.Equal(HttpStatusCode.NotFound, invalid.StatusCode); }
+        using (var foreign = await fixture.SendAuthenticatedAsync(HttpMethod.Get, Links + filter + "&cursor=" + cursor, other.RawSessionHandle)) Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
+        foreach (var path in new[] { Links + "?mode=unknown", Links + "?state=unknown", Links + "?limit=0", Links + "?limit=101" })
+        { using var invalid = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle); Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode); }
+        await fixture.ExecuteAsync("UPDATE [security].[ShareLink] SET ExpiresAt=DATEADD(day,-1,SYSUTCDATETIME()) WHERE Id=@Id", Id("@Id", I(links[0])));
+        using (var revoke = await Send(owner, HttpMethod.Delete, $"{Links}/{I(links[1])}", new { }, E(links[1]))) Assert.Equal(HttpStatusCode.NoContent, revoke.StatusCode);
+        var expired = await Get(owner, Links + filter + "&state=Expired"); Assert.Single(expired.GetProperty("items").EnumerateArray()); Assert.Equal(I(links[0]), I(expired.GetProperty("items")[0]));
+        var revoked = await Get(owner, Links + filter + "&state=Revoked"); Assert.Single(revoked.GetProperty("items").EnumerateArray()); Assert.Equal(I(links[1]), I(revoked.GetProperty("items")[0]));
+        var active = await Get(owner, Links + filter + "&state=Active"); Assert.Equal(25, active.GetProperty("items").GetArrayLength());
+        Assert.DoesNotContain(active.GetProperty("items").EnumerateArray().Select(I), id => id == I(links[0]) || id == I(links[1]));
+        await Policy(scope.Super, "FX04", new { sharingEnabled = false }); await Policy(scope.Super, "FX04", new { sharingEnabled = true });
+        using var stale = await fixture.SendAuthenticatedAsync(HttpMethod.Get, Links + filter + "&cursor=" + cursor, owner.RawSessionHandle); Assert.Equal(HttpStatusCode.NotFound, stale.StatusCode);
+    }
+
+    [Fact]
     public async Task Copy_created_checks_current_document_projection_lifecycle_and_version()
     {
         await using var scope = await Enable(); var owner = await fixture.CreateActiveSessionAsync();

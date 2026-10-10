@@ -30,10 +30,11 @@ public static class SharingEndpoints
                 principal => service.CanCopyCreated(principal, shareLinkId), value => new { allowed = value }))
             .WithName("getCreatedShareCopyCapability");
 
-        api.MapGet("/sharing/links", (HttpContext context, int? limit, ISharingService service,
+        api.MapGet("/sharing/links", (HttpContext context, int? limit, string? cursor, string? mode, string? state,
+            string? resourceType, Guid? resourceId, ISharingService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, limit), value =>
+                principal => service.List(principal, limit, new ShareLinkListQuery(cursor, mode, state, resourceType, resourceId)), value =>
                     new ShareLinkPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listShareLinks");
 
