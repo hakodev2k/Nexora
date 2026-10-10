@@ -35,6 +35,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
     };
 
     private readonly SqlConnectionFactory _connections;
+    private readonly FileListCursor _listCursor;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
     private readonly string _storageRoot;
@@ -44,7 +45,8 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
     {
         _retention = retention;
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var receiptSecret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(receiptSecret); _listCursor = new FileListCursor(receiptSecret);
         _capabilities = new SqlSelfCapability(connections);
         if (string.IsNullOrWhiteSpace(storageRoot)) throw new ArgumentException("A private local file storage root is required.", nameof(storageRoot));
         _storageRoot = Path.GetFullPath(storageRoot);
@@ -64,32 +66,57 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     }
 
-    public IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null)
+    public IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null, FileListQuery? query = null)
     {
         if (!ModuleAvailable(actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
-        var take = Math.Clamp(limit ?? 50, 1, 100);
-        using var connection = _connections.Create();
-        connection.Open();
+        query ??= new FileListQuery();
+        var name = string.IsNullOrWhiteSpace(query.Query) ? null : query.Query.Trim();
+        var media = string.IsNullOrWhiteSpace(query.MediaType) ? null : query.MediaType.Trim().ToLowerInvariant();
+        var scan = string.IsNullOrWhiteSpace(query.ScanState) ? null : query.ScanState.Trim();
+        var lifecycle = string.IsNullOrWhiteSpace(query.Lifecycle) ? "Active" : query.Lifecycle.Trim();
+        if (limit is < 1 or > 100 || name is { Length: > 255 } || media is { Length: > 128 } ||
+            scan is not (null or "Pending" or "Clean" or "Quarantined" or "Failed") || lifecycle is not ("Active" or "Trash"))
+            return Failure<FilePage>("ValidationFailed", 422, "Check file filters and list limit.");
+        var filters = System.Text.Json.JsonSerializer.Serialize(new { name, media, scan, lifecycle });
+        DateTime boundaryAt = default; Guid boundaryId = default;
+        if (query.Cursor is not null && !_listCursor.TryDecode(query.Cursor, actor.OwnerId, filters, out boundaryAt, out boundaryId))
+            return Missing<FilePage>();
+        using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-            SELECT TOP (@Limit) [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle],
-                   [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion]
-            FROM [files].[FileObject]
-            WHERE [OwnerId] = @OwnerId AND [Lifecycle] = 'Active'
-            ORDER BY [UpdatedAt] DESC, [Id] DESC;
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        var selected = """
+            OwnerId=@OwnerId AND Lifecycle=@Lifecycle AND (@Query IS NULL OR CHARINDEX(@Query,OriginalName)>0)
+            AND (@Media IS NULL OR MediaType=@Media) AND (@Scan IS NULL OR ScanState=@Scan)
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        command.CommandText = $"""
+            IF @CursorId IS NOT NULL AND NOT EXISTS(SELECT 1 FROM [files].[FileObject] WHERE {selected} AND Id=@CursorId AND UpdatedAt=@CursorAt)
+                SELECT CAST(0 AS bit) AS ValidCursor;
+            ELSE BEGIN
+                SELECT CAST(1 AS bit) AS ValidCursor;
+                SELECT TOP(26) Id,OriginalName,MediaType,ByteLength,ScanState,Lifecycle,CurrentRevision,CreatedAt,UpdatedAt,RowVersion
+                FROM [files].[FileObject] WHERE {selected}
+                    AND (@CursorId IS NULL OR UpdatedAt<@CursorAt OR (UpdatedAt=@CursorAt AND Id<@CursorId))
+                ORDER BY UpdatedAt DESC,Id DESC;
+            END
+            """;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        using var reader = command.ExecuteReader();
+        Add(command, "@Lifecycle", SqlDbType.VarChar, lifecycle); Add(command, "@Query", SqlDbType.NVarChar, name ?? (object)DBNull.Value);
+        Add(command, "@Media", SqlDbType.VarChar, media ?? (object)DBNull.Value); Add(command, "@Scan", SqlDbType.VarChar, scan ?? (object)DBNull.Value);
+        Add(command, "@CursorId", SqlDbType.UniqueIdentifier, query.Cursor is null ? DBNull.Value : boundaryId);
+        Add(command, "@CursorAt", SqlDbType.DateTime2, query.Cursor is null ? DBNull.Value : boundaryAt);
         var items = new List<FileRecord>();
-        while (reader.Read()) items.Add(ReadFile(reader));
-        reader.Close();
-        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
-        transaction.Commit();
-        return IdentityOperationResult<FilePage>.Success(new FilePage(items, null));
+        using (var reader = command.ExecuteReader())
+        {
+            if (!reader.Read() || !reader.GetBoolean(0)) return Missing<FilePage>();
+            if (!reader.NextResult()) return PersistenceFailure<FilePage>();
+            while (reader.Read()) items.Add(ReadFile(reader));
+        }
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read")) return ModuleUnavailable<FilePage>();
+        var next = items.Count > 25 ? _listCursor.Encode(actor.OwnerId, filters, items[24].UpdatedAt.UtcDateTime, items[24].Id) : null;
+        transaction.Commit(); return IdentityOperationResult<FilePage>.Success(new FilePage(items.Take(25).ToArray(), next));
     }
 
     public IdentityOperationResult<FileRecord> Get(IdentityPrincipal actor, Guid fileId)

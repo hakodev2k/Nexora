@@ -1995,8 +1995,10 @@ export function endSupportSession(id: string, etag: string, idempotencyKey = cre
 
 export function getFileCapabilities() { return apiFetch<Record<string, boolean>>('/api/v1/files/capabilities'); }
 
-export function listFiles(limit = 100) {
-  return apiFetch<FilePage>(`/api/v1/files?limit=${encodeURIComponent(limit)}`);
+export function listFiles(limit = 25, filters: { cursor?: string; query?: string; mediaType?: string; scanState?: string; lifecycle?: string } = {}) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
+  return apiFetch<FilePage>('/api/v1/files?' + params);
 }
 
 export function initiateFileUpload(originalName: string, mediaType: string, expectedBytes: number, idempotencyKey = createIdempotencyKey()) {

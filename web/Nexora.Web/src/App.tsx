@@ -1,3 +1,4 @@
+import { FileListFilters, type FileFilters } from './FileListFilters';
 import { FileRenameDialog } from './FileRenameDialog';
 import { ShareLinkEditor } from './ShareLinkEditor';
 import { CreatedShareLink } from './CreatedShareLink';
@@ -1610,6 +1611,8 @@ function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
 function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [files, setFiles] = useState<FileRecord[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [filters, setFilters] = useState<FileFilters>({ query: '', mediaType: '', scanState: '', lifecycle: 'Active' });
   const [renaming, setRenaming] = useState<FileRecord | null>(null);
   const [selected, setSelected] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1621,27 +1624,27 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const flight = useRef(false); const generation = useRef(0);
   async function fail(requestError: unknown, stamp: number) {
     if (stamp !== generation.current) return;
-    const apiError = asApiError(requestError); setError(apiError);
+    const apiError = asApiError(requestError); setError(apiError); if (apiError.status === 404) { setFiles([]); setCursor(null); setRenaming(null); }
     if ([401, 403].includes(apiError.status) || apiError.code === 'ModuleUnavailable') {
-      setFiles([]); setRenaming(null); setSelected(null); setCaps({}); setLeave(null);
+      setFiles([]); setCursor(null); setRenaming(null); setSelected(null); setCaps({}); setLeave(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (apiError.status === 401) await onAuthLost();
     }
   }
-  async function refresh(stamp: number) {
+  async function refresh(stamp: number, append = false) {
     const current = await getFileCapabilities(); if (stamp !== generation.current) return;
     setCaps(current);
-    if (!current['files.file.read']) { setFiles([]); setRenaming(null); setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
-    const page = await listFiles(); if (stamp !== generation.current) return;
-    setFiles(page.items); setRenaming(null);
+    if (!current['files.file.read']) { setFiles([]); setCursor(null); setRenaming(null); setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
+    const page = await listFiles(25, { ...filters, cursor: append ? cursor ?? undefined : undefined }); if (stamp !== generation.current) return;
+    setFiles(current => append ? [...current, ...page.items.filter(file => !current.some(old => old.id === file.id))] : page.items); setCursor(page.nextCursor); setRenaming(null);
   }
-  async function load() {
-    if (flight.current) return; flight.current = true;
+  async function load(append = false) {
+    if (flight.current) return; if (!append) setCursor(null); flight.current = true;
     const stamp = ++generation.current; setLoading(true); setError(null);
-    try { await refresh(stamp); } catch (e) { await fail(e, stamp); }
+    try { await refresh(stamp, append); } catch (e) { await fail(e, stamp); }
     finally { if (stamp === generation.current) { flight.current = false; setLoading(false); } }
   }
-  useEffect(() => { void load(); return () => { generation.current++; flight.current = false; }; }, []);
+  useEffect(() => { void load(); return () => { generation.current++; flight.current = false; }; }, [filters]);
   useEffect(() => registerDirtyLeaveGuard(proceed => { if (selected || busy) { setLeave({ proceed }); return true; } return false; }), [selected, busy]);
   useEffect(() => { const protect = (event: BeforeUnloadEvent) => { if (selected || busy) { event.preventDefault(); event.returnValue = ''; } }; window.addEventListener('beforeunload', protect); return () => window.removeEventListener('beforeunload', protect); }, [selected, busy]);
   async function upload(event: FormEvent<HTMLFormElement>) {
@@ -1657,17 +1660,19 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
   return <section className="content-section" aria-labelledby="files-title">
-    <div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload và scan local, đọc danh sách, tải xuống private. Mỗi request kiểm tra owner, quyền hiện tại, lifecycle và scan state.</p></div><button className="secondary-button" type="button" disabled={loading || busy} onClick={() => void load()}>Tải lại</button></div>
+    <div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload và scan local, đọc danh sách, tải xuống private. Mỗi request kiểm tra owner, quyền hiện tại, lifecycle và scan state.</p></div><button className="secondary-button" type="button" disabled={loading || busy || renaming !== null} onClick={() => void load()}>Tải lại</button></div>
     {error && <Notice kind="error">{error.message}</Notice>}
+    <FileListFilters initial={filters} disabled={loading || busy || renaming !== null} onApply={value => { setCursor(null); setFilters(value); }} />
     <form className="form-panel" onSubmit={upload} noValidate>
-      <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input ref={fileInputRef} id="file-upload" type="file" disabled={loading || busy || !caps['files.file.upload']} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx,.ics" onChange={event => { setSelected(event.target.files?.[0] ?? null); setError(null); }} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX tối đa 25 MiB; ICS tối đa 1 MiB. Nội dung phải qua scan trước khi đọc.</p></div>
+      <div className="field-group"><label htmlFor="file-upload">Chọn file</label><input ref={fileInputRef} id="file-upload" type="file" disabled={loading || busy || renaming !== null || !caps['files.file.upload']} accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.markdown,.csv,.docx,.xlsx,.ics" onChange={event => { setSelected(event.target.files?.[0] ?? null); setError(null); }} /><p className="field-help">PDF, PNG, JPEG, WebP, TXT, MD, CSV, DOCX, XLSX tối đa 25 MiB; ICS tối đa 1 MiB. Nội dung phải qua scan trước khi đọc.</p></div>
       {selected && <p className="muted">Đã chọn: {selected.name} ({Math.ceil(selected.size / 1024)} KiB)</p>}
-      <button className="primary-button" type="submit" disabled={loading || busy || !caps['files.file.upload'] || !selected}>{busy ? 'Đang upload / scan…' : 'Upload và scan'}</button>
+      <button className="primary-button" type="submit" disabled={loading || busy || renaming !== null || !caps['files.file.upload'] || !selected}>{busy ? 'Đang upload / scan…' : 'Upload và scan'}</button>
     </form>
-    <div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file trong trang hiện tại</span></div>
-      {loading ? <p role="status">Đang tải file…</p> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Không có file được phép hiển thị.</p></div> : <div className="resource-cards">{files.map(file => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{caps['files.file.rename'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <button className="secondary-button" type="button" disabled={loading || busy} onClick={() => setRenaming(file)}>Đổi tên</button>}{caps['files.file.download'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}</div></article>)}</div>}
+    <div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file đã tải trong bộ lọc này</span></div>
+      {loading ? <p role="status">Đang tải file…</p> : error ? <p>Danh sách chưa được cập nhật. Hãy tải lại hoặc sửa bộ lọc.</p> : files.length === 0 ? <div className="empty-state"><h3>Không có file khớp bộ lọc</h3><p>Không có file được phép hiển thị trong selection này.</p></div> : <div className="resource-cards">{files.map(file => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle} · cập nhật {dateTime(file.updatedAt)}</p></div><div className="resource-actions">{caps['files.file.rename'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <button className="secondary-button" type="button" disabled={loading || busy} onClick={() => setRenaming(file)}>Đổi tên</button>}{caps['files.file.download'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}</div></article>)}</div>}
     </div>
-    {renaming && <FileRenameDialog key={renaming.id} item={renaming} onSaved={value => { setFiles(current => current.map(file => file.id === value.id ? value : file)); setRenaming(null); }} onClose={() => setRenaming(null)} onDenied={() => { generation.current++; flight.current = false; setBusy(false); setLoading(false); setFiles([]); setCaps({}); setRenaming(null); void load(); }} />}
+    {cursor && !error && <button className="secondary-button" type="button" disabled={loading || busy || renaming !== null} onClick={() => void load(true)}>Tải thêm files</button>}
+    {renaming && <FileRenameDialog key={renaming.id} item={renaming} onSaved={value => { setFiles(current => current.map(file => file.id === value.id ? value : file)); setRenaming(null); void load(); }} onClose={() => setRenaming(null)} onDenied={() => { generation.current++; flight.current = false; setBusy(false); setLoading(false); setFiles([]); setCursor(null); setCaps({}); setRenaming(null); void load(); }} />}
     {leave && <ActionDialog title="Rời upload đang chuẩn bị?" description="Selection sẽ bị bỏ khi rời trang. Upload đang xử lý cần hoàn tất trước khi rời." confirmLabel="Rời trang" onConfirm={() => { if (flight.current) return { error: 'Đợi upload hoàn tất trước khi rời trang.' }; setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; setLeave(null); leave.proceed(); return true; }} onClose={() => setLeave(null)} />}
   </section>;
 }

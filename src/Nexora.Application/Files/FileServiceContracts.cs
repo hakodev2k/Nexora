@@ -15,6 +15,8 @@ public sealed record FileRecord(
     string ETag);
 
 public sealed record FilePage(IReadOnlyList<FileRecord> Items, string? NextCursor);
+public sealed record FileListQuery(string? Cursor = null, string? Query = null, string? MediaType = null,
+    string? ScanState = null, string? Lifecycle = null);
 
 public sealed record FileUploadCommand(string OriginalName, string MediaType, long ExpectedBytes);
 
@@ -52,7 +54,7 @@ public sealed record FileDownload(Stream Content, string MediaType, string Downl
 public interface IFileService
 {
     IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
-    IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null);
+    IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null, FileListQuery? query = null);
     IdentityOperationResult<FileRecord> Get(IdentityPrincipal actor, Guid fileId);
     IdentityOperationResult<FileUploadSessionRecord> InitiateUpload(IdentityPrincipal actor, FileUploadCommand command,
         string? idempotencyKey = null, string? traceId = null);

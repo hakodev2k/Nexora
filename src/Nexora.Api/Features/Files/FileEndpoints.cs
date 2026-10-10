@@ -19,10 +19,11 @@ public static class FileEndpoints
                 principal => service.Capabilities(principal), value => value))
             .WithName("getFileCapabilities");
 
-        api.MapGet("/files", (HttpContext context, int? limit, IFileService service,
+        api.MapGet("/files", (HttpContext context, int? limit, string? cursor, string? query, string? mediaType,
+            string? scanState, string? lifecycle, IFileService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, limit), value =>
+                principal => service.List(principal, limit, new FileListQuery(cursor, query, mediaType, scanState, lifecycle)), value =>
                     new FilePageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listFiles");
 
