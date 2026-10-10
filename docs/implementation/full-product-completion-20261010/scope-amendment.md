@@ -25,7 +25,7 @@ Không tự bật module cho account hiện hữu/mới. Không live API, creden
 | Module | Catalog rows | Engineering authorization | Contract readiness | Functional/security acceptance | Real-provider readiness | Activation / production |
 | --- | ---: | --- | --- | --- | --- | --- |
 | FX30 | 18 | Local code + simulated verification authorized | Exact action audit pending; D01/D02 và dependencies cần đối chiếu | Chưa xác minh trong phiên này | Chưa chứng minh | PROVIDER_INACTIVE; G3/G4 chưa approve |
-| FX34 | 20 | Local engineering authorized; current execution code-only | Independent source audit: 20/20 MISSING; D03 registry/topology/mappings còn mở; BR002 DST/misfire/concurrency đã delegated | NotRun cho FX34 | Chưa chứng minh | PROVIDER_INACTIVE đối với external actions; G3/G4 chưa approve |
+| FX34 | 20 | Local engineering authorized; current execution code-only | Initial independent audit20 MISSING; subsequent D03 delegation permits bounded definition foundation; full actions/handlers remain incomplete | NotRun cho FX34; compile evidence separate | Chưa chứng minh | PROVIDER_INACTIVE đối với external actions; G3/G4 chưa approve |
 | FX35 | 21 | Local code + simulated verification authorized | Exact action audit pending; D04–D09 và dependencies cần đối chiếu | Chưa xác minh trong phiên này | Chưa chứng minh | PROVIDER_INACTIVE; public inbound exposure denied; G3/G4 chưa approve |
 
 59 rows không chuyển thành Implemented. Inventory lịch sử được giữ nguyên; từng action cần handler/schema/UI/permission/AC/evidence audit riêng. MISSING, PARTIALLY_IMPLEMENTED hay IMPLEMENTED_UNVERIFIED chỉ được gán sau kiểm tra source đầy đủ. Provider inactivity không đồng nghĩa implementation pause.
@@ -51,10 +51,10 @@ Mỗi row là request để đối chiếu current source trước khi PO chốt
 
 | Request | Options | Recommendation | Effect / safe interim |
 | --- | --- | --- | --- |
-| D01 authorized Shopee source | Authorized provider contract đủ selected-variant scope / simulation-only | Simulation-only cho tới proof of legal API eligibility, regions, quotas, storage rights | Không private endpoint, scraping bypass, cookies hoặc fabricated observation |
+| D01 authorized Shopee source | PO replied “Chưa có; simulation-only” | Local design simulation-only confirmed; authorized live source still unavailable | Không private endpoint, scraping bypass, cookies hoặc fabricated observation |
 | D02 comparable prices / alert semantics | Explicit region/currency/variant + base/sale/shipping/tax/voucher contract / defer affected calculations | Chốt exact comparable series và crossing/rearm/cooldown trước rule implementation | Không mix series; giữ last valid observation; unknown không price zero/OutOfStock |
-| D03 executable registry / topology | PO chọn bounded trusted action/trigger topology / defer execution | Registry allowlist; PO chốt sequence/graph và mappings | Arbitrary code/shell/SQL/HTTP/module upload/privilege changes denied |
-| D04 providers / n8n directions | Self-hosted / cloud / both; approve inbound và outbound riêng | Chọn một bounded target và từng event/command trước | Không generic provider support hoặc ambient authority |
+| D03 executable registry / topology | PO replied “Bạn cần tự định nghĩa theo logic chuẩn mà bạn đề ra nhé” | Delegated engineering choice: first contract linear1–20, manual v1, tasks.task.create v1 typed literals; see fx34-definition-contract.md | Later contracts remain backlog; arbitrary code/shell/SQL/HTTP/module upload/privilege changes denied; no live approval |
+| D04 providers / n8n directions | PO replied “ACtion theo ý tưởng các website lớn đang làm” | Reference-driven design delegated; exact versioned manifest/directions still to be completed | Không generic provider support, ambient authority or G3 activation |
 | D05 data projections | Explicit per-event field allowlist / no external projection | Approve minimum nonsensitive fields trước | Vault/Finance/private documents/full records không tự forward |
 | D06 auth / secret lifecycle | Reviewed scoped auth/encrypted reference/rotation/revocation contract / simulation credentials only | Simulation-only đến khi secure storage và key lifecycle review xong | Không provision real secrets; không plaintext logs/SQL/Redis |
 | D07 budgets | Explicit approved request/cost/concurrency/retry limits / no live budget | Zero live quota cho tới approval | Không biến số đề xuất thành operator budget |
