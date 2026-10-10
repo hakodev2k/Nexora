@@ -59,9 +59,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var result = new Dictionary<string, bool>(StringComparer.Ordinal);
-        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename", "files.file.trash" })
+        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename", "files.file.trash", "files.file.restore" })
             result[action] = _capabilities.IsAllowed(connection, transaction, actor, "FX07", action) &&
-                (action is not ("files.file.rename" or "files.file.trash") || _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"));
+                (action is not ("files.file.rename" or "files.file.trash" or "files.file.restore") || _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"));
         transaction.Commit();
         return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     }
@@ -580,35 +580,105 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
     }
 
 
+    private bool RestoreAuthority(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor) =>
+        SqlCurrentActor.IsLive(connection, transaction, actor) &&
+        _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read") &&
+        _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.restore");
+
+    private static Guid? CurrentFileDeletionBatch(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid fileId)
+    {
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = """
+            SELECT TOP(2) DeletionBatchId FROM [platform].[TrashItem] WITH(HOLDLOCK)
+            WHERE OwnerId=@Owner AND ResourceType='File' AND ResourceId=@File
+              AND RestoredAt IS NULL AND PurgedAt IS NULL;
+            """;
+        Add(command, "@Owner", SqlDbType.UniqueIdentifier, ownerId); Add(command, "@File", SqlDbType.UniqueIdentifier, fileId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read()) return null;
+        var batch = reader.GetGuid(0);
+        return reader.Read() || batch == Guid.Empty ? null : batch;
+    }
+
+    private bool RestorableBinary(Guid ownerId, string storageKey, long byteLength)
+    {
+        try
+        {
+            var path = ResolveOwnedStoragePath(ownerId, storageKey);
+            return path is not null && File.Exists(path) && new FileInfo(path).Length == byteLength;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException) { return false; }
+    }
+
+    public IdentityOperationResult<FileRestorePreview> PreviewRestore(IdentityPrincipal actor, Guid fileId)
+    {
+        if (!ModuleAvailable(actor, "FX07", "files.file.read", "files.file.restore")) return ModuleUnavailable<FileRestorePreview>();
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRestorePreview>();
+        var stored = ReadFileWithStorage(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
+        if (stored is null || stored.Value.Record.Lifecycle != "Trash") return Missing<FileRestorePreview>();
+        var batchId = CurrentFileDeletionBatch(connection, transaction, actor.OwnerId, fileId);
+        if (batchId is null) return Missing<FileRestorePreview>();
+        var file = stored.Value.Record;
+        var block = file.ScanState != "Clean" ? "LifecycleLocked"
+            : !RestorableBinary(actor.OwnerId, stored.Value.StorageKey, file.ByteLength) ? "StorageUnavailable" : null;
+        if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRestorePreview>();
+        transaction.Commit();
+        return IdentityOperationResult<FileRestorePreview>.Success(new(file, batchId.Value, block is null, block));
+    }
+
     public IdentityOperationResult<FileRecord> Restore(IdentityPrincipal actor, Guid fileId, Guid deletionBatchId,
         string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX07", "files.file.restore")) return ModuleUnavailable<FileRecord>();
-        if (deletionBatchId == Guid.Empty || !TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<FileRecord>(ifMatch);
-        using var connection = _connections.Create();
-        connection.Open();
+        if (!ModuleAvailable(actor, "FX07", "files.file.read", "files.file.restore")) return ModuleUnavailable<FileRecord>();
+        if (deletionBatchId == Guid.Empty) return Failure<FileRecord>("ValidationFailed", 422, "A deletion cohort is required.");
+        if (!Guid.TryParse(idempotencyKey, out var key) || key == Guid.Empty)
+            return Failure<FileRecord>("IdempotencyKeyRequired", 422, "A nonempty UUID idempotency key is required.");
+        if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<FileRecord>(ifMatch);
+        using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<FileRecord>(connection, transaction, actor, "files.file.restore", idempotencyKey,
-            $"file:{fileId:N}|batch:{deletionBatchId:N}|etag:{ifMatch}", out var receipt);
-        if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
-        var file = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
-        if (file is null || file.Lifecycle != "Trash" || !TrashBatchExists(connection, transaction, actor.OwnerId, fileId, deletionBatchId))
+        if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRecord>();
+        var stored = ReadFileWithStorage(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
+        if (stored is null) return Missing<FileRecord>();
+        var file = stored.Value.Record;
+        var claim = _receipts.TryClaim(connection, transaction, actor.UserId, "files.file.restore", idempotencyKey!,
+            $"owner:{actor.OwnerId:N}|file:{fileId:N}|batch:{deletionBatchId:N}|etag:{ifMatch}", DateTime.UtcNow);
+        if (claim.IsReplay)
         {
-            transaction.Rollback();
-            return Missing<FileRecord>();
+            // Replay acknowledges the committed operation and projects current
+            // authorized metadata; it never revives a later deletion cohort.
+            if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRecord>();
+            transaction.Commit(); return IdentityOperationResult<FileRecord>.Success(file);
         }
-        if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(file.ETag))) { transaction.Rollback(); return Revision<FileRecord>(); }
-        Execute(connection, transaction, "UPDATE [files].[FileObject] SET [Lifecycle] = 'Active', [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @Actor WHERE [Id] = @FileId AND [OwnerId] = @OwnerId AND [Lifecycle] = 'Trash' AND [RowVersion] = @RowVersion; UPDATE [platform].[TrashItem] SET [RestoredAt] = COALESCE([RestoredAt], SYSUTCDATETIME()) WHERE [OwnerId] = @OwnerId AND [ResourceType] = 'File' AND [ResourceId] = @FileId AND [DeletionBatchId] = @BatchId AND [RestoredAt] IS NULL AND [PurgedAt] IS NULL;",
-            ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@FileId", SqlDbType.UniqueIdentifier, (object)fileId),
-            ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId), ("@RowVersion", SqlDbType.Binary, (object)expectedVersion),
-            ("@BatchId", SqlDbType.UniqueIdentifier, (object)deletionBatchId));
+        if (!claim.IsClaimed)
+            return Failure<FileRecord>(claim.IsConflict ? "IdempotencyConflict" : "RequestInProgress", 409,
+                "The request conflicts or is still in progress.");
+        if (file.Lifecycle != "Trash" || CurrentFileDeletionBatch(connection, transaction, actor.OwnerId, fileId) != deletionBatchId)
+            return Missing<FileRecord>();
+        if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(file.ETag))) return Revision<FileRecord>();
+        if (file.ScanState != "Clean") return Failure<FileRecord>("LifecycleLocked", 409, "The scan state does not permit restore.");
+        if (!RestorableBinary(actor.OwnerId, stored.Value.StorageKey, file.ByteLength))
+            return Failure<FileRecord>("StorageUnavailable", 503, "The retained private binary is unavailable.");
+        Execute(connection, transaction, """
+            UPDATE [files].[FileObject] SET Lifecycle='Active', UpdatedAt=SYSUTCDATETIME(), UpdatedByUserId=@Actor
+            WHERE Id=@File AND OwnerId=@Owner AND Lifecycle='Trash' AND ScanState='Clean' AND RowVersion=@Version;
+            UPDATE [platform].[TrashItem] SET RestoredAt=SYSUTCDATETIME()
+            WHERE OwnerId=@Owner AND ResourceType='File' AND ResourceId=@File AND DeletionBatchId=@Batch
+              AND RestoredAt IS NULL AND PurgedAt IS NULL;
+            """,
+            ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId), ("@File", SqlDbType.UniqueIdentifier, (object)fileId),
+            ("@Owner", SqlDbType.UniqueIdentifier, (object)actor.OwnerId), ("@Version", SqlDbType.Binary, (object)expectedVersion),
+            ("@Batch", SqlDbType.UniqueIdentifier, (object)deletionBatchId));
         WriteAudit(connection, transaction, actor, fileId, "files.file.restore", traceId);
         var restored = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
-        if (restored is null) { transaction.Rollback(); return PersistenceFailure<FileRecord>(); }
-        CompleteReceipt(connection, transaction, receipt, "FileRestored");
+        if (restored is null) return PersistenceFailure<FileRecord>();
+        if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRecord>();
+        _receipts.Complete(connection, transaction, claim, "FileRestored", 200);
         transaction.Commit();
         return IdentityOperationResult<FileRecord>.Success(restored);
     }
+
 
     public IdentityOperationResult<object?> Purge(IdentityPrincipal actor, Guid fileId, string? ifMatch,
         string? idempotencyKey = null, string? traceId = null)

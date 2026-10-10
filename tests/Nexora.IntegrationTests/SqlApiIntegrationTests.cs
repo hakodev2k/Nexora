@@ -796,10 +796,10 @@ public sealed class SqlApiIntegrationTests
             otherUser.RawSessionHandle);
         Assert.Equal(HttpStatusCode.NotFound, foreignContent.StatusCode);
 
-        // Only reviewed Files actions are active. Restore/purge and inline preview remain unavailable.
+        // Only reviewed Files actions are active. Purge and inline preview remain unavailable.
         foreach (var principal in new[] { owner, await _fixture.CreateActiveSessionAsync("SuperAdmin") })
         {
-            foreach (var operation in new[] { "restore", "purge" })
+            foreach (var operation in new[] { "purge" })
             {
                 using var blocked = await _fixture.SendJsonAsync(HttpMethod.Post,
                     $"/api/v1/files/{file.Id}/{operation}", new { }, csrf,
@@ -865,6 +865,53 @@ public sealed class SqlApiIntegrationTests
         Assert.Equal(HttpStatusCode.OK, trashMetadata.StatusCode);
         using var metadataBody = JsonDocument.Parse(await trashMetadata.Content.ReadAsStringAsync());
         Assert.Equal("Trash", metadataBody.RootElement.GetProperty("lifecycle").GetString());
+        var trashedResource = await ReadResourceAsync(trashMetadata);
+        using var restorePreview = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/restore-preview", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, restorePreview.StatusCode);
+        using var restoreBody = JsonDocument.Parse(await restorePreview.Content.ReadAsStringAsync());
+        Assert.True(restoreBody.RootElement.GetProperty("canRestore").GetBoolean());
+        var batchId = restoreBody.RootElement.GetProperty("deletionBatchId").GetGuid();
+        using var foreignRestorePreview = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/restore-preview", otherUser.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.NotFound, foreignRestorePreview.StatusCode);
+        using var wrongCohort = await _fixture.SendJsonAsync(HttpMethod.Post,
+            $"/api/v1/files/{file.Id}/restore", new { deletionBatchId = Guid.NewGuid() }, csrf,
+            Guid.NewGuid(), owner.RawSessionHandle, trashedResource.ETag);
+        Assert.Equal(HttpStatusCode.NotFound, wrongCohort.StatusCode);
+        using var staleRestore = await _fixture.SendJsonAsync(HttpMethod.Post,
+            $"/api/v1/files/{file.Id}/restore", new { deletionBatchId = batchId }, csrf,
+            Guid.NewGuid(), owner.RawSessionHandle, file.ETag);
+        Assert.Equal(HttpStatusCode.PreconditionFailed, staleRestore.StatusCode);
+        var restoreKey = Guid.NewGuid();
+        var restoredFile = file;
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var restored = await _fixture.SendJsonAsync(HttpMethod.Post,
+                $"/api/v1/files/{file.Id}/restore", new { deletionBatchId = batchId }, csrf,
+                restoreKey, owner.RawSessionHandle, trashedResource.ETag);
+            Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+            restoredFile = await ReadResourceAsync(restored);
+        }
+        using var restoredContent = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/content", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, restoredContent.StatusCode);
+        Assert.Equal("Synthetic private file lifecycle content.", await restoredContent.Content.ReadAsStringAsync());
+        using var laterTrash = await _fixture.SendJsonAsync(HttpMethod.Post,
+            $"/api/v1/files/{file.Id}/trash", new { }, csrf, Guid.NewGuid(), owner.RawSessionHandle, restoredFile.ETag);
+        Assert.Equal(HttpStatusCode.NoContent, laterTrash.StatusCode);
+        using var oldRestoreReplay = await _fixture.SendJsonAsync(HttpMethod.Post,
+            $"/api/v1/files/{file.Id}/restore", new { deletionBatchId = batchId }, csrf,
+            restoreKey, owner.RawSessionHandle, trashedResource.ETag);
+        Assert.Equal(HttpStatusCode.OK, oldRestoreReplay.StatusCode);
+        using var replayBody = JsonDocument.Parse(await oldRestoreReplay.Content.ReadAsStringAsync());
+        Assert.Equal("Trash", replayBody.RootElement.GetProperty("lifecycle").GetString());
+        Assert.Equal(1, await _fixture.ScalarIntAsync(
+            "SELECT COUNT(*) FROM [platform].[TrashItem] WHERE OwnerId=@ownerId AND ResourceType='File' AND ResourceId=@fileId AND RestoredAt IS NOT NULL;",
+            Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId), Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
+        Assert.Equal(1, await _fixture.ScalarIntAsync(
+            "SELECT COUNT(*) FROM [platform].[TrashItem] WHERE OwnerId=@ownerId AND ResourceType='File' AND ResourceId=@fileId AND RestoredAt IS NULL AND PurgedAt IS NULL;",
+            Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId), Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
         Assert.Equal(0, await _fixture.ScalarIntAsync(
             "SELECT COUNT(*) FROM [files].[StorageCleanup] WHERE OwnerId=@ownerId AND FileObjectId=@fileId;",
             Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId), Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));

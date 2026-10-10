@@ -67,6 +67,28 @@ test('Files Trash: real upload, dependency preview and lost ACK retry preserve o
     expect(record.lifecycle).toBe('Trash');
     expect(await page.evaluate(async path => (await fetch(path, { credentials: 'same-origin' })).status,
       `/api/v1/files/${requests[0].id}/content`)).toBe(404);
+    await card.getByRole('button', { name: 'Restore', exact: true }).click();
+    await expect(modal.getByRole('button', { name: 'Restore', exact: true })).toBeEnabled();
+    await expect(modal.getByLabel('Affected file')).toContainText('Affected: 1 file');
+    const restores: { key: string; etag: string; body: string | null }[] = [];
+    await page.route('**/api/v1/files/*/restore', async route => {
+      const request = route.request(), headers = request.headers();
+      restores.push({ key: headers['idempotency-key'], etag: headers['if-match'], body: request.postData() });
+      if (restores.length === 1) { const committed = await route.fetch(); expect(committed.status()).toBe(200); await route.abort('failed'); }
+      else await route.continue();
+    });
+    await modal.getByRole('button', { name: 'Restore', exact: true }).click();
+    await expect(modal.getByRole('alert')).toContainText('Chưa rõ kết quả');
+    await modal.getByRole('button', { name: 'Retry cùng request', exact: true }).click();
+    await expect(modal).toHaveCount(0);
+    expect(restores).toHaveLength(2); expect(restores[1]).toEqual(restores[0]);
+    await page.unroute('**/api/v1/files/*/restore');
+    await expect(card).toHaveCount(0);
+    await page.getByLabel('File lifecycle').selectOption('Active');
+    await page.getByRole('button', { name: 'Lọc files', exact: true }).click(); await expect(card).toBeVisible();
+    expect((await api(page, 'apiFetch', [`/api/v1/files/${requests[0].id}`])).lifecycle).toBe('Active');
+    expect(await page.evaluate(async path => (await fetch(path, { credentials: 'same-origin' })).text(),
+      `/api/v1/files/${requests[0].id}/content`)).toBe('Isolated synthetic Files Trash browser acceptance.');
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   } catch (e) { failed = true; throw e; }
   finally { try { await grant(originalGrant.enabled); await policy(originalPolicy); } catch (e) { if (!failed) throw e; } finally { await ownerContext.close(); await adminContext.close(); } }

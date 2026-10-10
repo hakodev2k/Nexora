@@ -55,7 +55,7 @@ internal sealed class SqlSelfCapability
         // FX07 is installed only for this reviewed private source subset.
         // A Ready module name or stale Resolved permission cannot activate dormant handlers.
         if (string.Equals(moduleCode, "FX07", StringComparison.Ordinal) &&
-            actions.Any(action => action is not ("files.file.read" or "files.file.upload" or "files.file.download" or "files.file.rename" or "files.file.trash")))
+            actions.Any(action => action is not ("files.file.read" or "files.file.upload" or "files.file.download" or "files.file.rename" or "files.file.trash" or "files.file.restore")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
         // FX36 installs only inert HTTP configuration, for every role. Stale grant rows cannot start a probe.

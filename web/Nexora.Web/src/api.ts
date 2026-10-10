@@ -829,7 +829,7 @@ export function clearProfileRevision(): void {
   currentProfileETag = null;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}, expectedStatus?: 204): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}, expectedStatus?: 200 | 204): Promise<T> {
   const method = init.method ?? 'GET';
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
   if (unsafe && csrfToken === null) {

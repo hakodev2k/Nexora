@@ -107,6 +107,13 @@ public static class FileEndpoints
                     IdempotencyKey(context), context.TraceIdentifier), _ => (object?)null))
             .WithName("trashFile");
 
+        api.MapGet("/files/{fileId:guid}/restore-preview", (HttpContext context, Guid fileId, IFileService service,
+            IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.PreviewRestore(principal, fileId),
+                value => new { File = ToResponse(value.File), value.DeletionBatchId, value.CanRestore, value.BlockCode }))
+            .WithName("previewFileRestore");
+
         api.MapPost("/files/{fileId:guid}/restore", (HttpContext context, Guid fileId, FileRestoreRequest request,
             IFileService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
