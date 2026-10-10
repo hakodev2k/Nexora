@@ -1,5 +1,7 @@
 # Revision-bound baseline audit — initial remote inspection
 
+This initial remote-inspection snapshot is preserved. Later local runtime recovery, actual tests, verifier fixes and migration0046 reconciliation are recorded in [baseline-restoration-evidence.md](baseline-restoration-evidence.md); its current-state evidence supersedes the initial host-blocker/unreconciled-migration statements below.
+
 ## Source / coverage evidence
 
 Main branch API xác nhận `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3`; PR #4 OPEN draft, unmerged, HEAD `74771b70a262fa0b9d47bfc038dd3dbea23aa7dd`. Đây là remote verification; local git fetch/status chưa chạy được.

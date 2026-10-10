@@ -264,7 +264,7 @@ def main() -> int:
             fail(f"module route marker missing: {marker}")
 
     admin_endpoints = read("src/Nexora.Api/Features/Access/AdminAccessEndpoints.cs")
-    for marker in ("/users", "listAdminUsers", "setAdminUserRole", "setAdminActionGrant", "setAdminModuleGrant", "disableAdminUser", "IAdminAccessService"):
+    for marker in ("/users", "listAdminUsers", "commitAdminUserRole", "commitAdminUserPermissions", "commitAdminUserModules", "disableAdminUser", "IAdminAccessService"):
         if marker not in admin_endpoints:
             fail(f"admin route marker missing: {marker}")
 

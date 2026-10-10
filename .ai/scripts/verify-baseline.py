@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def main():
-    routes = json.loads((ROOT / '.ai/routing.json').read_text())
+    routes = json.loads((ROOT / '.ai/routing.json').read_text(encoding='utf-8'))
     required = {'baseline', 'architecture', 'backend', 'frontend', 'security',
                 'database', 'cache', 'jobs', 'owner-isolation', 'verification'}
     if not required.issubset(routes):
@@ -23,17 +23,17 @@ def main():
             raise ValueError(f'empty or invalid route: {route}')
         for path in paths:
             target = (ROOT / path).resolve()
-            if not target.is_relative_to(ROOT) or not target.is_file() or not target.read_text().strip():
+            if not target.is_relative_to(ROOT) or not target.is_file() or not target.read_text(encoding='utf-8').strip():
                 raise ValueError(f'missing, empty or escaping route: {path}')
             covered.add(path)
     for group in ('rules', 'skills'):
         for path in (ROOT / '.ai' / group).rglob('*.md'):
-            if str(path.relative_to(ROOT)) not in covered:
+            if path.relative_to(ROOT).as_posix() not in covered:
                 raise ValueError(f'unrouted specialist asset: {path}')
-    skill = (ROOT / '.agents/skills/nexora-engineering/SKILL.md').read_text()
+    skill = (ROOT / '.agents/skills/nexora-engineering/SKILL.md').read_text(encoding='utf-8')
     if not skill.startswith('---\nname: nexora-engineering\ndescription: ') or '\n---\n' not in skill[4:]:
         raise ValueError('native skill metadata missing')
-    if '.agents/skills/nexora-engineering/SKILL.md' not in (ROOT / 'AGENTS.md').read_text():
+    if '.agents/skills/nexora-engineering/SKILL.md' not in (ROOT / 'AGENTS.md').read_text(encoding='utf-8'):
         raise ValueError('root entry point does not load the native skill')
     role = ROOT / '.ai/roles/technical-lead'
     boundary = ROOT / '.ai/controls/agent-multi-tenant-data-boundary-gate'

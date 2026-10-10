@@ -628,6 +628,8 @@ public sealed class SqlApiFixture : IAsyncLifetime
         SetEnvironment("NEXORA_CSRF_SECRET", _csrfSecret);
         SetEnvironment("NEXORA_LOCAL_MESSAGE_KEY", _localMessageKey);
         SetEnvironment("NEXORA_LOCAL_MESSAGE_CAPTURE_PATH", _captureDirectory);
+        SetEnvironment("NEXORA_LOCAL_FILE_STORAGE_PATH", Path.Combine(_runRoot, "files"));
+        SetEnvironment("Nexora__LocalFileStoragePath", Path.Combine(_runRoot, "files"));
     }
 
     private void SetEnvironment(string name, string value)
