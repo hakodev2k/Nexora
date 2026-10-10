@@ -796,11 +796,10 @@ public sealed class SqlApiIntegrationTests
             otherUser.RawSessionHandle);
         Assert.Equal(HttpStatusCode.NotFound, foreignContent.StatusCode);
 
-        // The previous test fixture forced all historical Files handlers on.
-        // With bounded readiness, assert unavailable rather than claim lifecycle acceptance.
+        // Only reviewed Files actions are active. Restore/purge and inline preview remain unavailable.
         foreach (var principal in new[] { owner, await _fixture.CreateActiveSessionAsync("SuperAdmin") })
         {
-            foreach (var operation in new[] { "trash", "restore", "purge" })
+            foreach (var operation in new[] { "restore", "purge" })
             {
                 using var blocked = await _fixture.SendJsonAsync(HttpMethod.Post,
                     $"/api/v1/files/{file.Id}/{operation}", new { }, csrf,
@@ -808,13 +807,18 @@ public sealed class SqlApiIntegrationTests
                 Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
                 await AssertProblemCodeAsync(blocked, "ModuleUnavailable");
             }
-            using var rename = await _fixture.SendJsonAsync(HttpMethod.Patch,
-                $"/api/v1/files/{file.Id}", new { originalName = "renamed-synthetic.txt" },
-                csrf, Guid.NewGuid(), principal.RawSessionHandle, file.ETag);
-            Assert.Equal(HttpStatusCode.Conflict, rename.StatusCode);
             using var preview = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
                 $"/api/v1/files/{file.Id}/content?inline=true", principal.RawSessionHandle);
             Assert.Equal(HttpStatusCode.Conflict, preview.StatusCode);
+            using var rename = await _fixture.SendJsonAsync(HttpMethod.Patch,
+                $"/api/v1/files/{file.Id}", new { originalName = "renamed-synthetic.txt" },
+                csrf, Guid.NewGuid(), principal.RawSessionHandle, file.ETag);
+            if (principal.OwnerId == owner.OwnerId)
+            {
+                Assert.Equal(HttpStatusCode.OK, rename.StatusCode);
+                file = await ReadResourceAsync(rename);
+            }
+            else Assert.Equal(HttpStatusCode.NotFound, rename.StatusCode);
         }
         using var retained = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
             $"/api/v1/files/{file.Id}", owner.RawSessionHandle);
@@ -826,6 +830,44 @@ public sealed class SqlApiIntegrationTests
             "SELECT COUNT(*) FROM [files].[StorageCleanup] WHERE OwnerId=@ownerId AND FileObjectId=@fileId;",
             Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId),
             Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
+
+        using var previewTrash = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/trash-preview", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, previewTrash.StatusCode);
+        using var previewBody = JsonDocument.Parse(await previewTrash.Content.ReadAsStringAsync());
+        Assert.True(previewBody.RootElement.GetProperty("canTrash").GetBoolean());
+        Assert.Equal(file.Id, previewBody.RootElement.GetProperty("file").GetProperty("id").GetGuid());
+        using var foreignPreview = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/trash-preview", otherUser.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.NotFound, foreignPreview.StatusCode);
+        using var foreignTrash = await _fixture.SendJsonAsync(HttpMethod.Post,
+            $"/api/v1/files/{file.Id}/trash", new { }, csrf, Guid.NewGuid(), otherUser.RawSessionHandle, file.ETag);
+        Assert.Equal(HttpStatusCode.NotFound, foreignTrash.StatusCode);
+        using var emptyKey = await _fixture.SendJsonAsync(HttpMethod.Post,
+            $"/api/v1/files/{file.Id}/trash", new { }, csrf, Guid.Empty, owner.RawSessionHandle, file.ETag);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, emptyKey.StatusCode);
+        await AssertProblemCodeAsync(emptyKey, "IdempotencyKeyRequired");
+        var trashKey = Guid.NewGuid();
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var trashed = await _fixture.SendJsonAsync(HttpMethod.Post,
+                $"/api/v1/files/{file.Id}/trash", new { }, csrf, trashKey, owner.RawSessionHandle, file.ETag);
+            Assert.Equal(HttpStatusCode.NoContent, trashed.StatusCode);
+        }
+        Assert.Equal(1, await _fixture.ScalarIntAsync(
+            "SELECT COUNT(*) FROM [platform].[TrashItem] WHERE OwnerId=@ownerId AND ResourceType='File' AND ResourceId=@fileId;",
+            Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId), Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
+        using var trashContent = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/content", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.NotFound, trashContent.StatusCode);
+        using var trashMetadata = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, trashMetadata.StatusCode);
+        using var metadataBody = JsonDocument.Parse(await trashMetadata.Content.ReadAsStringAsync());
+        Assert.Equal("Trash", metadataBody.RootElement.GetProperty("lifecycle").GetString());
+        Assert.Equal(0, await _fixture.ScalarIntAsync(
+            "SELECT COUNT(*) FROM [files].[StorageCleanup] WHERE OwnerId=@ownerId AND FileObjectId=@fileId;",
+            Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId), Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));
 
         await _fixture.SetModuleRuntimeAvailabilityAsync("FX07", enabled: false);
     }

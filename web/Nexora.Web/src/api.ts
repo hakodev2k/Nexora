@@ -829,7 +829,7 @@ export function clearProfileRevision(): void {
   currentProfileETag = null;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}, expectedStatus?: 204): Promise<T> {
   const method = init.method ?? 'GET';
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
   if (unsafe && csrfToken === null) {
@@ -884,6 +884,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 
   if (path === '/api/v1/me') {
     currentProfileETag = response.headers.get('ETag');
+  }
+
+  if (expectedStatus !== undefined && response.status !== expectedStatus) {
+    throw new NexoraApiError('Không thể xác nhận acknowledgement của API.', 0, 'UnexpectedAcknowledgement');
   }
 
   if (response.status === 204) {

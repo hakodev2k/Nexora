@@ -266,7 +266,7 @@ public static class ActionGrantPolicy
 
     // Exact reviewed private file subset; other file handlers remain inactive.
     private static readonly HashSet<string> ApprovedFilesActions = new(StringComparer.Ordinal)
-    { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename" };
+    { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename", "files.file.trash" };
 
     // Reviewed provider-specific local ICS export; no standalone Project/Task exporter.
     private static readonly HashSet<string> ApprovedCalendarExportActions = new(StringComparer.Ordinal)

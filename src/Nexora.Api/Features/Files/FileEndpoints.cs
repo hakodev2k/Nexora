@@ -93,6 +93,13 @@ public static class FileEndpoints
                     IdempotencyKey(context), context.TraceIdentifier), _ => (object?)null))
             .WithName("detachFile");
 
+        api.MapGet("/files/{fileId:guid}/trash-preview", (HttpContext context, Guid fileId, IFileService service,
+            IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.PreviewTrash(principal, fileId),
+                value => new { File = ToResponse(value.File), value.CanTrash, value.BlockCode }))
+            .WithName("previewFileTrash");
+
         api.MapPost("/files/{fileId:guid}/trash", (HttpContext context, Guid fileId, IFileService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),

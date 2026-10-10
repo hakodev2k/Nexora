@@ -30,6 +30,7 @@ public sealed record FileUploadSessionRecord(
     string ETag);
 
 public sealed record FileRenameCommand(string OriginalName);
+public sealed record FileTrashPreview(FileRecord File, bool CanTrash, string? BlockCode);
 
 public sealed record FileReferenceCommand(
     string ResourceType,
@@ -56,6 +57,7 @@ public interface IFileService
     IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
     IdentityOperationResult<FilePage> List(IdentityPrincipal actor, int? limit = null, FileListQuery? query = null);
     IdentityOperationResult<FileRecord> Get(IdentityPrincipal actor, Guid fileId);
+    IdentityOperationResult<FileTrashPreview> PreviewTrash(IdentityPrincipal actor, Guid fileId);
     IdentityOperationResult<FileUploadSessionRecord> InitiateUpload(IdentityPrincipal actor, FileUploadCommand command,
         string? idempotencyKey = null, string? traceId = null);
     Task<IdentityOperationResult<FileRecord>> CompleteUploadAsync(IdentityPrincipal actor, Guid uploadSessionId,

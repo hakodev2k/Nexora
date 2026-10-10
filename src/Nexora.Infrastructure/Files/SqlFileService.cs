@@ -59,9 +59,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var result = new Dictionary<string, bool>(StringComparer.Ordinal);
-        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename" })
+        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename", "files.file.trash" })
             result[action] = _capabilities.IsAllowed(connection, transaction, actor, "FX07", action) &&
-                (action != "files.file.rename" || _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"));
+                (action is not ("files.file.rename" or "files.file.trash") || _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"));
         transaction.Commit();
         return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     }
@@ -513,38 +513,72 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         }
     }
 
+    public IdentityOperationResult<FileTrashPreview> PreviewTrash(IdentityPrincipal actor, Guid fileId)
+    {
+        if (!ModuleAvailable(actor, "FX07", "files.file.read", "files.file.trash")) return ModuleUnavailable<FileTrashPreview>();
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!TrashAuthority(connection, transaction, actor)) return ModuleUnavailable<FileTrashPreview>();
+        var file = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
+        if (file is null) return Missing<FileTrashPreview>();
+        var block = file.Lifecycle != "Active" || file.ScanState != "Clean" ? "LifecycleLocked"
+            : HasReferences(connection, transaction, actor.OwnerId, fileId) ? "DependencyUnavailable" : null;
+        if (!TrashAuthority(connection, transaction, actor)) return ModuleUnavailable<FileTrashPreview>();
+        transaction.Commit();
+        return IdentityOperationResult<FileTrashPreview>.Success(new(file, block is null, block));
+    }
+
+    private bool TrashAuthority(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor) =>
+        SqlCurrentActor.IsLive(connection, transaction, actor) &&
+        _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read") &&
+        _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.trash");
+
     public IdentityOperationResult<object?> Trash(IdentityPrincipal actor, Guid fileId, string? ifMatch,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX07", "files.file.trash")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX07", "files.file.read", "files.file.trash")) return ModuleUnavailable<object?>();
+        if (!Guid.TryParse(idempotencyKey, out var requestKey) || requestKey == Guid.Empty)
+            return Failure<object?>("IdempotencyKeyRequired", 422, "A nonempty UUID idempotency key is required.");
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
-        using var connection = _connections.Create();
-        connection.Open();
+        using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "files.file.trash", idempotencyKey,
-            $"file:{fileId:N}|etag:{ifMatch}", out var receipt);
-        if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
+        if (!TrashAuthority(connection, transaction, actor)) return ModuleUnavailable<object?>();
         var file = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
-        if (file is null || file.Lifecycle != "Active") { transaction.Rollback(); return Missing<object?>(); }
-        if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(file.ETag))) { transaction.Rollback(); return Revision<object?>(); }
-        if (HasReferences(connection, transaction, actor.OwnerId, fileId))
+        if (file is null) return Missing<object?>();
+        var claim = _receipts.TryClaim(connection, transaction, actor.UserId, "files.file.trash", idempotencyKey!,
+            $"owner:{actor.OwnerId:N}|file:{fileId:N}|etag:{ifMatch}", DateTime.UtcNow);
+        if (claim.IsReplay)
         {
-            transaction.Rollback();
-            return Failure<object?>("DependencyUnavailable", 409, "A referenced file cannot be moved to trash until it is detached.");
+            // A prior committed command is acknowledged, never executed again,
+            // even if a later authorized restore has changed the current state.
+            if (!TrashAuthority(connection, transaction, actor)) return ModuleUnavailable<object?>();
+            transaction.Commit(); return IdentityOperationResult<object?>.NoContent();
         }
+        if (!claim.IsClaimed)
+            return Failure<object?>(claim.IsConflict ? "IdempotencyConflict" : "RequestInProgress", 409,
+                "The request conflicts or is still in progress.");
+        if (file.Lifecycle != "Active" || file.ScanState != "Clean")
+            return Failure<object?>("LifecycleLocked", 409, "Only clean active files can be moved to trash.");
+        if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(file.ETag))) return Revision<object?>();
+        if (HasReferences(connection, transaction, actor.OwnerId, fileId))
+            return Failure<object?>("DependencyUnavailable", 409, "File references or retention prevent trash.");
         var batchId = Guid.NewGuid();
         Execute(connection, transaction, """
-            INSERT INTO [platform].[TrashItem] ([OwnerId], [ResourceType], [ResourceId], [DeletionBatchId], [PriorStatus]) VALUES (@OwnerId, 'File', @FileId, @BatchId, 'Active');
-            UPDATE [files].[FileObject] SET [Lifecycle] = 'Trash', [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @Actor WHERE [Id] = @FileId AND [OwnerId] = @OwnerId AND [Lifecycle] = 'Active' AND [RowVersion] = @RowVersion;
+            INSERT INTO [platform].[TrashItem] ([OwnerId], [ResourceType], [ResourceId], [DeletionBatchId], [PriorStatus])
+            VALUES (@OwnerId, 'File', @FileId, @BatchId, 'Active');
+            UPDATE [files].[FileObject] SET [Lifecycle] = 'Trash', [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @Actor
+            WHERE [Id] = @FileId AND [OwnerId] = @OwnerId AND [Lifecycle] = 'Active' AND [ScanState] = 'Clean' AND [RowVersion] = @RowVersion;
             """,
             ("@OwnerId", SqlDbType.UniqueIdentifier, (object)actor.OwnerId), ("@FileId", SqlDbType.UniqueIdentifier, (object)fileId),
             ("@BatchId", SqlDbType.UniqueIdentifier, (object)batchId), ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId),
             ("@RowVersion", SqlDbType.Binary, (object)expectedVersion));
         WriteAudit(connection, transaction, actor, fileId, "files.file.trash", traceId);
-        CompleteReceipt(connection, transaction, receipt, "NoContent");
+        if (!TrashAuthority(connection, transaction, actor)) return ModuleUnavailable<object?>();
+        _receipts.Complete(connection, transaction, claim, "NoContent", 204);
         transaction.Commit();
         return IdentityOperationResult<object?>.NoContent();
     }
+
 
     public IdentityOperationResult<FileRecord> Restore(IdentityPrincipal actor, Guid fileId, Guid deletionBatchId,
         string? ifMatch, string? idempotencyKey = null, string? traceId = null)
@@ -908,7 +942,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [StorageKey], [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle], [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion] FROM [files].[FileObject] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (NOLOCK)")} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged';";
+        command.CommandText = $"SELECT [StorageKey], [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle], [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion] FROM [files].[FileObject] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (HOLDLOCK)")} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged';";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, fileId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
