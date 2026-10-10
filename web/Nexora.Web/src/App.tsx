@@ -1,3 +1,4 @@
+import { FileRenameDialog } from './FileRenameDialog';
 import { ShareLinkEditor } from './ShareLinkEditor';
 import { CreatedShareLink } from './CreatedShareLink';
 import { NewsCategoryScreen } from './NewsCategoryScreen';
@@ -1609,6 +1610,7 @@ function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
 function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [files, setFiles] = useState<FileRecord[]>([]);
+  const [renaming, setRenaming] = useState<FileRecord | null>(null);
   const [selected, setSelected] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1621,7 +1623,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (stamp !== generation.current) return;
     const apiError = asApiError(requestError); setError(apiError);
     if ([401, 403].includes(apiError.status) || apiError.code === 'ModuleUnavailable') {
-      setFiles([]); setSelected(null); setCaps({}); setLeave(null);
+      setFiles([]); setRenaming(null); setSelected(null); setCaps({}); setLeave(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (apiError.status === 401) await onAuthLost();
     }
@@ -1629,9 +1631,9 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   async function refresh(stamp: number) {
     const current = await getFileCapabilities(); if (stamp !== generation.current) return;
     setCaps(current);
-    if (!current['files.file.read']) { setFiles([]); setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
+    if (!current['files.file.read']) { setFiles([]); setRenaming(null); setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; return; }
     const page = await listFiles(); if (stamp !== generation.current) return;
-    setFiles(page.items);
+    setFiles(page.items); setRenaming(null);
   }
   async function load() {
     if (flight.current) return; flight.current = true;
@@ -1663,8 +1665,9 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       <button className="primary-button" type="submit" disabled={loading || busy || !caps['files.file.upload'] || !selected}>{busy ? 'Đang upload / scan…' : 'Upload và scan'}</button>
     </form>
     <div className="resource-list"><div className="section-heading"><h2>File objects của bạn</h2><span className="muted">{files.length} file trong trang hiện tại</span></div>
-      {loading ? <p role="status">Đang tải file…</p> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Không có file được phép hiển thị.</p></div> : <div className="resource-cards">{files.map(file => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{caps['files.file.download'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}</div></article>)}</div>}
+      {loading ? <p role="status">Đang tải file…</p> : files.length === 0 ? <div className="empty-state"><h3>Chưa có file</h3><p>Không có file được phép hiển thị.</p></div> : <div className="resource-cards">{files.map(file => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle}</p></div><div className="resource-actions">{caps['files.file.rename'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <button className="secondary-button" type="button" disabled={loading || busy} onClick={() => setRenaming(file)}>Đổi tên</button>}{caps['files.file.download'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}</div></article>)}</div>}
     </div>
+    {renaming && <FileRenameDialog key={renaming.id} item={renaming} onSaved={value => { setFiles(current => current.map(file => file.id === value.id ? value : file)); setRenaming(null); }} onClose={() => setRenaming(null)} onDenied={() => { generation.current++; flight.current = false; setBusy(false); setLoading(false); setFiles([]); setCaps({}); setRenaming(null); void load(); }} />}
     {leave && <ActionDialog title="Rời upload đang chuẩn bị?" description="Selection sẽ bị bỏ khi rời trang. Upload đang xử lý cần hoàn tất trước khi rời." confirmLabel="Rời trang" onConfirm={() => { if (flight.current) return { error: 'Đợi upload hoàn tất trước khi rời trang.' }; setSelected(null); if (fileInputRef.current) fileInputRef.current.value = ''; setLeave(null); leave.proceed(); return true; }} onClose={() => setLeave(null)} />}
   </section>;
 }

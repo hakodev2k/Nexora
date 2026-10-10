@@ -57,8 +57,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var result = new Dictionary<string, bool>(StringComparer.Ordinal);
-        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download" })
-            result[action] = _capabilities.IsAllowed(connection, transaction, actor, "FX07", action);
+        foreach (var action in new[] { "files.file.read", "files.file.upload", "files.file.download", "files.file.rename" })
+            result[action] = _capabilities.IsAllowed(connection, transaction, actor, "FX07", action) &&
+                (action != "files.file.rename" || _capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"));
         transaction.Commit();
         return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     }
@@ -350,17 +351,27 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         FileRenameCommand command, string? idempotencyKey = null, string? traceId = null)
     {
         if (!ModuleAvailable(actor, "FX07", "files.file.rename")) return ModuleUnavailable<FileRecord>();
+        if (!Guid.TryParse(idempotencyKey, out var requestKey) || requestKey == Guid.Empty)
+            return Failure<FileRecord>("IdempotencyKeyRequired", 422, "A nonempty UUID idempotency key is required.");
         var safeName = SafeFileName(command.OriginalName);
         if (safeName is null) return Failure<FileRecord>("ValidationFailed", 422, "File name is invalid.");
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<FileRecord>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+            !_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.rename") ||
+            !_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"))
+        { transaction.Rollback(); return ModuleUnavailable<FileRecord>(); }
+        var current = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
+        if (current is null) { transaction.Rollback(); return Missing<FileRecord>(); }
+        if (current.Lifecycle != "Active" || current.ScanState != "Clean")
+        { transaction.Rollback(); return Failure<FileRecord>("LifecycleLocked", 409, "Only clean active files can be renamed."); }
+        if (!string.Equals(Path.GetExtension(safeName), Path.GetExtension(current.OriginalName), StringComparison.OrdinalIgnoreCase))
+        { transaction.Rollback(); return Failure<FileRecord>("ValidationFailed", 422, "Rename must preserve the file extension."); }
         var receiptFailure = CheckReceipt<FileRecord>(connection, transaction, actor, "files.file.rename", idempotencyKey,
             $"file:{fileId:N}|etag:{ifMatch}|name:{safeName}", out var receipt);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
-        var current = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
-        if (current is null) { transaction.Rollback(); return Missing<FileRecord>(); }
         if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(current.ETag))) { transaction.Rollback(); return Revision<FileRecord>(); }
         Execute(connection, transaction, "UPDATE [files].[FileObject] SET [OriginalName] = @Name, [UpdatedByUserId] = @Actor, [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged' AND [RowVersion] = @RowVersion;",
             ("@Name", SqlDbType.NVarChar, (object)safeName), ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId),
@@ -369,6 +380,8 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         WriteAudit(connection, transaction, actor, fileId, "files.file.rename", traceId);
         var updated = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
         if (updated is null) { transaction.Rollback(); return PersistenceFailure<FileRecord>(); }
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+        { transaction.Rollback(); return ModuleUnavailable<FileRecord>(); }
         CompleteReceipt(connection, transaction, receipt, "FileRenamed");
         transaction.Commit();
         return IdentityOperationResult<FileRecord>.Success(updated);
@@ -855,7 +868,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle], [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion] FROM [files].[FileObject] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (NOLOCK)")} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged';";
+        command.CommandText = $"SELECT [Id], [OriginalName], [MediaType], [ByteLength], [ScanState], [Lifecycle], [CurrentRevision], [CreatedAt], [UpdatedAt], [RowVersion] FROM [files].[FileObject] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : "WITH (HOLDLOCK)")} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged';";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, fileId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
