@@ -1,0 +1,58 @@
+[
+  {
+    "sha256": "83a00c0bdfa5dde24548cb44b61abf80a15f1d52872ceec5c549136d1d297cf5",
+    "path": "src/Nexora.Api/Program.cs"
+  },
+  {
+    "sha256": "c9da3ceb0f57a24e10300df8122c3a0f714659d3ef5a36b95f8e176a315f203b",
+    "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs"
+  },
+  {
+    "sha256": "3bf3ae68a07e2073f961ec31d4e6b9b7cfc627759078cf6de61a49c3b7c26120",
+    "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs"
+  },
+  {
+    "sha256": "2a61b2dae4ad05913e7fc1a12ecee2714552d7ad31980a114e7d6399dbc22987",
+    "path": "src/Nexora.Application/Learning/SkillContracts.cs"
+  },
+  {
+    "sha256": "d092d05645489b6948abd0b7eb848dd6babeac444808966abbcfddd12146c46e",
+    "path": "src/Nexora.Api/Features/Learning/SkillEndpoints.cs"
+  },
+  {
+    "sha256": "876c2b50018a68c7e0d99befcda9a179edb909c046fdd9b1763345c3f5a6394f",
+    "path": "src/Nexora.Infrastructure/Learning/SqlSkillService.cs"
+  },
+  {
+    "sha256": "ea4fbe2f6baa12066bacd030fa8c100a7d1d898a1b6d9342c23499e52b17d591",
+    "path": "database/migrations/20261003_0036_learning_skills_local.sql"
+  },
+  {
+    "sha256": "9c93d43df4525080503a4c4a73aa132ec5c1a0f117bb691befc6d69d808737d6",
+    "path": "tests/Nexora.FunctionalTestOperator/Program.cs"
+  },
+  {
+    "sha256": "bfdab3f768afa822a9268388ea7faa101f6644997f677eb3b7b657248ac02da7",
+    "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs"
+  },
+  {
+    "sha256": "9d17f539c0ad17d7a398692a95ab62ab2efaa2d938b4a64563420470000012ab",
+    "path": "tests/Nexora.IntegrationTests/SqlSkillTests.cs"
+  },
+  {
+    "sha256": "44526928dca13c360e60ea2bcdd44d62db6bd1f6e844f80386b2fbdacd120b32",
+    "path": "web/Nexora.Web/src/App.tsx"
+  },
+  {
+    "sha256": "1e6a07865f0b268e939e17ea87dbc4fc07c15a2cecbf67c379c1d208510cf3bf",
+    "path": "web/Nexora.Web/src/SkillScreen.tsx"
+  },
+  {
+    "sha256": "b03178f8f280d5d6d42a31ff9cb30ddcef66a88770e40c4634edbcb18578ca39",
+    "path": "web/Nexora.Web/src/skillApi.ts"
+  },
+  {
+    "sha256": "9a56a7b00ae257f0f02bcd02f25843ae0771d3b01b38da0cac947d9d6d462567",
+    "path": "web/Nexora.Web/functional/skills.spec.ts"
+  }
+]

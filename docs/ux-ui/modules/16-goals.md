@@ -1,6 +1,12 @@
 # FX-16 — Goals — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+> **Current implementation overlay — 2026-09-10:** `/goals` now provides the
+> local numeric Goal list/create/edit/detail/progress flow on PR #4. The UI
+> uses server-provided data, CSRF, idempotency and Goal `ETag` conflict reload;
+> it does not expose task-linked/boolean targets, archive/trash/history,
+> reminders or provider actions. See [slice evidence](../../implementation/goals-numeric-slice.md).
+
+Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Numeric local flow implemented on PR #4; remaining surfaces are documentation/gated.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
 

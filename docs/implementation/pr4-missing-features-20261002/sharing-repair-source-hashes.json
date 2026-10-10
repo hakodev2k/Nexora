@@ -1,0 +1,187 @@
+{
+  "baseHead": "30e27b29d746264b3c499f579de36d3adefc8392",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "canonicalEncoding": "UTF-8 LF without BOM",
+  "files": [
+    {
+      "path": "database/migrations/20261004_0043_sharing_policy_authority.sql",
+      "sha256": "a7acac1763cb061dab0e99f7ab553f05076bca366ef363f7adb7064921430aae",
+      "gitBlobSha": "2fc6e807c3c81d8c9812707441967f88fac25705",
+      "bytes": 2720
+    },
+    {
+      "path": "database/migrations/20261004_0044_sharing_subset_readiness.sql",
+      "sha256": "6c77e8c4fee8c4ab7e4588777056dc5a395e3f234db1a9c5273ffa5c79022947",
+      "gitBlobSha": "d0e20ef14c0ada8c1430a8674359ac5f0f7cc23b",
+      "bytes": 551
+    },
+    {
+      "path": "src/Nexora.Application/Modules/ModulePolicyServiceContracts.cs",
+      "sha256": "1edbd525ca8379920a8e83639d1ae4d8f397c94edbb8747ad30eb6704b9186ac",
+      "gitBlobSha": "d50fe7ff4d575aefbf7e414c6e4ef9758d5e28fc",
+      "bytes": 1634
+    },
+    {
+      "path": "src/Nexora.Api/Features/Modules/ModuleContracts.cs",
+      "sha256": "0e989644634af70a758faac660749dde5749ba5772f2a161da71e1006b12d401",
+      "gitBlobSha": "89b8d39ad5b8faa27333c214d9709c6e0e78ec0b",
+      "bytes": 1231
+    },
+    {
+      "path": "src/Nexora.Api/Features/Modules/ModuleEndpoints.cs",
+      "sha256": "9d599f9dd90a23ee66f9fc0b015de555d73b62937e9c35265967344cf744f67b",
+      "gitBlobSha": "cc41206da79c817b17a59a3db70d949c3556e636",
+      "bytes": 4051
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
+      "sha256": "464e848cc95a63e6c87a58684233d439a4a3204f3e116d8f1a72e2533e44e65b",
+      "gitBlobSha": "ef4cbb4051f191cb076c0ccf8c13107d2fb69351",
+      "bytes": 28218
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlCurrentActor.cs",
+      "sha256": "abf329e6cb2beed18f7ea0b10e03ad88f037851d56db9b4acfadc2640797b85d",
+      "gitBlobSha": "b5fb485d37e3ef748130e3b92b9ae0a1addf1835",
+      "bytes": 2090
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SqlSharedLinkAuthority.cs",
+      "sha256": "ce8c3edd3fe6e6d01cb87f34141dbe2d6c08d47ba655e4ce41860e32872d1e72",
+      "gitBlobSha": "a285753f6642c81cba97c055d7cda1d31fd69424",
+      "bytes": 3897
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SqlSharingPolicyImpact.cs",
+      "sha256": "c90ed1c8f844d15a1be43bbc072cdb0a416b020af03836ae4b2d4a8f7d38434c",
+      "gitBlobSha": "53737723929cf977d6e4bf02d0bf2de7acc755f2",
+      "bytes": 1833
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SqlSharingService.cs",
+      "sha256": "fa066a1a3858b7390330b4e40cdac0b4428721d8db8d74ed1a49e13134c73cd8",
+      "gitBlobSha": "19035aa96f5915aba56fb164ecb8c4cf6d9aee60",
+      "bytes": 43966
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlProjectSharedSource.cs",
+      "sha256": "787fca71161bdca44b2bf2effa26174d59fb09b7935a17374d163f3c900d90eb",
+      "gitBlobSha": "9c5490f06f5187d9a8192044cf6e33510095894a",
+      "bytes": 3737
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentSharedSource.cs",
+      "sha256": "50908daec3c47ad1055a78934ea817063a6be352a71ae82bd0a0911774fb7a2c",
+      "gitBlobSha": "1d468bf3c9e4d20f492c64322c3bd3029e7f9d6c",
+      "bytes": 2261
+    },
+    {
+      "path": "src/Nexora.Application/Sharing/SharingServiceContracts.cs",
+      "sha256": "c186423f7edd0e6e937470ca57e1436d1a5fc04c7ea4c6a6e53edbc500399a46",
+      "gitBlobSha": "ae02cec7e00436ff5327823a8c559c588aefe47f",
+      "bytes": 2692
+    },
+    {
+      "path": "src/Nexora.Api/Features/Sharing/SharingContracts.cs",
+      "sha256": "9e3c00be0c46c1ad340085a91e845df2e4c33f88e16f09d03c1489441b9eeffe",
+      "gitBlobSha": "61c8d4e47bd48f464d1fff5341338e17522ac67e",
+      "bytes": 1712
+    },
+    {
+      "path": "src/Nexora.Api/Features/Sharing/SharingEndpoints.cs",
+      "sha256": "838ac56de88ab386003e6a977ed01d82d3600b1e9457f093c9c59e8d0d7cdfff",
+      "gitBlobSha": "82c221ea60a649571747a0a51b55d1382019a10e",
+      "bytes": 8086
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "574e63ca63afe9ce9e2de8bc02a9ac3dbca0c6cf25d4fd5ac1c3fb1a5b245843",
+      "gitBlobSha": "829121e973a246817bc5d82c7624252f3b1d6698",
+      "bytes": 15279
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "559123b370e92a017abf68cb2eac7a48a6535abf7527c8250f0ac5a983380c22",
+      "gitBlobSha": "c936c0546b465f4198da47b9a9a19c19b1f297e9",
+      "bytes": 18888
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "bf52a8a896ca4a8a494c400c5ccc732cdf55225edc98456cd8e1ae7b2c24198f",
+      "gitBlobSha": "2aa49caf024b5614de4f66cd6d0194c6227e6f9e",
+      "bytes": 2712
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "15868b06281e67f44cf3110baa03166331a11faa75afe2a96f8e2c72f6042c36",
+      "gitBlobSha": "2e10dfc0f35f293431f2b6846a5af4bb5a315383",
+      "bytes": 67584
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "bf253a6c40d0a93d66b3f934ff90e5e5874e5a2ba35fa952df5ac1d974a90639",
+      "gitBlobSha": "37b214a970afe1b66fc589c04280b14512aae10b",
+      "bytes": 374744
+    },
+    {
+      "path": "web/Nexora.Web/src/App.test.tsx",
+      "sha256": "2bfb8ea00816756e0e8169bfe3a34e628907b787a0c3221511131b542b9ffa89",
+      "gitBlobSha": "1263274a406ade0101155ca1861a6ede70d87eb3",
+      "bytes": 40628
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs",
+      "sha256": "f535477b616948cf067798e1ba5bb37e85a9fc12c4eb50d1fa9f9517de19ab2f",
+      "gitBlobSha": "c2d64e53b0b06cb3f8f3a0a48a6694d57acdf4d1",
+      "bytes": 41006
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs",
+      "sha256": "91d0bccb6461cc0022a2f9ad3aaea0bc668c8363b88009ae626ba0a5da8d3d6f",
+      "gitBlobSha": "04de67aaf3f905852c7f17c51ffa4d3e37194188",
+      "bytes": 72246
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs",
+      "sha256": "a027f5004d9fd84c41522a5d0b651ba349081f7a53b2e2e65490cb0f377a68a5",
+      "gitBlobSha": "ed22ac9577595b902243dded6365446354697870",
+      "bytes": 22086
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256": "5150ce10c1ba063a360837e71264cf7fde6219a3938324a4577c2f8aeae784a0",
+      "gitBlobSha": "244a9ce349beb322e6a889d76b4bf57858264354",
+      "bytes": 11824
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/Program.cs",
+      "sha256": "afc78ec650b394da8c2da677c9b58c56d3c6baaf03d480aed12dad4a55a8af1d",
+      "gitBlobSha": "eb96031b1853002bd2b1c55e7bf5e5003feaada0",
+      "bytes": 13047
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/SharingBackupProof.cs",
+      "sha256": "fb1bc0c9dace31740bb407c133c7b16756d449b0e26bb56d0d3623cfbac14b50",
+      "gitBlobSha": "f21cb37ceafb168fa7360eaca51d6933584156ab",
+      "bytes": 6322
+    },
+    {
+      "path": "web/Nexora.Web/functional/sharing-repair.spec.ts",
+      "sha256": "e284ba503a065c8f5b49fbbf30f32fbddedaa6e84eb8ca54bcd0dcd9293afdbd",
+      "gitBlobSha": "7081df0f679a14a77305da485e45c4a32acbe9f0",
+      "bytes": 7255
+    },
+    {
+      "path": "web/Nexora.Web/functional/time-focus-helpers.ts",
+      "sha256": "c7604a39cb1bbd9cf9698b8202c76ecbc0efeb5fffb0d51a0fe3278f3ced6133",
+      "gitBlobSha": "c17d7daf77f4b7a980a57caa7a2ef6bc0378a383",
+      "bytes": 3663
+    },
+    {
+      "path": "web/Nexora.Web/functional/career.spec.ts",
+      "sha256": "aa96e62808beb8d49f1c48c342cf2f6cc3cd5482025544026fbfb2a07c87939d",
+      "gitBlobSha": "5d7a7f48bdd190eb9e032fbf994581309e09d201",
+      "bytes": 13704
+    }
+  ]
+}

@@ -1,5 +1,14 @@
 # FX-16 — Goals: actions
 
+> **Current implementation overlay — 2026-09-10:** `goals.goal.read`,
+> `goals.goal.create`, `goals.goal.update`, `goals.goal.start`,
+> `goals.goal.complete`, `goals.goal.abandon`, `goals.goal.reopen`,
+> `goals.target.read`, `goals.target.create` and
+> `goals.target.record_progress` are implemented for the local numeric slice.
+> They are SQL-backed, owner-scoped and still require the normal module/action
+> guard. Other rows below remain inventory/gated; the implementation does not
+> imply Boolean/Tasks targets, archive/trash/history, reminders or providers.
+
 Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi

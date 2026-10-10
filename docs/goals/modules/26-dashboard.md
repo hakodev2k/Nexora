@@ -2,7 +2,13 @@
 
 Product phase: **P03** · Delivery: **RM11** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-26 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** FX26-S01 read-only attention slice implemented locally on PR #4; layout/quick-create/provider widgets remain gated and runtime is not run. Goals có điều kiện không là quyền code. FX-26 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+
+## Current implementation overlay
+
+The local slice implements `NXG-FX26-G01`/`G02` for four independent
+owner-scoped source widgets through `getDashboard`. It does not claim the full
+layout lifecycle in `NXG-FX26-G03` or any provider/quick-create behavior.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

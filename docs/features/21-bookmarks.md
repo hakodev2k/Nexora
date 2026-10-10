@@ -1,10 +1,10 @@
 # Bookmarks
 
-> **Current decision amendment — 2026-09-07:** External URLs are inert metadata, no Open external. Auto-fetch scope unresolved under internal-first/paused integrations. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
+> **Current decision amendment — 2026-09-10:** External URLs are inert metadata, no Open external. The manual URL/title/description subset is implemented locally on PR #4; auto-fetch, tags, collections, sharing and provider behavior remain gated. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md) and [slice evidence](../implementation/bookmarks-manual-slice.md) apply. Conflicting older proposal paragraphs below are historical.
 
 FX-21 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu nền tảng được giữ nguyên; manual metadata là `SLICE_IMPLEMENTED (local)` theo DEC-20260909-014. Các hành vi outbound, tổ chức nâng cao, chia sẻ và lifecycle ngoài Active/Archived vẫn contract-gated.
 
 ## Phạm vi và tham chiếu
 
@@ -14,7 +14,7 @@ Lưu URL cá nhân với tags, collections và metadata.
 
 **Áp dụng cho Nexora:** Áp dụng lưu link/collection của Raindrop; không archive toàn website hoặc bypass paywall.
 
-**Màn hình:** `/bookmarks`. Routes là thiết kế đề xuất; không phải endpoint đã implement.
+**Màn hình:** `/bookmarks` (local manual metadata route implemented on PR #4); collection/detail routes remain future contracts.
 
 ## Luồng sử dụng
 

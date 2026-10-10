@@ -2,7 +2,7 @@
 
 FX-23 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên. Theo `DEC-20260909-014`, phần Bookmark-reference local có đủ contract và đã được implement trên PR #4; News/body extraction và các capability chưa đủ contract vẫn gated. Đây là phạm vi slice, không phải tuyên bố toàn FX-23 hoàn tất.
 
 ## Phạm vi và tham chiếu
 
@@ -12,7 +12,7 @@ Hàng đợi đọc cho Bookmarks và News, read state và vị trí đọc.
 
 **Áp dụng cho Nexora:** Instapaper tham chiếu queue; không hứa full-text extraction/offline mọi nguồn.
 
-**Màn hình:** `/read-later`. Routes là thiết kế đề xuất; không phải endpoint đã implement.
+**Màn hình:** `/read-later` cho queue Bookmark-reference local. Reader/body route, News source route và external-open vẫn chưa được implement.
 
 ## Luồng sử dụng
 
@@ -32,6 +32,13 @@ Hàng đợi đọc cho Bookmarks và News, read state và vị trí đọc.
 - **FX-23-BR-003:** News read state dùng chung qua contract, không tạo hai trạng thái mâu thuẫn.
 - **FX-23-BR-004:** Remove queue không xóa article/bookmark; không notification cho mỗi lần đọc.
 - **FX-23-BR-005:** Không tự fetch vượt nội dung nguồn cung cấp để hoàn thành progress.
+
+### Local slice boundary (PR #4)
+
+- Source type hiện được chấp nhận là `Bookmark` và phải là Bookmark còn đọc được trong cùng `PersonalSpace`. News chưa có source/provider contract runtime.
+- Queue chỉ lưu `SourceType`, `SourceId`, `SafeTitleSnapshot`, `SafeUrlSnapshot`, state và position metadata trong SQL. Không lưu body, không follow URL và không tạo reader HTML.
+- `Unread`, `Reading`, `Read` được cập nhật qua action riêng với `ETag`/`If-Match`, idempotency và audit. Remove chỉ gỡ queue reference; source không bị xóa.
+- Khi Bookmark không còn active/archived hoặc module/read grant không còn, response chỉ đánh dấu `SourceAvailable=false`; snapshot không trở thành lối truy cập body.
 
 ## Quyền, API và tích hợp
 

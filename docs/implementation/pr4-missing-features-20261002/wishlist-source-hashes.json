@@ -1,0 +1,58 @@
+[
+  {
+    "sha256": "661dcf4186a2c07fa5150417520af3be2fdde347746f9d552579f7b0672956ac",
+    "path": "src/Nexora.Api/Program.cs"
+  },
+  {
+    "sha256": "da8e7607c59c3d2f5dfc99559ad18ada4137a6e3fb8bbcda6a3ec50f7e2f5193",
+    "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs"
+  },
+  {
+    "sha256": "8226979fee1ab4b73d21167b3db7476f4ebd2fdd99f94ddf3fe7375817a2d1bf",
+    "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs"
+  },
+  {
+    "sha256": "dd6594467a1a5a46145f532711ec6abe75e2a843fb5b6184bf1fcb3415a44e2a",
+    "path": "src/Nexora.Application/Shopping/WishlistContracts.cs"
+  },
+  {
+    "sha256": "860e909f4014f24d8d0a6ab9eabb64c89ad8ecc078eefbf84506bef53d9fae83",
+    "path": "src/Nexora.Api/Features/Shopping/WishlistEndpoints.cs"
+  },
+  {
+    "sha256": "8d5e6cb8ddcd7f5fa10ef4a5c4d7490dbaed4b7dc52d755a02afc91c293ab818",
+    "path": "src/Nexora.Infrastructure/Shopping/SqlWishlistService.cs"
+  },
+  {
+    "sha256": "32c3c3ba563f609257ff343f9d8269d48cb3482941c99ce7b19821304b55d4c9",
+    "path": "database/migrations/20261002_0035_wishlist_local.sql"
+  },
+  {
+    "sha256": "08743405b05b51def373bc8dcf2efc2a5be5dfcc3cfebdf71f8b305793134180",
+    "path": "tests/Nexora.FunctionalTestOperator/Program.cs"
+  },
+  {
+    "sha256": "5a23079a374d1167ac26b665be7fe1e1e9105019d8e9dc222f302b0004355ab2",
+    "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs"
+  },
+  {
+    "sha256": "76183f320469952ec6c535147af169c729d9b3e41e441281e2e05259746ba8e2",
+    "path": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs"
+  },
+  {
+    "sha256": "886549af7740266b35c49aefaa143c27feb96f751c76b25d98fffd6faec77236",
+    "path": "web/Nexora.Web/src/App.tsx"
+  },
+  {
+    "sha256": "80e3d6a723f4dd92f503566d203c23edfad8e451b981d168132b0465a0c31d41",
+    "path": "web/Nexora.Web/src/WishlistScreen.tsx"
+  },
+  {
+    "sha256": "31e772325fa2bc3c148949fe7b1fc9f20667327984c6ce5dab6bd106b6e8a997",
+    "path": "web/Nexora.Web/src/wishlistApi.ts"
+  },
+  {
+    "sha256": "530e5e42c0f91c75d2237e0ee9fff382ae9eb6cde30ff991a5e57e419a5ce60d",
+    "path": "web/Nexora.Web/functional/wishlist.spec.ts"
+  }
+]

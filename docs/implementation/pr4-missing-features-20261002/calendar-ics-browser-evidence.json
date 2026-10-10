@@ -1,0 +1,76 @@
+{
+  "basePrHead": "b04643ac6612e3424e15fd9cf1bfa9cab0c4dc28",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "workflow": "Normal paced form login; real API/retained synthetic SQL; 25-row paging; modal-open overflow; no throttle/limit bypass or data deletion",
+  "sourceHashes": "calendar-ics-source-hashes.json",
+  "stats": {
+    "startTime": "2026-10-03T17:07:18.019Z",
+    "duration": 65189.299999999996,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Calendar ICS: real scanned upload, paged preview, explicit partial import, exact dates, duplicate and cancel reports",
+      "project": "desktop-large",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 7406
+        }
+      ]
+    },
+    {
+      "title": "Calendar ICS: real scanned upload, paged preview, explicit partial import, exact dates, duplicate and cancel reports",
+      "project": "desktop",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9543
+        }
+      ]
+    },
+    {
+      "title": "Calendar ICS: real scanned upload, paged preview, explicit partial import, exact dates, duplicate and cancel reports",
+      "project": "tablet",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9751
+        }
+      ]
+    },
+    {
+      "title": "Calendar ICS: real scanned upload, paged preview, explicit partial import, exact dates, duplicate and cancel reports",
+      "project": "mobile",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9707
+        }
+      ]
+    },
+    {
+      "title": "Calendar ICS: real scanned upload, paged preview, explicit partial import, exact dates, duplicate and cancel reports",
+      "project": "mobile-small",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 11974
+        }
+      ]
+    }
+  ]
+}

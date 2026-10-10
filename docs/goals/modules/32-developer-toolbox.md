@@ -2,7 +2,9 @@
 
 Product phase: **P06** · Delivery: **RM14** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-32 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** FX32-S01/S02 pure local subset implemented on PR #4; runtime/functional verification remains owner-owned. Goals có điều kiện không là quyền code. FX-32 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+
+The implemented subset is tracked in [developer-toolbox-pure-slice](../../implementation/developer-toolbox-pure-slice.md). XML/YAML/CSV, advanced formatting, QR/certificate, history/favorites, Save-to-Snippet and network actions remain gated.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

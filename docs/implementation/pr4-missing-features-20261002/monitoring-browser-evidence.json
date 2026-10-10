@@ -1,0 +1,41 @@
+{
+  "baseHead": "680197d1d97bf8febf1bc0a4ec2e1a56e6f352b5",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts monitoring.spec.ts --max-failures=1",
+  "stats": {
+    "startTime": "2026-10-04T16:16:35.352Z",
+    "duration": 65184.123999999996,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "projects": [
+    {
+      "project": "desktop-large",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "desktop",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "tablet",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile-small",
+      "status": "expected",
+      "attempts": 1
+    }
+  ],
+  "scope": "Actual cookie/CSRF user save/update/conflict/pause/resume, SQL private owner metadata and NULL LastObservedAt, real25to29paging, policy/grant restoration, narrow viewport overflow and revoked-authority clearing. No network provider calls.",
+  "testedStage": "Focused Monitoring run before affected Planner picker repair. Historical focused evidence; final commit source coverage requires separate full265 regression."
+}

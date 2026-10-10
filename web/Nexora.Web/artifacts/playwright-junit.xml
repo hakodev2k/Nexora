@@ -1,0 +1,22 @@
+<testsuites id="" name="" tests="4" failures="0" skipped="4" errors="0" time="0.14814">
+<testsuite name="m01-identity.spec.ts" timestamp="2026-09-19T13:01:38.571Z" hostname="chromium-desktop" tests="2" failures="0" skipped="2" time="0" errors="0">
+<testcase name="M01 register, local capture, verify, login, and keyboard-visible controls" classname="m01-identity.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M01 password reset uses the local operator boundary and does not auto-login" classname="m01-identity.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="m01-identity.spec.ts" timestamp="2026-09-19T13:01:38.571Z" hostname="chromium-mobile" tests="2" failures="0" skipped="2" time="0" errors="0">
+<testcase name="M01 register, local capture, verify, login, and keyboard-visible controls" classname="m01-identity.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="M01 password reset uses the local operator boundary and does not auto-login" classname="m01-identity.spec.ts">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>
