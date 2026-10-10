@@ -24,3 +24,7 @@ Production: `src/Nexora.Application/Files/FileServiceContracts.cs`, `src/Nexora.
 Implementation: IMPLEMENTED_UNVERIFIED. Functional acceptance: NOT_RUN. Security: source review passed; runtime proof pending. Real-provider activation: NOT_APPLICABLE. Production readiness: not established.
 
 Remaining acceptance: real SQL25/26/51-row pages and same-timestamp GUID ties, owner/grant revocation, tamper/filter/cursor movement and secret rotation, literal special-character search, current Trash metadata, concurrent rename/reload, browser paging/filter/error/denied states and affected regression. Remaining Files replacement/reference/lifecycle/scan-worker work is outside this batch.
+
+## Follow-up production regression repair
+
+Existing frontend CI at PR HEAD `0bfec60348eb6c0a48564cea6c5dfbf47e9795ed` reported118 passed,1 failed,1 skipped. The valid Files loading/empty-state test failed because the default empty library displayed the filtered-empty message. FilesScreen now distinguishes default empty (`Chưa có file`), filtered empty, denied, loading and fetch-error states. No test was edited or added. Isolated publication TypeScript/Vite build passed; rerun CI results are pending at publication. This repair does not establish SQL/browser functional acceptance.
