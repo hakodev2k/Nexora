@@ -59,7 +59,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-unit-${{ github.sha }}
-          path: web/Nexora.Web/artifacts
+          path: |
+            web/Nexora.Web/artifacts/vitest-junit.xml
+            web/Nexora.Web/artifacts/coverage/cobertura-coverage.xml
           if-no-files-found: warn
           retention-days: 7
 
@@ -142,6 +144,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: browser-e2e-${{ github.sha }}
-          path: web/Nexora.Web/artifacts
+          path: web/Nexora.Web/artifacts/playwright-junit.xml
           if-no-files-found: warn
           retention-days: 7

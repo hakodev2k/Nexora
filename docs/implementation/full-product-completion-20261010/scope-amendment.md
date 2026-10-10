@@ -16,7 +16,7 @@ Trích nguyên văn chỉ thị PO hiện tại:
 
 > **Critical distinction: authorization to implement real-provider functionality is not authorization to activate live provider operations.**
 
-Cho phép hoàn thành documented contract-ready engineering, real-provider adapters, SQL/API/React, secure jobs/webhook/scheduler infrastructure, simulation, isolated synthetic SQL/test fixtures, independent reviews và validated commits trên PR #4. Yêu cầu test hiện tại supersede code-only/no-new-fixtures amendment cũ cho nhiệm vụ này. Không xin lại blanket implementation approval.
+Cho phép hoàn thành documented contract-ready engineering, real-provider adapters, SQL/API/React, secure jobs/webhook/scheduler infrastructure, independent reviews và source commits trên PR #4. Chỉ thị mission ban đầu yêu cầu simulated verification; AGENTS.md do PO cung cấp sau đó có current execution amendment **code-only**, nên phần tiếp tục không thêm unit/integration/E2E/browser tests, mock/demo records hay artificial fixtures, không chạy functional/runtime verification mới. Human owner phụ trách QA/test-data/runtime verification; compile/build/typecheck/lint chỉ phát hiện implementation errors. Câu supersede code-only trong bản amendment đầu là diễn giải sai thứ tự chỉ thị, được sửa tại đây. Kết quả thực tế đã chạy được giữ làm lịch sử, không suy thành quyền QA tiếp tục hoặc full acceptance. Không xin lại blanket implementation approval.
 
 Không tự bật module cho account hiện hữu/mới. Không live API, credential provisioning/account registration, paid quota, external mutation/notification, public webhook endpoint, production, merge hoặc PR khác. Live quota mặc định zero. Real-provider configuration/credential presence không cấp quyền thực thi.
 
@@ -25,7 +25,7 @@ Không tự bật module cho account hiện hữu/mới. Không live API, creden
 | Module | Catalog rows | Engineering authorization | Contract readiness | Functional/security acceptance | Real-provider readiness | Activation / production |
 | --- | ---: | --- | --- | --- | --- | --- |
 | FX30 | 18 | Local code + simulated verification authorized | Exact action audit pending; D01/D02 và dependencies cần đối chiếu | Chưa xác minh trong phiên này | Chưa chứng minh | PROVIDER_INACTIVE; G3/G4 chưa approve |
-| FX34 | 20 | Local code + simulated verification authorized | Exact action audit pending; D03, schedule policies và dependencies cần đối chiếu | Chưa xác minh trong phiên này | Chưa chứng minh | PROVIDER_INACTIVE đối với external actions; G3/G4 chưa approve |
+| FX34 | 20 | Local engineering authorized; current execution code-only | Independent source audit: 20/20 MISSING; D03 registry/topology/mappings còn mở; BR002 DST/misfire/concurrency đã delegated | NotRun cho FX34 | Chưa chứng minh | PROVIDER_INACTIVE đối với external actions; G3/G4 chưa approve |
 | FX35 | 21 | Local code + simulated verification authorized | Exact action audit pending; D04–D09 và dependencies cần đối chiếu | Chưa xác minh trong phiên này | Chưa chứng minh | PROVIDER_INACTIVE; public inbound exposure denied; G3/G4 chưa approve |
 
 59 rows không chuyển thành Implemented. Inventory lịch sử được giữ nguyên; từng action cần handler/schema/UI/permission/AC/evidence audit riêng. MISSING, PARTIALLY_IMPLEMENTED hay IMPLEMENTED_UNVERIFIED chỉ được gán sau kiểm tra source đầy đủ. Provider inactivity không đồng nghĩa implementation pause.
