@@ -1916,6 +1916,10 @@ export function listShareLinks(limit = 100) {
   return apiFetch<ShareLinkPage>(`/api/v1/sharing/links?limit=${encodeURIComponent(limit)}`);
 }
 
+export function getShareLink(id: string) {
+  return apiFetch<ShareLinkRecord>(`/api/v1/sharing/links/${encodeURIComponent(id)}`);
+}
+
 export function createShareLink(resourceType: string, resourceId: string, mode: string, expiresAt: string | null, allowedUserIds: string[] = [], noExpiry = false, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<ShareLinkRecord>('/api/v1/sharing/links', {
     method: 'POST',

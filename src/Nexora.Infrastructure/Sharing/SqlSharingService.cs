@@ -32,6 +32,26 @@ public sealed class SqlSharingService : ISharingService
         _capabilities = new SqlSelfCapability(connections);
     }
 
+    public IdentityOperationResult<ShareLinkRecord> Get(IdentityPrincipal actor, Guid shareLinkId)
+    {
+        if (!ModuleAvailable(actor, "FX04", "sharing.link.read")) return ModuleUnavailable<ShareLinkRecord>();
+        using var connection = _connections.Create(); connection.Open();
+        if (!SqlCurrentActor.IsLive(connection, null, actor)) return ModuleUnavailable<ShareLinkRecord>();
+        var advisory = ReadLink(connection, null, actor.OwnerId, shareLinkId);
+        if (advisory is null) return Missing<ShareLinkRecord>();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var module = ReadSharingModule(connection, transaction, forUpdate: false);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) || module is null || !module.Value.Available ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read")) return ModuleUnavailable<ShareLinkRecord>();
+        if (!OwnerSourceAllowed(connection, transaction, actor, advisory.ResourceType, advisory.ResourceId, creating: false))
+            return Missing<ShareLinkRecord>();
+        var current = ReadLink(connection, transaction, actor.OwnerId, shareLinkId);
+        if (current is null || current.ResourceType != advisory.ResourceType || current.ResourceId != advisory.ResourceId ||
+            !LinkEpochCurrent(connection, transaction, shareLinkId, actor.OwnerId)) return Missing<ShareLinkRecord>();
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor)) return ModuleUnavailable<ShareLinkRecord>();
+        transaction.Commit(); return IdentityOperationResult<ShareLinkRecord>.Success(current);
+    }
+
     public IdentityOperationResult<bool> CanCopyCreated(IdentityPrincipal actor, Guid shareLinkId)
     {
         if (!ModuleAvailable(actor, "FX04", "sharing.link.create") || !ModuleAvailable(actor, "FX04", "sharing.link.read"))
@@ -245,7 +265,18 @@ public sealed class SqlSharingService : ISharingService
             "sharing.link.update", idempotencyKey,
             $"id:{shareLinkId:N}|etag:{ifMatch}|mode:{mode}|expiry:{expiryDescriptor}|users:{string.Join(',', allowedUsers.OrderBy(id => id).Select(id => id.ToString("N")))}",
             out var receipt);
+        if (receiptFailure?.Code == "IdempotencyReplay")
+        {
+            if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            { transaction.Rollback(); return ModuleUnavailable<ShareLinkRecord>(); }
+            transaction.Commit();
+            // Exact command already committed. Return currently authorized metadata,
+            // without repeating the effect/audit or reconstructing any capability token.
+            return IdentityOperationResult<ShareLinkRecord>.Success(authorizedLink);
+        }
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
+        if (command.ExpiresAt is { } requestedExpiry && requestedExpiry <= DateTimeOffset.UtcNow)
+        { transaction.Rollback(); return Failure<ShareLinkRecord>("ValidationFailed", 422, "Share expiry must be in the future."); }
 
         var current = ReadLink(connection, transaction, actor.OwnerId, shareLinkId, forUpdate: true, includeDeleted: false);
         if (current is null)
@@ -434,8 +465,6 @@ public sealed class SqlSharingService : ISharingService
     {
         if (command.Mode?.Trim() is not ("PublicLink" or "AuthenticatedLink" or "RestrictedUsers"))
             return Failure<ShareLinkRecord>("ValidationFailed", 422, "The share mode is invalid.");
-        if (command.ExpiresAt is { } expires && expires <= DateTimeOffset.UtcNow)
-            return Failure<ShareLinkRecord>("ValidationFailed", 422, "Share expiry must be in the future.");
         if (command.NoExpiry && command.ExpiresAt is not null)
             return Failure<ShareLinkRecord>("ValidationFailed", 422, "NoExpiry cannot include an expiry.");
         var users = command.AllowedUserIds ?? Array.Empty<Guid>();

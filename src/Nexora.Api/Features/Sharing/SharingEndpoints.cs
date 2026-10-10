@@ -12,6 +12,12 @@ public static class SharingEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
+        api.MapGet("/sharing/links/{shareLinkId:guid}", (HttpContext context, Guid shareLinkId,
+            ISharingService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Get(principal, shareLinkId), ToResponse))
+            .WithName("getShareLink");
+
         api.MapGet("/sharing/links/{shareLinkId:guid}/copy-capability", (HttpContext context, Guid shareLinkId,
             ISharingService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),

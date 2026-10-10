@@ -335,6 +335,50 @@ public sealed class SqlSharingRepairTests
     }
 
     [Fact]
+    public async Task Owner_item_read_and_exact_update_retry_return_current_metadata_without_repeating_audit()
+    {
+        await using var scope = await Enable(); var owner = await fixture.CreateActiveSessionAsync();
+        var project = await Project(owner); var link = await Create(owner, I(project)); var path = $"{Links}/{I(link)}";
+        var initial = await Get(owner, path); Assert.Equal(I(link), I(initial));
+        Assert.Equal(JsonValueKind.Null, initial.GetProperty("token").ValueKind);
+        var other = await fixture.CreateActiveSessionAsync();
+        using (var foreign = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, other.RawSessionHandle))
+            Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
+        var key = Guid.NewGuid(); var body = new { mode = "AuthenticatedLink", noExpiry = true };
+        using var first = await Send(owner, HttpMethod.Patch, path, body, E(initial), key); var updated = await Json(first);
+        using var later = await Send(owner, HttpMethod.Patch, path, new { mode = "PublicLink", noExpiry = true }, E(updated)); var latest = await Json(later);
+        var audits = await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [security].[AuditEvent] WHERE TargetId=@Id AND ActionKey='sharing.link.update'", Id("@Id", I(link)));
+        using var retry = await Send(owner, HttpMethod.Patch, path, body, E(initial), key); var recovered = await Json(retry);
+        Assert.Equal(E(latest), E(recovered)); Assert.Equal("PublicLink", recovered.GetProperty("mode").GetString());
+        Assert.Equal(JsonValueKind.Null, recovered.GetProperty("token").ValueKind);
+        Assert.Equal(audits, await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [security].[AuditEvent] WHERE TargetId=@Id AND ActionKey='sharing.link.update'", Id("@Id", I(link))));
+        using var mismatch = await Send(owner, HttpMethod.Patch, path, new { mode = "PublicLink", noExpiry = true }, E(initial), key);
+        Assert.Equal(HttpStatusCode.Conflict, mismatch.StatusCode);
+        await fixture.ExecuteAsync("INSERT [identity].[UserRole](UserId,RoleId) SELECT @User,Id FROM [identity].[Role] WHERE Code='Admin'", Id("@User", owner.UserId));
+        await Grant(scope.Super, owner, "Allow", "sharing.link.read", "projects.project.read", "projects.project.share");
+        using var deniedReplay = await Send(owner, HttpMethod.Patch, path, body, E(initial), key);
+        Assert.Equal(HttpStatusCode.Conflict, deniedReplay.StatusCode);
+    }
+
+    [Fact]
+    public async Task Exact_committed_update_replay_after_expiry_does_not_extend_or_reactivate_the_link()
+    {
+        await using var scope = await Enable(); var owner = await fixture.CreateActiveSessionAsync();
+        var project = await Project(owner); var link = await Create(owner, I(project)); var path = $"{Links}/{I(link)}";
+        var key = Guid.NewGuid(); var expiry = DateTimeOffset.UtcNow.AddSeconds(4);
+        var body = new { mode = "PublicLink", expiresAt = expiry, noExpiry = false };
+        using var first = await Send(owner, HttpMethod.Patch, path, body, E(link), key); var committed = await Json(first);
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        while (await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [security].[ShareLink] WHERE Id=@Id AND ExpiresAt>SYSUTCDATETIME()", Id("@Id", I(link))) != 0)
+        { Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15)); await Task.Delay(50); }
+        using var retry = await Send(owner, HttpMethod.Patch, path, body, E(link), key); var recovered = await Json(retry);
+        Assert.Equal(E(committed), E(recovered)); Assert.False(recovered.GetProperty("isActive").GetBoolean());
+        Assert.Equal(committed.GetProperty("expiresAt").GetString(), recovered.GetProperty("expiresAt").GetString());
+        using var fresh = await Send(owner, HttpMethod.Patch, path, body, E(recovered)); Assert.Equal(HttpStatusCode.UnprocessableEntity, fresh.StatusCode);
+        using var viewer = await Resolve(link); Assert.Equal(HttpStatusCode.NotFound, viewer.StatusCode);
+    }
+
+    [Fact]
     public async Task Copy_created_checks_current_document_projection_lifecycle_and_version()
     {
         await using var scope = await Enable(); var owner = await fixture.CreateActiveSessionAsync();
