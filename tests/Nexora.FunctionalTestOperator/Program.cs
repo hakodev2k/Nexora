@@ -71,6 +71,7 @@ if(args is ["read-focus-completion",var focusText]) {
 if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
+  ["NewsCategory"]="[news].[Category]",
   ["Monitor"]="[monitoring].[Monitor]",
   ["WishlistItem"]="[shopping].[WishlistItem]",
   ["ImportBatch"]="[operations].[ImportBatch]",
@@ -88,7 +89,9 @@ if(args is ["read-resource",var kind,var idText]) {
  };
  if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
  await using var c=new SqlConnection(cs);await c.OpenAsync();
- var query=kind=="Monitor"
+ var query=kind=="NewsCategory"
+  ? "SELECT Id,OwnerId,Name,CreatedAt,UpdatedAt FROM [news].[Category] WHERE Id=@id FOR JSON PATH"
+  : kind=="Monitor"
   ? "SELECT Id,OwnerId,Title,Kind,Target,IntervalSeconds,ExpectedStatus,Enabled,State,LastObservedAt,CreatedAt,UpdatedAt FROM [monitoring].[Monitor] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
   : kind=="ShareLink"
   ? "SELECT Id,OwnerId,ResourceType,ResourceId,Mode,ExpiresAt,RevokedAt,IsDeleted,InvalidatedAt,InvalidationReason,IssuedSharingEpoch FROM [security].[ShareLink] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"

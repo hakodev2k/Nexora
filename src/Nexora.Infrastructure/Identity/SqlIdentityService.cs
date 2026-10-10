@@ -235,6 +235,15 @@ END;",
                 ("@userId", SqlDbType.UniqueIdentifier, (object)row.UserId),
                 ("@now", SqlDbType.DateTime2, (object)now));
 
+            using (var owner = CreateCommand(connection, transaction, @"
+IF NOT EXISTS(SELECT 1 FROM [platform].[PersonalSpace] WHERE UserId=@userId)
+    THROW 51046,'Owner initialization mapping is unavailable.',1;
+SELECT Id FROM [platform].[PersonalSpace] WHERE UserId=@userId;"))
+            {
+                owner.Parameters.Add("@userId", SqlDbType.UniqueIdentifier).Value = row.UserId;
+                var ownerId = (Guid)owner.ExecuteScalar()!;
+                Nexora.Infrastructure.News.SqlNewsOwnerInitializer.Initialize(connection, transaction, ownerId, row.UserId, now);
+            }
             GrantReadyModules(connection, transaction, row.UserId, now);
             InsertAudit(connection, transaction, null, null, "identity.account.verify", "User", row.UserId, "Succeeded", null, traceId, now);
             var profile = LoadProfile(connection, transaction, row.UserId);
@@ -1184,6 +1193,7 @@ VALUES (@spaceId, @userId, 'Active', @now, @now);",
 INSERT INTO [identity].[UserRole] ([UserId], [RoleId])
 SELECT @userId, [Id] FROM [identity].[Role] WHERE [Code] = 'SuperAdmin';",
                 ("@userId", SqlDbType.UniqueIdentifier, (object)userId, 0));
+            Nexora.Infrastructure.News.SqlNewsOwnerInitializer.Initialize(connection, transaction, spaceId, userId, now);
             GrantReadyModules(connection, transaction, userId, now);
             InsertAudit(connection, transaction, userId, userId, "identity.superadmin.bootstrap", "User", userId, "Succeeded", null, traceId, now);
             ExecuteNonQuery(connection, transaction, @"

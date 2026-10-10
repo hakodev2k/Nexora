@@ -251,12 +251,12 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Network toolbox action is inactive until a future PO/network decision.");
         }
 
-        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey))
+        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey) && !ApprovedNewsCategoryActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 scope.");
         }
 
-        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey))
+        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey) && !ApprovedNewsCategoryActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("ActionNotGrantable", "Action is not assignable as an Admin grant in the current action manifest.");
         }
@@ -305,6 +305,9 @@ public static class ActionGrantPolicy
         "learning.skill.archive", "learning.skill.unarchive", "learning.skill.trash", "learning.skill.restore", "learning.skill.purge"
     };
 
+    private static readonly HashSet<string> ApprovedNewsCategoryActions = new(StringComparer.Ordinal)
+    { "news.category.read", "news.category.create", "news.category.update" };
+
     // Exact reviewed local configuration SELF subset; no checks/jobs/observations/support.
     private static readonly HashSet<string> ApprovedMonitoringActions = new(StringComparer.Ordinal)
     { "monitoring.monitor.read", "monitoring.monitor.create", "monitoring.monitor.update", "monitoring.monitor.pause", "monitoring.monitor.resume" };
@@ -322,7 +325,7 @@ public static class ActionGrantPolicy
         "shopping.wishlist.trash", "shopping.wishlist.restore", "shopping.wishlist.purge"
     };
 
-    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey);
+    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey) || ApprovedNewsCategoryActions.Contains(actionKey);
 
-    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey);
+    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey) || ApprovedNewsCategoryActions.Contains(actionKey);
 }

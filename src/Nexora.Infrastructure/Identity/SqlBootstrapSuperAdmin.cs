@@ -58,8 +58,10 @@ public sealed class SqlBootstrapSuperAdmin(string connectionString) : IBootstrap
             UPDATE [platform].[SecurityInvariant]
                 SET BootstrapCompletedAt = SYSUTCDATETIME(), UpdatedAt = SYSUTCDATETIME() WHERE Id = 1;
             """, connection, transaction);
-        insert.Parameters.Add("@user", SqlDbType.UniqueIdentifier).Value = Guid.NewGuid();
-        insert.Parameters.Add("@owner", SqlDbType.UniqueIdentifier).Value = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var ownerId = Guid.NewGuid();
+        insert.Parameters.Add("@user", SqlDbType.UniqueIdentifier).Value = userId;
+        insert.Parameters.Add("@owner", SqlDbType.UniqueIdentifier).Value = ownerId;
         insert.Parameters.Add("@email", SqlDbType.NVarChar, 320).Value = email;
         insert.Parameters.Add("@normalized", SqlDbType.NVarChar, 320).Value = EmailNormalizer.Normalize(email);
         insert.Parameters.Add("@hash", SqlDbType.NVarChar, 1024).Value = command.PasswordHash;
@@ -67,6 +69,7 @@ public sealed class SqlBootstrapSuperAdmin(string connectionString) : IBootstrap
         insert.Parameters.Add("@name", SqlDbType.NVarChar, 100).Value = command.DisplayName.Trim();
         insert.Parameters.Add("@zone", SqlDbType.NVarChar, 128).Value = command.TimeZoneId;
         await insert.ExecuteNonQueryAsync(cancellationToken);
+        Nexora.Infrastructure.News.SqlNewsOwnerInitializer.Initialize(connection, transaction, ownerId, userId, DateTime.UtcNow);
         await transaction.CommitAsync(cancellationToken);
         return BootstrapOutcome.Created;
     }

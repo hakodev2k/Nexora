@@ -63,6 +63,11 @@ internal sealed class SqlSelfCapability
             actions.Any(action => action is not ("monitoring.monitor.read" or "monitoring.monitor.create" or "monitoring.monitor.update" or "monitoring.monitor.pause" or "monitoring.monitor.resume")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
+        // Only the installed private category subset is available for every role.
+        if (string.Equals(moduleCode, "FX29", StringComparison.Ordinal) &&
+            actions.Any(action => action is not ("news.category.read" or "news.category.create" or "news.category.update")))
+            return SqlCapabilityStatus.ModuleUnavailable;
+
         // Admin SELF is an explicit grant context. A stale or hand-inserted
         // AdminPermission row cannot turn a PUBLIC/SUPER/CONTROL/SYSTEM action
         // into self access; the manifest projection is checked before SQL.

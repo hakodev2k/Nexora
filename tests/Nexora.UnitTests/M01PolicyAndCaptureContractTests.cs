@@ -61,7 +61,8 @@ public sealed class M01PolicyAndCaptureContractTests
             "20261004_0042_calendar_ics_export.sql",
             "20261004_0043_sharing_policy_authority.sql",
             "20261004_0044_sharing_subset_readiness.sql",
-            "20261004_0045_monitoring_http_config.sql"
+                "20261004_0045_monitoring_http_config.sql",
+                "20261005_0046_news_categories.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);
