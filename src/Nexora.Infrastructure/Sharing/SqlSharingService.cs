@@ -32,6 +32,36 @@ public sealed class SqlSharingService : ISharingService
         _capabilities = new SqlSelfCapability(connections);
     }
 
+    public IdentityOperationResult<bool> CanCopyCreated(IdentityPrincipal actor, Guid shareLinkId)
+    {
+        if (!ModuleAvailable(actor, "FX04", "sharing.link.create") || !ModuleAvailable(actor, "FX04", "sharing.link.read"))
+            return ModuleUnavailable<bool>();
+        using var connection = _connections.Create(); connection.Open();
+        if (!SqlCurrentActor.IsLive(connection, null, actor)) return ModuleUnavailable<bool>();
+        var advisory = ReadLink(connection, null, actor.OwnerId, shareLinkId);
+        if (advisory is null) return Missing<bool>();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var module = ReadSharingModule(connection, transaction, forUpdate: false);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor) || module is null || !module.Value.Available ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.create") ||
+            !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read"))
+            return ModuleUnavailable<bool>();
+        // Preserve source-before-link lock ordering used by source lifecycle operations.
+        if (!OwnerSourceAllowed(connection, transaction, actor, advisory.ResourceType, advisory.ResourceId, creating: false))
+            return Missing<bool>();
+        var source = ReadSource(connection, transaction, advisory.ResourceType, advisory.ResourceId, actor.OwnerId);
+        if (source is null || (advisory.ResourceType == "Document" && source.Value.Status is not ("Published" or "Archived")))
+            return Missing<bool>();
+        var current = ReadLink(connection, transaction, actor.OwnerId, shareLinkId);
+        if (current is null || !current.IsActive || current.ProjectionVersion != ProjectionVersion || current.ResourceType != advisory.ResourceType ||
+            current.ResourceId != advisory.ResourceId || !LinkEpochCurrent(connection, transaction, shareLinkId, actor.OwnerId))
+            return Missing<bool>();
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor)) return ModuleUnavailable<bool>();
+        transaction.Commit();
+        // Never return or reconstruct the capability token; copying remains a local operation.
+        return IdentityOperationResult<bool>.Success(true);
+    }
+
     public IdentityOperationResult<ShareLinkPage> List(IdentityPrincipal actor, int? limit = null)
     {
         if (!ModuleAvailable(actor,"FX04","sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();

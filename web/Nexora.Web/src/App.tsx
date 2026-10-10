@@ -1,3 +1,4 @@
+import { CreatedShareLink } from './CreatedShareLink';
 import { NewsCategoryScreen } from './NewsCategoryScreen';
 import { MonitoringScreen } from './MonitoringScreen';
 import { CalendarTransferScreen } from './CalendarTransferScreen';
@@ -1460,30 +1461,33 @@ function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [expiresAt, setExpiresAt] = useState('');
   const [noExpiry, setNoExpiry] = useState(false);
   const [audience, setAudience] = useState('');
-  const [createdToken, setCreatedToken] = useState<string | null>(null);
+  const [createdLink, setCreatedLink] = useState<{ id: string; token: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
 
+  const generation = useRef(0); const flight = useRef(false);
+
   async function load() {
-    setLoading(true);
+    if (flight.current) return; flight.current = true; const stamp = ++generation.current;
+    setCreatedLink(null); setLoading(true);
     setError(null);
     try {
       const page = await listShareLinks();
-      setLinks(page.items);
+      if (stamp !== generation.current) return; setLinks(page.items.map(link => ({ ...link, token: null })));
     } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
+      if (stamp !== generation.current) return; const apiError = asApiError(requestError);
+      setError(apiError); if (([401, 403, 404].includes(apiError.status) || apiError.code === 'ModuleUnavailable')) { setLinks([]); setCreatedLink(null); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (stamp === generation.current) { flight.current = false; setLoading(false); }
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); return () => { generation.current++; flight.current = false; }; }, []);
 
   async function create(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+    event.preventDefault(); if (flight.current) return;
     setError(null);
     const id = resourceId.trim();
     if (!id) {
@@ -1491,40 +1495,40 @@ function SharingScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       return;
     }
     const users = mode === 'RestrictedUsers' ? audience.split(',').map((value) => value.trim()).filter(Boolean) : [];
-    setBusy('create');
+    flight.current = true; const stamp = ++generation.current; setBusy('create');
     try {
       const created = await createShareLink(resourceType, id, mode, expiresAt ? new Date(expiresAt).toISOString() : null, users, noExpiry);
-      setLinks((current) => [created, ...current]);
-      setCreatedToken(created.token);
+      if (stamp !== generation.current) return; setLinks((current) => [{ ...created, token: null }, ...current]);
+      setCreatedLink(created.token ? { id: created.id, token: created.token } : null);
       setResourceId('');
       setAudience('');
     } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
+      if (stamp !== generation.current) return; const apiError = asApiError(requestError);
+      setError(apiError); if (([401, 403, 404].includes(apiError.status) || apiError.code === 'ModuleUnavailable')) { setLinks([]); setCreatedLink(null); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setBusy(null);
+      if (stamp === generation.current) { flight.current = false; setBusy(null); }
     }
   }
 
   async function revoke(link: ShareLinkRecord) {
-    setBusy(link.id);
+    if (flight.current) return false; flight.current = true; const stamp = ++generation.current; setBusy(link.id);
     setError(null);
     try {
-      await revokeShareLink(link.id, link.etag);
+      await revokeShareLink(link.id, link.etag); if (stamp !== generation.current) return false; if (createdLink?.id === link.id) setCreatedLink(null);
       setLinks((current) => current.filter((candidate) => candidate.id !== link.id));
       return true;
     } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
+      if (stamp !== generation.current) return false; const apiError = asApiError(requestError);
+      setError(apiError); if (([401, 403, 404].includes(apiError.status) || apiError.code === 'ModuleUnavailable')) { setLinks([]); setCreatedLink(null); }
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
     } finally {
-      setBusy(null);
+      if (stamp === generation.current) { flight.current = false; setBusy(null); }
     }
   }
 
-  return <section className="content-section" aria-labelledby="sharing-title"><div className="content-heading"><div><p className="eyebrow">FX04 / SHARING</p><h1 id="sharing-title">Read-only sharing</h1><p className="lead">Chỉ Project và Published Document có projection cố định. Token chỉ hiển thị sau khi tạo và không được lưu vào browser storage.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}{createdToken && <div className="success-panel"><h2>Link đã được tạo</h2><p>Hãy lưu token/link này ngay; server chỉ lưu hash và giao diện không giữ nó sau khi tải lại.</p><code className="secret-output">{createdToken}</code><a href={`/share/${encodeURIComponent(createdToken)}`} rel="noreferrer" referrerPolicy="no-referrer">Mở projection read-only</a></div>}<form className="form-panel" onSubmit={create} noValidate><div className="section-heading"><h2>Tạo link</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="share-resource-type">Loại resource</label><select id="share-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value as 'Project' | 'Document')}><option value="Project">Project</option><option value="Document">Document</option></select></div><div className="field-group"><label htmlFor="share-resource-id">Resource ID</label><input id="share-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID từ server" required /></div></div><div className="form-grid"><div className="field-group"><label htmlFor="share-mode">Chế độ truy cập</label><select id="share-mode" value={mode} onChange={(event) => setMode(event.target.value)}><option value="PublicLink">Public link</option><option value="AuthenticatedLink">Authenticated account</option><option value="RestrictedUsers">Restricted users</option></select></div><div className="field-group"><label htmlFor="share-expiry">Hết hạn <span className="optional">(mặc định 7 ngày)</span></label><input id="share-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={noExpiry} /><label className="checkbox-row"><input type="checkbox" checked={noExpiry} onChange={(event) => { setNoExpiry(event.target.checked); if (event.target.checked) setExpiresAt(""); }} /> Không hết hạn</label></div></div>{mode === 'RestrictedUsers' && <div className="field-group"><label htmlFor="share-audience">Verified user IDs</label><input id="share-audience" value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="UUID, UUID" required /><p className="field-help">Server sẽ kiểm tra từng user là active và đã verified.</p></div>}<SubmitButton busy={busy === 'create'}>Tạo read-only link</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Link của PersonalSpace</h2><span className="muted">{links.length} link</span></div>{loading ? <div className="loading-state" role="status">Đang tải link…</div> : links.length === 0 ? <div className="empty-state"><h3>Chưa có link</h3><p>Tạo link từ resource ID đã được server cấp.</p></div> : <div className="resource-cards">{links.map((link) => <article className="resource-card" key={link.id}><div><h3>{link.resourceType}</h3><p className="muted">{link.resourceId} · {link.mode}</p><span className={link.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{link.isActive ? 'Active' : 'Expired / invalidated'}</span></div><ConfirmActionButton confirmationTitle="Thu hồi link chia sẻ?" confirmationDescription="Link hiện tại sẽ ngừng hoạt động ngay. Bật chia sẻ lại sau này sẽ không khôi phục token cũ." confirmLabel="Thu hồi link" disabled={busy !== null} onConfirm={() => revoke(link)}>Thu hồi</ConfirmActionButton></article>)}</div>}</div></section>;
+  return <section className="content-section" aria-labelledby="sharing-title"><div className="content-heading"><div><p className="eyebrow">FX04 / SHARING</p><h1 id="sharing-title">Read-only sharing</h1><p className="lead">Chỉ Project và Published Document có projection cố định. Token chỉ hiển thị sau khi tạo và không được lưu vào browser storage.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>{error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}{createdLink && <CreatedShareLink id={createdLink.id} token={createdLink.token} onUnavailable={() => { generation.current++; flight.current = false; setBusy(null); setLoading(false); setCreatedLink(null); setLinks([]); setError(new NexoraApiError('Link hoặc quyền copy không còn khả dụng.', 403, 'PermissionDenied')); }} />}<form className="form-panel" onSubmit={create} noValidate><div className="section-heading"><h2>Tạo link</h2></div><div className="form-grid"><div className="field-group"><label htmlFor="share-resource-type">Loại resource</label><select id="share-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value as 'Project' | 'Document')}><option value="Project">Project</option><option value="Document">Document</option></select></div><div className="field-group"><label htmlFor="share-resource-id">Resource ID</label><input id="share-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID từ server" required /></div></div><div className="form-grid"><div className="field-group"><label htmlFor="share-mode">Chế độ truy cập</label><select id="share-mode" value={mode} onChange={(event) => setMode(event.target.value)}><option value="PublicLink">Public link</option><option value="AuthenticatedLink">Authenticated account</option><option value="RestrictedUsers">Restricted users</option></select></div><div className="field-group"><label htmlFor="share-expiry">Hết hạn <span className="optional">(mặc định 7 ngày)</span></label><input id="share-expiry" type="datetime-local" value={expiresAt} onChange={(event) => setExpiresAt(event.target.value)} disabled={noExpiry} /><label className="checkbox-row"><input type="checkbox" checked={noExpiry} onChange={(event) => { setNoExpiry(event.target.checked); if (event.target.checked) setExpiresAt(""); }} /> Không hết hạn</label></div></div>{mode === 'RestrictedUsers' && <div className="field-group"><label htmlFor="share-audience">Verified user IDs</label><input id="share-audience" value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="UUID, UUID" required /><p className="field-help">Server sẽ kiểm tra từng user là active và đã verified.</p></div>}<SubmitButton busy={busy === 'create'}>Tạo read-only link</SubmitButton></form><div className="resource-list"><div className="section-heading"><h2>Link của PersonalSpace</h2><span className="muted">{links.length} link</span></div>{loading ? <div className="loading-state" role="status">Đang tải link…</div> : links.length === 0 ? <div className="empty-state"><h3>Chưa có link</h3><p>Tạo link từ resource ID đã được server cấp.</p></div> : <div className="resource-cards">{links.map((link) => <article className="resource-card" key={link.id}><div><h3>{link.resourceType}</h3><p className="muted">{link.resourceId} · {link.mode}</p><span className={link.isActive ? 'state-pill state-active' : 'state-pill state-warning'}>{link.isActive ? 'Active' : 'Expired / invalidated'}</span></div><ConfirmActionButton confirmationTitle="Thu hồi link chia sẻ?" confirmationDescription="Link hiện tại sẽ ngừng hoạt động ngay. Bật chia sẻ lại sau này sẽ không khôi phục token cũ." confirmLabel="Thu hồi link" disabled={busy !== null} onConfirm={() => revoke(link)}>Thu hồi</ConfirmActionButton></article>)}</div>}</div></section>;
 }
 
 function SupportScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {

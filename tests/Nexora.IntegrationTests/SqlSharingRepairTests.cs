@@ -306,7 +306,54 @@ public sealed class SqlSharingRepairTests
         transaction.Commit();using var response=await request.WaitAsync(TimeSpan.FromSeconds(10));Assert.Equal(HttpStatusCode.NotFound,response.StatusCode);
         Assert.Equal(1,await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [security].[ShareLink] WHERE Id=@Id AND IsDeleted=1 AND InvalidatedAt IS NOT NULL",Id("@Id",I(link))));
     }
+    [Fact]
+    public async Task Copy_created_authority_is_owner_scoped_current_and_never_returns_token()
+    {
+        await using var scope = await Enable();
+        var owner = await fixture.CreateActiveSessionAsync();
+        var other = await fixture.CreateActiveSessionAsync();
+        var project = await Project(owner); var link = await Create(owner, I(project));
+        var path = $"{Links}/{I(link)}/copy-capability";
+        var capability = await Get(owner, path);
+        Assert.True(capability.GetProperty("allowed").GetBoolean());
+        Assert.Single(capability.EnumerateObject());
+        using (var foreign = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, other.RawSessionHandle))
+            Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
+        await fixture.ExecuteAsync("INSERT [identity].[UserRole](UserId,RoleId) SELECT @User,Id FROM [identity].[Role] WHERE Code='Admin'", Id("@User", owner.UserId));
+        await Grant(scope.Super, owner, "Allow", "sharing.link.read", "sharing.link.create", "sharing.link.revoke", "projects.project.read", "projects.project.share");
+        await fixture.ExecuteAsync("DELETE p FROM [platform].[AdminPermission] p JOIN [platform].[Permission] a ON a.Id=p.PermissionId WHERE p.UserId=@User AND a.ActionKey='sharing.link.create'", Id("@User", owner.UserId));
+        using (var absent = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle))
+            Assert.Equal(HttpStatusCode.Conflict, absent.StatusCode);
+        await Grant(scope.Super, owner, "Deny", "sharing.link.create");
+        using (var denied = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle))
+            Assert.Equal(HttpStatusCode.Conflict, denied.StatusCode);
+        await Grant(scope.Super, owner, "Allow", "sharing.link.create");
+        using (var revoked = await Send(owner, HttpMethod.Delete, $"{Links}/{I(link)}", new { }, E(link)))
+            Assert.Equal(HttpStatusCode.NoContent, revoked.StatusCode);
+        using var unavailable = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.NotFound, unavailable.StatusCode);
+    }
+
+    [Fact]
+    public async Task Copy_created_checks_current_document_projection_lifecycle_and_version()
+    {
+        await using var scope = await Enable(); var owner = await fixture.CreateActiveSessionAsync();
+        var document = await Document(owner);
+        await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Published' WHERE Id=@Id", Id("@Id", I(document)));
+        var link = await Create(owner, I(document), "Document"); var path = $"{Links}/{I(link)}/copy-capability";
+        Assert.True((await Get(owner, path)).GetProperty("allowed").GetBoolean());
+        await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Draft' WHERE Id=@Id", Id("@Id", I(document)));
+        using (var draft = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle))
+            Assert.Equal(HttpStatusCode.NotFound, draft.StatusCode);
+        await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Archived',PreArchiveStatus='Published' WHERE Id=@Id", Id("@Id", I(document)));
+        Assert.True((await Get(owner, path)).GetProperty("allowed").GetBoolean());
+        await fixture.ExecuteAsync("UPDATE [security].[ShareLink] SET ProjectionVersion='unsupported' WHERE Id=@Id", Id("@Id", I(link)));
+        using var unsupported = await fixture.SendAuthenticatedAsync(HttpMethod.Get, path, owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.NotFound, unsupported.StatusCode);
+    }
+
     [Theory]
+    [InlineData("Copy")]
     [InlineData("List")]
     [InlineData("Resolve")]
     [InlineData("Update")]
@@ -317,6 +364,7 @@ public sealed class SqlSharingRepairTests
         await using var connection=new SqlConnection(fixture.ConnectionString);await connection.OpenAsync();using var transaction=connection.BeginTransaction();
         using(var hold=new SqlCommand("SELECT Id FROM [productivity].[Project] WITH(XLOCK,HOLDLOCK) WHERE Id=@Id",connection,transaction)){hold.Parameters.Add(Id("@Id",I(project)));Assert.NotNull(await hold.ExecuteScalarAsync());}
         Task<HttpResponseMessage> request=operation switch {
+            "Copy"=>fixture.SendAuthenticatedAsync(HttpMethod.Get,$"{Links}/{I(link)}/copy-capability",owner.RawSessionHandle),
             "List"=>fixture.SendAuthenticatedAsync(HttpMethod.Get,Links,owner.RawSessionHandle),
             "Resolve"=>Resolve(link),
             "Update"=>Send(owner,HttpMethod.Patch,$"{Links}/{I(link)}",new{mode="PublicLink",noExpiry=true},E(link)),
