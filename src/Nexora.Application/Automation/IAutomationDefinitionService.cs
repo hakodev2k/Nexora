@@ -18,6 +18,9 @@ public sealed record AutomationPortableDefinition(int SchemaVersion, string Titl
 
 public interface IAutomationDefinitionService
 {
+    IdentityOperationResult<AutomationScheduleSnapshot> Schedule(IdentityPrincipal actor, Guid id);
+    IdentityOperationResult<AutomationSchedulePlan> PreviewSchedule(IdentityPrincipal actor, Guid id, AutomationScheduleCommand body);
+    IdentityOperationResult<AutomationDefinitionAcknowledgement> UpdateSchedule(IdentityPrincipal actor, Guid id, string? etag, AutomationScheduleCommand body, string key, string? trace);
     IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
     IdentityOperationResult<AutomationDefinitionPage> List(IdentityPrincipal actor, string? cursor, string? query, string lifecycle = "Active");
     IdentityOperationResult<AutomationDefinitionDetail> Get(IdentityPrincipal actor, Guid id);

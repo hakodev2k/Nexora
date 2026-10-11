@@ -59,6 +59,7 @@ public static class M01MigrationManifest
             "20261011_0047_automation_definitions.sql",
             "20261011_0048_automation_lifecycle.sql",
         "20261011_0049_automation_manual_runs.sql",
-        "20261011_0050_automation_retry_step.sql"
+        "20261011_0050_automation_retry_step.sql",
+        "20261011_0051_automation_schedule_configuration.sql"
     ];
 }

@@ -268,7 +268,7 @@ public static class ActionGrantPolicy
     // Exact shipped local definition/manual execution subset. Installation evidence
     // is required by CanGrantAllow; worker, schedule and provider actions stay denied.
     private static readonly HashSet<string> ApprovedAutomationDefinitionActions = new(StringComparer.Ordinal)
-    { "automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export", "automation.definition.enable", "automation.definition.disable", "automation.run.start", "automation.run.read", "automation.run.cancel", "automation.run.retry_step" };
+    { "automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export", "automation.definition.enable", "automation.definition.disable", "automation.run.start", "automation.run.read", "automation.run.cancel", "automation.run.retry_step", "automation.schedule.update" };
 
     // Exact reviewed private file subset; other file handlers remain inactive.
     private static readonly HashSet<string> ApprovedFilesActions = new(StringComparer.Ordinal)

@@ -1,0 +1,2 @@
+feature,action_key,requirements,backend,api,sql,frontend,disposition,verification,remaining
+FX34,automation.schedule.update,P06-AUT-002/003/006/009/013/014,SqlAutomationSchedule.cs,GET+PUT schedule;POST schedule/preview,Schedule+ScheduleVersion;0051,AutomationScheduleDialog.tsx,PARTIALLY_IMPLEMENTED,build/static/reviewPASS;runtimeNOT_RUN,durable occurrences/dispatch;cron/interval;humanQA
