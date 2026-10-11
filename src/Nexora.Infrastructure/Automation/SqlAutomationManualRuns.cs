@@ -32,6 +32,7 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
             var version = Versions(c, tx, actor.OwnerId, id, item.CurrentVersion + 1, 1).Single();
             var shape = AutomationDefinitionContract.Parse(version.DefinitionJson);
             if (!shape.Accepted || !TrustedExecution(shape.Definition!) || CheckTargets(c, tx, actor, shape.Definition!) is not null) return Fail<AutomationDefinitionAcknowledgement>("TargetUnavailable", 422, "Validate the current targets before enabling.");
+            if (!BindScheduleAuthority(c, tx, actor, item)) return Fail<AutomationDefinitionAcknowledgement>("ScheduleUnavailable", 409, "Validate schedule binding and current execution authority before enabling.");
         }
         using (var update = Command(c, tx, "UPDATE [automation].[Definition] SET Enabled=@Enabled,State=@State,UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id; UPDATE [platform].[Resource] SET Revision=Revision+1,UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id AND Availability='Active';", actor.OwnerId))
         { Add(update, "@Id", SqlDbType.UniqueIdentifier, id); Add(update, "@Enabled", SqlDbType.Bit, enabled); Add(update, "@State", SqlDbType.VarChar, enabled ? "Enabled" : "Disabled", 64); Add(update, "@User", SqlDbType.UniqueIdentifier, actor.UserId); if (update.ExecuteNonQuery() != 2) throw new InvalidOperationException(); }

@@ -39,6 +39,8 @@ public sealed partial class SqlAutomationDefinitionService
         }
         if (run.State is not ("Failed" or "PartiallySucceeded") || run.EffectUncertain || !definition.Enabled || definition.Lifecycle != "Active")
             return Fail<AutomationRunAcknowledgement>("RetryUnsafe", 409, "Only a known no-effect failure in an enabled definition can be retried.");
+        if (!ScheduledRunAllowed(c, tx, new(actor.OwnerId, id, run.DefinitionId, run.VersionNumber, actor, Guid.Empty)))
+            return Fail<AutomationRunAcknowledgement>("RetryUnsafe", 409, "The originating schedule or its execution authority is unavailable.");
         int position;
         using (var step = Command(c, tx, "SELECT Position FROM [automation].[StepRun] WITH(UPDLOCK,HOLDLOCK) WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step AND State='Failed' AND EffectUncertain=0 AND TaskId IS NULL AND Attempts BETWEEN 1 AND 3;", actor.OwnerId))
         {

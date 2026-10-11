@@ -13,7 +13,7 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
   const generation = useRef(0), flight = useRef(false), acknowledged = useRef(false);
   const pending = useRef<{ etag: string; key: string; body: AutomationScheduleConfig } | null>(null);
   const [snapshot, setSnapshot] = useState<AutomationScheduleSnapshot | null>(null);
-  const [form, setForm] = useState<AutomationScheduleConfig>({ frequency: 'Daily', timeZoneId: 'UTC', hour: 9, minute: 0, weekdays: 127, startAt: '', endAt: null, missedPolicy: 'Skip' });
+  const [form, setForm] = useState<AutomationScheduleConfig>({ frequency: 'Daily', timeZoneId: 'UTC', hour: 9, minute: 0, weekdays: 127, startAt: '', endAt: null, missedPolicy: 'Skip', enabled: false });
   const [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [dirty, setDirty] = useState(false), [error, setError] = useState('');
   const [runs, setRuns] = useState<string[]>([]);
   function unavailable(e: unknown) {
@@ -59,7 +59,7 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
       if (stamp !== generation.current) return;
       if (!ack || ack.id !== id || !canonicalETag(ack.etag)) throw Object.assign(new Error('ACK không hợp lệ.'), { status: 0 });
       acknowledged.current = true; const value = await automationScheduleGet(id); if (stamp !== generation.current) return;
-      accept(value); pending.current = null; acknowledged.current = false; setUncertain(false); setError('Schedule đã lưu. Cấu hình không tự bật scheduler execution.');
+      accept(value); pending.current = null; acknowledged.current = false; setUncertain(false); setError('Schedule đã lưu. Lưu không tự Enable definition; scheduler vẫn kiểm tra authority và operator gates.');
     } catch (e) {
       if (stamp !== generation.current || unavailable(e)) return;
       const status = (e as { status?: number }).status, code = (e as { code?: string }).code;
@@ -68,10 +68,11 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
     } finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
   return <ResourceFormDialog open title="Schedule configuration" busy={busy} dirty={dirty || uncertain} onClose={() => { if (uncertain) setError('Retry cùng command trước khi đóng.'); else onClose(); }}>
-    <p>Daily/Weekly wall-clock; IANA timezone. Missed runs Skip; DST nonexistent Skip, repeated Once. Cron nâng cao chưa hỗ trợ. Scheduler execution chưa khả dụng.</p>
+    <p>Daily/Weekly wall-clock; IANA timezone. Missed runs Skip; DST nonexistent Skip, repeated Once. Cron nâng cao chưa hỗ trợ. Lịch local chỉ enqueue khi owner opt-in, definition Enabled và operator flags bật; session hết hạn/revoke sẽ Skip.</p>
     {busy && <p role="status">Đang xử lý…</p>}{error && <p role="alert">{error}</p>}
     {snapshot && <p>Schedule version {snapshot.scheduleVersion} · Definition version {snapshot.definitionVersion}{snapshot.bindingStale ? ' · Binding stale: Save để bind lại version hiện tại.' : ''}</p>}
     <fieldset disabled={busy || uncertain || !snapshot}>
+      <label><input type="checkbox" checked={form.enabled} disabled={!snapshot?.executionAvailable && !form.enabled} onChange={e => change({ enabled: e.target.checked })} />Opt-in local scheduled runs</label>
       <label>Frequency<select value={form.frequency} onChange={e => change({ frequency: e.target.value as 'Daily' | 'Weekly' })}><option>Daily</option><option>Weekly</option></select></label>
       <label>IANA timezone<input value={form.timeZoneId} onChange={e => change({ timeZoneId: e.target.value })} placeholder="Asia/Ho_Chi_Minh" maxLength={100} /></label>
       <label>Hour<input type="number" min={0} max={23} value={form.hour} onChange={e => change({ hour: Number(e.target.value) })} /></label>
@@ -80,7 +81,9 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
       <label>Start ISO timestamp<input value={form.startAt} onChange={e => change({ startAt: e.target.value })} placeholder="2026-10-12T00:00:00+07:00" /></label>
       <label>End ISO timestamp (optional)<input value={form.endAt ?? ''} onChange={e => change({ endAt: e.target.value || null })} /></label>
     </fieldset>
+    <p>Operator execution gate: {snapshot?.executionAvailable ? 'Available; còn cần owner opt-in và definition Enabled' : 'Inactive'}</p>
     <ol aria-label="Next scheduled occurrences">{runs.map(run => <li key={run}>{run} · {new Date(run).toLocaleString()}</li>)}</ol>
+    <section aria-label="Recent 5 occurrence evaluations"><h3>5 occurrence evaluations gần nhất</h3>{snapshot?.recentOccurrences?.map(item => <p key={item.dueAt + ':' + item.scheduleVersion}>{item.dueAt} · schedule version {item.scheduleVersion} · {item.state} · {item.code}{item.runId ? ' · run ' + item.runId : ''}</p>)}</section>
     <button disabled={busy || uncertain || !snapshot} onClick={() => void preview()}>Preview 5 next runs</button>
     <button disabled={busy || !snapshot} onClick={() => void save()}>{uncertain ? 'Retry cùng command' : 'Save schedule'}</button>
     <button disabled={busy || uncertain} onClick={() => void load()}>Tải lại schedule</button>

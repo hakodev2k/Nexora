@@ -17,12 +17,13 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationDefiniti
     private const string Columns = "d.Id,d.Title,d.CurrentVersion,d.State,d.Enabled,d.UpdatedAt,d.RowVersion,(SELECT Availability FROM [platform].[Resource] WHERE OwnerId=d.OwnerId AND Id=d.Id) AS Lifecycle,d.DeletionBatchId";
     private const string ResourcePredicate = "EXISTS(SELECT 1 FROM [platform].[Resource] r WITH(HOLDLOCK) JOIN [platform].[ResourceType] rt ON rt.Id=r.ResourceTypeId JOIN [platform].[Module] m ON m.Id=rt.ModuleId WHERE r.OwnerId=d.OwnerId AND r.Id=d.Id AND r.Availability IN('Active','Trash') AND r.PurgedAt IS NULL AND rt.Code='AutomationDefinition' AND rt.ContractVersion='automation-definition-v1' AND m.Code='FX34')";
     private readonly bool localExecutionEnabled;
+    private readonly bool localSchedulingEnabled;
     private readonly SqlConnectionFactory connections;
     private readonly SqlSelfCapability capabilities;
     private readonly SqlRequestReceiptStore receipts;
     private readonly AutomationDefinitionCursor cursors;
-    public SqlAutomationDefinitionService(SqlConnectionFactory connections, string secret, bool localExecutionEnabled = false)
-    { this.localExecutionEnabled = localExecutionEnabled; this.connections = connections; capabilities = new(connections); receipts = new(secret); cursors = new(secret); }
+    public SqlAutomationDefinitionService(SqlConnectionFactory connections, string secret, bool localExecutionEnabled = false, bool localSchedulingEnabled = false)
+    { this.localExecutionEnabled = localExecutionEnabled; this.localSchedulingEnabled = localSchedulingEnabled; this.connections = connections; capabilities = new(connections); receipts = new(secret); cursors = new(secret); }
     private static IdentityOperationResult<T> Fail<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
     private static IdentityOperationResult<T> Denied<T>() => Fail<T>("ModuleUnavailable", 403, "The module or action is unavailable.");
     private static IdentityOperationResult<T> Missing<T>() => Fail<T>("ResourceUnavailable", 404, "The resource or continuation is unavailable.");

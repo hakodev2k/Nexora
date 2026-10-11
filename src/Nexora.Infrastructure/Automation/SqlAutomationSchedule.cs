@@ -24,8 +24,14 @@ public sealed partial class SqlAutomationDefinitionService
         var plan = configuration is null ? null : AutomationScheduleContract.Preview(configuration, DateTimeOffset.UtcNow);
         if (plan is { Accepted: false }) return Fail<AutomationScheduleSnapshot>("ScheduleUnavailable", 409, "Stored schedule requires review.");
         if (!Allowed(c, tx, actor, "automation.definition.read")) return Denied<AutomationScheduleSnapshot>();
+        var recent = new List<AutomationScheduleOccurrence>();
+        using (var history = Command(c, tx, "SELECT TOP(5) DueAt,ScheduleVersion,State,Code,CASE WHEN @ReadRun=1 THEN RunId END FROM [automation].[ScheduleOccurrence] WHERE OwnerId=@Owner AND DefinitionId=@Id ORDER BY DueAt DESC,ScheduleVersion DESC;", actor.OwnerId))
+        {
+            Add(history, "@Id", SqlDbType.UniqueIdentifier, id); Add(history, "@ReadRun", SqlDbType.Bit, RunAllowed(c, tx, actor, "automation.run.read"));
+            using var reader = history.ExecuteReader(); while (reader.Read()) recent.Add(new(Utc(reader.GetDateTime(0)), reader.GetInt64(1), reader.GetString(2), reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetGuid(4)));
+        }
         tx.Commit(); return IdentityOperationResult<AutomationScheduleSnapshot>.Success(new(id, definitionVersion, scheduleVersion, configuration,
-            plan?.NextRuns ?? [], definition.ETag, definitionVersion != definition.CurrentVersion));
+            plan?.NextRuns ?? [], definition.ETag, definitionVersion != definition.CurrentVersion, localExecutionEnabled && localSchedulingEnabled, recent));
     });
 
     public IdentityOperationResult<AutomationSchedulePlan> PreviewSchedule(IdentityPrincipal actor, Guid id, AutomationScheduleCommand body) => Safe(() =>
@@ -54,13 +60,16 @@ public sealed partial class SqlAutomationDefinitionService
         if (claim.IsReplay && claim.ResultJson is { } saved)
         {
             var ack = JsonSerializer.Deserialize<AutomationDefinitionAcknowledgement>(saved) ?? throw new InvalidOperationException();
-            if (ack.Id != id || !Allowed(c, tx, actor, "automation.schedule.update")) return Denied<AutomationDefinitionAcknowledgement>();
+            if (ack.Id != id || !Allowed(c, tx, actor, "automation.schedule.update") ||
+                (body.Enabled && (!localSchedulingEnabled || !RunAllowed(c, tx, actor, "automation.run.start")))) return Denied<AutomationDefinitionAcknowledgement>();
             tx.Commit(); return IdentityOperationResult<AutomationDefinitionAcknowledgement>.Success(ack);
         }
         if (!claim.IsClaimed) return Fail<AutomationDefinitionAcknowledgement>("RequestInProgress", 409, "Retry the same command.");
         if (definition.ETag != etag) return Fail<AutomationDefinitionAcknowledgement>("RevisionConflict", 412, "Compare current definition and schedule revision.");
         if (definition.Lifecycle != "Active" || !AutomationDefinition.CanSave(definition.State, definition.Enabled))
             return Fail<AutomationDefinitionAcknowledgement>("DefinitionLocked", 409, "Disable the definition before changing its schedule.");
+        if (body.Enabled && (!localSchedulingEnabled || !RunAllowed(c, tx, actor, "automation.run.start") || actor.SessionId is null))
+            return Denied<AutomationDefinitionAcknowledgement>();
         var plan = AutomationScheduleContract.Preview(body, DateTimeOffset.UtcNow);
         if (!plan.Accepted) return Fail<AutomationDefinitionAcknowledgement>(plan.Code, 422, "Check the schedule configuration.");
         var version = Versions(c, tx, actor.OwnerId, id, definition.CurrentVersion + 1, 1).Single();
@@ -70,11 +79,13 @@ public sealed partial class SqlAutomationDefinitionService
         long nextVersion;
         using (var current = Command(c, tx, "SELECT CurrentVersion FROM [automation].[Schedule] WITH(UPDLOCK,HOLDLOCK) WHERE OwnerId=@Owner AND DefinitionId=@Id;", actor.OwnerId))
         { Add(current, "@Id", SqlDbType.UniqueIdentifier, id); nextVersion = current.ExecuteScalar() is long number ? checked(number + 1) : 1; }
-        using (var insert = Command(c, tx, "INSERT [automation].[ScheduleVersion](OwnerId,DefinitionId,VersionNumber,DefinitionVersion,ConfigurationJson,CreatedByUserId) VALUES(@Owner,@Id,@Version,@DefinitionVersion,@Json,@User); IF EXISTS(SELECT 1 FROM [automation].[Schedule] WHERE OwnerId=@Owner AND DefinitionId=@Id) UPDATE [automation].[Schedule] SET CurrentVersion=@Version,NextDueAt=@Next WHERE OwnerId=@Owner AND DefinitionId=@Id; ELSE INSERT [automation].[Schedule](OwnerId,DefinitionId,CurrentVersion,NextDueAt) VALUES(@Owner,@Id,@Version,@Next); UPDATE [automation].[Definition] SET UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id;", actor.OwnerId))
+        using (var insert = Command(c, tx, "INSERT [automation].[ScheduleVersion](OwnerId,DefinitionId,VersionNumber,DefinitionVersion,ConfigurationJson,CreatedByUserId) VALUES(@Owner,@Id,@Version,@DefinitionVersion,@Json,@User); IF EXISTS(SELECT 1 FROM [automation].[Schedule] WHERE OwnerId=@Owner AND DefinitionId=@Id) UPDATE [automation].[Schedule] SET CurrentVersion=@Version,NextDueAt=@Next,Enabled=@Enabled,ActorUserId=@User,SessionId=@Session,ActorRole=@Role,AuthenticatedAt=@Auth WHERE OwnerId=@Owner AND DefinitionId=@Id; ELSE INSERT [automation].[Schedule](OwnerId,DefinitionId,CurrentVersion,NextDueAt,Enabled,ActorUserId,SessionId,ActorRole,AuthenticatedAt) VALUES(@Owner,@Id,@Version,@Next,@Enabled,@User,@Session,@Role,@Auth); UPDATE [automation].[Definition] SET UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id;", actor.OwnerId))
         {
             Add(insert, "@Id", SqlDbType.UniqueIdentifier, id); Add(insert, "@Version", SqlDbType.BigInt, nextVersion);
             Add(insert, "@DefinitionVersion", SqlDbType.BigInt, definition.CurrentVersion); Add(insert, "@Json", SqlDbType.NVarChar, JsonSerializer.Serialize(body), 2048);
             Add(insert, "@User", SqlDbType.UniqueIdentifier, actor.UserId); Add(insert, "@Next", SqlDbType.DateTime2, plan.NextRuns.FirstOrDefault() == default ? null : plan.NextRuns[0].UtcDateTime);
+            Add(insert, "@Enabled", SqlDbType.Bit, body.Enabled); Add(insert, "@Session", SqlDbType.UniqueIdentifier, actor.SessionId);
+            Add(insert, "@Role", SqlDbType.VarChar, actor.Role, 32); Add(insert, "@Auth", SqlDbType.DateTime2, actor.RecentAuthenticatedAt.UtcDateTime);
             insert.ExecuteNonQuery();
         }
         Audit(c, tx, actor, "automation.schedule.update", id, trace);
@@ -82,6 +93,7 @@ public sealed partial class SqlAutomationDefinitionService
         var result = new AutomationDefinitionAcknowledgement(id, updated.CurrentVersion, updated.ETag);
         receipts.Complete(c, tx, claim, "ScheduleSaved", 200, JsonSerializer.Serialize(result));
         if (!Allowed(c, tx, actor, "automation.schedule.update")) return Denied<AutomationDefinitionAcknowledgement>();
+        if (body.Enabled && (!localSchedulingEnabled || !RunAllowed(c, tx, actor, "automation.run.start"))) return Denied<AutomationDefinitionAcknowledgement>();
         tx.Commit(); return IdentityOperationResult<AutomationDefinitionAcknowledgement>.Success(result);
     });
 }

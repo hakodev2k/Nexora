@@ -13,7 +13,7 @@ public sealed class AutomationTaskWorker(SqlAutomationDefinitionService automati
         {
             while(await timer.WaitForNextTickAsync(stoppingToken))
             {
-                try { automation.ProcessNext(tasks); }
+                try { automation.ProcessDueSchedule(); automation.ProcessNext(tasks); }
                 catch(SqlException) { if(DateTimeOffset.UtcNow-warnedAt>TimeSpan.FromMinutes(1)) { logger.LogWarning("Automation local worker storage unavailable; durable work retained."); warnedAt=DateTimeOffset.UtcNow; } await Task.Delay(TimeSpan.FromSeconds(15),stoppingToken); }
                 catch(InvalidOperationException) { if(DateTimeOffset.UtcNow-warnedAt>TimeSpan.FromMinutes(1)) { logger.LogWarning("Automation local worker integrity unavailable; durable work retained."); warnedAt=DateTimeOffset.UtcNow; } await Task.Delay(TimeSpan.FromSeconds(15),stoppingToken); }
             }

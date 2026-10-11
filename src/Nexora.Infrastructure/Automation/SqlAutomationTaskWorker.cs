@@ -108,7 +108,7 @@ public sealed partial class SqlAutomationDefinitionService
         if(cancel || expired || old)
         { Finish(c,tx,work.Owner,work.Id,cancel?"Cancelled":"TimedOut",cancel?"CancellationRequested":"RunDeadlineExceeded",unknown);Audit(c,tx,work.Actor,"automation.step.dispatch",work.Id,null);return false; }
         var definition=Read(c,tx,work.Owner,work.Definition,false);
-        if(!localExecutionEnabled || !RunAllowed(c,tx,work.Actor,"automation.run.start") || definition is null || !definition.Enabled || definition.Lifecycle!="Active")
+        if(!localExecutionEnabled || !RunAllowed(c,tx,work.Actor,"automation.run.start") || !ScheduledRunAllowed(c,tx,work) || definition is null || !definition.Enabled || definition.Lifecycle!="Active")
         { Finish(c,tx,work.Owner,work.Id,"Skipped","CurrentAuthorityUnavailable",unknown);Audit(c,tx,work.Actor,"automation.step.dispatch",work.Id,null);return false; }
         return true;
     }

@@ -3,10 +3,11 @@ using Nexora.Application.Identity;
 namespace Nexora.Application.Automation;
 
 public sealed record AutomationScheduleCommand(string Frequency, string TimeZoneId, int Hour, int Minute,
-    int Weekdays, DateTimeOffset StartAt, DateTimeOffset? EndAt, string MissedPolicy = "Skip");
+    int Weekdays, DateTimeOffset StartAt, DateTimeOffset? EndAt, string MissedPolicy = "Skip", bool Enabled = false);
+public sealed record AutomationScheduleOccurrence(DateTimeOffset DueAt, long ScheduleVersion, string State, string Code, Guid? RunId);
 public sealed record AutomationScheduleSnapshot(Guid DefinitionId, long DefinitionVersion, long ScheduleVersion,
     AutomationScheduleCommand? Configuration, IReadOnlyList<DateTimeOffset> NextRuns, string ETag,
-    bool BindingStale, bool ExecutionAvailable = false);
+    bool BindingStale, bool ExecutionAvailable = false, IReadOnlyList<AutomationScheduleOccurrence>? RecentOccurrences = null);
 public sealed record AutomationSchedulePlan(bool Accepted, string Code, IReadOnlyList<DateTimeOffset> NextRuns);
 
 // Pure calendar calculation. No clock, queue, network or business effects hidden in preview.
