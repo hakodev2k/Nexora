@@ -15,6 +15,7 @@ public static class AutomationRunEndpoints
         api.MapGet("/definitions/{id:guid}/runs",(HttpContext c,Guid id,string? cursor,string? state,IAutomationRunService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Runs(a,id,cursor,state)));
         api.MapGet("/runs/{id:guid}",(HttpContext c,Guid id,IAutomationRunService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Run(a,id)));
         api.MapPost("/runs/{id:guid}/cancel",(HttpContext c,Guid id,IAutomationRunService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Cancel(a,id,c.Request.Headers.IfMatch.ToString(),c.Request.Headers["Idempotency-Key"].ToString(),c.TraceIdentifier)));
+        api.MapPost("/runs/{id:guid}/steps/{stepId:int}/retry",(HttpContext c,Guid id,int stepId,IAutomationRunService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.RetryStep(a,id,stepId,c.Request.Headers.IfMatch.ToString(),c.Request.Headers["Idempotency-Key"].ToString(),c.TraceIdentifier)));
         return app;
     }
     private static IResult Run<T>(HttpContext c,IIdentityService identity,SessionCookieService cookies,Func<IdentityPrincipal,IdentityOperationResult<T>> work)

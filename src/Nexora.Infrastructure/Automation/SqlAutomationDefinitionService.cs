@@ -13,7 +13,7 @@ namespace Nexora.Infrastructure.Automation;
 /// <summary>Owner-private configuration. No scheduler, dispatch or provider authority.</summary>
 public sealed partial class SqlAutomationDefinitionService : IAutomationDefinitionService
 {
-    public static readonly string[] Actions = ["automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export", "automation.definition.enable", "automation.definition.disable", "automation.run.start", "automation.run.read", "automation.run.cancel"];
+    public static readonly string[] Actions = ["automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export", "automation.definition.enable", "automation.definition.disable", "automation.run.start", "automation.run.read", "automation.run.cancel", "automation.run.retry_step"];
     private const string Columns = "d.Id,d.Title,d.CurrentVersion,d.State,d.Enabled,d.UpdatedAt,d.RowVersion,(SELECT Availability FROM [platform].[Resource] WHERE OwnerId=d.OwnerId AND Id=d.Id) AS Lifecycle,d.DeletionBatchId";
     private const string ResourcePredicate = "EXISTS(SELECT 1 FROM [platform].[Resource] r WITH(HOLDLOCK) JOIN [platform].[ResourceType] rt ON rt.Id=r.ResourceTypeId JOIN [platform].[Module] m ON m.Id=rt.ModuleId WHERE r.OwnerId=d.OwnerId AND r.Id=d.Id AND r.Availability IN('Active','Trash') AND r.PurgedAt IS NULL AND rt.Code='AutomationDefinition' AND rt.ContractVersion='automation-definition-v1' AND m.Code='FX34')";
     private readonly bool localExecutionEnabled;
@@ -27,7 +27,7 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationDefiniti
     private static IdentityOperationResult<T> Denied<T>() => Fail<T>("ModuleUnavailable", 403, "The module or action is unavailable.");
     private static IdentityOperationResult<T> Missing<T>() => Fail<T>("ResourceUnavailable", 404, "The resource or continuation is unavailable.");
     private bool Allowed(SqlConnection c, SqlTransaction tx, IdentityPrincipal actor, string action) =>
-        Actions.Contains(action, StringComparer.Ordinal) && (action is not ("automation.definition.enable" or "automation.run.start") || localExecutionEnabled) && SqlCurrentActor.IsLive(c, tx, actor) &&
+        Actions.Contains(action, StringComparer.Ordinal) && (action is not ("automation.definition.enable" or "automation.run.start" or "automation.run.retry_step") || localExecutionEnabled) && SqlCurrentActor.IsLive(c, tx, actor) &&
         capabilities.IsAllowed(c, tx, actor, "FX34", action) &&
         capabilities.IsAllowed(c, tx, actor, "FX34", "automation.definition.read");
     private static IdentityOperationResult<T> Safe<T>(Func<IdentityOperationResult<T>> work)
@@ -41,7 +41,9 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationDefiniti
     {
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
         if (!Allowed(c, tx, actor, Actions[0])) return Denied<IReadOnlyDictionary<string, bool>>();
-        var result = Actions.ToDictionary(a => a, a => Allowed(c, tx, actor, a));
+        var result = Actions.ToDictionary(a => a, a => a == "automation.run.retry_step"
+            ? RunAllowed(c, tx, actor, a) && RunAllowed(c, tx, actor, "automation.run.start")
+            : Allowed(c, tx, actor, a));
         tx.Commit(); return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     });
     public IdentityOperationResult<AutomationDefinitionPage> List(IdentityPrincipal actor, string? cursor, string? query, string lifecycle = "Active") => Safe(() =>
