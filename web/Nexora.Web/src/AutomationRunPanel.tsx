@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createIdempotencyKey } from './api';
 import { ResourceFormDialog } from './ResourceFormDialog';
-import { automationRuns, automationRunGet, automationCancel, automationRetryStep, type AutomationRun, type AutomationRunDetail, type AutomationRunFilters } from './automationApi';
+import { automationRuns, automationRunGet, automationCancel, automationRetryStep, type AutomationRun, type AutomationRunDetail, type AutomationRunFilters, type AutomationExecutionPolicy } from './automationApi';
 
 const emptyFilters: AutomationRunFilters = { state: '', version: '', createdFrom: '', createdBefore: '' };
 
@@ -11,14 +11,15 @@ export function AutomationRunPanel({ definitionId, canCancel, canRetry, onClose,
   const [filters, setFilters] = useState<AutomationRunFilters>(emptyFilters), [draft, setDraft] = useState<AutomationRunFilters>(emptyFilters);
   const [items, setItems] = useState<AutomationRun[]>([]), [cursor, setCursor] = useState<string | null>(null);
   const [detail, setDetail] = useState<AutomationRunDetail | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [uncertain, setUncertain] = useState(false);
+  const [policy, setPolicy] = useState<AutomationExecutionPolicy | null>(null);
   const states = ['Queued', 'Running', 'Succeeded', 'PartiallySucceeded', 'Failed', 'Cancelled', 'TimedOut', 'Skipped'];
   async function load(more = false) {
     if (flight.current) return; const stamp = generation.current; flight.current = true; setBusy(true); setError('');
-    try { const page = await automationRuns(definitionId, filters.state, more ? cursor ?? undefined : undefined, filters); if (stamp === generation.current) { setItems(old => more ? [...new Map([...old, ...page.items].map(r => [r.id, r])).values()] : page.items); setCursor(page.nextCursor); } }
-    catch (e) { if (stamp === generation.current && !onDenied(e)) { if ((e as { status?: number }).status === 404) { setItems([]); setDetail(null); } setError(e instanceof Error ? e.message : 'Không tải được runs.'); setCursor(null); } }
+    try { const page = await automationRuns(definitionId, filters.state, more ? cursor ?? undefined : undefined, filters); if (stamp === generation.current) { setItems(old => more ? [...new Map([...old, ...page.items].map(r => [r.id, r])).values()] : page.items); setCursor(page.nextCursor); setPolicy(page.executionPolicy); } }
+    catch (e) { if (stamp === generation.current && !onDenied(e)) { if ((e as { status?: number }).status === 404) { setItems([]); setDetail(null); setPolicy(null); } setError(e instanceof Error ? e.message : 'Không tải được runs.'); setCursor(null); } }
     finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
-  useEffect(() => { generation.current++; flight.current = false; setItems([]); setCursor(null); setDetail(null); void load(); return () => { generation.current++; }; }, [filters, definitionId]);
+  useEffect(() => { generation.current++; flight.current = false; setPolicy(null); setItems([]); setCursor(null); setDetail(null); void load(); return () => { generation.current++; }; }, [filters, definitionId]);
   function applyFilters(event: React.FormEvent) {
     event.preventDefault(); if (flight.current || uncertain) return;
     const next = { ...draft, version: draft.version.trim(), createdFrom: draft.createdFrom.trim(), createdBefore: draft.createdBefore.trim() };
@@ -53,6 +54,7 @@ export function AutomationRunPanel({ definitionId, canCancel, canRetry, onClose,
     } finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
   return <ResourceFormDialog open title={detail ? 'Run / step detail' : 'Run history'} busy={busy} dirty={uncertain} onClose={() => { if (flight.current || uncertain) setError('Retry cùng command trước khi đóng.'); else onClose(); }}>
+    {policy && <p role="status">Local execution: {policy.localExecutionEnabled ? "operator đã bật" : "đang tắt"}. Giới hạn Running: hệ thống {policy.systemConcurrency}, mỗi PersonalSpace {policy.ownerConcurrency}, mỗi definition {policy.definitionConcurrency}. Run retry/backoff giữ slot; run Queued đợi capacity. Deadline kiểm tra giữa các bước: {policy.runDeadlineSeconds}s từ lần bắt đầu đầu tiên. Run đợi ít nhất {policy.queueMaxAgeMinutes} phút bị từ chối khi worker nhận; không tự hoàn tác Task đang chạy. Quyền và lifecycle vẫn được kiểm tra trước mỗi effect.</p>}
     {error && <p role="alert">{error}</p>}
     {detail ? <section><h3>{detail.run.id}</h3><p>Version {detail.run.versionNumber} · {detail.run.state} · {detail.run.code}</p><p>{new Date(detail.run.createdAt).toLocaleString()} · {detail.run.startedAt ? new Date(detail.run.startedAt).toLocaleString() : 'Chưa bắt đầu'} · {detail.run.finishedAt ? new Date(detail.run.finishedAt).toLocaleString() : 'Chưa kết thúc'}</p>
       {detail.run.effectUncertain && <p role="alert">Có hiệu ứng chưa đối chiếu được. Kiểm tra Task trước khi tạo run mới; Retry terminal run hiện chưa khả dụng.</p>}

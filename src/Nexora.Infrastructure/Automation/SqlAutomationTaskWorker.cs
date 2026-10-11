@@ -11,8 +11,9 @@ public sealed partial class SqlAutomationDefinitionService
     private sealed record Work(Guid Owner, Guid Id, Guid Definition, long Version, IdentityPrincipal Actor, Guid Token);
     private sealed record PendingStep(int Id, int Position, int Attempts, Guid Key);
     // Each call processes one ordered local step. SQL is authoritative; no in-memory job queue.
-    public void ProcessNext(IProductivityService tasks)
+    public void ProcessNext(IProductivityService tasks, CancellationToken stoppingToken = default)
     {
+        if (stoppingToken.IsCancellationRequested) return;
         var work = Claim(); if (work is null) return;
         PendingStep? pending;
         using (var c = connections.Create())
@@ -32,6 +33,7 @@ public sealed partial class SqlAutomationDefinitionService
         }
         using (var c=connections.Create())
         {
+            if (stoppingToken.IsCancellationRequested) return; // Durable intent remains recoverable; no new effect on shutdown.
             c.Open(); using var tx=c.BeginTransaction(IsolationLevel.Serializable);
             LockOwner(c,tx,work.Actor); if(!Fence(c,tx,work))return;
             if(!Ready(c,tx,work)) { tx.Commit(); return; }
@@ -45,6 +47,7 @@ public sealed partial class SqlAutomationDefinitionService
             // Exact registered v1 adapter. Existing Task domain owns validation, projections,
             // lifecycle, audit and transaction/receipt; never manufacture Task rows here.
             IdentityOperationResult<TaskRecord> result;
+            if (stoppingToken.IsCancellationRequested) return; // Also check after potentially blocking authority/target reads.
             try
             {
                 var input=step.Inputs;
@@ -85,11 +88,16 @@ public sealed partial class SqlAutomationDefinitionService
             cmd.Transaction=tx;
             cmd.CommandText="""
             SELECT TOP(1) OwnerId,Id,DefinitionId,VersionNumber,ActorUserId,SessionId,ActorRole,AuthenticatedAt
-            FROM [automation].[Run] WITH(UPDLOCK,HOLDLOCK)
-            WHERE (State='Running' AND NextAttemptAt<=SYSUTCDATETIME() AND(LeaseUntil IS NULL OR LeaseUntil<SYSUTCDATETIME()))
-              OR (State='Queued' AND NOT EXISTS(SELECT 1 FROM [automation].[Run] WHERE State='Running'))
-            ORDER BY CASE WHEN State='Running' THEN 0 ELSE 1 END,CreatedAt,Id;
+            FROM [automation].[Run] candidate WITH(UPDLOCK,HOLDLOCK)
+            WHERE (candidate.State='Running' AND candidate.NextAttemptAt<=SYSUTCDATETIME() AND(candidate.LeaseUntil IS NULL OR candidate.LeaseUntil<SYSUTCDATETIME()))
+              OR (candidate.State='Queued'
+                  AND (SELECT COUNT_BIG(*) FROM [automation].[Run] WHERE State='Running') < @SystemLimit
+                  AND (SELECT COUNT_BIG(*) FROM [automation].[Run] WHERE State='Running' AND OwnerId=candidate.OwnerId) < @OwnerLimit
+                  AND NOT EXISTS(SELECT 1 FROM [automation].[Run] WHERE State='Running' AND OwnerId=candidate.OwnerId AND DefinitionId=candidate.DefinitionId))
+            ORDER BY CASE WHEN candidate.State='Running' THEN 0 ELSE 1 END,candidate.CreatedAt,candidate.Id;
             """;
+            Add(cmd,"@SystemLimit",SqlDbType.Int,ExecutionLimits.SystemConcurrency);
+            Add(cmd,"@OwnerLimit",SqlDbType.Int,ExecutionLimits.OwnerConcurrency);
             using var r=cmd.ExecuteReader(); if(!r.Read())return null;
             owner=r.GetGuid(0);id=r.GetGuid(1);definition=r.GetGuid(2);version=r.GetInt64(3);user=r.GetGuid(4);session=r.GetGuid(5);role=r.GetString(6);auth=r.GetDateTime(7);
         }

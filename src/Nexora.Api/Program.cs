@@ -269,7 +269,9 @@ builder.Services.AddSingleton<ICalendarExportService>(s => new SqlCalendarExport
 builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IMonitoringService>(s => new SqlMonitoringService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
-builder.Services.AddSingleton<SqlAutomationDefinitionService>(s => new SqlAutomationDefinitionService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, builder.Configuration.GetValue<bool>("Automation:LocalTaskExecutionEnabled"), builder.Configuration.GetValue<bool>("Automation:LocalSchedulingEnabled")));
+var automationLimits = new AutomationLocalExecutionLimits(builder.Configuration.GetValue<int?>("Automation:LocalMaxConcurrentRuns") ?? 1,
+    builder.Configuration.GetValue<int?>("Automation:LocalMaxConcurrentRunsPerOwner") ?? 1);
+builder.Services.AddSingleton<SqlAutomationDefinitionService>(s => new SqlAutomationDefinitionService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, builder.Configuration.GetValue<bool>("Automation:LocalTaskExecutionEnabled"), builder.Configuration.GetValue<bool>("Automation:LocalSchedulingEnabled"), automationLimits));
 builder.Services.AddSingleton<IAutomationDefinitionService>(s => s.GetRequiredService<SqlAutomationDefinitionService>());
 builder.Services.AddSingleton<IAutomationRunService>(s => s.GetRequiredService<SqlAutomationDefinitionService>());
 builder.Services.AddHostedService<AutomationTaskWorker>();

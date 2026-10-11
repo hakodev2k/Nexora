@@ -109,7 +109,8 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
         { using var anchor = Command(c, tx, $"SELECT 1 FROM [automation].[Run] WHERE {filters} AND Id=@Boundary AND CreatedAt=@At;", actor.OwnerId); BindFilters(anchor); if(anchor.ExecuteScalar() is null) return Missing<AutomationRunPage>(); }
         var items = RunRows(cmd); var next = items.Count > 25 ? cursors.Encode(actor.OwnerId, identity, items[24].CreatedAt.UtcDateTime, items[24].Id) : null;
         if (!RunAllowed(c, tx, actor, "automation.run.read")) return Denied<AutomationRunPage>();
-        tx.Commit(); return IdentityOperationResult<AutomationRunPage>.Success(new(items.Take(25).ToArray(), next));
+        tx.Commit(); return IdentityOperationResult<AutomationRunPage>.Success(new(items.Take(25).ToArray(), next,
+            new(localExecutionEnabled, ExecutionLimits.SystemConcurrency, ExecutionLimits.OwnerConcurrency, 1, 120, 10)));
     });
     private static bool TryRunFilterInstant(string? value, out DateTime? utc)
     {

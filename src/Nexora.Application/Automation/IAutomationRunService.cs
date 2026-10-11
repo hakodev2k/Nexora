@@ -7,7 +7,7 @@ public sealed record AutomationRunRecord(Guid Id, Guid DefinitionId, long Versio
 public sealed record AutomationStepRunRecord(int StepId, int Position, string State, int Attempts, Guid? TaskId, string? Code, bool EffectUncertain);
 public sealed record AutomationFailureNotice(Guid Id, IReadOnlyList<NotificationDeliveryRecord> Deliveries);
 public sealed record AutomationRunDetail(AutomationRunRecord Run, IReadOnlyList<AutomationStepRunRecord> Steps, AutomationFailureNotice? FailureNotice = null);
-public sealed record AutomationRunPage(IReadOnlyList<AutomationRunRecord> Items, string? NextCursor);
+public sealed record AutomationRunPage(IReadOnlyList<AutomationRunRecord> Items, string? NextCursor, AutomationExecutionPolicy? ExecutionPolicy = null);
 // Historical identity acknowledgement; always reconcile current run separately.
 public sealed record AutomationRunAcknowledgement(Guid Id);
 public interface IAutomationRunService
