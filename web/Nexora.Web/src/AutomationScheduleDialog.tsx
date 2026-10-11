@@ -43,7 +43,9 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
     if (!offsetTimestamp.test(form.startAt) || (form.endAt && !offsetTimestamp.test(form.endAt))) throw new Error('Start/end phải có explicit UTC offset.');
     const start = new Date(form.startAt), end = form.endAt ? new Date(form.endAt) : null;
     if (!Number.isFinite(start.getTime()) || (end && !Number.isFinite(end.getTime()))) throw new Error('Start/end phải là ISO timestamp có UTC offset.');
-    return { ...form, startAt: start.toISOString(), endAt: end?.toISOString() ?? null, weekdays: form.frequency === 'Daily' ? 127 : form.weekdays };
+    return { ...form, startAt: form.startAt, endAt: form.endAt || null, weekdays: form.frequency === 'Weekly' ? form.weekdays : 127,
+      cronExpression: form.frequency === 'Cron' ? form.cronExpression?.trim() || null : null,
+      intervalMinutes: form.frequency === 'Interval' ? form.intervalMinutes ?? null : null };
   }
   async function preview() {
     if (flight.current || uncertain) return; const stamp = generation.current; flight.current = true; setBusy(true); setError('');
@@ -68,15 +70,17 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
     } finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
   return <ResourceFormDialog open title="Schedule configuration" busy={busy} dirty={dirty || uncertain} onClose={() => { if (uncertain) setError('Retry cùng command trước khi đóng.'); else onClose(); }}>
-    <p>Daily/Weekly wall-clock; IANA timezone. Missed runs Skip; DST nonexistent Skip, repeated Once. Cron nâng cao chưa hỗ trợ. Lịch local chỉ enqueue khi owner opt-in, definition Enabled và operator flags bật; session hết hạn/revoke sẽ Skip.</p>
+    <p>Daily/Weekly/Cron theo IANA wall-clock; interval là elapsed UTC từ Start, không đổi do DST/restart. Missed runs Skip; DST nonexistent Skip, repeated Once. Lịch local chỉ enqueue khi owner opt-in, definition Enabled và operator flags bật; session hết hạn/revoke sẽ Skip.</p>
     {busy && <p role="status">Đang xử lý…</p>}{error && <p role="alert">{error}</p>}
     {snapshot && <p>Schedule version {snapshot.scheduleVersion} · Definition version {snapshot.definitionVersion}{snapshot.bindingStale ? ' · Binding stale: Save để bind lại version hiện tại.' : ''}</p>}
     <fieldset disabled={busy || uncertain || !snapshot}>
       <label><input type="checkbox" checked={form.enabled} disabled={!snapshot?.executionAvailable && !form.enabled} onChange={e => change({ enabled: e.target.checked })} />Opt-in local scheduled runs</label>
-      <label>Frequency<select value={form.frequency} onChange={e => change({ frequency: e.target.value as 'Daily' | 'Weekly' })}><option>Daily</option><option>Weekly</option></select></label>
+      <label>Frequency<select value={form.frequency} onChange={e => change({ frequency: e.target.value as AutomationScheduleConfig['frequency'], cronExpression: null, intervalMinutes: null })}><option>Daily</option><option>Weekly</option><option>Cron</option><option>Interval</option></select></label>
       <label>IANA timezone<input value={form.timeZoneId} onChange={e => change({ timeZoneId: e.target.value })} placeholder="Asia/Ho_Chi_Minh" maxLength={100} /></label>
-      <label>Hour<input type="number" min={0} max={23} value={form.hour} onChange={e => change({ hour: Number(e.target.value) })} /></label>
-      <label>Minute<input type="number" min={0} max={59} value={form.minute} onChange={e => change({ minute: Number(e.target.value) })} /></label>
+      {(form.frequency === 'Daily' || form.frequency === 'Weekly') && <><label>Hour<input type="number" min={0} max={23} value={form.hour} onChange={e => change({ hour: Number(e.target.value) })} /></label>
+      <label>Minute<input type="number" min={0} max={59} value={form.minute} onChange={e => change({ minute: Number(e.target.value) })} /></label></>}
+      {form.frequency === 'Cron' && <><label>Cron 5-field<input value={form.cronExpression ?? ''} maxLength={256} placeholder="*/15 9-17 * * 1-5" onChange={e => change({ cronExpression: e.target.value })} /></label><p>minute hour day-of-month month day-of-week. Numeric *, lists, ranges, /step trên * hoặc range; Sunday 0/7. DOM/DOW đều restricted dùng OR. Không seconds/year, names, macros, L/W/#. Preview tối đa 5 occurrences trong 32 năm.</p></>}
+      {form.frequency === 'Interval' && <label>Interval minutes (1–1440)<input type="number" min={1} max={1440} step={1} value={form.intervalMinutes ?? ''} onChange={e => change({ intervalMinutes: e.target.value ? Number(e.target.value) : null })} /></label>}
       {form.frequency === 'Weekly' && <div>{['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => <label key={day}><input type="checkbox" checked={(form.weekdays & (1 << index)) !== 0} onChange={() => change({ weekdays: form.weekdays ^ (1 << index) })} />{day}</label>)}</div>}
       <label>Start ISO timestamp<input value={form.startAt} onChange={e => change({ startAt: e.target.value })} placeholder="2026-10-12T00:00:00+07:00" /></label>
       <label>End ISO timestamp (optional)<input value={form.endAt ?? ''} onChange={e => change({ endAt: e.target.value || null })} /></label>
