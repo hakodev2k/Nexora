@@ -55,6 +55,7 @@ public static class M01MigrationManifest
             "20261004_0043_sharing_policy_authority.sql",
             "20261004_0044_sharing_subset_readiness.sql",
             "20261004_0045_monitoring_http_config.sql",
-            "20261005_0046_news_categories.sql"
+            "20261005_0046_news_categories.sql",
+            "20261011_0047_automation_definitions.sql"
     ];
 }

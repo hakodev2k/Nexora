@@ -1,3 +1,4 @@
+import { AutomationScreen } from './AutomationScreen';
 import { FileListFilters, type FileFilters } from './FileListFilters';
 import { FileRestoreDialog } from './FileRestoreDialog';
 import { FileTrashDialog } from './FileTrashDialog';
@@ -489,7 +490,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
 
 const moduleScreenCodes = new Set([
   'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
-  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX29', 'FX31', 'FX32', 'FX36', 'FX40'
+  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX29', 'FX34', 'FX31', 'FX32', 'FX36', 'FX40'
 ]);
 
 function moduleDisplayName(code: string, locale: string): string {
@@ -5498,6 +5499,7 @@ function ModuleScreen({
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX37') return <AssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX36') return <MonitoringScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX34') return <AutomationScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX29') return <NewsCategoryScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;

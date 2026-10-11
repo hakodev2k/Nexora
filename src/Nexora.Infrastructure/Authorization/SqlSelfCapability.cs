@@ -52,6 +52,12 @@ internal sealed class SqlSelfCapability
         if (connection is null || actor is null || string.IsNullOrWhiteSpace(moduleCode) || actions.Length == 0)
             return SqlCapabilityStatus.ModuleUnavailable;
 
+        // Only owner-private definition configuration is installed. A stale
+        // module/action grant can never enable a scheduler, run or effect.
+        if (string.Equals(moduleCode, "FX34", StringComparison.Ordinal) &&
+            actions.Any(action => action is not ("automation.definition.read" or "automation.definition.create" or "automation.definition.save" or "automation.definition.history" or "automation.definition.validate")))
+            return SqlCapabilityStatus.ModuleUnavailable;
+
         // FX07 is installed only for this reviewed private source subset.
         // A Ready module name or stale Resolved permission cannot activate dormant handlers.
         if (string.Equals(moduleCode, "FX07", StringComparison.Ordinal) &&

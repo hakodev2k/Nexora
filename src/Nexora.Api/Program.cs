@@ -1,3 +1,6 @@
+using Nexora.Api.Features.Automation;
+using Nexora.Application.Automation;
+using Nexora.Infrastructure.Automation;
 using Nexora.Api.Features.News;
 using Nexora.Application.News;
 using Nexora.Infrastructure.News;
@@ -266,6 +269,7 @@ builder.Services.AddSingleton<ICalendarExportService>(s => new SqlCalendarExport
 builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IMonitoringService>(s => new SqlMonitoringService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<IAutomationDefinitionService>(s => new SqlAutomationDefinitionService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<INewsCategoryService>(s => new SqlNewsCategoryService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
@@ -334,6 +338,7 @@ app.MapCalendarImportEndpoints();
 app.MapCalendarExportEndpoints();
 app.MapMonitoringEndpoints();
 app.MapNewsCategoryEndpoints();
+app.MapAutomationDefinitionEndpoints();
 app.MapSkillEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();

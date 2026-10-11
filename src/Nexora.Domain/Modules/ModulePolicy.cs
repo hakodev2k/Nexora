@@ -9,10 +9,8 @@ public static class ModulePolicy
     private static readonly HashSet<string> PoPausedModuleCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "FX30",
-        "FX34",
         "FX35",
         "PriceTracking",
-        "Automation",
         "Integrations"
     };
 
