@@ -421,6 +421,10 @@ public sealed class SqlAdminAccessService : IAdminAccessService
                 {
                     if (string.IsNullOrWhiteSpace(item.ActionKey) || item.ActionKey.Length > 160 || item.Effect is not ("Allow" or "Deny" or "Unset"))
                         return ("ValidationFailed", 422, "Action key and effect are invalid.");
+                    // Shape validation does not establish installation authority. The
+                    // exact shipped Automation subset is checked against SQL below,
+                    // both in preview and again inside the commit transaction.
+                    if (item.ActionKey.StartsWith("automation.", StringComparison.Ordinal) && ActionGrantPolicy.IsAdminGrantable(item.ActionKey)) continue;
                     var policy = ActionGrantPolicy.CanGrantAllow(item.ActionKey);
                     if (!policy.Allowed) return (policy.Code, 409, policy.Message);
                 }
@@ -489,7 +493,7 @@ public sealed class SqlAdminAccessService : IAdminAccessService
             case "permissions":
                 foreach (var item in change.PermissionChanges)
                 {
-                    var policy = ActionGrantPolicy.CanGrantAllow(item.ActionKey);
+                    var policy = ActionGrantPolicy.CanGrantAllow(item.ActionKey, InstalledAutomationAction(connection, transaction, item.ActionKey));
                     if (!policy.Allowed) blockers.Add(new AdminAccessBlocker(policy.Code, policy.Message));
                 }
                 break;
@@ -704,6 +708,27 @@ public sealed class SqlAdminAccessService : IAdminAccessService
         Add(command, "@UserId", SqlDbType.UniqueIdentifier, userId);
         using var reader = command.ExecuteReader();
         return reader.Read() ? ReadUser(reader) : null;
+    }
+
+    // Installation context is derived solely from authoritative SQL, not from the
+    // signed preview or client fields. EffectiveStatus also binds each action to
+    // its installed migration rather than enabling all future automation keys.
+    private static string? InstalledAutomationAction(SqlConnection connection, SqlTransaction? transaction, string actionKey)
+    {
+        if (!actionKey.StartsWith("automation.", StringComparison.Ordinal)) return null;
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = """
+            SELECT rt.ContractVersion FROM [platform].[Permission] p
+            JOIN [platform].[Module] m ON m.Code='FX34'
+            JOIN [platform].[ResourceType] rt ON rt.ModuleId=m.Id
+            WHERE p.ActionKey=@Action AND p.EffectiveStatus='Resolved' AND m.Code='FX34' AND m.State='Ready'
+              AND rt.Code='AutomationDefinition' AND rt.ContractVersion='automation-definition-v1'
+              AND OBJECT_ID('automation.Definition','U') IS NOT NULL
+              AND OBJECT_ID('automation.DefinitionVersion','U') IS NOT NULL
+              AND EXISTS(SELECT 1 FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('automation.Definition') AND name='FK_AutomationDefinition_CurrentVersion' AND is_disabled=0 AND is_not_trusted=0);
+            """;
+        Add(command, "@Action", SqlDbType.NVarChar, actionKey, 160);
+        return command.ExecuteScalar() as string;
     }
 
     private static IReadOnlyList<AdminActionGrantRecord> ReadActionGrants(SqlConnection connection, SqlTransaction? transaction, Guid userId)

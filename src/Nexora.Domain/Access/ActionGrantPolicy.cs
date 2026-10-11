@@ -234,14 +234,15 @@ public static class ActionGrantPolicy
         "focus.session.resume", "focus.session.cancel", "focus.preference.update", "focus.session.record_time"
     };
 
-    public static PolicyDecision CanGrantAllow(string actionKey)
+    public static PolicyDecision CanGrantAllow(string actionKey, string? installedContract = null)
     {
         if (string.IsNullOrWhiteSpace(actionKey))
         {
             return PolicyDecision.Deny("UnknownField", "Action key is required.");
         }
 
-        if (!ApprovedAutomationDefinitionActions.Contains(actionKey) && PausedPrefixes.Any(prefix => actionKey.StartsWith(prefix, StringComparison.Ordinal)))
+        var installedAutomationAction = installedContract == "automation-definition-v1" && ApprovedAutomationDefinitionActions.Contains(actionKey);
+        if (!installedAutomationAction && PausedPrefixes.Any(prefix => actionKey.StartsWith(prefix, StringComparison.Ordinal)))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Paused action cannot be granted Allow.");
         }
@@ -264,7 +265,8 @@ public static class ActionGrantPolicy
         return PolicyDecision.Allow("GrantAllowed", "Action is approved for M01 grant mutation.");
     }
 
-    // Local configuration only; no run/schedule/dispatch/enable actions.
+    // Exact shipped local definition/manual execution subset. Installation evidence
+    // is required by CanGrantAllow; worker, schedule and provider actions stay denied.
     private static readonly HashSet<string> ApprovedAutomationDefinitionActions = new(StringComparer.Ordinal)
     { "automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export", "automation.definition.enable", "automation.definition.disable", "automation.run.start", "automation.run.read", "automation.run.cancel" };
 
