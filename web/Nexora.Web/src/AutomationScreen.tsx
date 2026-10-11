@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { registerDirtyLeaveGuard } from './App';
 import { createIdempotencyKey } from './api';
+import { AutomationProjectPicker } from './AutomationProjectPicker';
 import { AutomationExecutionDialog } from './AutomationExecutionDialog';
 import { AutomationRunPanel } from './AutomationRunPanel';
 import { AutomationLifecycleDialog } from './AutomationLifecycleDialog';
@@ -178,7 +179,7 @@ export function AutomationScreen({ onAuthLost }: { onAuthLost: () => void }) {
         <label>Tên workflow<input value={title} maxLength={200} required onChange={e => setTitle(e.target.value)} /></label>
         <p>Trigger: Manual v1</p>
         {shape.steps.map((step, index) => <fieldset key={step.id}><legend>Step {index + 1} · tasks.task.create v1</legend>
-          <label>Project ID<input value={step.inputs.projectId} required onChange={e => stepInput(index, 'projectId', e.target.value)} /></label>
+          <AutomationProjectPicker value={step.inputs.projectId} onChange={id => stepInput(index, 'projectId', id)} onAuthLost={denied} />
           <label>Task title<input value={step.inputs.title} maxLength={200} required onChange={e => stepInput(index, 'title', e.target.value)} /></label>
           <label>Mô tả<textarea value={step.inputs.description ?? ''} maxLength={4000} onChange={e => stepInput(index, 'description', e.target.value)} /></label>
           <label>Bắt đầu<input type="datetime-local" value={step.inputs.startAt.includes('T') && /(?:Z|[+-]\d{2}:\d{2})$/.test(step.inputs.startAt) ? localTime(step.inputs.startAt) : step.inputs.startAt} required onChange={e => stepInput(index, 'startAt', e.target.value)} /></label>
