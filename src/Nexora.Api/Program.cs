@@ -270,7 +270,11 @@ builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetReq
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IMonitoringService>(s => new SqlMonitoringService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 var automationLimits = new AutomationLocalExecutionLimits(builder.Configuration.GetValue<int?>("Automation:LocalMaxConcurrentRuns") ?? 1,
-    builder.Configuration.GetValue<int?>("Automation:LocalMaxConcurrentRunsPerOwner") ?? 1);
+    builder.Configuration.GetValue<int?>("Automation:LocalMaxConcurrentRunsPerOwner") ?? 1,
+    builder.Configuration.GetValue<int?>("Automation:LocalRunDeadlineSeconds") ?? 120,
+    builder.Configuration.GetValue<int?>("Automation:LocalMaxStepAttempts") ?? 4,
+    builder.Configuration.GetValue<int?>("Automation:LocalRetryBaseSeconds") ?? 5,
+    builder.Configuration.GetValue<int?>("Automation:LocalRetryMaxSeconds") ?? 60);
 builder.Services.AddSingleton<SqlAutomationDefinitionService>(s => new SqlAutomationDefinitionService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, builder.Configuration.GetValue<bool>("Automation:LocalTaskExecutionEnabled"), builder.Configuration.GetValue<bool>("Automation:LocalSchedulingEnabled"), automationLimits));
 builder.Services.AddSingleton<IAutomationDefinitionService>(s => s.GetRequiredService<SqlAutomationDefinitionService>());
 builder.Services.AddSingleton<IAutomationRunService>(s => s.GetRequiredService<SqlAutomationDefinitionService>());

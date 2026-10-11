@@ -11,6 +11,9 @@ namespace Nexora.Infrastructure.Automation;
 public sealed partial class SqlAutomationDefinitionService : IAutomationRunService
 {
     private const string RunColumns = "Id,DefinitionId,VersionNumber,State,CreatedAt,StartedAt,FinishedAt,Code,EffectUncertain,RowVersion";
+    private AutomationExecutionPolicy ExecutionPolicy() => new(localExecutionEnabled, ExecutionLimits.SystemConcurrency,
+        ExecutionLimits.OwnerConcurrency, 1, ExecutionLimits.RunDeadlineSeconds, 10, ExecutionLimits.MaxStepAttempts,
+        ExecutionLimits.RetryBaseSeconds, ExecutionLimits.RetryMaxSeconds);
     private bool RunAllowed(SqlConnection c, SqlTransaction tx, IdentityPrincipal actor, string action) =>
         Allowed(c, tx, actor, action) && Allowed(c, tx, actor, "automation.run.read");
     public IdentityOperationResult<AutomationDefinitionAcknowledgement> SetEnabled(IdentityPrincipal actor, Guid id, bool enabled, string? etag, string key, string? trace) => Safe(() =>
@@ -109,8 +112,7 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
         { using var anchor = Command(c, tx, $"SELECT 1 FROM [automation].[Run] WHERE {filters} AND Id=@Boundary AND CreatedAt=@At;", actor.OwnerId); BindFilters(anchor); if(anchor.ExecuteScalar() is null) return Missing<AutomationRunPage>(); }
         var items = RunRows(cmd); var next = items.Count > 25 ? cursors.Encode(actor.OwnerId, identity, items[24].CreatedAt.UtcDateTime, items[24].Id) : null;
         if (!RunAllowed(c, tx, actor, "automation.run.read")) return Denied<AutomationRunPage>();
-        tx.Commit(); return IdentityOperationResult<AutomationRunPage>.Success(new(items.Take(25).ToArray(), next,
-            new(localExecutionEnabled, ExecutionLimits.SystemConcurrency, ExecutionLimits.OwnerConcurrency, 1, 120, 10)));
+        tx.Commit(); return IdentityOperationResult<AutomationRunPage>.Success(new(items.Take(25).ToArray(), next, ExecutionPolicy()));
     });
     private static bool TryRunFilterInstant(string? value, out DateTime? utc)
     {
@@ -132,7 +134,7 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
         using (var r = cmd.ExecuteReader()) while (r.Read()) steps.Add(new(r.GetInt32(0), r.GetInt32(1), r.GetString(2), r.GetInt32(3), r.IsDBNull(4) ? null : r.GetGuid(4), r.IsDBNull(5) ? null : r.GetString(5), r.GetBoolean(6)));
         var notice = capabilities.IsAllowed(c, tx, actor, "FX06", "notifications.inbox.read")
             ? LocalModuleNotificationWriter.ReadAutomationFailure(c, tx, actor.OwnerId, id) : null;
-        tx.Commit(); return IdentityOperationResult<AutomationRunDetail>.Success(new(run, steps, notice));
+        tx.Commit(); return IdentityOperationResult<AutomationRunDetail>.Success(new(run, steps, notice, ExecutionPolicy()));
     });
     public IdentityOperationResult<AutomationRunAcknowledgement> Cancel(IdentityPrincipal actor, Guid id, string? etag, string key, string? trace) => Safe(() =>
     {

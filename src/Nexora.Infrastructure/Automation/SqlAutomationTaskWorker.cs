@@ -26,7 +26,7 @@ public sealed partial class SqlAutomationDefinitionService
             Add(cmd,"@Run",SqlDbType.UniqueIdentifier,work.Id);
             using (var r=cmd.ExecuteReader()) pending=r.Read()?new(r.GetInt32(0),r.GetInt32(1),r.GetInt32(2),r.GetGuid(3)):null;
             if(pending is null) { Finish(c,tx,work.Owner,work.Id,"Succeeded","RunSucceeded",false); Audit(c,tx,work.Actor,"automation.step.dispatch",work.Id,null); tx.Commit(); return; }
-            if(pending.Attempts>=4) { FailWork(c,tx,work,"AttemptsExhausted",true); tx.Commit(); return; }
+            if(pending.Attempts>=ExecutionLimits.MaxStepAttempts) { FailWork(c,tx,work,"AttemptsExhausted",EffectUnknown(c,tx,work.Owner,work.Id)); tx.Commit(); return; }
             using var attempt=Command(c,tx,"UPDATE [automation].[StepRun] SET Attempts=Attempts+1,State='Running',EffectUncertain=1,Code='EffectPending' WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step;",work.Owner);
             Add(attempt,"@Run",SqlDbType.UniqueIdentifier,work.Id); Add(attempt,"@Step",SqlDbType.Int,pending.Id); if(attempt.ExecuteNonQuery()!=1)throw new InvalidOperationException();
             tx.Commit(); // Durable intent and attempt before invoking Task service.
@@ -64,11 +64,11 @@ public sealed partial class SqlAutomationDefinitionService
                 Audit(c,tx,work.Actor,"automation.step.dispatch",work.Id,null); tx.Commit(); return;
             }
             var transient=result.StatusCode>=500 || result.Code=="ConcurrencyConflict";
-            if(transient && pending.Attempts<3)
+            if(transient && pending.Attempts+1<ExecutionLimits.MaxStepAttempts)
             {
                 using var retry=Command(c,tx,"UPDATE [automation].[StepRun] SET Code='TransientFailure',EffectUncertain=1 WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step;",work.Owner);
                 Add(retry,"@Run",SqlDbType.UniqueIdentifier,work.Id); Add(retry,"@Step",SqlDbType.Int,pending.Id); retry.ExecuteNonQuery();
-                Release(c,tx,work,new[]{5,20,60}[pending.Attempts]); tx.Commit(); return;
+                Release(c,tx,work,ExecutionLimits.RetryDelaySeconds(pending.Key,pending.Attempts+1)); tx.Commit(); return;
             }
             var unknown=transient || result.StatusCode==404 || result.Code=="IdempotencyReplay";
             using(var failed=Command(c,tx,"UPDATE [automation].[StepRun] SET State='Failed',Code=@Code,EffectUncertain=@Unknown WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step;",work.Owner))
@@ -102,8 +102,8 @@ public sealed partial class SqlAutomationDefinitionService
             owner=r.GetGuid(0);id=r.GetGuid(1);definition=r.GetGuid(2);version=r.GetInt64(3);user=r.GetGuid(4);session=r.GetGuid(5);role=r.GetString(6);auth=r.GetDateTime(7);
         }
         var token=Guid.NewGuid();
-        using(var update=Command(c,tx,"UPDATE [automation].[Run] SET State='Running',StartedAt=COALESCE(StartedAt,SYSUTCDATETIME()),DeadlineAt=COALESCE(DeadlineAt,DATEADD(second,120,SYSUTCDATETIME())),LeaseToken=@Token,LeaseUntil=DATEADD(second,30,SYSUTCDATETIME()) WHERE OwnerId=@Owner AND Id=@Run AND State IN('Queued','Running');",owner))
-        { Add(update,"@Run",SqlDbType.UniqueIdentifier,id);Add(update,"@Token",SqlDbType.UniqueIdentifier,token); if(update.ExecuteNonQuery()!=1)throw new InvalidOperationException(); }
+        using(var update=Command(c,tx,"UPDATE [automation].[Run] SET State='Running',StartedAt=COALESCE(StartedAt,SYSUTCDATETIME()),DeadlineAt=COALESCE(DeadlineAt,DATEADD(second,@Deadline,SYSUTCDATETIME())),LeaseToken=@Token,LeaseUntil=DATEADD(second,30,SYSUTCDATETIME()) WHERE OwnerId=@Owner AND Id=@Run AND State IN('Queued','Running');",owner))
+        { Add(update,"@Run",SqlDbType.UniqueIdentifier,id);Add(update,"@Token",SqlDbType.UniqueIdentifier,token);Add(update,"@Deadline",SqlDbType.Int,ExecutionLimits.RunDeadlineSeconds); if(update.ExecuteNonQuery()!=1)throw new InvalidOperationException(); }
         tx.Commit(); return new(owner,id,definition,version,new(user,owner,role,Utc(auth),session),token);
     }
     private static bool Fence(SqlConnection c,SqlTransaction tx,Work work)

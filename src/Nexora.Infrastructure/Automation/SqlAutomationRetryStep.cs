@@ -42,9 +42,10 @@ public sealed partial class SqlAutomationDefinitionService
         if (!ScheduledRunAllowed(c, tx, new(actor.OwnerId, id, run.DefinitionId, run.VersionNumber, actor, Guid.Empty)))
             return Fail<AutomationRunAcknowledgement>("RetryUnsafe", 409, "The originating schedule or its execution authority is unavailable.");
         int position;
-        using (var step = Command(c, tx, "SELECT Position FROM [automation].[StepRun] WITH(UPDLOCK,HOLDLOCK) WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step AND State='Failed' AND EffectUncertain=0 AND TaskId IS NULL AND Attempts BETWEEN 1 AND 3;", actor.OwnerId))
+        using (var step = Command(c, tx, "SELECT Position FROM [automation].[StepRun] WITH(UPDLOCK,HOLDLOCK) WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step AND State='Failed' AND EffectUncertain=0 AND TaskId IS NULL AND Attempts>=1 AND Attempts<@MaxAttempts;", actor.OwnerId))
         {
             Add(step, "@Run", SqlDbType.UniqueIdentifier, id); Add(step, "@Step", SqlDbType.Int, stepId);
+            Add(step, "@MaxAttempts", SqlDbType.Int, ExecutionLimits.MaxStepAttempts);
             if (step.ExecuteScalar() is not int found) return Fail<AutomationRunAcknowledgement>("RetryUnsafe", 409, "The step is uncertain, successful or its attempt budget is exhausted.");
             position = found;
         }
