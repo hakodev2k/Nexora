@@ -15,7 +15,8 @@ public interface IAutomationRunService
     IdentityOperationResult<AutomationRunAcknowledgement> RetryStep(IdentityPrincipal actor, Guid id, int stepId, string? etag, string key, string? trace);
     IdentityOperationResult<AutomationDefinitionAcknowledgement> SetEnabled(IdentityPrincipal actor, Guid id, bool enabled, string? etag, string key, string? trace);
     IdentityOperationResult<AutomationRunAcknowledgement> Start(IdentityPrincipal actor, Guid id, string? etag, string key, string? trace);
-    IdentityOperationResult<AutomationRunPage> Runs(IdentityPrincipal actor, Guid id, string? cursor, string? state);
+    IdentityOperationResult<AutomationRunPage> Runs(IdentityPrincipal actor, Guid id, string? cursor, string? state,
+        long? version = null, string? createdFrom = null, string? createdBefore = null);
     IdentityOperationResult<AutomationRunDetail> Run(IdentityPrincipal actor, Guid id);
     IdentityOperationResult<AutomationRunAcknowledgement> Cancel(IdentityPrincipal actor, Guid id, string? etag, string key, string? trace);
 }

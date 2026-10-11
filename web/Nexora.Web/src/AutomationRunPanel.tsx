@@ -1,25 +1,37 @@
 import { useEffect, useRef, useState } from 'react';
 import { createIdempotencyKey } from './api';
 import { ResourceFormDialog } from './ResourceFormDialog';
-import { automationRuns, automationRunGet, automationCancel, automationRetryStep, type AutomationRun, type AutomationRunDetail } from './automationApi';
+import { automationRuns, automationRunGet, automationCancel, automationRetryStep, type AutomationRun, type AutomationRunDetail, type AutomationRunFilters } from './automationApi';
+
+const emptyFilters: AutomationRunFilters = { state: '', version: '', createdFrom: '', createdBefore: '' };
 
 export function AutomationRunPanel({ definitionId, canCancel, canRetry, onClose, onDenied }: { definitionId: string; canCancel: boolean; canRetry: boolean; onClose: () => void; onDenied: (e: unknown) => boolean }) {
   const generation = useRef(0), flight = useRef(false), cancelCommitted = useRef(false);
   const pending = useRef<{ id: string; etag: string; key: string; stepId?: number } | null>(null);
-  const [state, setState] = useState(''), [items, setItems] = useState<AutomationRun[]>([]), [cursor, setCursor] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AutomationRunFilters>(emptyFilters), [draft, setDraft] = useState<AutomationRunFilters>(emptyFilters);
+  const [items, setItems] = useState<AutomationRun[]>([]), [cursor, setCursor] = useState<string | null>(null);
   const [detail, setDetail] = useState<AutomationRunDetail | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [uncertain, setUncertain] = useState(false);
   const states = ['Queued', 'Running', 'Succeeded', 'PartiallySucceeded', 'Failed', 'Cancelled', 'TimedOut', 'Skipped'];
   async function load(more = false) {
     if (flight.current) return; const stamp = generation.current; flight.current = true; setBusy(true); setError('');
-    try { const page = await automationRuns(definitionId, state, more ? cursor ?? undefined : undefined); if (stamp === generation.current) { setItems(old => more ? [...new Map([...old, ...page.items].map(r => [r.id, r])).values()] : page.items); setCursor(page.nextCursor); } }
-    catch (e) { if (stamp === generation.current && !onDenied(e)) { setError(e instanceof Error ? e.message : 'Không tải được runs.'); setCursor(null); } }
+    try { const page = await automationRuns(definitionId, filters.state, more ? cursor ?? undefined : undefined, filters); if (stamp === generation.current) { setItems(old => more ? [...new Map([...old, ...page.items].map(r => [r.id, r])).values()] : page.items); setCursor(page.nextCursor); } }
+    catch (e) { if (stamp === generation.current && !onDenied(e)) { if ((e as { status?: number }).status === 404) { setItems([]); setDetail(null); } setError(e instanceof Error ? e.message : 'Không tải được runs.'); setCursor(null); } }
     finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
-  useEffect(() => { generation.current++; flight.current = false; setItems([]); setCursor(null); void load(); return () => { generation.current++; }; }, [state]);
+  useEffect(() => { generation.current++; flight.current = false; setItems([]); setCursor(null); setDetail(null); void load(); return () => { generation.current++; }; }, [filters, definitionId]);
+  function applyFilters(event: React.FormEvent) {
+    event.preventDefault(); if (flight.current || uncertain) return;
+    const next = { ...draft, version: draft.version.trim(), createdFrom: draft.createdFrom.trim(), createdBefore: draft.createdBefore.trim() };
+    if (next.version && (!/^[1-9]\d{0,14}$/.test(next.version) || !Number.isSafeInteger(Number(next.version)))) { setError('Version phải là số nguyên dương.'); return; }
+    const validInstant = (value: string) => !value || (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value)));
+    // SQL/server compares the full timestamp precision; JS Date truncates sub-millisecond fractions.
+    if (!validInstant(next.createdFrom) || !validInstant(next.createdBefore)) { setError('Dùng ISO timestamp có Z/offset; server kiểm tra thứ tự các thời điểm.'); return; }
+    setDraft(next); setFilters(next);
+  }
   async function inspect(id: string) {
     if (flight.current) return; const stamp = generation.current; flight.current = true; setBusy(true); setError('');
     try { const value = await automationRunGet(id); if (stamp === generation.current) { if (value.run.definitionId !== definitionId) throw new Error('Run không thuộc definition này.'); setDetail(value); } }
-    catch (e) { if (stamp === generation.current && !onDenied(e)) setError(e instanceof Error ? e.message : 'Không tải được run.'); }
+    catch (e) { if (stamp === generation.current && !onDenied(e)) { if ((e as { status?: number }).status === 404) { setDetail(null); setItems([]); setCursor(null); } setError(e instanceof Error ? e.message : 'Không tải được run.'); } }
     finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
   async function cancel(stepId?: number) {
@@ -49,7 +61,7 @@ export function AutomationRunPanel({ definitionId, canCancel, canRetry, onClose,
       <button disabled={busy || uncertain} onClick={() => void inspect(detail.run.id)}>Tải lại run</button><button disabled={busy || uncertain} onClick={() => { setDetail(null); void load(); }}>Về run history</button>
       {(uncertain || (canCancel && ['Queued', 'Running'].includes(detail.run.state))) && <div><p>Hủy dừng các bước tiếp theo; Task đã tạo được giữ nguyên.</p><button disabled={busy} onClick={() => void cancel()}>{uncertain ? 'Retry cùng command' : 'Xác nhận hủy run'}</button></div>}
       {canRetry && !uncertain && !detail.run.effectUncertain && ["Failed", "PartiallySucceeded"].includes(detail.run.state) && <div><p>Chỉ retry failure đã biết chưa tạo effect. Giữ nguyên version, command key và attempts; các bước thành công không chạy lại. Các bước chưa chạy sau failure sẽ tiếp tục.</p>{detail.steps.filter(step => step.state === "Failed" && !step.effectUncertain && step.taskId === null && step.attempts > 0 && step.attempts < 4).map(step => <button key={step.stepId} disabled={busy} onClick={() => void cancel(step.stepId)}>Xác nhận retry step {step.stepId} và các bước chưa chạy phía sau</button>)}</div>}
-    </section> : <><label>State<select value={state} disabled={busy || uncertain} onChange={e => setState(e.target.value)}><option value="">Tất cả</option>{states.map(value => <option key={value}>{value}</option>)}</select></label><button disabled={busy} onClick={() => void load()}>Tải lại</button>
+    </section> : <><form onSubmit={applyFilters} noValidate><fieldset disabled={busy || uncertain}><legend>Bộ lọc run history</legend><div className="form-grid"><label>State<select value={draft.state} onChange={e => setDraft({ ...draft, state: e.target.value })}><option value="">Tất cả</option>{states.map(value => <option key={value}>{value}</option>)}</select></label><label>Definition version<input value={draft.version} inputMode="numeric" maxLength={15} placeholder="Tất cả versions" onChange={e => setDraft({ ...draft, version: e.target.value })} /></label><label>Created từ (bao gồm)<input value={draft.createdFrom} maxLength={40} placeholder="2026-10-11T00:00:00+07:00" onChange={e => setDraft({ ...draft, createdFrom: e.target.value })} /></label><label>Created trước (không bao gồm)<input value={draft.createdBefore} maxLength={40} placeholder="2026-10-12T00:00:00+07:00" onChange={e => setDraft({ ...draft, createdBefore: e.target.value })} /></label></div><p>Timestamp có Z hoặc offset rõ ràng. Bộ lọc dùng thời điểm tạo run, không phải thời điểm bắt đầu/kết thúc.</p><button type="submit">Áp dụng bộ lọc</button><button type="button" onClick={() => { setDraft(emptyFilters); setFilters({ ...emptyFilters }); }}>Xóa bộ lọc</button></fieldset></form><p className="muted">Đang áp dụng: {filters.state || 'mọi state'} · version {filters.version || 'tất cả'} · {filters.createdFrom || 'không giới hạn từ'} → {filters.createdBefore || 'không giới hạn trước'}</p><button disabled={busy} onClick={() => void load()}>Tải lại</button>
       {busy && <p role="status">Đang tải…</p>}{!busy && !error && items.length === 0 && <p>Chưa có run khớp bộ lọc.</p>}{items.map(run => <article key={run.id}><p>{run.id} · version {run.versionNumber} · {run.state} · {new Date(run.createdAt).toLocaleString()}</p><button disabled={busy} onClick={() => void inspect(run.id)}>Xem run</button></article>)}{cursor && !error && <button disabled={busy} onClick={() => void load(true)}>Tải thêm 25 runs</button>}</>}
   </ResourceFormDialog>;
 }

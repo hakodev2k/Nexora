@@ -82,21 +82,44 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
         if (!RunAllowed(c, tx, actor, "automation.run.start")) return Denied<AutomationRunAcknowledgement>();
         tx.Commit(); return IdentityOperationResult<AutomationRunAcknowledgement>.Success(result, 202);
     });
-    public IdentityOperationResult<AutomationRunPage> Runs(IdentityPrincipal actor, Guid id, string? cursor, string? state) => Safe(() =>
+    public IdentityOperationResult<AutomationRunPage> Runs(IdentityPrincipal actor, Guid id, string? cursor, string? state,
+        long? version = null, string? createdFrom = null, string? createdBefore = null) => Safe(() =>
     {
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
         if (!RunAllowed(c, tx, actor, "automation.run.read")) return Denied<AutomationRunPage>();
-        if (Read(c, tx, actor.OwnerId, id, false) is null) return Missing<AutomationRunPage>();
+        var definition = Read(c, tx, actor.OwnerId, id, false);
+        if (definition is null) return Missing<AutomationRunPage>();
         if (!string.IsNullOrEmpty(state) && !RunStates.Contains(state, StringComparer.Ordinal)) return Fail<AutomationRunPage>("ValidationFailed", 422, "Check the run state filter.");
-        var identity = JsonSerializer.Serialize(new { id, state = state ?? "" }); DateTime at = default; Guid boundary = default;
+        if (version is < 1 || version > definition.CurrentVersion ||
+            !TryRunFilterInstant(createdFrom, out var from) || !TryRunFilterInstant(createdBefore, out var before) ||
+            (from is not null && before is not null && before <= from))
+            return Fail<AutomationRunPage>("ValidationFailed", 422, "Use an existing definition version and explicit-offset created-time bounds, from inclusive and before exclusive.");
+        var identity = JsonSerializer.Serialize(new { id, state = state ?? "", version, from, before }); DateTime at = default; Guid boundary = default;
         if (cursor is not null && !cursors.TryDecode(cursor, actor.OwnerId, identity, out at, out boundary)) return Missing<AutomationRunPage>();
-        using var cmd = Command(c, tx, $"SELECT TOP(26) {RunColumns} FROM [automation].[Run] WHERE OwnerId=@Owner AND DefinitionId=@Id AND(@State='' OR State=@State) AND(@Boundary IS NULL OR CreatedAt<@At OR(CreatedAt=@At AND Id<@Boundary)) ORDER BY CreatedAt DESC,Id DESC;", actor.OwnerId);
-        Add(cmd, "@Id", SqlDbType.UniqueIdentifier, id); Add(cmd, "@State", SqlDbType.VarChar, state ?? "", 32); Add(cmd, "@Boundary", SqlDbType.UniqueIdentifier, cursor is null ? null : boundary); Add(cmd, "@At", SqlDbType.DateTime2, cursor is null ? null : at);
+        const string filters = "OwnerId=@Owner AND DefinitionId=@Id AND(@State='' OR State=@State) AND(@Version IS NULL OR VersionNumber=@Version) AND(@From IS NULL OR CreatedAt>=@From) AND(@Before IS NULL OR CreatedAt<@Before)";
+        using var cmd = Command(c, tx, $"SELECT TOP(26) {RunColumns} FROM [automation].[Run] WHERE {filters} AND(@Boundary IS NULL OR CreatedAt<@At OR(CreatedAt=@At AND Id<@Boundary)) ORDER BY CreatedAt DESC,Id DESC;", actor.OwnerId);
+        void BindFilters(SqlCommand command)
+        {
+            Add(command, "@Id", SqlDbType.UniqueIdentifier, id); Add(command, "@State", SqlDbType.VarChar, state ?? "", 32);
+            Add(command, "@Version", SqlDbType.BigInt, version); Add(command, "@From", SqlDbType.DateTime2, from); Add(command, "@Before", SqlDbType.DateTime2, before);
+            Add(command, "@Boundary", SqlDbType.UniqueIdentifier, cursor is null ? null : boundary); Add(command, "@At", SqlDbType.DateTime2, cursor is null ? null : at);
+        }
+        BindFilters(cmd);
         if (cursor is not null)
-        { using var anchor = Command(c, tx, "SELECT 1 FROM [automation].[Run] WHERE OwnerId=@Owner AND DefinitionId=@Id AND Id=@Boundary AND CreatedAt=@At AND(@State='' OR State=@State);", actor.OwnerId); Add(anchor,"@Id",SqlDbType.UniqueIdentifier,id); Add(anchor,"@Boundary",SqlDbType.UniqueIdentifier,boundary); Add(anchor,"@At",SqlDbType.DateTime2,at); Add(anchor,"@State",SqlDbType.VarChar,state ?? "",32); if(anchor.ExecuteScalar() is null) return Missing<AutomationRunPage>(); }
+        { using var anchor = Command(c, tx, $"SELECT 1 FROM [automation].[Run] WHERE {filters} AND Id=@Boundary AND CreatedAt=@At;", actor.OwnerId); BindFilters(anchor); if(anchor.ExecuteScalar() is null) return Missing<AutomationRunPage>(); }
         var items = RunRows(cmd); var next = items.Count > 25 ? cursors.Encode(actor.OwnerId, identity, items[24].CreatedAt.UtcDateTime, items[24].Id) : null;
+        if (!RunAllowed(c, tx, actor, "automation.run.read")) return Denied<AutomationRunPage>();
         tx.Commit(); return IdentityOperationResult<AutomationRunPage>.Success(new(items.Take(25).ToArray(), next));
     });
+    private static bool TryRunFilterInstant(string? value, out DateTime? utc)
+    {
+        utc = null; if (value is null or "") return true;
+        if (value.Length > 40 || !System.Text.RegularExpressions.Regex.IsMatch(value,
+            @"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,7})?(?:Z|[+-]\d{2}:\d{2})$", System.Text.RegularExpressions.RegexOptions.CultureInvariant) ||
+            !DateTimeOffset.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var instant) ||
+            instant.UtcDateTime.Year is < 2 or > 9997) return false;
+        utc = instant.UtcDateTime; return true;
+    }
     public IdentityOperationResult<AutomationRunDetail> Run(IdentityPrincipal actor, Guid id) => Safe(() =>
     {
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
