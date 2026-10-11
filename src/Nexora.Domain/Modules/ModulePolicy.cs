@@ -9,6 +9,8 @@ public static class ModulePolicy
     private static readonly HashSet<string> PoPausedModuleCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "FX30",
+        "FX34",
+        "Automation",
         "FX35",
         "PriceTracking",
         "Integrations"
@@ -17,9 +19,11 @@ public static class ModulePolicy
     public static PolicyDecision CanEnable(
         string moduleCode,
         ModuleRuntimeState runtimeState,
-        IEnumerable<ModuleDependencyStatus> dependencies)
+        IEnumerable<ModuleDependencyStatus> dependencies,
+        string? installedContract = null)
     {
-        if (PoPausedModuleCodes.Contains(moduleCode))
+        if (PoPausedModuleCodes.Contains(moduleCode) &&
+            !((moduleCode.Equals("FX34", StringComparison.OrdinalIgnoreCase) || moduleCode.Equals("Automation", StringComparison.OrdinalIgnoreCase)) && installedContract == "automation-definition-v1"))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Product Owner-paused modules cannot be enabled by M01 policy.");
         }

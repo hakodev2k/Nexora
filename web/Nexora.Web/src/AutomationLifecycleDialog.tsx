@@ -39,6 +39,7 @@ export function AutomationLifecycleDialog({ item, onClose, onDenied }: { item: A
     } catch (e) {
       if (!mounted.current || onDenied(e)) return;
       const status = (e as { status?: number }).status, code = (e as { code?: string }).code;
+      if (status === 404) { pending.current = null; setUncertain(false); setDone(true); setError(committed.current ? 'Command trước đã hoàn tất; resource hiện không còn khả dụng.' : 'Resource hiện không còn khả dụng. Đóng và tải lại danh sách.'); return; }
       if (committed.current || (pending.current && (status === undefined || status === 0 || status >= 500 || code === 'RequestInProgress' || code === 'ConcurrencyConflict'))) {
         setUncertain(true); setError('Chưa đối chiếu được kết quả. Retry giữ nguyên ETag, cohort và key.');
       } else { pending.current = null; setUncertain(false); setDone(true); setError(e instanceof Error ? e.message : 'Thao tác thất bại. Tải lại revision.'); }

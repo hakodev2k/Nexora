@@ -355,6 +355,22 @@ public sealed class SqlModulePolicyService : IModulePolicyService
         return values;
     }
 
+    // Server-derived installation evidence, never accepted from a preview/commit request.
+    private static string? InstalledAutomationContract(SqlConnection connection, SqlTransaction? transaction, ModulePolicyRecord module)
+    {
+        if (module.Code != "FX34") return null;
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = """
+            SELECT rt.ContractVersion FROM [platform].[ResourceType] rt
+            WHERE rt.ModuleId=@Module AND rt.Code='AutomationDefinition' AND rt.ContractVersion='automation-definition-v1'
+              AND OBJECT_ID('automation.Definition','U') IS NOT NULL
+              AND OBJECT_ID('automation.DefinitionVersion','U') IS NOT NULL
+              AND EXISTS(SELECT 1 FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('automation.Definition') AND name='FK_AutomationDefinition_CurrentVersion' AND is_disabled=0 AND is_not_trusted=0);
+            """;
+        command.Parameters.Add("@Module", System.Data.SqlDbType.UniqueIdentifier).Value=module.Id;
+        return command.ExecuteScalar() as string;
+    }
+
     private static IReadOnlyList<ModulePolicyBlocker> EvaluateBlockers(SqlConnection connection, ModulePolicyRecord module, ModulePolicyChange change) =>
         EvaluateBlockers(connection, null, module, change);
 
@@ -369,15 +385,12 @@ public sealed class SqlModulePolicyService : IModulePolicyService
 
         if (systemEnabled && !module.SystemEnabled)
         {
-            foreach (var dependency in ReadDependencyStates(connection, transaction, module.Id, incoming: true))
-            {
-                var decision = ModulePolicy.CanEnable(module.Code, Enum.TryParse<ModuleRuntimeState>(module.State, out var state) ? state : ModuleRuntimeState.Blocked,
-                    new[] { new ModuleDependencyStatus(dependency.Code, dependency.Enabled, Required: true) });
-                if (!decision.Allowed)
-                {
-                    blockers.Add(new ModulePolicyBlocker(decision.Code, decision.Message, "systemEnabled"));
-                }
-            }
+            var dependencies = ReadDependencyStates(connection, transaction, module.Id, incoming: true)
+                .Select(dependency => new ModuleDependencyStatus(dependency.Code, dependency.Enabled, Required: true)).ToArray();
+            var decision = ModulePolicy.CanEnable(module.Code,
+                Enum.TryParse<ModuleRuntimeState>(module.State, out var state) ? state : ModuleRuntimeState.Blocked,
+                dependencies, InstalledAutomationContract(connection, transaction, module));
+            if (!decision.Allowed) blockers.Add(new ModulePolicyBlocker(decision.Code, decision.Message, "systemEnabled"));
         }
 
         if (!systemEnabled && module.SystemEnabled)

@@ -57,6 +57,7 @@ public static class M01MigrationManifest
             "20261004_0045_monitoring_http_config.sql",
             "20261005_0046_news_categories.sql",
             "20261011_0047_automation_definitions.sql",
-            "20261011_0048_automation_lifecycle.sql"
+            "20261011_0048_automation_lifecycle.sql",
+        "20261011_0049_automation_manual_runs.sql"
     ];
 }
