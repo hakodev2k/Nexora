@@ -55,7 +55,7 @@ internal sealed class SqlSelfCapability
         // Only owner-private definition configuration is installed. A stale
         // module/action grant can never enable a scheduler, run or effect.
         if (string.Equals(moduleCode, "FX34", StringComparison.Ordinal) &&
-            actions.Any(action => action is not ("automation.definition.read" or "automation.definition.create" or "automation.definition.save" or "automation.definition.history" or "automation.definition.validate" or "automation.definition.trash" or "automation.definition.restore" or "automation.definition.import" or "automation.definition.export" or "automation.definition.enable" or "automation.definition.disable" or "automation.run.start" or "automation.run.read" or "automation.run.cancel" or "automation.run.retry_step" or "automation.schedule.update")))
+            actions.Any(action => action is not ("automation.definition.read" or "automation.definition.create" or "automation.definition.save" or "automation.definition.history" or "automation.definition.validate" or "automation.definition.trash" or "automation.definition.restore" or "automation.definition.import" or "automation.definition.export" or "automation.definition.enable" or "automation.definition.disable" or "automation.run.start" or "automation.run.read" or "automation.run.cancel" or "automation.run.retry_step" or "automation.schedule.update" or "automation.definition.purge")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
         // FX07 is installed only for this reviewed private source subset.

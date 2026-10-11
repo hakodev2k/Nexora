@@ -15,9 +15,15 @@ public sealed record AutomationDefinitionAcknowledgement(Guid Id, long VersionNu
 public sealed record AutomationDefinitionValidation(bool ShapeAccepted, string Code, bool ExecutionAvailable, bool VerifiedSimulation, bool ReferencesValid = false);
 
 public sealed record AutomationPortableDefinition(int SchemaVersion, string Title, string DefinitionJson);
+public sealed record AutomationPurgePreview(Guid Id, Guid DeletionBatchId, string ETag, long DefinitionVersions,
+    long ScheduleVersions, IReadOnlyList<string> Blockers);
+public sealed record AutomationPurgeCommand(Guid DeletionBatchId, bool ConfirmPermanentDeletion);
+public sealed record AutomationPurgeAcknowledgement(Guid Id, Guid DeletionBatchId, bool Purged);
 
 public interface IAutomationDefinitionService
 {
+    IdentityOperationResult<AutomationPurgePreview> PreviewPurge(IdentityPrincipal actor, Guid id);
+    IdentityOperationResult<AutomationPurgeAcknowledgement> Purge(IdentityPrincipal actor, Guid id, string? etag, AutomationPurgeCommand body, string key, string? trace);
     IdentityOperationResult<AutomationScheduleSnapshot> Schedule(IdentityPrincipal actor, Guid id);
     IdentityOperationResult<AutomationSchedulePlan> PreviewSchedule(IdentityPrincipal actor, Guid id, AutomationScheduleCommand body);
     IdentityOperationResult<AutomationDefinitionAcknowledgement> UpdateSchedule(IdentityPrincipal actor, Guid id, string? etag, AutomationScheduleCommand body, string key, string? trace);
