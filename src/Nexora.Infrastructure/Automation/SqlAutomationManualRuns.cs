@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Nexora.Application.Automation;
 using Nexora.Application.Identity;
 using Nexora.Application.Productivity;
+using Nexora.Infrastructure.Notifications;
 
 namespace Nexora.Infrastructure.Automation;
 
@@ -104,7 +105,9 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
         using var cmd = Command(c, tx, "SELECT s.StepId,s.Position,s.State,s.Attempts,CASE WHEN @TaskRead=1 AND EXISTS(SELECT 1 FROM [productivity].[Task] t WHERE t.OwnerId=s.OwnerId AND t.Id=s.TaskId AND t.Status<>'Deleted') THEN s.TaskId END,s.Code,s.EffectUncertain FROM [automation].[StepRun] s WHERE s.OwnerId=@Owner AND s.RunId=@Run ORDER BY s.Position;", actor.OwnerId);
         Add(cmd, "@TaskRead", SqlDbType.Bit, taskRead); Add(cmd, "@Run", SqlDbType.UniqueIdentifier, id); var steps = new List<AutomationStepRunRecord>();
         using (var r = cmd.ExecuteReader()) while (r.Read()) steps.Add(new(r.GetInt32(0), r.GetInt32(1), r.GetString(2), r.GetInt32(3), r.IsDBNull(4) ? null : r.GetGuid(4), r.IsDBNull(5) ? null : r.GetString(5), r.GetBoolean(6)));
-        tx.Commit(); return IdentityOperationResult<AutomationRunDetail>.Success(new(run, steps));
+        var notice = capabilities.IsAllowed(c, tx, actor, "FX06", "notifications.inbox.read")
+            ? LocalModuleNotificationWriter.ReadAutomationFailure(c, tx, actor.OwnerId, id) : null;
+        tx.Commit(); return IdentityOperationResult<AutomationRunDetail>.Success(new(run, steps, notice));
     });
     public IdentityOperationResult<AutomationRunAcknowledgement> Cancel(IdentityPrincipal actor, Guid id, string? etag, string key, string? trace) => Safe(() =>
     {
@@ -144,7 +147,9 @@ public sealed partial class SqlAutomationDefinitionService : IAutomationRunServi
     { using var cmd=Command(c,tx,"SELECT 1 FROM [automation].[StepRun] WHERE OwnerId=@Owner AND RunId=@Run AND EffectUncertain=1;",owner);Add(cmd,"@Run",SqlDbType.UniqueIdentifier,run);return cmd.ExecuteScalar() is not null; }
     private static void Finish(SqlConnection c,SqlTransaction tx,Guid owner,Guid run,string state,string code,bool uncertain)
     {
-        using var cmd=Command(c,tx,"UPDATE [automation].[Run] SET State=@State,Code=@Code,EffectUncertain=@Unknown,FinishedAt=SYSUTCDATETIME(),LeaseToken=NULL,LeaseUntil=NULL WHERE OwnerId=@Owner AND Id=@Run AND State IN('Queued','Running'); UPDATE [automation].[StepRun] SET State=CASE WHEN @State IN('Cancelled','TimedOut') THEN @State ELSE 'Skipped' END,Code=@Code,EffectUncertain=CASE WHEN State='Running' THEN @Unknown ELSE 0 END WHERE OwnerId=@Owner AND RunId=@Run AND State IN('Queued','Running');",owner);
-        Add(cmd,"@Run",SqlDbType.UniqueIdentifier,run); Add(cmd,"@State",SqlDbType.VarChar,state,32); Add(cmd,"@Code",SqlDbType.VarChar,code,64); Add(cmd,"@Unknown",SqlDbType.Bit,uncertain); cmd.ExecuteNonQuery();
+        using var cmd=Command(c,tx,"DECLARE @Changed bit=0; UPDATE [automation].[Run] SET State=@State,Code=@Code,EffectUncertain=@Unknown,FinishedAt=SYSUTCDATETIME(),LeaseToken=NULL,LeaseUntil=NULL WHERE OwnerId=@Owner AND Id=@Run AND State IN('Queued','Running'); IF @@ROWCOUNT=1 BEGIN SET @Changed=1; UPDATE [automation].[StepRun] SET State=CASE WHEN @State IN('Cancelled','TimedOut') THEN @State ELSE 'Skipped' END,Code=@Code,EffectUncertain=CASE WHEN State='Running' THEN @Unknown ELSE 0 END WHERE OwnerId=@Owner AND RunId=@Run AND State IN('Queued','Running'); END; SELECT @Changed;",owner);
+        Add(cmd,"@Run",SqlDbType.UniqueIdentifier,run); Add(cmd,"@State",SqlDbType.VarChar,state,32); Add(cmd,"@Code",SqlDbType.VarChar,code,64); Add(cmd,"@Unknown",SqlDbType.Bit,uncertain);
+        var changed=cmd.ExecuteScalar() is bool value && value;
+        if(changed && state is "Failed" or "PartiallySucceeded" or "TimedOut") LocalModuleNotificationWriter.AutomationFailed(c,tx,owner,run);
     }
 }
