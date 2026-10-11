@@ -36,7 +36,8 @@ public static class SharingEndpoints
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.List(principal, limit, new ShareLinkListQuery(cursor, mode, state, resourceType, resourceId)), value =>
                     new ShareLinkPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
-            .WithName("listShareLinks");
+            .WithName("listShareLinks")
+            .WithDescription("Owner-scoped cursor page of 25 records. Omit limit or supply 25; other values return 422. Cursors bind owner and filters; changed boundaries require restarting pagination.");
 
         api.MapPost("/sharing/links", (HttpContext context, ShareLinkRequest request, ISharingService service,
             IIdentityService identity, SessionCookieService cookies) =>

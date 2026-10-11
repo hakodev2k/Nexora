@@ -54,7 +54,7 @@ export function FileRestoreDialog({ fileId, onClose, onDone, onDenied }: {
         body: JSON.stringify({ deletionBatchId: command.batchId })
       }, 200);
       if (stamp !== generation.current) return;
-      if (!ack || ack.id !== fileId || typeof ack.etag !== 'string' || !/^"[A-Za-z0-9+/]{11}="$/.test(ack.etag) || !['Active', 'Trash'].includes(ack.lifecycle)) throw Object.assign(new Error('Invalid acknowledgement'), { status: 0 });
+      if (!ack || ack.id !== fileId || typeof ack.etag !== 'string' || !/^"[A-Za-z0-9+/]{11}="$/.test(ack.etag) || ack.lifecycle !== 'Active') throw Object.assign(new Error('Invalid acknowledgement'), { status: 0 });
       const encoded = ack.etag.slice(1, -1), decoded = atob(encoded);
       if (decoded.length !== 8 || btoa(decoded) !== encoded) throw Object.assign(new Error('Invalid acknowledgement'), { status: 0 });
       onDone();
@@ -64,6 +64,24 @@ export function FileRestoreDialog({ fileId, onClose, onDone, onDenied }: {
       const failure = e as { status?: number; code?: string };
       if (failure.status === undefined || failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress') {
         setUncertain(true); setError('Chưa rõ kết quả. Retry giữ nguyên file, ETag và Idempotency-Key; không đóng hoặc tạo request mới.');
+      } else if (failure.code === 'IdempotencyReplay' || failure.code === 'OperationSuperseded') {
+        // Historical success is known; a later cohort needs a new preview and
+        // deliberate confirmation, never a retry of the old restore effect.
+        try {
+          const latest = await apiFetch<FileRecord>(`/api/v1/files/${encodeURIComponent(fileId)}`);
+          if (stamp !== generation.current) return;
+          if (!latest || latest.id !== fileId || !['Active', 'Trash'].includes(latest.lifecycle))
+            throw new Error('Invalid reconciliation');
+          request.current = null; setUncertain(false); setPreview(null);
+          setError(latest.lifecycle === 'Trash'
+            ? 'Lệnh Restore trước đã hoàn tất nhưng file hiện lại ở Trash. Lệnh cũ không phục hồi cohort mới. Tải lại preview để xác nhận một Restore mới.'
+            : 'Lệnh Restore trước đã hoàn tất; file hiện Active và đã có revision khác. Đóng dialog và tải lại danh sách để xem trạng thái hiện tại.');
+        } catch (readError) {
+          if (stamp === generation.current) {
+            if (denied(readError)) onDenied();
+            else { setUncertain(true); setError('Lệnh trước đã hoàn tất nhưng chưa đọc được trạng thái hiện tại. Retry cùng request để đối chiếu.'); }
+          }
+        }
       } else {
         request.current = null; setUncertain(false); setPreview(null);
         setError(failure.status === 412 ? 'File đã thay đổi. Tải lại preview và xác nhận lại với revision mới.'

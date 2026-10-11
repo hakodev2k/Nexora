@@ -25,7 +25,8 @@ public static class FileEndpoints
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.List(principal, limit, new FileListQuery(cursor, query, mediaType, scanState, lifecycle)), value =>
                     new FilePageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
-            .WithName("listFiles");
+            .WithName("listFiles")
+            .WithDescription("Owner-scoped cursor page of 25 records. Omit limit or supply 25; other values return 422. Cursors bind owner and filters; changed boundaries require restarting pagination.");
 
         api.MapGet("/files/{fileId:guid}", (HttpContext context, Guid fileId, IFileService service,
             IIdentityService identity, SessionCookieService cookies) =>

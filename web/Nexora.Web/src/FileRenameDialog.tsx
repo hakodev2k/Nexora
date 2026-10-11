@@ -60,13 +60,14 @@ export function FileRenameDialog({ item, onSaved, onClose, onDenied }: {
       if (stamp !== generation.current) return;
       if (denied(e)) { onDenied(); return; }
       const failure = e as { status?: number; code?: string };
-      if (failure.status === 412 || failure.code === 'IdempotencyReplay') {
+      if (failure.status === 412 || failure.code === 'IdempotencyReplay' || failure.code === 'OperationSuperseded') {
         try {
           const latest = await read(); if (stamp !== generation.current) return;
           if (!eligible(latest)) { onDenied(); return; }
           request.current = null; setUncertain(false);
-          if (failure.code === 'IdempotencyReplay') { onSaved(latest); return; }
-          setConflict(latest); setError('File đã thay đổi. So sánh tên hiện tại trước khi áp dụng lại.');
+          setConflict(latest);
+          setError(failure.status === 412 ? 'File đã thay đổi. So sánh tên hiện tại trước khi áp dụng lại.'
+            : 'Lệnh đổi tên trước đã hoàn tất. Metadata hiện tại không phải ACK của lệnh đó. So sánh tên hiện tại trước khi áp dụng bản nháp thành lệnh mới.');
         } catch (readError) { if (stamp === generation.current) { if (denied(readError)) onDenied(); else { setUncertain(true); setError('Không thể đọc trạng thái hiện tại. Retry giữ nguyên request.'); } } }
       } else if (failure.status === undefined || failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress') {
         setUncertain(true); setError('Chưa xác định kết quả đổi tên. Retry giữ nguyên tên, ETag và Idempotency-Key.');
@@ -84,7 +85,10 @@ export function FileRenameDialog({ item, onSaved, onClose, onDenied }: {
     } catch (e) { if (stamp === generation.current) { if (denied(e)) onDenied(); else setError('Không thể kiểm tra revision mới.'); } }
     finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }
-  return <ResourceFormDialog open title="Đổi tên file" dirty={dirty} busy={busy} onClose={onClose}>
+  return <ResourceFormDialog open title="Đổi tên file" dirty={dirty} busy={busy} onClose={() => {
+    if (uncertain) setError('Kết quả chưa rõ; retry cùng tên, ETag và Idempotency-Key trước khi đóng.');
+    else onClose();
+  }}>
     <p>Chỉ đổi tên hiển thị; binary, scan state và các references được giữ nguyên. Hủy bản nháp không hoàn tác một request đã gửi.</p>
     {error && <p role="alert">{error}</p>}{!ready && !error && <p role="status">Đang tải revision file…</p>}
     {conflict && <section aria-label="Tên file hiện tại"><p>{conflict.originalName}</p><button type="button" disabled={busy} onClick={() => void reapply()}>Áp dụng lại tên mới</button></section>}

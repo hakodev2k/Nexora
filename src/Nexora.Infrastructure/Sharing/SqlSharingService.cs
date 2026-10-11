@@ -91,9 +91,9 @@ public sealed class SqlSharingService : ISharingService
         query ??= new();
         static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         query = query with { Mode = Clean(query.Mode), State = Clean(query.State), ResourceType = Clean(query.ResourceType) };
-        if (limit is < 1 or > 100 || query.Mode is not (null or "PublicLink" or "AuthenticatedLink" or "RestrictedUsers") ||
+        if (limit is not (null or 25) || query.Mode is not (null or "PublicLink" or "AuthenticatedLink" or "RestrictedUsers") ||
             query.State is not (null or "Active" or "Expired" or "Revoked") || query.ResourceType is not (null or "Project" or "Document") || query.ResourceId == Guid.Empty)
-            return Failure<ShareLinkPage>("ValidationFailed", 422, "The share list filter is invalid.");
+            return Failure<ShareLinkPage>("ValidationFailed", 422, "Check share filters; page size is fixed at 25.");
         var filters = $"{query.Mode}|{query.State}|{query.ResourceType}|{query.ResourceId?.ToString("N")}";
         var cutoff = DateTime.UtcNow;
         using var connection = _connections.Create(); connection.Open();

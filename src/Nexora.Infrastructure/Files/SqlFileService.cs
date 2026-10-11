@@ -74,9 +74,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         var media = string.IsNullOrWhiteSpace(query.MediaType) ? null : query.MediaType.Trim().ToLowerInvariant();
         var scan = string.IsNullOrWhiteSpace(query.ScanState) ? null : query.ScanState.Trim();
         var lifecycle = string.IsNullOrWhiteSpace(query.Lifecycle) ? "Active" : query.Lifecycle.Trim();
-        if (limit is < 1 or > 100 || name is { Length: > 255 } || media is { Length: > 128 } ||
+        if (limit is not (null or 25) || name is { Length: > 255 } || media is { Length: > 128 } ||
             scan is not (null or "Pending" or "Clean" or "Quarantined" or "Failed") || lifecycle is not ("Active" or "Trash"))
-            return Failure<FilePage>("ValidationFailed", 422, "Check file filters and list limit.");
+            return Failure<FilePage>("ValidationFailed", 422, "Check file filters; page size is fixed at 25.");
         var filters = System.Text.Json.JsonSerializer.Serialize(new { name, media, scan, lifecycle });
         DateTime boundaryAt = default; Guid boundaryId = default;
         if (query.Cursor is not null && !_listCursor.TryDecode(query.Cursor, actor.OwnerId, filters, out boundaryAt, out boundaryId))
@@ -392,13 +392,30 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         { transaction.Rollback(); return ModuleUnavailable<FileRecord>(); }
         var current = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
         if (current is null) { transaction.Rollback(); return Missing<FileRecord>(); }
+        var receipt = _receipts.TryClaim(connection, transaction, actor.UserId, "files.file.rename", idempotencyKey!,
+            $"file:{fileId:N}|etag:{ifMatch}|name:{safeName}", DateTime.UtcNow);
+        if (receipt.IsReplay)
+        {
+            if (!SqlCurrentActor.IsLive(connection, transaction, actor) ||
+                !_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.rename") ||
+                !_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.file.read"))
+                return ModuleUnavailable<FileRecord>();
+            // Only the revision produced by this command is its acknowledgement.
+            // A legacy receipt has no revision: reconcile explicitly, never rerun.
+            if (receipt.ResultJson is null)
+                return Failure<FileRecord>("IdempotencyReplay", 409, "The rename completed; reconcile the current file state.");
+            if (receipt.ResultJson != System.Text.Json.JsonSerializer.Serialize(current.ETag) ||
+                current.Lifecycle != "Active" || current.OriginalName != safeName)
+                return Failure<FileRecord>("OperationSuperseded", 409, "The rename completed but the file was subsequently modified.");
+            transaction.Commit(); return IdentityOperationResult<FileRecord>.Success(current);
+        }
+        if (!receipt.IsClaimed)
+            return Failure<FileRecord>(receipt.IsConflict ? "IdempotencyConflict" : "RequestInProgress", 409,
+                "The request conflicts or is still in progress.");
         if (current.Lifecycle != "Active" || current.ScanState != "Clean")
-        { transaction.Rollback(); return Failure<FileRecord>("LifecycleLocked", 409, "Only clean active files can be renamed."); }
+            return Failure<FileRecord>("LifecycleLocked", 409, "Only clean active files can be renamed.");
         if (!string.Equals(Path.GetExtension(safeName), Path.GetExtension(current.OriginalName), StringComparison.OrdinalIgnoreCase))
-        { transaction.Rollback(); return Failure<FileRecord>("ValidationFailed", 422, "Rename must preserve the file extension."); }
-        var receiptFailure = CheckReceipt<FileRecord>(connection, transaction, actor, "files.file.rename", idempotencyKey,
-            $"file:{fileId:N}|etag:{ifMatch}|name:{safeName}", out var receipt);
-        if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
+            return Failure<FileRecord>("ValidationFailed", 422, "Rename must preserve the file extension.");
         if (!expectedVersion.AsSpan().SequenceEqual(DecodeETag(current.ETag))) { transaction.Rollback(); return Revision<FileRecord>(); }
         Execute(connection, transaction, "UPDATE [files].[FileObject] SET [OriginalName] = @Name, [UpdatedByUserId] = @Actor, [UpdatedAt] = SYSUTCDATETIME() WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [Lifecycle] <> 'Purged' AND [RowVersion] = @RowVersion;",
             ("@Name", SqlDbType.NVarChar, (object)safeName), ("@Actor", SqlDbType.UniqueIdentifier, (object)actor.UserId),
@@ -409,7 +426,8 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         if (updated is null) { transaction.Rollback(); return PersistenceFailure<FileRecord>(); }
         if (!SqlCurrentActor.IsLive(connection, transaction, actor))
         { transaction.Rollback(); return ModuleUnavailable<FileRecord>(); }
-        CompleteReceipt(connection, transaction, receipt, "FileRenamed");
+        _receipts.Complete(connection, transaction, receipt, "FileRenamed", 200,
+            System.Text.Json.JsonSerializer.Serialize(updated.ETag));
         transaction.Commit();
         return IdentityOperationResult<FileRecord>.Success(updated);
     }
@@ -646,9 +664,13 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             $"owner:{actor.OwnerId:N}|file:{fileId:N}|batch:{deletionBatchId:N}|etag:{ifMatch}", DateTime.UtcNow);
         if (claim.IsReplay)
         {
-            // Replay acknowledges the committed operation and projects current
-            // authorized metadata; it never revives a later deletion cohort.
             if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRecord>();
+            // Keep historical success separate from current lifecycle/revision.
+            // Legacy receipts also require explicit reconciliation.
+            if (claim.ResultJson is null)
+                return Failure<FileRecord>("IdempotencyReplay", 409, "The restore completed; reconcile the current file state.");
+            if (file.Lifecycle != "Active" || claim.ResultJson != System.Text.Json.JsonSerializer.Serialize(file.ETag))
+                return Failure<FileRecord>("OperationSuperseded", 409, "The restore completed but the file was subsequently modified.");
             transaction.Commit(); return IdentityOperationResult<FileRecord>.Success(file);
         }
         if (!claim.IsClaimed)
@@ -674,7 +696,8 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         var restored = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: false);
         if (restored is null) return PersistenceFailure<FileRecord>();
         if (!RestoreAuthority(connection, transaction, actor)) return ModuleUnavailable<FileRecord>();
-        _receipts.Complete(connection, transaction, claim, "FileRestored", 200);
+        _receipts.Complete(connection, transaction, claim, "FileRestored", 200,
+            System.Text.Json.JsonSerializer.Serialize(restored.ETag));
         transaction.Commit();
         return IdentityOperationResult<FileRecord>.Success(restored);
     }
