@@ -11,11 +11,11 @@ using Nexora.Infrastructure.Persistence;
 namespace Nexora.Infrastructure.Automation;
 
 /// <summary>Owner-private configuration. No scheduler, dispatch or provider authority.</summary>
-public sealed class SqlAutomationDefinitionService : IAutomationDefinitionService
+public sealed partial class SqlAutomationDefinitionService : IAutomationDefinitionService
 {
-    public static readonly string[] Actions = ["automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate"];
-    private const string Columns = "d.Id,d.Title,d.CurrentVersion,d.State,d.Enabled,d.UpdatedAt,d.RowVersion";
-    private const string ResourcePredicate = "EXISTS(SELECT 1 FROM [platform].[Resource] r WITH(HOLDLOCK) JOIN [platform].[ResourceType] rt ON rt.Id=r.ResourceTypeId JOIN [platform].[Module] m ON m.Id=rt.ModuleId WHERE r.OwnerId=d.OwnerId AND r.Id=d.Id AND r.Availability='Active' AND r.PurgedAt IS NULL AND rt.Code='AutomationDefinition' AND rt.ContractVersion='automation-definition-v1' AND m.Code='FX34')";
+    public static readonly string[] Actions = ["automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export"];
+    private const string Columns = "d.Id,d.Title,d.CurrentVersion,d.State,d.Enabled,d.UpdatedAt,d.RowVersion,(SELECT Availability FROM [platform].[Resource] WHERE OwnerId=d.OwnerId AND Id=d.Id) AS Lifecycle,d.DeletionBatchId";
+    private const string ResourcePredicate = "EXISTS(SELECT 1 FROM [platform].[Resource] r WITH(HOLDLOCK) JOIN [platform].[ResourceType] rt ON rt.Id=r.ResourceTypeId JOIN [platform].[Module] m ON m.Id=rt.ModuleId WHERE r.OwnerId=d.OwnerId AND r.Id=d.Id AND r.Availability IN('Active','Trash') AND r.PurgedAt IS NULL AND rt.Code='AutomationDefinition' AND rt.ContractVersion='automation-definition-v1' AND m.Code='FX34')";
     private readonly SqlConnectionFactory connections;
     private readonly SqlSelfCapability capabilities;
     private readonly SqlRequestReceiptStore receipts;
@@ -43,26 +43,28 @@ public sealed class SqlAutomationDefinitionService : IAutomationDefinitionServic
         var result = Actions.ToDictionary(a => a, a => Allowed(c, tx, actor, a));
         tx.Commit(); return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     });
-    public IdentityOperationResult<AutomationDefinitionPage> List(IdentityPrincipal actor, string? cursor, string? query) => Safe(() =>
+    public IdentityOperationResult<AutomationDefinitionPage> List(IdentityPrincipal actor, string? cursor, string? query, string lifecycle = "Active") => Safe(() =>
     {
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
         if (!Allowed(c, tx, actor, Actions[0])) return Denied<AutomationDefinitionPage>();
+        if (lifecycle is not ("Active" or "Trash")) return Fail<AutomationDefinitionPage>("ValidationFailed", 422, "Check the lifecycle filter.");
         query = query?.Trim() ?? "";
+        var cursorIdentity = JsonSerializer.Serialize(new { query, lifecycle });
         if (query.Length > 200 || query.Any(char.IsControl)) return Fail<AutomationDefinitionPage>("ValidationFailed", 422, "Check the title query.");
         DateTime at = default; Guid boundary = default;
-        if (cursor is not null && !cursors.TryDecode(cursor, actor.OwnerId, query, out at, out boundary)) return Missing<AutomationDefinitionPage>();
-        var selected = $"SELECT {Columns} FROM [automation].[Definition] d WITH(HOLDLOCK) WHERE d.OwnerId=@Owner AND d.CurrentVersion IS NOT NULL AND {ResourcePredicate} AND (@Query='' OR CHARINDEX(@Query,d.Title)>0)";
+        if (cursor is not null && !cursors.TryDecode(cursor, actor.OwnerId, cursorIdentity, out at, out boundary)) return Missing<AutomationDefinitionPage>();
+        var selected = $"SELECT {Columns} FROM [automation].[Definition] d WITH(HOLDLOCK) WHERE d.OwnerId=@Owner AND d.CurrentVersion IS NOT NULL AND {ResourcePredicate} AND EXISTS(SELECT 1 FROM [platform].[Resource] r WHERE r.OwnerId=d.OwnerId AND r.Id=d.Id AND r.Availability=@Lifecycle) AND (@Query='' OR CHARINDEX(@Query,d.Title)>0)";
         using var cmd = Command(c, tx, $"WITH selected AS ({selected}) SELECT TOP(26) * FROM selected WHERE @Boundary IS NULL OR UpdatedAt<@At OR(UpdatedAt=@At AND Id<@Boundary) ORDER BY UpdatedAt DESC,Id DESC;", actor.OwnerId);
-        Add(cmd, "@Query", SqlDbType.NVarChar, query, 200); Add(cmd, "@Boundary", SqlDbType.UniqueIdentifier, cursor is null ? null : boundary); Add(cmd, "@At", SqlDbType.DateTime2, cursor is null ? null : at);
+        Add(cmd, "@Lifecycle", SqlDbType.VarChar, lifecycle, 16); Add(cmd, "@Query", SqlDbType.NVarChar, query, 200); Add(cmd, "@Boundary", SqlDbType.UniqueIdentifier, cursor is null ? null : boundary); Add(cmd, "@At", SqlDbType.DateTime2, cursor is null ? null : at);
         if (cursor is not null)
         {
             using var anchor = Command(c, tx, $"WITH selected AS ({selected}) SELECT 1 FROM selected WHERE Id=@Boundary AND UpdatedAt=@At;", actor.OwnerId);
-            Add(anchor, "@Query", SqlDbType.NVarChar, query, 200); Add(anchor, "@Boundary", SqlDbType.UniqueIdentifier, boundary); Add(anchor, "@At", SqlDbType.DateTime2, at);
+            Add(anchor, "@Lifecycle", SqlDbType.VarChar, lifecycle, 16); Add(anchor, "@Query", SqlDbType.NVarChar, query, 200); Add(anchor, "@Boundary", SqlDbType.UniqueIdentifier, boundary); Add(anchor, "@At", SqlDbType.DateTime2, at);
             if (anchor.ExecuteScalar() is null) return Missing<AutomationDefinitionPage>();
         }
         var items = Rows(cmd);
         if (!Allowed(c, tx, actor, Actions[0])) return Denied<AutomationDefinitionPage>();
-        var next = items.Count > 25 ? cursors.Encode(actor.OwnerId, query, items[24].UpdatedAt.UtcDateTime, items[24].Id) : null;
+        var next = items.Count > 25 ? cursors.Encode(actor.OwnerId, cursorIdentity, items[24].UpdatedAt.UtcDateTime, items[24].Id) : null;
         tx.Commit(); return IdentityOperationResult<AutomationDefinitionPage>.Success(new(items.Take(25).ToArray(), next));
     });
     public IdentityOperationResult<AutomationDefinitionDetail> Get(IdentityPrincipal actor, Guid id) => Safe(() =>
@@ -91,14 +93,16 @@ public sealed class SqlAutomationDefinitionService : IAutomationDefinitionServic
         if (!Allowed(c, tx, actor, "automation.definition.validate")) return Denied<AutomationDefinitionValidation>();
         var shape = AutomationDefinitionContract.Parse(command.DefinitionJson);
         var titleValid = AutomationDefinition.TryTitle(command.Title, out _);
+        var referenceCode = shape.Accepted && titleValid ? CheckTargets(c, tx, actor, shape.Definition!) : "DefinitionInvalid";
         if (!Allowed(c, tx, actor, "automation.definition.validate")) return Denied<AutomationDefinitionValidation>();
-        tx.Commit(); return IdentityOperationResult<AutomationDefinitionValidation>.Success(new(titleValid && shape.Accepted, titleValid ? shape.Code : "TitleInvalid", false, false));
+        tx.Commit(); return IdentityOperationResult<AutomationDefinitionValidation>.Success(new(titleValid && shape.Accepted,
+            !titleValid ? "TitleInvalid" : !shape.Accepted ? shape.Code : referenceCode ?? "DefinitionReferencesAccepted", false, false, referenceCode is null));
     });
     public IdentityOperationResult<AutomationDefinitionAcknowledgement> Create(IdentityPrincipal actor, AutomationDefinitionCommand command, string key, string? trace) => Mutate(actor, null, null, command, key, trace);
     public IdentityOperationResult<AutomationDefinitionAcknowledgement> Save(IdentityPrincipal actor, Guid id, string? etag, AutomationDefinitionCommand command, string key, string? trace) => Mutate(actor, id, etag, command, key, trace);
-    private IdentityOperationResult<AutomationDefinitionAcknowledgement> Mutate(IdentityPrincipal actor, Guid? id, string? etag, AutomationDefinitionCommand body, string key, string? trace) => Safe(() =>
+    private IdentityOperationResult<AutomationDefinitionAcknowledgement> Mutate(IdentityPrincipal actor, Guid? id, string? etag, AutomationDefinitionCommand body, string key, string? trace, string? actionOverride = null) => Safe(() =>
     {
-        var action = id is null ? "automation.definition.create" : "automation.definition.save";
+        var action = actionOverride ?? (id is null ? "automation.definition.create" : "automation.definition.save");
         if (!Guid.TryParse(key, out var uuid) || uuid == Guid.Empty) return Fail<AutomationDefinitionAcknowledgement>("IdempotencyKeyRequired", 422, "Supply a nonempty UUID.");
         if (id is not null && string.IsNullOrWhiteSpace(etag)) return Fail<AutomationDefinitionAcknowledgement>("PreconditionRequired", 428, "If-Match is required.");
         if (id is not null && !ValidETag(etag)) return Fail<AutomationDefinitionAcknowledgement>("ValidationFailed", 422, "Supply one valid ETag.");
@@ -120,6 +124,12 @@ public sealed class SqlAutomationDefinitionService : IAutomationDefinitionServic
         if (!claim.IsClaimed) return Fail<AutomationDefinitionAcknowledgement>("RequestInProgress", 409, "Retry the same command.");
         if (!AutomationDefinition.TryTitle(body.Title, out var title) || !AutomationDefinitionContract.Parse(body.DefinitionJson).Accepted)
             return Fail<AutomationDefinitionAcknowledgement>("ValidationFailed", 422, "Check the title and registered definition shape.");
+        if (action == "automation.definition.import")
+        {
+            var targetCode = CheckTargets(c, tx, actor, AutomationDefinitionContract.Parse(body.DefinitionJson).Definition!);
+            if (targetCode is not null) return Fail<AutomationDefinitionAcknowledgement>(targetCode, 422, "Rebind targets to permitted active Projects and their time bounds before import.");
+        }
+        if (item is not null && item.Lifecycle != "Active") return Fail<AutomationDefinitionAcknowledgement>("LifecycleLocked", 409, "Restore before editing.");
         if (item is not null && item.ETag != etag) return Fail<AutomationDefinitionAcknowledgement>("RevisionConflict", 412, "Compare the current definition before saving.");
         if (item is not null && !AutomationDefinition.CanSave(item.State, item.Enabled)) return Fail<AutomationDefinitionAcknowledgement>("LifecycleLocked", 409, "Disable before editing.");
         var definitionId = id ?? Guid.NewGuid(); var number = (item?.CurrentVersion ?? 0) + 1;
@@ -158,7 +168,7 @@ public sealed class SqlAutomationDefinitionService : IAutomationDefinitionServic
     private static List<AutomationDefinitionRecord> Rows(SqlCommand cmd)
     {
         using var r = cmd.ExecuteReader(); var result = new List<AutomationDefinitionRecord>();
-        while (r.Read()) result.Add(new(r.GetGuid(0), r.GetString(1), r.GetInt64(2), r.GetString(3), r.GetBoolean(4), Utc(r.GetDateTime(5)), '"' + Convert.ToBase64String(r.GetFieldValue<byte[]>(6)) + '"')); return result;
+        while (r.Read()) result.Add(new(r.GetGuid(0), r.GetString(1), r.GetInt64(2), r.GetString(3), r.GetBoolean(4), Utc(r.GetDateTime(5)), '"' + Convert.ToBase64String(r.GetFieldValue<byte[]>(6)) + '"', r.GetString(7), r.IsDBNull(8) ? null : r.GetGuid(8))); return result;
     }
     private static List<AutomationDefinitionVersion> Versions(SqlConnection c, SqlTransaction tx, Guid owner, Guid id, long before, int take)
     {

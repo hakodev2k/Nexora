@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Nexora.Api.Http;
 using Nexora.Api.Security;
 using Nexora.Application.Automation;
@@ -11,14 +12,28 @@ public static class AutomationDefinitionEndpoints
     {
         var api = app.MapGroup("/api/v1/automation/definitions").RequireCsrfForUnsafeMethods(256 * 1024);
         api.MapGet("/capabilities", (HttpContext c, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Capabilities(a)));
-        api.MapGet("/", (HttpContext c, string? cursor, string? query, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.List(a, cursor, query)));
+        api.MapGet("/", (HttpContext c, string? cursor, string? query, string? lifecycle, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.List(a, cursor, query, lifecycle ?? "Active")));
         api.MapGet("/{id:guid}", (HttpContext c, Guid id, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Get(a, id)));
         api.MapGet("/{id:guid}/versions", (HttpContext c, Guid id, long? beforeVersion, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.History(a, id, beforeVersion)));
         api.MapPost("/validate", (HttpContext c, AutomationDefinitionCommand body, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Validate(a, body)));
         api.MapPost("/", (HttpContext c, AutomationDefinitionCommand body, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Create(a, body, c.Request.Headers["Idempotency-Key"].ToString(), c.TraceIdentifier)));
         api.MapPut("/{id:guid}", (HttpContext c, Guid id, AutomationDefinitionCommand body, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Save(a, id, c.Request.Headers.IfMatch.ToString(), body, c.Request.Headers["Idempotency-Key"].ToString(), c.TraceIdentifier)));
+        api.MapGet("/{id:guid}/export", (HttpContext c, Guid id, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Export(a, id)));
+        api.MapPost("/import", (HttpContext c, JsonElement body, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a =>
+        {
+            var fields = body.ValueKind == JsonValueKind.Object ? body.EnumerateObject().ToArray() : [];
+            if (fields.Length != 3 || fields.Select(p => p.Name).Distinct(StringComparer.Ordinal).Count() != 3 ||
+                !body.TryGetProperty("schemaVersion", out var schema) || schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var number) || number != 1 ||
+                !body.TryGetProperty("title", out var title) || title.ValueKind != JsonValueKind.String ||
+                !body.TryGetProperty("definitionJson", out var json) || json.ValueKind != JsonValueKind.String)
+                return IdentityOperationResult<AutomationDefinitionAcknowledgement>.Failure("DefinitionSchemaInvalid", 422, "Check the portable definition envelope.");
+            return s.Import(a, new(number, title.GetString()!, json.GetString()!), c.Request.Headers["Idempotency-Key"].ToString(), c.TraceIdentifier);
+        }));
+        api.MapPost("/{id:guid}/trash", (HttpContext c, Guid id, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Trash(a, id, c.Request.Headers.IfMatch.ToString(), c.Request.Headers["Idempotency-Key"].ToString(), c.TraceIdentifier)));
+        api.MapPost("/{id:guid}/restore", (HttpContext c, Guid id, RestoreCommand body, IAutomationDefinitionService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Restore(a, id, body.DeletionBatchId, c.Request.Headers.IfMatch.ToString(), c.Request.Headers["Idempotency-Key"].ToString(), c.TraceIdentifier)));
         return app;
     }
+    public sealed record RestoreCommand(Guid DeletionBatchId);
     private static IResult Run<T>(HttpContext c, IIdentityService identity, SessionCookieService cookies, Func<IdentityPrincipal, IdentityOperationResult<T>> work)
     {
         c.Response.Headers.CacheControl = "no-store";

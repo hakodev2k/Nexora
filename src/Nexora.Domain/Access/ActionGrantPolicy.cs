@@ -266,7 +266,7 @@ public static class ActionGrantPolicy
 
     // Local configuration only; no run/schedule/dispatch/enable actions.
     private static readonly HashSet<string> ApprovedAutomationDefinitionActions = new(StringComparer.Ordinal)
-    { "automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate" };
+    { "automation.definition.read", "automation.definition.create", "automation.definition.save", "automation.definition.history", "automation.definition.validate", "automation.definition.trash", "automation.definition.restore", "automation.definition.import", "automation.definition.export" };
 
     // Exact reviewed private file subset; other file handlers remain inactive.
     private static readonly HashSet<string> ApprovedFilesActions = new(StringComparer.Ordinal)

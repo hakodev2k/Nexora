@@ -1,0 +1,9 @@
+# FX34 lifecycle implementation — 2026-10-11
+
+Base PR4 f2785e6; authoritative main8782f46. Exact actions automation.definition.trash/restore/import/export/validate; P06-AUT-002/006/012/013/014; FX34-S01/S02/S03. Status PARTIALLY_IMPLEMENTED (source implemented, runtime unverified).
+
+Production: owner/filter/lifecycle-bound fixed25 list; owner-private export; strict version1 portable import into new Draft with current Project/permission/time-bound validation; transactional disabled Trash/Restore with deletion cohort and immutable version retention. Historical receipt ACK never replays a later effect; React current-state reconciliation, pending command identity, conflict handling and leave/unmount guards. Four exact metadata permissions resolved only; execution/provider activation remains disabled. Additive migration0048 included manifest; applied migrations unchanged. Retained SQL journal unavailable, migration NOT_APPLIED.
+
+Actual compile checks: .NET10 API Release build (single worker, no restore) PASS,0warnings0errors. Frontend tsc/vite build PASS (existing >500KiB bundle warning). git diff --check PASS. Independent source/security/migration reviewer found lifecycle leave/unmount gap; corrected and reviewed again with no remaining confirmed source blocker. No functional/unit/integration/browser tests or fixtures added/run (code-only PO amendment). SQL/API/browser acceptance NOT_RUN; this is not VERIFIED_COMPLETE.
+
+Remaining FX34: enable/disable execution readiness, durable scheduler/manual execution, run/step persistence and screens, safe Task dispatch/recovery/retry/cancel/timeouts, notifications, verified DryRun, remaining catalog actions. FX35/FX30 and other missing modules remain incomplete; this slice does not mark Release1 complete. Rollback: disable FX34/revert application source; retain SQL definitions/versions/cohorts and immutable migration history.
