@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Nexora.Api.Features.Productivity;
 
 /// <summary>
@@ -38,6 +40,15 @@ public sealed record TaskRequest(
     DateTimeOffset? ReminderAt = null,
     bool ConfirmProjectTimeBounds = false,
     bool ManageReminder = false);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record TaskUpdateRequest(string Title, string? Description, DateTimeOffset? DueAt, DateTimeOffset StartAt, DateTimeOffset EndAt, string? Priority = null, string? TagsJson = null, bool ConfirmProjectTimeBounds = false);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record TaskReorderRequest(int Rank);
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record TaskCriteriaRequest(string AcceptanceCriteriaJson);
 
 public sealed record TaskResponse(
     Guid Id,

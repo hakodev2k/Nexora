@@ -1,5 +1,7 @@
 # Verification continuation at 028d94 + FX35 source
 
+> Historical checkpoint; see `continuation-20261013-code-only.md` for current branch, checks and scope. Subsequent selected SQL/API190/190, backend unit49/49 and frontend125pass/1existing skip were executed before the current code-only amendment and before the new FX22 delta. They are not fresh whole-tree functional acceptance for the current source. No browser E2E/Docker-hosted CI result is claimed. Raw private artifacts remain excluded.
+
 Main8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3; PR4 parent028d94a064f000a48c8bd793c4996e5fc0475119. Exact changed-source hash set to be published in this directory. New user authorizes focused local synthetic testing; earlier code-only gates are superseded for this continuation. No retained database/data/provider or credential used; local Windows integrated authentication with new fixture-owned loopback SQL Express database, safe cleanup. Existing raw artifacts remain excluded from commit.
 
 | Command/scope | Actual outcome | Limits |

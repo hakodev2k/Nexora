@@ -150,7 +150,7 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
             {
                 using var tx = c.BeginTransaction(IsolationLevel.Serializable); LockOwner(c, tx, actor);
                 var current = Read(c, tx, item.Owner, item.Id);
-                if (current is null || current.State != "Running" || current.RemainingMilliseconds != 0 || !capabilities.IsAllowed(c, tx, actor, "FX19", "focus.session.start")) continue;
+                if (current is null || current.State != "Running" || current.RemainingMilliseconds != 0 || !capabilities.IsAllowedForFocusCompletion(c, tx, actor)) continue;
                 using var finish = Command(c, tx, """
                     UPDATE [time].[FocusSession]
                     SET State='Completed',IsActive=0,
@@ -161,7 +161,7 @@ public sealed class SqlFocusService : IFocusService, IFocusPhaseFinisher
                 Add(finish, "@Id", item.Id); if (finish.ExecuteNonQuery() != 1) continue;
                 LocalModuleNotificationWriter.FocusCompleted(c, tx, item.User, item.Id, current.Phase);
                 Audit(c, tx, actor, "focus.session.finish_phase", item.Id, system: true);
-                if (!capabilities.IsAllowed(c, tx, actor, "FX19", "focus.session.start")) continue;
+                if (!capabilities.IsAllowedForFocusCompletion(c, tx, actor)) continue;
                 tx.Commit();
             }
             catch (SqlException)

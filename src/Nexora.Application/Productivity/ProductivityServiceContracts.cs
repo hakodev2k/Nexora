@@ -47,6 +47,8 @@ public sealed record TaskCommand(
     bool ConfirmProjectTimeBounds = false,
     bool ManageReminder = false);
 
+public sealed record TaskEditCommand(string Title, string? Description, DateTimeOffset? DueAt, DateTimeOffset StartAt, DateTimeOffset EndAt, string? Priority = null, string? TagsJson = null, bool ConfirmProjectTimeBounds = false);
+
 public sealed record TaskRecord(
     Guid Id,
     Guid ProjectId,
@@ -110,6 +112,9 @@ public interface IProductivityService
     IdentityOperationResult<TaskRecord> GetTask(IdentityPrincipal actor, Guid taskId);
     IdentityOperationResult<TaskRecord> CreateTask(IdentityPrincipal actor, TaskCommand command, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null);
+    IdentityOperationResult<TaskRecord> EditTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskEditCommand command, string? idempotencyKey = null, string? traceId = null);
+    IdentityOperationResult<TaskRecord> ReorderTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, int rank, string? idempotencyKey = null, string? traceId = null);
+    IdentityOperationResult<TaskRecord> SetTaskCriteria(IdentityPrincipal actor, Guid taskId, string? ifMatch, string criteriaJson, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<TaskRecord> TransitionTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<object?> DeleteTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string? idempotencyKey = null, string? traceId = null);
 

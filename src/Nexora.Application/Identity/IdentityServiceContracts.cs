@@ -12,10 +12,14 @@ public sealed record IdentityOperationResult<T>(
     T? Value,
     string Code,
     int StatusCode,
-    string Title)
+    string Title,
+    CommittedResourceAcknowledgement? Acknowledgement = null)
 {
     public static IdentityOperationResult<T> Success(T value, int statusCode = 200, string code = "Ok") =>
         new(true, value, code, statusCode, code);
+
+    public static IdentityOperationResult<T> Committed(Guid id, int statusCode, string code) =>
+        new(true, default, code, statusCode, code, new(id, true, false));
 
     public static IdentityOperationResult<T> NoContent(string code = "NoContent") =>
         new(true, default, code, 204, code);
@@ -23,6 +27,8 @@ public sealed record IdentityOperationResult<T>(
     public static IdentityOperationResult<T> Failure(string code, int statusCode, string title) =>
         new(false, default, code, statusCode, title);
 }
+
+public sealed record CommittedResourceAcknowledgement(Guid Id, bool Committed, bool DetailAvailable);
 
 public sealed record IdentityAccepted(string Status, string MessageCode);
 

@@ -41,27 +41,38 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
 
         using var connection = _connections.Create();
         connection.Open();
-        var source = ReadSource(connection, null, actor.OwnerId, sourceType, sourceId, false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.read") ||
+            !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceReadAction)) return ModuleUnavailable<ReminderSourceView>();
+        var source = ReadSource(connection, transaction, actor.OwnerId, sourceType, sourceId, false);
         if (source is null) return SourceUnavailable<ReminderSourceView>();
-        return IdentityOperationResult<ReminderSourceView>.Success(ToView(connection, null, source));
+        var view = ToView(connection, transaction, source);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.read") ||
+            !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceReadAction)) return ModuleUnavailable<ReminderSourceView>();
+        transaction.Commit();
+        return IdentityOperationResult<ReminderSourceView>.Success(view);
     }
 
     public IdentityOperationResult<ReminderSourceView> Set(IdentityPrincipal actor, string sourceType, Guid sourceId,
         string? ifMatch, ReminderSetCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!TrySourceCapability(sourceType, out var sourceModule, out _, out var sourceWriteAction)) return SourceUnavailable<ReminderSourceView>();
-        if (!ModuleAvailable(actor, "FX14", "reminders.configuration.set") ||
+        if (!TryNormalizeConfiguration(command.ConfigType, out var configType)) return Validation<ReminderSourceView>("The reminder configuration type is not supported.");
+        var platformAction = configType == ReminderConfigurationTypes.None ? "reminders.configuration.remove" : "reminders.configuration.set";
+        if (!TrySourceCapability(sourceType, out var sourceModule, out _, out var sourceWriteAction, configType == ReminderConfigurationTypes.None)) return SourceUnavailable<ReminderSourceView>();
+        if (!ModuleAvailable(actor, "FX14", platformAction) ||
             !ModuleAvailable(actor, sourceModule, sourceWriteAction))
         {
             return ModuleUnavailable<ReminderSourceView>();
         }
         if (!TryDecodeETag(command.SourceETag, out var expectedSourceVersion)) return SourcePrecondition<ReminderSourceView>(command.SourceETag);
-        if (!TryNormalizeConfiguration(command.ConfigType, out var configType)) return Validation<ReminderSourceView>("The reminder configuration type is not supported.");
         if (!TryValidateExactPrecondition(ifMatch, out var expectedReminderVersion)) return ReminderPrecondition<ReminderSourceView>(ifMatch);
 
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX14", platformAction) ||
+            !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceWriteAction))
+            return Rollback(transaction, ModuleUnavailable<ReminderSourceView>());
         var receiptFailure = CheckReceipt<ReminderSourceView>(connection, transaction, actor, "reminders.configuration.set", idempotencyKey,
             $"source:{sourceType}|id:{sourceId:N}|sourceEtag:{command.SourceETag}|reminderEtag:{ifMatch}|config:{configType}|exact:{command.ExactAt?.UtcDateTime:O}", out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
@@ -71,7 +82,7 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         if (receipt.IsReplay)
         {
             if (!source.AccountActive) return Rollback(transaction, ModuleUnavailable<ReminderSourceView>());
-            return Rollback(transaction, ReplayReceipt<ReminderSourceView>(connection, transaction, source, receipt));
+            return Rollback(transaction, ReplayReceipt<ReminderSourceView>(connection, transaction, actor, source, receipt));
         }
         if (!expectedSourceVersion.AsSpan().SequenceEqual(source.RowVersion)) return Rollback(transaction, Revision<ReminderSourceView>("The source revision changed."));
 
@@ -89,7 +100,7 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         {
             return Rollback(transaction, Failure<ReminderSourceView>(schedule.Code ?? "ValidationFailed", 422, schedule.Title ?? "The reminder schedule is invalid."));
         }
-        if (configType != ReminderConfigurationTypes.None && !source.CanConfigure)
+        if (!source.CanConfigure)
         {
             return Rollback(transaction, LifecycleLocked<ReminderSourceView>());
         }
@@ -112,14 +123,18 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         WriteAudit(connection, transaction, actor.UserId, actor.UserId, reminder.Id, "reminders.configuration.set", traceId);
         var response = ToView(connection, transaction, source);
         CompleteReceipt(connection, transaction, receipt, "ReminderConfigured", current is null ? 201 : 200, JsonSerializer.Serialize(response));
+        var projected = ReminderProjection(connection, transaction, actor, source, response, current is null ? 201 : 200, "ReminderConfigured");
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX14", platformAction) ||
+            !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceWriteAction))
+            return Rollback(transaction, ModuleUnavailable<ReminderSourceView>());
         transaction.Commit();
-        return IdentityOperationResult<ReminderSourceView>.Success(response, current is null ? 201 : 200, "ReminderConfigured");
+        return projected;
     }
 
     public IdentityOperationResult<object?> Remove(IdentityPrincipal actor, string sourceType, Guid sourceId,
         string? ifMatch, ReminderRemoveCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!TrySourceCapability(sourceType, out var sourceModule, out _, out var sourceWriteAction)) return SourceUnavailable<object?>();
+        if (!TrySourceCapability(sourceType, out var sourceModule, out _, out var sourceWriteAction, remove: true)) return SourceUnavailable<object?>();
         if (!ModuleAvailable(actor, "FX14", "reminders.configuration.remove") ||
             !ModuleAvailable(actor, sourceModule, sourceWriteAction))
         {
@@ -131,6 +146,9 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.remove") ||
+            !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceWriteAction))
+            return Rollback(transaction, ModuleUnavailable<object?>());
         var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "reminders.configuration.remove", idempotencyKey,
             $"source:{sourceType}|id:{sourceId:N}|sourceEtag:{command.SourceETag}|reminderEtag:{ifMatch}", out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
@@ -140,8 +158,9 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         if (receipt.IsReplay)
         {
             if (!source.AccountActive) return Rollback(transaction, ModuleUnavailable<object?>());
-            return Rollback(transaction, ReplayReceipt<object?>(connection, transaction, source, receipt));
+            return Rollback(transaction, ReplayReceipt<object?>(connection, transaction, actor, source, receipt));
         }
+        if (!source.CanConfigure) return Rollback(transaction, LifecycleLocked<object?>());
         if (!expectedSourceVersion.AsSpan().SequenceEqual(source.RowVersion)) return Rollback(transaction, Revision<object?>("The source revision changed."));
         var current = ReadReminder(connection, transaction, actor.OwnerId, sourceType, sourceId, true);
         if (current is null) return Rollback(transaction, SourceUnavailable<object?>());
@@ -164,6 +183,9 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         InsertIntent(connection, transaction, source, removed, "InvalidateRequested");
         WriteAudit(connection, transaction, actor.UserId, actor.UserId, removed.Id, "reminders.configuration.remove", traceId);
         CompleteReceipt(connection, transaction, receipt, "ReminderRemoved", 204);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.remove") ||
+            !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceWriteAction))
+            return Rollback(transaction, ModuleUnavailable<object?>());
         transaction.Commit();
         return IdentityOperationResult<object?>.Success(null, 204, "ReminderRemoved");
     }
@@ -753,7 +775,7 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
         _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
 
     private IdentityOperationResult<T> ReplayReceipt<T>(SqlConnection connection, SqlTransaction transaction,
-        ReminderSourceSnapshot source, ReceiptClaim claim)
+        IdentityPrincipal actor, ReminderSourceSnapshot source, ReceiptClaim claim)
     {
         if (claim.ResultStatusCode == 204)
             return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "NoContent");
@@ -761,23 +783,36 @@ public sealed class SqlReminderService : IReminderService, IReminderDispatchServ
             return Failure<T>("IdempotencyReplayUnavailable", 409, "The idempotent response is unavailable; retry with a new key.");
 
         var current = ToView(connection, transaction, source);
-        return IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+        var projection = ReminderProjection(connection, transaction, actor, source, current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+        return projection.Acknowledgement is { } acknowledgement
+            ? IdentityOperationResult<T>.Committed(acknowledgement.Id, projection.StatusCode, projection.Code)
+            : IdentityOperationResult<T>.Success((T)(object)current, projection.StatusCode, projection.Code);
     }
 
-    private static bool TrySourceCapability(string? sourceType, out string moduleCode, out string readAction, out string writeAction)
+    private IdentityOperationResult<ReminderSourceView> ReminderProjection(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, ReminderSourceSnapshot source, ReminderSourceView value, int status, string code)
+    {
+        return TrySourceCapability(source.SourceType, out var module, out var readAction, out _) &&
+            _capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.read") &&
+            _capabilities.IsAllowed(connection, transaction, actor, module, readAction)
+                ? IdentityOperationResult<ReminderSourceView>.Success(value, status, code)
+                : IdentityOperationResult<ReminderSourceView>.Committed(source.SourceId, status, code);
+    }
+
+    private static bool TrySourceCapability(string? sourceType, out string moduleCode, out string readAction, out string writeAction, bool remove = false)
     {
         if (sourceType == ReminderSourceTypes.Task)
         {
             moduleCode = "FX12";
             readAction = "tasks.task.read";
-            writeAction = "tasks.task.update";
+            writeAction = remove ? "tasks.task.remove_reminder" : "tasks.task.set_reminder";
             return true;
         }
         if (sourceType == ReminderSourceTypes.CalendarEvent)
         {
             moduleCode = "FX13";
             readAction = "calendar.event.read";
-            writeAction = "calendar.event.update";
+            writeAction = remove ? "calendar.event.remove_reminder" : "calendar.event.set_reminder";
             return true;
         }
         moduleCode = readAction = writeAction = string.Empty;

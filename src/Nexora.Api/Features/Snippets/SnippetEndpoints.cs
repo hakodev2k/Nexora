@@ -12,10 +12,10 @@ public static class SnippetEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
-        api.MapGet("/snippets", (HttpContext context, bool? includeArchived, string? query, int? limit,
+        api.MapGet("/snippets", (HttpContext context, bool? includeArchived, string? query, int? limit, string? cursor,
             ISnippetService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, includeArchived ?? false, query, limit),
+                principal => service.List(principal, includeArchived ?? false, query, limit, cursor),
                 value => new SnippetPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listSnippets");
 
@@ -66,6 +66,8 @@ public static class SnippetEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         if (result.Succeeded && result.Value is SnippetRecord snippet)
             context.Response.Headers.ETag = snippet.ETag;
         return result.Succeeded && result.Value is not null

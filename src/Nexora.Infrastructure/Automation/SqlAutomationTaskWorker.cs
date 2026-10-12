@@ -55,10 +55,11 @@ public sealed partial class SqlAutomationDefinitionService
             }
             catch(SqlException) { result=IdentityOperationResult<TaskRecord>.Failure("StorageUnavailable",503,"Task storage unavailable."); }
             catch(InvalidOperationException) { result=IdentityOperationResult<TaskRecord>.Failure("StorageUnavailable",503,"Task storage unavailable."); }
-            if(result.Succeeded && result.Value is { } task)
+            var committedTaskId = result.Value?.Id ?? result.Acknowledgement?.Id;
+            if(result.Succeeded && committedTaskId is { } taskId)
             {
                 using var complete=Command(c,tx,"UPDATE [automation].[StepRun] SET State='Succeeded',TaskId=@Task,Code='TaskCreated',EffectUncertain=0 WHERE OwnerId=@Owner AND RunId=@Run AND StepId=@Step AND State='Running';",work.Owner);
-                Add(complete,"@Run",SqlDbType.UniqueIdentifier,work.Id); Add(complete,"@Step",SqlDbType.Int,pending.Id); Add(complete,"@Task",SqlDbType.UniqueIdentifier,task.Id); if(complete.ExecuteNonQuery()!=1)throw new InvalidOperationException();
+                Add(complete,"@Run",SqlDbType.UniqueIdentifier,work.Id); Add(complete,"@Step",SqlDbType.Int,pending.Id); Add(complete,"@Task",SqlDbType.UniqueIdentifier,taskId); if(complete.ExecuteNonQuery()!=1)throw new InvalidOperationException();
                 using(var remaining=Command(c,tx,"SELECT 1 FROM [automation].[StepRun] WHERE OwnerId=@Owner AND RunId=@Run AND State<>'Succeeded';",work.Owner))
                 { Add(remaining,"@Run",SqlDbType.UniqueIdentifier,work.Id); if(remaining.ExecuteScalar() is null) Finish(c,tx,work.Owner,work.Id,"Succeeded","RunSucceeded",false); else Release(c,tx,work,0); }
                 Audit(c,tx,work.Actor,"automation.step.dispatch",work.Id,null); tx.Commit(); return;

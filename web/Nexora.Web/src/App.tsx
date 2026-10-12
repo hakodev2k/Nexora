@@ -1,3 +1,4 @@
+import { isProductivityAcknowledgement } from './api';
 import { IntegrationConnectionsScreen } from './IntegrationConnectionsScreen';
 import { AutomationScreen } from './AutomationScreen';
 import { FileListFilters, type FileFilters } from './FileListFilters';
@@ -137,6 +138,9 @@ import {
   updateMe,
   updateProject,
   updateTask,
+  transitionTask,
+  setTaskCriteria,
+  reorderTask,
   verifyEmail,
   transitionProject,
   transitionCalendarEvent,
@@ -1641,6 +1645,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [caps, setCaps] = useState<Record<string, boolean>>({});
   const [leave, setLeave] = useState<{ proceed: () => void } | null>(null);
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const flight = useRef(false); const generation = useRef(0);
   async function fail(requestError: unknown, stamp: number) {
@@ -1682,6 +1687,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
   return <section className="content-section" aria-labelledby="files-title">
     <div className="content-heading"><div><p className="eyebrow">FX07 / FILES</p><h1 id="files-title">Files & attachments</h1><p className="lead">Upload và scan local, đọc danh sách, tải xuống private. Mỗi request kiểm tra owner, quyền hiện tại, lifecycle và scan state.</p></div><button className="secondary-button" type="button" disabled={loading || busy || (renaming !== null || (trashingId !== null || restoringId !== null))} onClick={() => void load()}>Tải lại</button></div>
+    {restoreNotice && <Notice kind="info">{restoreNotice}</Notice>}
     {error && <Notice kind="error">{error.message}</Notice>}
     <FileListFilters initial={filters} disabled={loading || busy || (renaming !== null || (trashingId !== null || restoringId !== null))} onApply={value => { setCursor(null); setFilters(value); }} />
     <form className="form-panel" onSubmit={upload} noValidate>
@@ -1693,7 +1699,7 @@ function FilesScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       {loading ? <p role="status">Đang tải file…</p> : error ? <p>Danh sách chưa được cập nhật. Hãy tải lại hoặc sửa bộ lọc.</p> : !caps['files.file.read'] ? <div className="empty-state"><h3>Không có quyền xem files</h3><p>Danh sách bị từ chối theo module/action hiện tại.</p></div> : files.length === 0 ? <div className="empty-state"><h3>{filters.query || filters.mediaType || filters.scanState || filters.lifecycle !== 'Active' ? 'Không có file khớp bộ lọc' : 'Chưa có file'}</h3><p>Không có file được phép hiển thị trong selection này.</p></div> : <div className="resource-cards">{files.map(file => <article className="resource-card" key={file.id}><div><h3>{file.originalName}</h3><p className="muted">{file.mediaType} · {Math.ceil(file.byteLength / 1024)} KiB · {file.scanState} · {file.lifecycle} · cập nhật {dateTime(file.updatedAt)}</p></div><div className="resource-actions">{caps['files.file.read'] && <button className="secondary-button" type="button" disabled={loading || busy || (renaming !== null || (trashingId !== null || restoringId !== null))} onClick={() => setDetailId(file.id)}>Chi tiết</button>}{caps['files.file.rename'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <button className="secondary-button" type="button" disabled={loading || busy} onClick={() => setRenaming(file)}>Đổi tên</button>}{caps['files.file.restore'] === true && file.lifecycle === 'Trash' && <button className="secondary-button" type="button" disabled={loading || busy || renaming !== null || trashingId !== null || restoringId !== null || selected !== null} onClick={() => setRestoringId(file.id)}>Restore</button>}{caps['files.file.trash'] === true && file.lifecycle === 'Active' && file.scanState === 'Clean' && <button className="danger-button" type="button" disabled={loading || busy || renaming !== null || (trashingId !== null || restoringId !== null) || selected !== null} onClick={() => setTrashingId(file.id)}>Move to Trash</button>}{caps['files.file.download'] && file.lifecycle === 'Active' && file.scanState === 'Clean' && <a className="secondary-button" href={fileContentUrl(file.id)} target="_blank" rel="noreferrer">Tải xuống</a>}</div></article>)}</div>}
     </div>
     {cursor && !error && <button className="secondary-button" type="button" disabled={loading || busy || (renaming !== null || (trashingId !== null || restoringId !== null))} onClick={() => void load(true)}>Tải thêm files</button>}
-    {restoringId && <FileRestoreDialog key={restoringId} fileId={restoringId} onClose={() => setRestoringId(null)} onDone={() => { setRestoringId(null); void load(); }} onDenied={() => { setRestoringId(null); setFiles([]); setCursor(null); setCaps({}); void load(); }} />}
+    {restoringId && <FileRestoreDialog key={restoringId} fileId={restoringId} onClose={() => setRestoringId(null)} onDone={detailAvailable => { setRestoringId(null); setRestoreNotice(detailAvailable === false ? 'Lệnh Restore trước đã hoàn tất; trạng thái file hiện tại đã thay đổi. Không gửi lại lệnh cũ. Danh sách đang được tải lại.' : null); void load(); }} onDenied={() => { setRestoringId(null); setFiles([]); setCursor(null); setCaps({}); void load(); }} />}
     {trashingId && <FileTrashDialog key={trashingId} fileId={trashingId} onClose={() => setTrashingId(null)} onDone={() => { setTrashingId(null); void load(); }} onDenied={() => { setTrashingId(null); setFiles([]); setCursor(null); setCaps({}); void load(); }} />}
     {detailId && <FileMetadataDialog key={detailId} fileId={detailId} onClose={() => setDetailId(null)} onDenied={() => { setDetailId(null); setFiles([]); setCursor(null); setCaps({}); void load(); }} />}
     {renaming && <FileRenameDialog key={renaming.id} item={renaming} onSaved={value => { setFiles(current => current.map(file => file.id === value.id ? value : file)); setRenaming(null); void load(); }} onClose={() => setRenaming(null)} onDenied={() => { generation.current++; flight.current = false; setBusy(false); setLoading(false); setFiles([]); setCursor(null); setCaps({}); setRenaming(null); void load(); }} />}
@@ -3058,8 +3064,16 @@ function ProductivityScreen({
   navigate: (screen: Screen, moduleCode?: string) => void;
   onAuthLost: () => Promise<void>;
 }) {
+  const [committedNotice, setCommittedNotice] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const projectPickerEpoch = useRef(0), projectPickerFlight = useRef(false), productivityMounted = useRef(true);
+  function acknowledgePrivateCommit() {
+    projectPickerEpoch.current++;
+    clearProtectedProductivity();
+    setLoading(false);
+    setError(null);
+    setCommittedNotice('Đã lưu thay đổi. Chi tiết hiện không khả dụng theo quyền đọc hiện tại. Không gửi lại thao tác.');
+  }
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [events, setEvents] = useState<CalendarEventRecord[]>([]);
   const [projectNextCursor, setProjectNextCursor] = useState<string | null>(null);
@@ -3150,6 +3164,7 @@ function ProductivityScreen({
       if (!productivityMounted.current || stamp !== projectPickerEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if ([401, 403, 404].includes(apiError.status)) clearProtectedProductivity();
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -3168,6 +3183,7 @@ function ProductivityScreen({
     } catch (requestError) {
       if (!productivityMounted.current || stamp !== projectPickerEpoch.current) return;
       const apiError = asApiError(requestError); setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) clearProtectedProductivity();
       else if ([403, 404].includes(apiError.status)) { setProjects([]); setProjectNextCursor(null); resetProject(); setTaskDraft(old => ({ ...old, projectId: '' })); setTimeWarning(null); }
       if (apiError.status === 401) await onAuthLost();
@@ -3244,6 +3260,7 @@ function ProductivityScreen({
       let saved = editingProject
         ? await updateProject(editingProject.id, editingProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey)
         : await createProject(projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey);
+      if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return true; }
       setProjects((current) => editingProject ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetProject();
       if (!editingProject && !taskDraft.projectId) setTaskDraft((current) => ({ ...current, projectId: saved.id }));
@@ -3260,6 +3277,7 @@ function ProductivityScreen({
             setError(null);
             try {
               const saved = await updateProject(currentProject.id, currentProject.etag, projectDraft.name.trim(), description, startAt, endAt, projectDraft.priority, projectDraft.tagsJson || '[]', projectDraft.notes.trim() || null, requestKey, true);
+              if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return true; }
               setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
               resetProject();
               return true;
@@ -3276,6 +3294,7 @@ function ProductivityScreen({
         return;
       }
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
       setBusy(null);
@@ -3297,6 +3316,7 @@ function ProductivityScreen({
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
     } finally {
@@ -3312,12 +3332,14 @@ function ProductivityScreen({
     try {
       const saved = await transitionProject(project.id, project.etag, status, reason.trim() || null, requestKey, true);
       clearActionRequestKey('project.transition', signature);
+      if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return true; }
       setProjects((current) => current.map((item) => item.id === saved.id ? saved : item));
       return true;
     } catch (requestError) {
       const apiError = asApiError(requestError);
       if (apiError.status === 412) clearActionRequestKey('project.transition', signature);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
     } finally {
@@ -3344,8 +3366,9 @@ function ProductivityScreen({
     const requestKey = taskRequestKey.current ??= createIdempotencyKey();
     try {
       const saved = editingTask
-        ? await updateTask(editingTask.id, editingTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, false, taskReminderChanged)
+        ? await updateTask(editingTask.id, editingTask.etag, { title: taskDraft.title.trim(), description: taskDraft.description.trim() || null, dueAt, startAt, endAt, priority: taskDraft.priority || null, tagsJson: taskDraft.tagsJson || '[]', confirmProjectTimeBounds: false }, requestKey)
         : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, false, true);
+      if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return; }
       setTasks((current) => editingTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetTask();
     } catch (requestError) {
@@ -3361,8 +3384,9 @@ function ProductivityScreen({
             setError(null);
             try {
               const saved = currentTask
-                ? await updateTask(currentTask.id, currentTask.etag, taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, taskReminderChanged)
+                ? await updateTask(currentTask.id, currentTask.etag, { title: taskDraft.title.trim(), description: taskDraft.description.trim() || null, dueAt, startAt, endAt, priority: taskDraft.priority || null, tagsJson: taskDraft.tagsJson || '[]', confirmProjectTimeBounds: true }, requestKey)
                 : await createTask(taskDraft.projectId, taskDraft.title.trim(), taskDraft.description.trim() || null, taskDraft.status, dueAt, startAt, endAt, taskDraft.priority || null, taskDraft.tagsJson || '[]', taskDraft.acceptanceCriteriaJson || '[]', 0, reminderAt, requestKey, true, true);
+              if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return true; }
               setTasks((current) => currentTask ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
               resetTask();
               return true;
@@ -3379,10 +3403,35 @@ function ProductivityScreen({
         return;
       }
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
       setBusy(null);
     }
+  }
+
+  async function taskCommand(task: TaskRecord, kind: 'status' | 'criteria' | 'rank', value: string, reason: string | null = null) {
+    const signature = JSON.stringify({ id: task.id, etag: task.etag, kind, value, reason });
+    const operation = 'task.' + kind;
+    const key = getActionRequestKey(operation, signature);
+    if (kind === 'rank' && (!/^-?\d+$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) < 0 || Number(value) > 2147483647)) return { error: 'Rank phải là số nguyên hợp lệ.' };
+    setBusy('task:' + task.id); setError(null);
+    try {
+      const saved = kind === 'status' ? await transitionTask(task.id, task.etag, value, reason, key)
+        : kind === 'criteria' ? await setTaskCriteria(task.id, task.etag, value, key)
+        : await reorderTask(task.id, task.etag, Number(value), key);
+      clearActionRequestKey(operation, signature);
+      if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return true; }
+      setTasks(current => current.map(item => item.id === saved.id ? saved : item));
+      if (editingTask?.id === saved.id) beginTaskEdit(saved);
+      return true;
+    } catch (requestError) {
+      const apiError = asApiError(requestError); setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
+      if (apiError.status === 412) clearActionRequestKey(operation, signature);
+      if (apiError.status === 401) await onAuthLost();
+      return { error: apiError.message };
+    } finally { setBusy(null); }
   }
 
   async function removeTask(task: TaskRecord) {
@@ -3399,6 +3448,7 @@ function ProductivityScreen({
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
     } finally {
@@ -3425,11 +3475,13 @@ function ProductivityScreen({
       const saved = editingEvent
         ? await updateCalendarEvent(editingEvent.id, editingEvent.etag, eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey, eventDraft.isAllDay ? { startDate: eventDraft.startAt, endDateExclusive: addDateDays(eventDraft.endAt, 1) } : undefined)
         : await createCalendarEvent(eventDraft.title.trim(), eventDraft.description.trim(), startAt, endAt, eventDraft.timeZoneId.trim(), eventDraft.isAllDay, null, requestKey, eventDraft.isAllDay ? { startDate: eventDraft.startAt, endDateExclusive: addDateDays(eventDraft.endAt, 1) } : undefined);
+      if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return; }
       setEvents((current) => editingEvent ? current.map((item) => item.id === saved.id ? saved : item) : [saved, ...current]);
       resetEvent();
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
       setBusy(null);
@@ -3450,6 +3502,7 @@ function ProductivityScreen({
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
     } finally {
@@ -3465,11 +3518,13 @@ function ProductivityScreen({
     try {
       const saved = await transitionCalendarEvent(item.id, item.etag, 'Completed', requestKey);
       clearActionRequestKey('calendar.event.transition', signature);
+      if (isProductivityAcknowledgement(saved)) { acknowledgePrivateCommit(); return; }
       setEvents((current) => current.map((eventItem) => eventItem.id === saved.id ? saved : eventItem));
     } catch (requestError) {
       const apiError = asApiError(requestError);
       if (apiError.status === 412) clearActionRequestKey('calendar.event.transition', signature);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) { projectPickerEpoch.current++; clearProtectedProductivity(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
     } finally {
       setBusy(null);
@@ -3493,6 +3548,7 @@ function ProductivityScreen({
         {canCalendar && <button className={moduleCode === 'FX13' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={moduleCode === 'FX13'} onClick={() => navigate('module', 'FX13')}>Calendar</button>}
       </div>
       {moduleCode === 'FX13' && profile.modules.some(item => item.code === 'FX10' && item.enabled) && <button className="secondary-button" type="button" disabled={busy !== null} onClick={() => navigate('module', 'FX10')}>ICS Import / Export</button>}
+      {committedNotice && <Notice kind="info">{committedNotice}</Notice>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}{error.status === 412 && ' Hãy tải lại revision rồi áp dụng lại thay đổi.'}</Notice>}
       {timeWarning && <ActionDialog title={timeWarning.title} description={timeWarning.description} confirmLabel={timeWarning.confirmLabel} tone="primary" onConfirm={timeWarning.retry} onClose={() => setTimeWarning(null)} />}
 
@@ -3514,16 +3570,26 @@ function ProductivityScreen({
         <div className="resource-layout">
           <form className="form-panel resource-form" onSubmit={saveTask} noValidate>
             <div className="section-heading"><h2>{editingTask ? 'Sửa Task' : 'Tạo Task'}</h2>{editingTask && <button className="link-button" type="button" onClick={resetTask}>Hủy sửa</button>}</div>
-            <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={loading || busy !== null || projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>{projectNextCursor && <button type="button" disabled={loading || busy !== null} onClick={() => void loadMoreProjectChoices()}>Load more Project choices</button>}
+            <div className="field-group"><label htmlFor="task-project">Project</label><select id="task-project" value={taskDraft.projectId} onChange={(event) => setTaskDraft({ ...taskDraft, projectId: event.target.value })} disabled={editingTask !== null || loading || busy !== null || projects.length === 0} required><option value="">{projects.length === 0 ? 'Tạo Project trước' : 'Chọn Project'}</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></div>{projectNextCursor && <button type="button" disabled={loading || busy !== null} onClick={() => void loadMoreProjectChoices()}>Load more Project choices</button>}
             <div className="field-group"><label htmlFor="task-title">Tiêu đề Task</label><input id="task-title" value={taskDraft.title} maxLength={200} onChange={(event) => setTaskDraft({ ...taskDraft, title: event.target.value })} required /></div>
             <div className="field-group"><label htmlFor="task-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="task-description" value={taskDraft.description} maxLength={4000} onChange={(event) => setTaskDraft({ ...taskDraft, description: event.target.value })} rows={3} /></div>
-            <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên <span className="optional">(tùy chọn)</span></label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="">Không đặt</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" disabled={editingTask !== null} value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option>{editingTask && <><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></>}</select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên <span className="optional">(tùy chọn)</span></label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="">Không đặt</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-start">Bắt đầu</label><input id="task-start" type="datetime-local" value={taskDraft.startAt} onChange={(event) => setTaskDraft({ ...taskDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="task-end">Kết thúc</label><input id="task-end" type="datetime-local" value={taskDraft.endAt} onChange={(event) => setTaskDraft({ ...taskDraft, endAt: event.target.value })} required /></div></div>
-            <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => { setTaskReminderChanged(true); setTaskDraft({ ...taskDraft, reminderAt: event.target.value }); }} /><p className="field-help">Để trống để gỡ nhắc khi đang sửa; mốc nhắc có thể nằm trước Start theo policy.</p></div></div>
+            <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" disabled={editingTask !== null} type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => { setTaskReminderChanged(true); setTaskDraft({ ...taskDraft, reminderAt: event.target.value }); }} /><p className="field-help">Khi sửa Task, đặt hoặc gỡ nhắc bằng thao tác Reminders riêng.</p></div></div>
             {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><ConfirmActionButton confirmationTitle={`Xóa Task “${task.title}”?`} confirmationDescription="Task sẽ được đưa vào Trash. Project nguồn và các Task khác vẫn giữ nguyên." confirmLabel="Đưa Task vào Trash" disabled={busy !== null} onConfirm={() => removeTask(task)}>Xóa</ConfirmActionButton></div></article>)}</div>}{taskNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Task</button>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions">
+              {['NotStarted', 'InProgress'].includes(task.status) && <>
+                {task.status === 'NotStarted' && <ConfirmActionButton confirmationTitle="Bắt đầu Task?" confirmationDescription="Chuyển Task sang Đang làm." confirmLabel="Bắt đầu" disabled={busy !== null} onConfirm={() => taskCommand(task, 'status', 'InProgress')}>Bắt đầu</ConfirmActionButton>}
+                <ConfirmActionButton confirmationTitle="Hoàn thành Task?" confirmationDescription="Checklist không tự chặn hoàn thành." confirmLabel="Hoàn thành" disabled={busy !== null} onConfirm={() => taskCommand(task, 'status', 'Completed')}>Hoàn thành</ConfirmActionButton>
+                <ConfirmActionButton confirmationTitle="Bỏ qua Task?" confirmationDescription="Chuyển Task sang Bỏ qua." confirmLabel="Bỏ qua" disabled={busy !== null} onConfirm={() => taskCommand(task, 'status', 'Skipped')}>Bỏ qua</ConfirmActionButton>
+              </>}
+              {task.status !== 'NotStarted' && <PromptActionButton confirmationTitle="Chuyển Task về Chưa bắt đầu?" confirmationDescription="Chuyển ngược cần lý do và quyền riêng." inputLabel="Lý do" initialValue="" confirmLabel="Chuyển về" disabled={busy !== null} onConfirm={reason => taskCommand(task, 'status', 'NotStarted', reason)}>Chuyển về</PromptActionButton>}
+              <PromptActionButton confirmationTitle="Sửa Acceptance Criteria" confirmationDescription="Mảng checklist JSON, lưu history; không tự complete Task." inputLabel="Checklist JSON" initialValue={task.acceptanceCriteriaJson} confirmLabel="Lưu criteria" disabled={busy !== null} onConfirm={value => taskCommand(task, 'criteria', value)}>Criteria</PromptActionButton>
+              <PromptActionButton confirmationTitle="Sắp xếp Task trong cột" confirmationDescription="Giữ nguyên Project và status." inputLabel="Rank" initialValue={String(task.rank)} confirmLabel="Lưu rank" disabled={busy !== null} onConfirm={value => taskCommand(task, 'rank', value)}>Sắp xếp</PromptActionButton>
+              <button type="button" disabled={busy !== null} onClick={() => navigate('module', 'FX14')}>Reminders</button>
+              <button className="secondary-button" type="button" onClick={() => beginTaskEdit(task)} disabled={busy !== null || ['Completed', 'Skipped'].includes(projects.find((project) => project.id === task.projectId)?.status ?? '')}>Sửa</button><ConfirmActionButton confirmationTitle={`Xóa Task “${task.title}”?`} confirmationDescription="Task sẽ được đưa vào Trash. Project nguồn và các Task khác vẫn giữ nguyên." confirmLabel="Đưa Task vào Trash" disabled={busy !== null} onConfirm={() => removeTask(task)}>Xóa</ConfirmActionButton></div></article>)}</div>}{taskNextCursor && <button className="secondary-button" type="button" onClick={() => void load(true)} disabled={busy !== null}>Tải thêm Task</button>}</div>
         </div>
       )}
 
@@ -3554,6 +3620,7 @@ type ReminderSourceOption = {
 };
 
 function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [committedNotice, setCommittedNotice] = useState<string | null>(null);
   const [sources, setSources] = useState<ReminderSourceOption[]>([]);
   const [selectedKey, setSelectedKey] = useState('');
   const [source, setSource] = useState<ReminderSourceView | null>(null);
@@ -3600,6 +3667,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     } catch (requestError) {
       if (!mounted.current || epoch !== poolEpoch.current) return;
       const apiError = asApiError(requestError); setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) clearProtectedSources();
       if ([401, 403, 404].includes(apiError.status)) clearProtectedSources();
       if (apiError.status === 401) await onAuthLost();
     } finally { pickerFlight.current = false; if (mounted.current) setBusy(current => current === 'picker' ? null : current); }
@@ -3629,6 +3697,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       if (!mounted.current || epoch !== poolEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) clearProtectedSources();
       if ([401, 403, 404].includes(apiError.status)) clearProtectedSources();
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -3654,6 +3723,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       const apiError = asApiError(requestError);
       setSource(null);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) clearProtectedSources();
       if ([401, 403, 404].includes(apiError.status)) clearProtectedSources();
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -3704,11 +3774,17 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         exactIso, source.sourceETag, source.reminder?.etag ?? null, requestKey.current.key);
       requestKey.current = null;
       form.finish();
+      if (isProductivityAcknowledgement(saved)) {
+        clearProtectedSources();
+        setCommittedNotice('Đã lưu reminder. Chi tiết hiện không khả dụng theo quyền đọc; không gửi lại thao tác.');
+        return;
+      }
       setSource(saved);
       setExactAt(isoToLocalInput(saved.reminder?.exactAt ?? null, saved.timeZoneId));
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) clearProtectedSources();
       if (apiError.status === 412 || apiError.status === 428) {
         setConflict(true);
         const option = sources.find((item) => item.key === selectedKey);
@@ -3736,6 +3812,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) clearProtectedSources();
       if (apiError.status === 412 || apiError.status === 428) {
         removeRequestKey.current = null;
         setConflict(true);
@@ -3755,6 +3832,7 @@ function RemindersScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         <div><p className="eyebrow">FX14 / LOCAL SCHEDULING</p><h1 id="reminders-title">Reminders</h1><p className="lead">Mỗi Task hoặc Calendar Event thủ công có tối đa một reminder trong PersonalSpace hiện tại. Email và browser push không được gọi; khi đến hạn, local worker chỉ tạo in-app projection và báo rõ provider unavailable.</p></div>
         <button className="secondary-button" type="button" onClick={() => void loadSources()} disabled={loading || busy !== null || form.open}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
+      {committedNotice && <Notice kind="info">{committedNotice}</Notice>}
       {conflict && <Notice kind="error"><span>Reminder hoặc nguồn đã thay đổi ở nơi khác. Đã tải lại revision hiện tại.</span></Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <div className="form-actions">{taskCursor && <button type="button" className="secondary-button" disabled={loading || sourceLoading || busy !== null || form.open} onClick={() => void loadMoreSources("Task")}>Load more Task sources</button>}{eventCursor && <button type="button" className="secondary-button" disabled={loading || sourceLoading || busy !== null || form.open} onClick={() => void loadMoreSources("CalendarEvent")}>Load more Calendar Event sources</button>}</div>
@@ -4014,6 +4092,7 @@ type SnippetDraft = {
 
 function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<SnippetRecord[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [query, setQuery] = useState('');
   const [queryDraft, setQueryDraft] = useState('');
@@ -4024,27 +4103,56 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [commitNotice, setCommitNotice] = useState(false);
+  const loadEpoch = useRef(0);
+  const transitionKeys = useRef(new Map<string, string>());
+  const editorEpoch = useRef(0);
   const requestKey = useRef<string | null>(null);
 
-  async function load(nextQuery = query, nextIncludeArchived = includeArchived) {
+  function clearPrivateSnippet() {
+    loadEpoch.current++;
+    editorEpoch.current++;
+    setItems([]);
+    setNextCursor(null);
+    setEditing(null);
+    setDraft({ title: '', language: 'plaintext', body: '', description: '' });
+    setCopiedId(null);
+    setConflict(false);
+    requestKey.current = null;
+    transitionKeys.current.clear();
+    setLoading(false);
+  }
+
+  function isSnippetAccessLost(apiError: NexoraApiError) {
+    return [401, 403, 404].includes(apiError.status)
+      || ['ModuleUnavailable', 'PermissionDenied', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '');
+  }
+
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived, append = false) {
+    const epoch = ++loadEpoch.current;
     setLoading(true);
     setError(null);
-    setConflict(false);
     try {
-      const page = await listSnippets(nextIncludeArchived, nextQuery, 100);
-      setItems(Array.isArray(page.items) ? page.items : []);
+      const page = await listSnippets(nextIncludeArchived, nextQuery, 25, append ? nextCursor ?? '' : '');
+      if (epoch !== loadEpoch.current) return;
+      const incoming = Array.isArray(page.items) ? page.items : [];
+      setItems(current => append ? [...new Map([...current, ...incoming].map(item => [item.id, item])).values()] : incoming);
+      setNextCursor(page.nextCursor);
     } catch (requestError) {
       const apiError = asApiError(requestError);
+      if (epoch !== loadEpoch.current) return;
+      if (isSnippetAccessLost(apiError)) clearPrivateSnippet();
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (epoch === loadEpoch.current) setLoading(false);
     }
   }
 
-  useEffect(() => { void load(); }, [query, includeArchived]);
+  useEffect(() => { void load(); return () => { loadEpoch.current++; }; }, [query, includeArchived]);
 
   function resetEditor() {
+    editorEpoch.current++;
     setEditing(null);
     setDraft({ title: '', language: 'plaintext', body: '', description: '' });
     requestKey.current = null;
@@ -4053,6 +4161,7 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   function beginEdit(item: SnippetRecord) {
+    editorEpoch.current++;
     setEditing(item);
     setDraft({ title: item.title, language: item.language, body: item.body, description: item.description ?? '' });
     requestKey.current = null;
@@ -4062,9 +4171,36 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function showError(requestError: unknown) {
     const apiError = asApiError(requestError);
+    if (isSnippetAccessLost(apiError)) clearPrivateSnippet();
     setError(apiError);
     if (apiError.status === 401) void onAuthLost();
     return apiError;
+  }
+
+  async function recoverSnippetRevision() {
+    if (!editing) return;
+    const id = editing.id;
+    const editorGeneration = editorEpoch.current;
+    const epoch = ++loadEpoch.current;
+    setLoading(true);
+    try {
+      const current = await getSnippet(id);
+      if (epoch !== loadEpoch.current || editorGeneration !== editorEpoch.current) return;
+      if (current.status !== 'Active') {
+        clearPrivateSnippet();
+        setError(new NexoraApiError('Snippet hiện không cho phép sửa.', 409, 'LifecycleLocked'));
+        return;
+      }
+      setEditing(current);
+      requestKey.current = null;
+      setConflict(false);
+      setError(null);
+      // Keep the user's draft; only an explicit subsequent Save writes it.
+    } catch (requestError) {
+      if (epoch === loadEpoch.current && editorGeneration === editorEpoch.current) showError(requestError);
+    } finally {
+      if (epoch === loadEpoch.current) setLoading(false);
+    }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -4090,19 +4226,22 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     requestKey.current ??= createIdempotencyKey();
     setBusy('save');
     try {
-      if (editing) {
-        await saveSnippet(editing.id, editing.etag, title, language, body, description, requestKey.current);
-      } else {
-        await createSnippet(title, language, body, description, requestKey.current);
-      }
+      const saved = editing
+        ? await saveSnippet(editing.id, editing.etag, title, language, body, description, requestKey.current)
+        : await createSnippet(title, language, body, description, requestKey.current);
       requestKey.current = null;
       resetEditor();
+      if (isProductivityAcknowledgement(saved)) {
+        clearPrivateSnippet();
+        setCommitNotice(true);
+        return;
+      }
+      setCommitNotice(false);
       await load();
     } catch (requestError) {
       const apiError = showError(requestError);
       if (apiError.status === 412) {
         setConflict(true);
-        await load();
       }
     } finally {
       setBusy(null);
@@ -4111,10 +4250,20 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function transition(item: SnippetRecord) {
     const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
+    const signature = JSON.stringify([item.id, item.etag, nextStatus]);
+    const key = transitionKeys.current.get(signature) ?? createIdempotencyKey();
+    transitionKeys.current.set(signature, key);
     setBusy(`transition:${item.id}`);
     setError(null);
     try {
-      await transitionSnippet(item.id, item.etag, nextStatus, createIdempotencyKey());
+      const saved = await transitionSnippet(item.id, item.etag, nextStatus, key);
+      transitionKeys.current.delete(signature);
+      if (isProductivityAcknowledgement(saved)) {
+        clearPrivateSnippet();
+        setCommitNotice(true);
+        return true;
+      }
+      setCommitNotice(false);
       await load();
       if (editing?.id === item.id) resetEditor();
       return true;
@@ -4149,6 +4298,7 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   return (
     <section className="content-section" aria-labelledby="snippets-title">
+      {commitNotice && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
       <div className="content-heading">
         <div>
           <p className="eyebrow">FX22 / KNOWLEDGE</p>
@@ -4157,7 +4307,7 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         </div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
-      {conflict && <Notice kind="error"><span>Snippet đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; tải revision mới trước khi áp dụng lại.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {conflict && <Notice kind="error"><span>Snippet đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; tải revision mới trước khi áp dụng lại.</span><button className="inline-button" type="button" onClick={() => void recoverSnippetRevision()} disabled={loading || busy !== null}>Tải revision</button></Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
@@ -4178,7 +4328,8 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị snippet đã archive</span></label>
             <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive snippet “${item.title}”?`} confirmationDescription="Snippet sẽ trở thành chỉ-đọc. Version và source vẫn được lưu; bạn có thể unarchive lại sau." confirmLabel="Archive snippet" disabled={busy !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : error ? <div className="empty-state"><p>Danh sách chưa được cập nhật. Hãy tải lại hoặc sửa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive snippet “${item.title}”?`} confirmationDescription="Snippet sẽ trở thành chỉ-đọc. Version và source vẫn được lưu; bạn có thể unarchive lại sau." confirmLabel="Archive snippet" disabled={busy !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
+          {nextCursor && !error && <button className="secondary-button" type="button" disabled={loading || busy !== null} onClick={() => void load(query, includeArchived, true)}>Tải thêm snippets</button>}
         </div>
       </div>
     </section>

@@ -61,6 +61,8 @@ public static class ReminderEndpoints
         }
 
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return ToHttp(context, IdentityOperationResult<CommittedResourceAcknowledgement>.Success(acknowledgement, result.StatusCode, result.Code));
         if (result.Succeeded && result.Value is not null && result.Value.Reminder is not null)
         {
             context.Response.Headers.ETag = result.Value.Reminder.ETag;

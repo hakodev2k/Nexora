@@ -58,10 +58,20 @@ public static class ProductivityEndpoints
                 service.CreateTask(principal, new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds, ManageReminder: request.ManageReminder), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("createTask");
 
-        api.MapPut("/tasks/{taskId:guid}", (HttpContext context, Guid taskId, TaskRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+        api.MapPut("/tasks/{taskId:guid}", (HttpContext context, Guid taskId, TaskUpdateRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
-                service.UpdateTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), new TaskCommand(request.ProjectId, request.Title, request.Description, request.Status, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.AcceptanceCriteriaJson, request.Rank, request.ReminderAt, ConfirmProjectTimeBounds: request.ConfirmProjectTimeBounds, ManageReminder: request.ManageReminder), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                service.EditTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), new TaskEditCommand(request.Title, request.Description, request.DueAt, request.StartAt, request.EndAt, request.Priority, request.TagsJson, request.ConfirmProjectTimeBounds), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("updateTask");
+
+        api.MapPut("/tasks/{taskId:guid}/criteria", (HttpContext context, Guid taskId, TaskCriteriaRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                service.SetTaskCriteria(principal, taskId, context.Request.Headers.IfMatch.ToString(), request.AcceptanceCriteriaJson, IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+            .WithName("setTaskCriteria");
+
+        api.MapPut("/tasks/{taskId:guid}/rank", (HttpContext context, Guid taskId, TaskReorderRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                service.ReorderTask(principal, taskId, context.Request.Headers.IfMatch.ToString(), request.Rank, IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+            .WithName("reorderTask");
 
         api.MapPost("/tasks/{taskId:guid}/transition", (HttpContext context, Guid taskId, ProductivityTransitionRequest request, IProductivityService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
@@ -125,6 +135,9 @@ public static class ProductivityEndpoints
 
     private static IResult ToHttp<TIn, TOut>(HttpContext context, IdentityOperationResult<TIn> result, Func<TIn, TOut> map)
     {
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
+
         if (!result.Succeeded || result.Value is null)
         {
             return ToHttp(context, new IdentityOperationResult<TOut>(result.Succeeded, default, result.Code, result.StatusCode, result.Title));

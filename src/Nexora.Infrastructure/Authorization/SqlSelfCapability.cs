@@ -42,7 +42,23 @@ internal sealed class SqlSelfCapability
         => Evaluate(connection, transaction, actor, moduleCode, actionKeys) == SqlCapabilityStatus.Allowed;
 
     public SqlCapabilityStatus Evaluate(SqlConnection connection, SqlTransaction? transaction,
-        IdentityPrincipal actor, string moduleCode, params string[] actionKeys)
+        IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        EvaluateCore(connection, transaction, actor, moduleCode, true, actionKeys);
+
+    // Internal identity response projection only; this cannot authorize a mutation.
+    public bool IsAllowedForProfileProjection(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
+        actionKeys.Length > 0 && actionKeys.All(action => (moduleCode, action) is
+            ("FX02", "access.user.read") or ("FX03", "modules.catalog.read") or
+            ("FX03", "modules.policy.enable") or ("FX03", "modules.policy.disable") or ("FX03", "modules.policy.defaults")) &&
+        EvaluateCore(connection, transaction, actor, moduleCode, false, actionKeys) == SqlCapabilityStatus.Allowed;
+
+    // Trusted timer checks durable Focus source/owner/state separately; no SELF request authority.
+    public bool IsAllowedForFocusCompletion(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor) =>
+        EvaluateCore(connection, transaction, actor, "FX19", false, "focus.session.start") == SqlCapabilityStatus.Allowed;
+
+    private SqlCapabilityStatus EvaluateCore(SqlConnection connection, SqlTransaction? transaction,
+        IdentityPrincipal actor, string moduleCode, bool requireSession, params string[] actionKeys)
     {
         var actions = actionKeys?
             .Where(action => !string.IsNullOrWhiteSpace(action))
@@ -114,7 +130,7 @@ internal sealed class SqlSelfCapability
                        WHEN m.[State] <> 'Ready'
                             OR m.[SystemEnabled] <> 1
                             OR COALESCE(g.[Enabled], 0) <> 1
-                            OR (@ModuleCode = 'FX07' AND NOT EXISTS
+                            OR (@RequireSession = 1 AND NOT EXISTS
                             (
                                 SELECT 1 FROM [identity].[Session] liveSession
                                 WHERE liveSession.[Id] = @SessionId AND liveSession.[UserId] = @UserId
@@ -124,7 +140,8 @@ internal sealed class SqlSelfCapability
                                   AND liveSession.[SecurityStamp] = userRow.[SecurityStamp]
                                   AND userRow.[EmailConfirmed] = 1
                             ))
-                            OR userRow.[State] <> 'Active'
+                            OR userRow.[EmailConfirmed] <> 1
+                             OR userRow.[State] <> 'Active'
                             OR userRow.[IsDeleted] <> 0
                             OR spaceRow.[State] <> 'Active'
                             OR COALESCE((SELECT TOP(1) currentRole.[Code]
@@ -197,6 +214,7 @@ internal sealed class SqlSelfCapability
         // resolved/allowed row must never authorize a missing prerequisite.
         command.Parameters.Add("@RequiredActionCount", SqlDbType.Int).Value = actions.Length;
         command.Parameters.Add("@Role", SqlDbType.VarChar, 32).Value = actor.Role;
+        command.Parameters.Add("@RequireSession", SqlDbType.Bit).Value = requireSession;
         command.Parameters.Add("@SessionId", SqlDbType.UniqueIdentifier).Value = (object?)actor.SessionId ?? DBNull.Value;
         command.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = actor.UserId;
         command.Parameters.Add("@OwnerId", SqlDbType.UniqueIdentifier).Value = actor.OwnerId;

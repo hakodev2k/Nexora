@@ -63,6 +63,7 @@ public static class M01MigrationManifest
         "20261011_0051_automation_schedule_configuration.sql",
         "20261011_0052_automation_schedule_occurrences.sql",
         "20261011_0053_automation_purge_action.sql",
-        "20261011_0054_integration_connection_configuration.sql"
+        "20261011_0054_integration_connection_configuration.sql",
+        "20261012_0055_productivity_dedicated_actions.sql"
     ];
 }

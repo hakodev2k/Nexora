@@ -148,6 +148,8 @@ public static class FileEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return ToHttp(context, IdentityOperationResult<CommittedResourceAcknowledgement>.Success(acknowledgement, result.StatusCode, result.Code));
         if (result.Succeeded && result.Value is FileRecord file) context.Response.Headers.ETag = file.ETag;
         if (result.Succeeded && result.Value is FileReferenceRecord reference) context.Response.Headers.ETag = reference.ETag;
         if (result.Succeeded && result.Value is FileUploadSessionRecord upload) context.Response.Headers.ETag = upload.ETag;

@@ -670,7 +670,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
             if (claim.ResultJson is null)
                 return Failure<FileRecord>("IdempotencyReplay", 409, "The restore completed; reconcile the current file state.");
             if (file.Lifecycle != "Active" || claim.ResultJson != System.Text.Json.JsonSerializer.Serialize(file.ETag))
-                return Failure<FileRecord>("OperationSuperseded", 409, "The restore completed but the file was subsequently modified.");
+                return IdentityOperationResult<FileRecord>.Committed(fileId, 200, "FileRestored");
             transaction.Commit(); return IdentityOperationResult<FileRecord>.Success(file);
         }
         if (!claim.IsClaimed)

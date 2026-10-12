@@ -39,7 +39,10 @@ public sealed class SqlProductivityService : IProductivityService
             return Failure<ProjectPage>("InvalidCursor", 422, "The Project cursor is invalid or does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX11", "projects.project.read")) return ModuleUnavailable<ProjectPage>();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Name], [Description], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [Notes]
             FROM [productivity].[Project]
@@ -52,15 +55,15 @@ public sealed class SqlProductivityService : IProductivityService
         Add(command, "@HasCursor", SqlDbType.Bit, cursor is not null);
         Add(command, "@CursorName", SqlDbType.NVarChar, (object?)position?.Name ?? DBNull.Value, 200);
         Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
-        using var reader = command.ExecuteReader();
         var items = new List<ProjectRecord>();
-        while (reader.Read()) items.Add(ReadProject(reader));
+        using (var reader = command.ExecuteReader())
+        { while (reader.Read()) items.Add(ReadProject(reader)); }
         var hasMore = items.Count > take;
         if (hasMore) items.RemoveAt(items.Count - 1);
         var nextCursor = hasMore && items.Count > 0
             ? EncodeCursor(new ProjectListCursor("projects", items[^1].Name, items[^1].Id))
             : null;
-        return IdentityOperationResult<ProjectPage>.Success(new ProjectPage(items, nextCursor));
+        return CommitAuthorized(connection, transaction, actor, "FX11", ["projects.project.read"], IdentityOperationResult<ProjectPage>.Success(new ProjectPage(items, nextCursor)));
     }
 
     public IdentityOperationResult<ProjectRecord> GetProject(IdentityPrincipal actor, Guid projectId)
@@ -69,10 +72,12 @@ public sealed class SqlProductivityService : IProductivityService
         if (projectId == Guid.Empty) return Failure<ProjectRecord>("ResourceUnavailable", 404, "Project unavailable.");
         using var connection = _connections.Create();
         connection.Open();
-        var project = ReadProject(connection, null, actor.OwnerId, projectId, forUpdate: false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX11", "projects.project.read")) return ModuleUnavailable<ProjectRecord>();
+        var project = ReadProject(connection, transaction, actor.OwnerId, projectId, forUpdate: false);
         return project is null || project.Status == "Deleted"
             ? Failure<ProjectRecord>("ResourceUnavailable", 404, "Project unavailable.")
-            : IdentityOperationResult<ProjectRecord>.Success(project);
+            : CommitAuthorized(connection, transaction, actor, "FX11", ["projects.project.read"], IdentityOperationResult<ProjectRecord>.Success(project));
     }
 
     public IdentityOperationResult<ProjectRecord> CreateProject(IdentityPrincipal actor, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -83,8 +88,8 @@ public sealed class SqlProductivityService : IProductivityService
         var id = Guid.NewGuid();
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor, "FX11", ["projects.project.create"],
             "productivity.project.create",
             idempotencyKey,
             CanonicalProject(command),
@@ -114,10 +119,8 @@ public sealed class SqlProductivityService : IProductivityService
         if (result is not null) InsertProjectHistory(connection, transaction, actor.OwnerId, result, null);
         WriteAudit(connection, transaction, actor, id, "productivity.project.create", traceId);
         CompleteReceipt(connection, transaction, receipt, "ProjectCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
-        transaction.Commit();
-        return result is null
-            ? IdentityOperationResult<ProjectRecord>.Failure("PersistenceFailure", 500, "Project could not be loaded after creation.")
-            : IdentityOperationResult<ProjectRecord>.Success(result, 201, "ProjectCreated");
+        var response = MutationProjection(connection, transaction, actor, "FX11", "projects.project.read", id, result, 201, "ProjectCreated");
+        return CommitAuthorized(connection, transaction, actor, "FX11", ["projects.project.create"], response);
     }
 
     public IdentityOperationResult<ProjectRecord> UpdateProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -128,8 +131,8 @@ public sealed class SqlProductivityService : IProductivityService
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<ProjectRecord>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor, "FX11", ["projects.project.update", "projects.project.read"],
             "productivity.project.update",
             idempotencyKey,
             CanonicalProject(command, projectId, ifMatch),
@@ -187,10 +190,8 @@ public sealed class SqlProductivityService : IProductivityService
         if (result is not null) InsertProjectHistory(connection, transaction, actor.OwnerId, result, command.TransitionReason);
         WriteAudit(connection, transaction, actor, projectId, "productivity.project.update", traceId);
         CompleteReceipt(connection, transaction, receipt, "ProjectUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
-        transaction.Commit();
-        return result is null
-            ? IdentityOperationResult<ProjectRecord>.Failure("PersistenceFailure", 500, "Project could not be loaded after update.")
-            : IdentityOperationResult<ProjectRecord>.Success(result);
+        var response = MutationProjection(connection, transaction, actor, "FX11", "projects.project.read", projectId, result, 200, "Ok");
+        return CommitAuthorized(connection, transaction, actor, "FX11", ["projects.project.update", "projects.project.read"], response);
     }
 
     public IdentityOperationResult<ProjectRecord> TransitionProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null, bool confirmed = false)
@@ -204,7 +205,7 @@ public sealed class SqlProductivityService : IProductivityService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor, "productivity.project.transition",
+        var receiptFailure = CheckReceipt<ProjectRecord>(connection, transaction, actor, "FX11", [ProjectTransitionAction(status)], "productivity.project.transition",
             idempotencyKey, $"project:{projectId:N}|etag:{ifMatch}|status:{status}|reason:{reason?.Trim()}|confirmed:{confirmed}", out var receipt);
         if (receiptFailure is not null)
         {
@@ -258,10 +259,8 @@ public sealed class SqlProductivityService : IProductivityService
         WriteAudit(connection, transaction, actor, projectId, "productivity.project.transition", traceId);
         var updated = ReadProject(connection, transaction, actor.OwnerId, projectId, forUpdate: false);
         CompleteReceipt(connection, transaction, receipt, "ProjectTransitioned", 200, updated is null ? null : JsonSerializer.Serialize(updated));
-        transaction.Commit();
-        return updated is null
-            ? Failure<ProjectRecord>("PersistenceFailure", 500, "Project could not be loaded after transition.")
-            : IdentityOperationResult<ProjectRecord>.Success(updated);
+        var response = MutationProjection(connection, transaction, actor, "FX11", "projects.project.read", projectId, updated, 200, "Ok");
+        return CommitAuthorized(connection, transaction, actor, "FX11", [ProjectTransitionAction(status)], response);
     }
 
     public IdentityOperationResult<object?> DeleteProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
@@ -271,7 +270,7 @@ public sealed class SqlProductivityService : IProductivityService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor,
+        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "FX11", ["projects.project.trash"],
             "productivity.project.delete",
             idempotencyKey,
             $"project:{projectId:N}|etag:{ifMatch}",
@@ -315,8 +314,7 @@ public sealed class SqlProductivityService : IProductivityService
         InsertProjectHistory(connection, transaction, actor.OwnerId, current with { Status = "Deleted" }, "Trash");
         WriteAudit(connection, transaction, actor, projectId, "productivity.project.delete", traceId);
         CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
-        transaction.Commit();
-        return IdentityOperationResult<object?>.NoContent();
+        return CommitAuthorized(connection, transaction, actor, "FX11", ["projects.project.trash"], IdentityOperationResult<object?>.NoContent());
     }
 
     public IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null, string? cursor = null)
@@ -329,7 +327,10 @@ public sealed class SqlProductivityService : IProductivityService
             return Failure<TaskPage>("InvalidCursor", 422, "The Task cursor is invalid or does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read")) return ModuleUnavailable<TaskPage>();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [ProjectId], [Title], [Description], [Status], [DueAt], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [AcceptanceCriteriaJson], [Rank], [ReminderAt]
             FROM [productivity].[Task]
@@ -350,15 +351,15 @@ public sealed class SqlProductivityService : IProductivityService
         Add(command, "@CursorDueAt", SqlDbType.DateTime2, (object?)position?.DueAt ?? DBNull.Value);
         Add(command, "@CursorUpdatedAt", SqlDbType.DateTime2, (object?)position?.UpdatedAt ?? DBNull.Value);
         Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)position?.Id ?? DBNull.Value);
-        using var reader = command.ExecuteReader();
         var items = new List<TaskRecord>();
-        while (reader.Read()) items.Add(ReadTask(reader));
+        using (var reader = command.ExecuteReader())
+        { while (reader.Read()) items.Add(ReadTask(reader)); }
         var hasMore = items.Count > take;
         if (hasMore) items.RemoveAt(items.Count - 1);
         var nextCursor = hasMore && items.Count > 0
             ? EncodeCursor(new TaskListCursor(taskScope, items[^1].DueAt is not null, items[^1].DueAt?.UtcDateTime, items[^1].UpdatedAt.UtcDateTime, items[^1].Id))
             : null;
-        return IdentityOperationResult<TaskPage>.Success(new TaskPage(items, nextCursor));
+        return CommitAuthorized(connection, transaction, actor, "FX12", ["tasks.task.read"], IdentityOperationResult<TaskPage>.Success(new TaskPage(items, nextCursor)));
     }
 
     public IdentityOperationResult<TaskRecord> GetTask(IdentityPrincipal actor, Guid taskId)
@@ -367,10 +368,12 @@ public sealed class SqlProductivityService : IProductivityService
         if (taskId == Guid.Empty) return Failure<TaskRecord>("ResourceUnavailable", 404, "Task unavailable.");
         using var connection = _connections.Create();
         connection.Open();
-        var task = ReadTask(connection, null, actor.OwnerId, taskId, forUpdate: false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read")) return ModuleUnavailable<TaskRecord>();
+        var task = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: false);
         return task is null || task.Status == "Deleted"
             ? Failure<TaskRecord>("ResourceUnavailable", 404, "Task unavailable.")
-            : IdentityOperationResult<TaskRecord>.Success(task);
+            : CommitAuthorized(connection, transaction, actor, "FX12", ["tasks.task.read"], IdentityOperationResult<TaskRecord>.Success(task));
     }
 
     public IdentityOperationResult<TaskRecord> CreateTask(IdentityPrincipal actor, TaskCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -382,8 +385,15 @@ public sealed class SqlProductivityService : IProductivityService
             return IdentityOperationResult<TaskRecord>.Failure("TaskStateTransitionInvalid", 409, "A new Task must start in NotStarted or InProgress.");
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<TaskRecord>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (command.ReminderAt is not null &&
+            (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.set_reminder") ||
+             !_capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.set")))
+        {
+            transaction.Rollback();
+            return Failure<TaskRecord>("PermissionDenied", 403, "Setting the initial reminder requires its source and reminder permissions.");
+        }
+        var receiptFailure = CheckReceipt<TaskRecord>(connection, transaction, actor, "FX12", ["tasks.task.create"],
             "productivity.task.create",
             idempotencyKey,
             CanonicalTask(command),
@@ -434,37 +444,65 @@ public sealed class SqlProductivityService : IProductivityService
         }
         WriteAudit(connection, transaction, actor, id, "productivity.task.create", traceId);
         CompleteReceipt(connection, transaction, receipt, "TaskCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
-        transaction.Commit();
-        return result is null
-            ? IdentityOperationResult<TaskRecord>.Failure("PersistenceFailure", 500, "Task could not be loaded after creation.")
-            : IdentityOperationResult<TaskRecord>.Success(result, 201, "TaskCreated");
+        var response = MutationProjection(connection, transaction, actor, "FX12", "tasks.task.read", id, result, 201, "TaskCreated");
+        if (command.ReminderAt is not null &&
+            (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.set_reminder") ||
+             !_capabilities.IsAllowed(connection, transaction, actor, "FX14", "reminders.configuration.set")))
+        { transaction.Rollback(); return Failure<TaskRecord>("PermissionDenied", 403, "Reminder authority is no longer available."); }
+        return CommitAuthorized(connection, transaction, actor, "FX12", ["tasks.task.create"], response);
     }
 
     public IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null) =>
         UpdateTaskCore(actor, taskId, ifMatch, command, idempotencyKey, traceId,
-            "productivity.task.update", "productivity.task.update", "tasks.task.update");
+            "productivity.task.update", "productivity.task.update", ["tasks.task.update", "tasks.task.read"]);
 
-    private IdentityOperationResult<TaskRecord> UpdateTaskCore(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey, string? traceId,
-        string receiptOperationKey, string auditAction, params string[] actionKeys)
+    public IdentityOperationResult<TaskRecord> EditTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskEditCommand command, string? idempotencyKey = null, string? traceId = null) =>
+        UpdateTaskCore(actor, taskId, ifMatch, null, idempotencyKey, traceId,
+            "productivity.task.edit", "productivity.task.update", ["tasks.task.update", "tasks.task.read"],
+            current => TaskSnapshot(current) with { Title = command.Title, Description = command.Description,
+                DueAt = command.DueAt, StartAt = command.StartAt, EndAt = command.EndAt,
+                Priority = command.Priority, TagsJson = command.TagsJson, ConfirmProjectTimeBounds = command.ConfirmProjectTimeBounds },
+            JsonSerializer.Serialize(new { taskId, ifMatch, command }));
+
+    public IdentityOperationResult<TaskRecord> ReorderTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, int rank, string? idempotencyKey = null, string? traceId = null) =>
+        UpdateTaskCore(actor, taskId, ifMatch, null, idempotencyKey, traceId,
+            "productivity.task.reorder", "tasks.task.reorder", ["tasks.task.reorder"],
+            current => TaskSnapshot(current) with { Rank = rank }, JsonSerializer.Serialize(new { taskId, ifMatch, rank }));
+
+    public IdentityOperationResult<TaskRecord> SetTaskCriteria(IdentityPrincipal actor, Guid taskId, string? ifMatch, string criteriaJson, string? idempotencyKey = null, string? traceId = null) =>
+        UpdateTaskCore(actor, taskId, ifMatch, null, idempotencyKey, traceId,
+            "productivity.task.criteria", "tasks.task.criteria", ["tasks.task.criteria"],
+            current => TaskSnapshot(current) with { AcceptanceCriteriaJson = criteriaJson }, JsonSerializer.Serialize(new { taskId, ifMatch, criteriaJson }));
+
+    private static TaskCommand TaskSnapshot(TaskRecord current) => new(current.ProjectId, current.Title, current.Description,
+        current.Status, current.DueAt, current.StartAt, current.EndAt, current.Priority, current.TagsJson,
+        current.AcceptanceCriteriaJson, current.Rank, current.ReminderAt, ConfirmProjectTimeBounds: true);
+
+    private IdentityOperationResult<TaskRecord> UpdateTaskCore(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand? command, string? idempotencyKey, string? traceId,
+        string receiptOperationKey, string auditAction, string[] actionKeys, Func<TaskRecord, TaskCommand>? projectCommand = null, string? canonicalRequest = null, string? transitionStatus = null)
     {
-        if (!ModuleAvailable(actor, "FX12", actionKeys)) return ModuleUnavailable<TaskRecord>();
-        var validation = ValidateTask(command);
+        var hasPreflight = transitionStatus == "InProgress"
+            ? ModuleAvailable(actor, "FX12", "tasks.task.start") || ModuleAvailable(actor, "FX12", "tasks.task.revert")
+            : ModuleAvailable(actor, "FX12", actionKeys);
+        if (!hasPreflight) return ModuleUnavailable<TaskRecord>();
+        var validation = command is null ? null : ValidateTask(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<TaskRecord>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<TaskRecord>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var transitionSource = transitionStatus is null ? null : ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true);
+        var receiptFailure = CheckReceipt<TaskRecord>(connection, transaction, actor, "FX12", actionKeys,
             receiptOperationKey,
             idempotencyKey,
-            CanonicalTask(command, taskId, ifMatch),
-            out var receipt);
+            canonicalRequest ?? CanonicalTask(command!, taskId, ifMatch),
+            out var receipt, transitionStatus is null ? null : claim => TaskTransitionAuthority(claim, transitionSource, transitionStatus));
         if (receiptFailure is not null)
         {
             transaction.Rollback();
             return receiptFailure;
         }
-        var current = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true);
+        var current = transitionSource ?? ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true);
         if (current is null || current.Status == "Deleted")
         {
             transaction.Rollback();
@@ -474,6 +512,17 @@ public sealed class SqlProductivityService : IProductivityService
         {
             transaction.Rollback();
             return IdentityOperationResult<TaskRecord>.Failure("RevisionConflict", 412, "Task revision changed.");
+        }
+        command = projectCommand is null ? command! : projectCommand(current);
+        validation = ValidateTask(command);
+        if (validation is not null) { transaction.Rollback(); return validation; }
+        if (receiptOperationKey == "productivity.task.update" &&
+            (current.Status != command.Status || current.Rank != command.Rank ||
+             NormalizeJson(current.AcceptanceCriteriaJson) != NormalizeJson(command.AcceptanceCriteriaJson) ||
+             command.ManageReminder || current.ReminderAt != command.ReminderAt))
+        {
+            transaction.Rollback();
+            return Failure<TaskRecord>("DedicatedCommandRequired", 422, "Status, criteria, rank and reminder changes require their dedicated commands.");
         }
         if (current.ProjectId != command.ProjectId)
         {
@@ -535,30 +584,42 @@ public sealed class SqlProductivityService : IProductivityService
             UpsertTaskCalendarProjection(connection, transaction, actor.OwnerId, result);
         }
         WriteAudit(connection, transaction, actor, taskId, auditAction, traceId);
-        CompleteReceipt(connection, transaction, receipt, "TaskUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
-        transaction.Commit();
-        return result is null
-            ? IdentityOperationResult<TaskRecord>.Failure("PersistenceFailure", 500, "Task could not be loaded after update.")
-            : IdentityOperationResult<TaskRecord>.Success(result);
+        CompleteReceipt(connection, transaction, receipt, "TaskUpdated", 200, result is null ? null :
+            transitionStatus is null ? JsonSerializer.Serialize(result) : JsonSerializer.Serialize(new TaskTransitionReceipt(TaskMutationAction(current.Status, command.Status), result)));
+        var response = MutationProjection(connection, transaction, actor, "FX12", "tasks.task.read", taskId, result, 200, "Ok");
+        return CommitAuthorized(connection, transaction, actor, "FX12", transitionStatus is null ? actionKeys : [TaskMutationAction(current.Status, command.Status)], response);
     }
 
     public IdentityOperationResult<TaskRecord> TransitionTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string status, string? reason, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12", TaskTransitionAction(status))) return ModuleUnavailable<TaskRecord>();
         if (status is not ("NotStarted" or "InProgress" or "Completed" or "Skipped"))
-            return IdentityOperationResult<TaskRecord>.Failure("ValidationFailed", 422, "Task status is invalid.");
-        if (!TryDecodeETag(ifMatch, out _))
-            return Precondition<TaskRecord>(ifMatch);
+            return Failure<TaskRecord>("ValidationFailed", 422, "Task status is invalid.");
+        return UpdateTaskCore(actor, taskId, ifMatch, null, idempotencyKey, traceId,
+            "productivity.task.transition", "productivity.task.transition", [TaskTransitionAction(status)],
+            current => TaskSnapshot(current) with { Status = status, TransitionReason = reason },
+            JsonSerializer.Serialize(new { taskId, ifMatch, status, reason }), status);
+    }
 
-        using var connection = _connections.Create();
-        connection.Open();
-        var current = ReadTask(connection, null, actor.OwnerId, taskId, forUpdate: false);
-        if (current is null) return IdentityOperationResult<TaskRecord>.Failure("ResourceUnavailable", 404, "Task unavailable.");
-        return UpdateTaskCore(actor, taskId, ifMatch,
-            new TaskCommand(current.ProjectId, current.Title, current.Description, status, current.DueAt,
-                current.StartAt, current.EndAt, current.Priority, current.TagsJson, current.AcceptanceCriteriaJson,
-                current.Rank, current.ReminderAt, reason), idempotencyKey, traceId,
-            "productivity.task.transition", "productivity.task.transition", TaskTransitionAction(status));
+    private sealed record TaskTransitionReceipt(string AuthorityAction, TaskRecord Value);
+
+    private static string TaskMutationAction(string sourceStatus, string targetStatus) =>
+        targetStatus == "InProgress" && sourceStatus is "Completed" or "Skipped"
+            ? "tasks.task.revert" : TaskTransitionAction(targetStatus);
+
+    private static string[]? TaskTransitionAuthority(ReceiptClaim claim, TaskRecord? source, string targetStatus)
+    {
+        if (!claim.IsReplay) return source is null ? null : [TaskMutationAction(source.Status, targetStatus)];
+        if (string.IsNullOrWhiteSpace(claim.ResultJson)) return null;
+        try
+        {
+            var saved = JsonSerializer.Deserialize<TaskTransitionReceipt>(claim.ResultJson);
+            if (saved?.Value is null) return null;
+            var allowed = targetStatus == "InProgress"
+                ? saved.AuthorityAction is "tasks.task.start" or "tasks.task.revert"
+                : saved.AuthorityAction == TaskTransitionAction(targetStatus);
+            return allowed ? [saved.AuthorityAction] : null;
+        }
+        catch (JsonException) { return null; }
     }
 
     public IdentityOperationResult<object?> DeleteTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
@@ -567,8 +628,8 @@ public sealed class SqlProductivityService : IProductivityService
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "FX12", ["tasks.task.trash"],
             "productivity.task.delete",
             idempotencyKey,
             $"task:{taskId:N}|etag:{ifMatch}",
@@ -615,8 +676,7 @@ public sealed class SqlProductivityService : IProductivityService
         InsertTaskHistory(connection, transaction, actor.OwnerId, current with { Status = "Deleted" }, "Trash");
         WriteAudit(connection, transaction, actor, taskId, "productivity.task.delete", traceId);
         CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
-        transaction.Commit();
-        return IdentityOperationResult<object?>.NoContent();
+        return CommitAuthorized(connection, transaction, actor, "FX12", ["tasks.task.trash"], IdentityOperationResult<object?>.NoContent());
     }
 
     public IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null, string? cursor = null)
@@ -630,6 +690,7 @@ public sealed class SqlProductivityService : IProductivityService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX13", "calendar.event.read")) return ModuleUnavailable<EventPage>();
         var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read");
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -662,13 +723,12 @@ public sealed class SqlProductivityService : IProductivityService
         {
             while (reader.Read()) items.Add(ReadEvent(reader));
         }
-        transaction.Commit();
         var hasMore = items.Count > take;
         if (hasMore) items.RemoveAt(items.Count - 1);
         var nextCursor = hasMore && items.Count > 0
             ? EncodeCursor(new EventListCursor(eventScope, items[^1].StartAt.UtcDateTime, items[^1].Id))
             : null;
-        return IdentityOperationResult<EventPage>.Success(new EventPage(items, nextCursor));
+        return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.read"], IdentityOperationResult<EventPage>.Success(new EventPage(items, nextCursor)));
     }
 
     public IdentityOperationResult<EventRecord> GetEvent(IdentityPrincipal actor, Guid eventId)
@@ -678,6 +738,7 @@ public sealed class SqlProductivityService : IProductivityService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX13", "calendar.event.read")) return ModuleUnavailable<EventRecord>();
         var current = ReadEvent(connection, transaction, actor.OwnerId, eventId, forUpdate: true);
         if (current is null || current.Status == "Deleted")
         {
@@ -694,8 +755,7 @@ public sealed class SqlProductivityService : IProductivityService
                 return Failure<EventRecord>("ResourceUnavailable", 404, "Event unavailable.");
             }
         }
-        transaction.Commit();
-        return IdentityOperationResult<EventRecord>.Success(current);
+        return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.read"], IdentityOperationResult<EventRecord>.Success(current));
     }
 
     public IdentityOperationResult<EventRecord> CreateEvent(IdentityPrincipal actor, EventCommand command, string? idempotencyKey = null, string? traceId = null)
@@ -706,11 +766,11 @@ public sealed class SqlProductivityService : IProductivityService
         var id = Guid.NewGuid();
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor, "FX13", ["calendar.event.create"],
             "calendar.event.create",
             idempotencyKey,
-            $"title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|dates:{command.StartDate}:{command.EndDateExclusive}|uid:{command.SourceUid}",
+            CanonicalEvent(command),
             out var receipt);
         if (receiptFailure is not null)
         {
@@ -738,18 +798,16 @@ public sealed class SqlProductivityService : IProductivityService
         WriteAudit(connection, transaction, actor, id, "calendar.event.create", traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, id, forUpdate: false);
         CompleteReceipt(connection, transaction, receipt, "EventCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
-        transaction.Commit();
-        return result is null
-            ? IdentityOperationResult<EventRecord>.Failure("PersistenceFailure", 500, "Event could not be loaded after creation.")
-            : IdentityOperationResult<EventRecord>.Success(result, 201, "EventCreated");
+        var response = MutationProjection(connection, transaction, actor, "FX13", "calendar.event.read", id, result, 201, "EventCreated");
+        return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.create"], response);
     }
 
     public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null) =>
         UpdateEventCore(actor, eventId, ifMatch, command, idempotencyKey, traceId,
-            "calendar.event.update", "calendar.event.update", "calendar.event.update");
+            "calendar.event.update", "calendar.event.update", ["calendar.event.update", "calendar.event.read"]);
 
     private IdentityOperationResult<EventRecord> UpdateEventCore(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey, string? traceId,
-        string receiptOperationKey, string auditAction, params string[] actionKeys)
+        string receiptOperationKey, string auditAction, string[] actionKeys, string? canonicalRequest = null)
     {
         if (!ModuleAvailable(actor, "FX13", actionKeys)) return ModuleUnavailable<EventRecord>();
         var validation = ValidateEvent(command);
@@ -757,11 +815,11 @@ public sealed class SqlProductivityService : IProductivityService
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<EventRecord>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<EventRecord>(connection, transaction, actor, "FX13", actionKeys,
             receiptOperationKey,
             idempotencyKey,
-            $"event:{eventId:N}|etag:{ifMatch}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt.UtcDateTime:o}|end:{command.EndAt.UtcDateTime:o}|timezone:{command.TimeZoneId.Trim()}|allDay:{command.IsAllDay}|dates:{command.StartDate}:{command.EndDateExclusive}|uid:{command.SourceUid}|status:{command.Status}",
+            canonicalRequest ?? CanonicalEvent(command, eventId, ifMatch),
             out var receipt);
         if (receiptFailure is not null)
         {
@@ -778,6 +836,11 @@ public sealed class SqlProductivityService : IProductivityService
         {
             transaction.Rollback();
             return IdentityOperationResult<EventRecord>.Failure("TaskCalendarProjectionReadOnly", 409, "Task Calendar projections are controlled by the Task and cannot be edited here.");
+        }
+        if (receiptOperationKey == "calendar.event.update" && command.Status is not null && command.Status != current.Status)
+        {
+            transaction.Rollback();
+            return Failure<EventRecord>("DedicatedCommandRequired", 422, "Event status changes require the dedicated transition command.");
         }
         if (current.Status is "Completed" or "Canceled")
         {
@@ -819,10 +882,8 @@ public sealed class SqlProductivityService : IProductivityService
         WriteAudit(connection, transaction, actor, eventId, auditAction, traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, eventId, forUpdate: false);
         CompleteReceipt(connection, transaction, receipt, "EventUpdated", 200, result is null ? null : JsonSerializer.Serialize(result));
-        transaction.Commit();
-        return result is null
-            ? IdentityOperationResult<EventRecord>.Failure("PersistenceFailure", 500, "Event could not be loaded after update.")
-            : IdentityOperationResult<EventRecord>.Success(result);
+        var response = MutationProjection(connection, transaction, actor, "FX13", "calendar.event.read", eventId, result, 200, "Ok");
+        return CommitAuthorized(connection, transaction, actor, "FX13", actionKeys, response);
     }
 
     public IdentityOperationResult<EventRecord> TransitionEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string status, string? idempotencyKey = null, string? traceId = null)
@@ -837,11 +898,10 @@ public sealed class SqlProductivityService : IProductivityService
         var current = ReadEvent(connection, null, actor.OwnerId, eventId, forUpdate: false);
         if (current is null) return IdentityOperationResult<EventRecord>.Failure("ResourceUnavailable", 404, "Event unavailable.");
         if (current.TaskId is not null) return IdentityOperationResult<EventRecord>.Failure("TaskCalendarProjectionReadOnly", 409, "Task Calendar projections are controlled by the Task and cannot be edited here.");
-        if (current.Status is "Completed" or "Canceled")
-            return IdentityOperationResult<EventRecord>.Failure("EventTerminal", 409, "Completed or canceled events are read-only.");
         return UpdateEventCore(actor, eventId, ifMatch,
             new EventCommand(current.Title, current.Description, current.StartDate is { } first ? new DateTimeOffset(first.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)) : current.StartAt, current.EndDateExclusive is { } last ? new DateTimeOffset(last.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)) : current.EndAt, current.TimeZoneId, current.IsAllDay, current.SourceUid, status, current.StartDate, current.EndDateExclusive),
-            idempotencyKey, traceId, "calendar.event.transition", "calendar.event.transition", EventTransitionAction(status));
+            idempotencyKey, traceId, "calendar.event.transition", "calendar.event.transition", [EventTransitionAction(status)],
+            JsonSerializer.Serialize(new { eventId, ifMatch, status }));
     }
 
     public IdentityOperationResult<object?> DeleteEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
@@ -850,8 +910,8 @@ public sealed class SqlProductivityService : IProductivityService
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
-        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
-        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor,
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "FX13", ["calendar.event.cancel"],
             "calendar.event.delete",
             idempotencyKey,
             $"event:{eventId:N}|etag:{ifMatch}",
@@ -896,8 +956,7 @@ public sealed class SqlProductivityService : IProductivityService
         SqlManualEventRegistry.Touch(connection, transaction, actor, eventId);
         WriteAudit(connection, transaction, actor, eventId, "calendar.event.delete", traceId);
         CompleteReceipt(connection, transaction, receipt, "NoContent", 204, null);
-        transaction.Commit();
-        return IdentityOperationResult<object?>.NoContent();
+        return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.cancel"], IdentityOperationResult<object?>.NoContent());
     }
 
     private static IdentityOperationResult<ProjectRecord>? ValidateProject(ProjectCommand command)
@@ -1015,7 +1074,14 @@ public sealed class SqlProductivityService : IProductivityService
 
     private static string NormalizeJson(string? value) => string.IsNullOrWhiteSpace(value) ? "[]" : value.Trim();
     private static string CanonicalProject(ProjectCommand command, Guid? id = null, string? etag = null) =>
-        $"project:{id?.ToString("N")}|etag:{etag}|name:{command.Name.Trim()}|description:{command.Description?.Trim()}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{command.Priority}|tags:{NormalizeJson(command.TagsJson)}|notes:{command.Notes?.Trim()}|confirmTaskBounds:{command.ConfirmTaskBounds}";
+        JsonSerializer.Serialize(new { id, etag, Name = command.Name.Trim(), Description = command.Description?.Trim(),
+            StartAt = command.StartAt?.UtcDateTime, EndAt = command.EndAt?.UtcDateTime, command.Priority,
+            Tags = NormalizeJson(command.TagsJson), Notes = command.Notes?.Trim(), command.ConfirmTaskBounds, command.TransitionReason });
+
+    private static string CanonicalEvent(EventCommand command, Guid? id = null, string? etag = null) =>
+        JsonSerializer.Serialize(new { id, etag, Title = command.Title.Trim(), Description = command.Description?.Trim(),
+            StartAt = command.StartAt.UtcDateTime, EndAt = command.EndAt.UtcDateTime, TimeZoneId = command.TimeZoneId.Trim(),
+            command.IsAllDay, command.StartDate, command.EndDateExclusive, command.SourceUid, command.Status });
 
     private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
         _capabilities.IsAllowed(actor, moduleCode, actionKeys);
@@ -1116,7 +1182,11 @@ public sealed class SqlProductivityService : IProductivityService
         IdentityOperationResult<T>.Failure("RevisionConflict", 412, $"{resource} revision changed.");
 
     private static string CanonicalTask(TaskCommand command, Guid? id = null, string? etag = null) =>
-        $"task:{id?.ToString("N")}|etag:{etag}|project:{command.ProjectId:N}|title:{command.Title.Trim()}|description:{command.Description?.Trim()}|status:{command.Status}|due:{command.DueAt?.UtcDateTime:o}|start:{command.StartAt?.UtcDateTime:o}|end:{command.EndAt?.UtcDateTime:o}|priority:{NormalizePriority(command.Priority)}|tags:{NormalizeJson(command.TagsJson)}|acceptance:{NormalizeJson(command.AcceptanceCriteriaJson)}|rank:{command.Rank}|reminder:{command.ReminderAt?.UtcDateTime:o}|manageReminder:{command.ManageReminder}|confirmProjectTimeBounds:{command.ConfirmProjectTimeBounds}";
+        JsonSerializer.Serialize(new { id, etag, command.ProjectId, Title = command.Title.Trim(),
+            Description = command.Description?.Trim(), command.Status, DueAt = command.DueAt?.UtcDateTime,
+            StartAt = command.StartAt?.UtcDateTime, EndAt = command.EndAt?.UtcDateTime, Priority = NormalizePriority(command.Priority),
+            Tags = NormalizeJson(command.TagsJson), Criteria = NormalizeJson(command.AcceptanceCriteriaJson), command.Rank,
+            ReminderAt = command.ReminderAt?.UtcDateTime, command.ManageReminder, command.ConfirmProjectTimeBounds, command.TransitionReason });
 
     private static void InsertProjectHistory(SqlConnection connection, SqlTransaction transaction, Guid ownerId, ProjectRecord project, string? reason)
     {
@@ -1343,7 +1413,7 @@ public sealed class SqlProductivityService : IProductivityService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Name], [Description], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [Notes] FROM [productivity].[Project] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [Name], [Description], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [Notes] FROM [productivity].[Project] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -1354,7 +1424,7 @@ public sealed class SqlProductivityService : IProductivityService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [ProjectId], [Title], [Description], [Status], [DueAt], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [AcceptanceCriteriaJson], [Rank], [ReminderAt] FROM [productivity].[Task] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [ProjectId], [Title], [Description], [Status], [DueAt], [CreatedAt], [UpdatedAt], [RowVersion], [StartAt], [EndAt], [Priority], [TagsJson], [AcceptanceCriteriaJson], [Rank], [ReminderAt] FROM [productivity].[Task] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -1365,7 +1435,7 @@ public sealed class SqlProductivityService : IProductivityService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId], [StartDate], [EndDateExclusive] FROM [calendar].[Event] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [Title], [Description], [StartAt], [EndAt], [TimeZoneId], [Status], [CreatedAt], [UpdatedAt], [RowVersion], [IsAllDay], [SourceUid], [SourceKind], [TaskId], [StartDate], [EndDateExclusive] FROM [calendar].[Event] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -1404,18 +1474,57 @@ public sealed class SqlProductivityService : IProductivityService
         ? IdentityOperationResult<T>.Failure("PreconditionRequired", 428, "If-Match is required.")
         : IdentityOperationResult<T>.Failure("RevisionConflict", 412, "If-Match is invalid.");
 
+    private IdentityOperationResult<T> CommitAuthorized<T>(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string moduleCode, string[] actionKeys, IdentityOperationResult<T> response)
+    {
+        // Locks preserve grant/revocation consistency; a fresh clock check is also required
+        // because a session may expire while this transaction is executing.
+        var authority = _capabilities.Evaluate(connection, transaction, actor, moduleCode, actionKeys);
+        if (authority != SqlCapabilityStatus.Allowed)
+        {
+            transaction.Rollback();
+            return authority == SqlCapabilityStatus.PermissionDenied
+                ? Failure<T>("PermissionDenied", 403, "The mutation is no longer allowed.") : ModuleUnavailable<T>();
+        }
+        transaction.Commit();
+        return response;
+    }
+
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
+        IdentityPrincipal actor, string moduleCode, string[] actionKeys, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim, Func<ReceiptClaim, string[]?>? authoritySelector = null)
     {
         claim = default;
+        if (authoritySelector is not null)
+        {
+            if (!string.IsNullOrWhiteSpace(idempotencyKey))
+                claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
+            // Conflicting/invalid reservations cannot execute or replay an effect. Do not
+            // reinterpret the current (already changed) source state as the original command.
+            if (claim.IsInvalid) return Failure<T>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+            if (claim.IsConflict) return Failure<T>("IdempotencyConflict", 409, "The same Idempotency-Key was already used with a different request.");
+            if (!string.IsNullOrWhiteSpace(idempotencyKey) && !claim.IsClaimed && !claim.IsReplay)
+                return Failure<T>("RequestInProgress", 409, "The request is in progress.");
+            var selected = authoritySelector(claim);
+            if (selected is null) return claim.IsReplay
+                ? Failure<T>("IdempotencyReplayUnavailable", 409, "Original transition authority is unavailable; reconcile the committed result without resubmitting.")
+                : Failure<T>("ResourceUnavailable", 404, "Task unavailable.");
+            actionKeys = selected;
+        }
+        // Current mutation authority is independent of receipt identity and user-controlled payload.
+        // Serializable authority reads stay locked through commit, including keyless/fresh requests.
+        var authority = _capabilities.Evaluate(connection, transaction, actor, moduleCode, actionKeys);
+        if (authority == SqlCapabilityStatus.PermissionDenied)
+            return Failure<T>("PermissionDenied", 403, "The mutation is no longer allowed.");
+        if (authority != SqlCapabilityStatus.Allowed) return ModuleUnavailable<T>();
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
-        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
+        if (authoritySelector is null)
+            claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
         if (claim.IsInvalid)
             return IdentityOperationResult<T>.Failure("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
         if (claim.IsReplay)
         {
-            var replay = ReplayReceipt<T>(connection, transaction, actor, operationKey, canonicalRequest, claim);
+            var replay = ReplayReceipt<T>(connection, transaction, actor, moduleCode, actionKeys, claim);
             if (replay is not null) return replay;
         }
 
@@ -1427,9 +1536,9 @@ public sealed class SqlProductivityService : IProductivityService
     }
 
     private IdentityOperationResult<T>? ReplayReceipt<T>(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string operationKey, string canonicalRequest, ReceiptClaim claim)
+        IdentityPrincipal actor, string moduleCode, string[] actionKeys, ReceiptClaim claim)
     {
-        var operationStatus = EvaluateReplayOperation(connection, transaction, actor, operationKey, canonicalRequest);
+        var operationStatus = _capabilities.Evaluate(connection, transaction, actor, moduleCode, actionKeys);
         if (operationStatus == SqlCapabilityStatus.PermissionDenied)
             return IdentityOperationResult<T>.Failure("PermissionDenied", 403, "The idempotent operation is no longer allowed.");
         if (operationStatus != SqlCapabilityStatus.Allowed)
@@ -1440,40 +1549,47 @@ public sealed class SqlProductivityService : IProductivityService
 
         try
         {
-            var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
+            var resultJson = claim.ResultJson;
+            if (typeof(T) == typeof(TaskRecord))
+            {
+                using var document = JsonDocument.Parse(resultJson);
+                if (document.RootElement.TryGetProperty("AuthorityAction", out _) && document.RootElement.TryGetProperty("Value", out var savedValue))
+                    resultJson = savedValue.GetRawText();
+            }
+            var value = JsonSerializer.Deserialize<T>(resultJson);
             if (value is null) return null;
 
             if (value is ProjectRecord project)
             {
                 var current = ReadProject(connection, transaction, actor.OwnerId, project.Id, forUpdate: true);
                 return current is null || current.Status == "Deleted"
-                    ? Failure<T>("ResourceUnavailable", 404, "Project unavailable.")
-                    : IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+                    ? IdentityOperationResult<T>.Committed(project.Id, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok")
+                    : MutationProjection(connection, transaction, actor, "FX11", "projects.project.read", project.Id, (T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
             }
 
             if (value is TaskRecord task)
             {
                 var current = ReadTask(connection, transaction, actor.OwnerId, task.Id, forUpdate: true);
                 return current is null || current.Status == "Deleted"
-                    ? Failure<T>("ResourceUnavailable", 404, "Task unavailable.")
-                    : IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+                    ? IdentityOperationResult<T>.Committed(task.Id, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok")
+                    : MutationProjection(connection, transaction, actor, "FX12", "tasks.task.read", task.Id, (T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
             }
 
             if (value is EventRecord calendarEvent)
             {
                 var current = ReadEvent(connection, transaction, actor.OwnerId, calendarEvent.Id, forUpdate: true);
                 if (current is null || current.Status == "Deleted")
-                    return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
+                    return IdentityOperationResult<T>.Committed(calendarEvent.Id, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
                 if (current.TaskId is { } taskId)
                 {
                     if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read"))
-                        return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
+                        return IdentityOperationResult<T>.Committed(calendarEvent.Id, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
                     var source = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true);
                     if (source is null || source.Status == "Deleted")
-                        return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
+                        return IdentityOperationResult<T>.Committed(calendarEvent.Id, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
                 }
 
-                return IdentityOperationResult<T>.Success((T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+                return MutationProjection(connection, transaction, actor, "FX13", "calendar.event.read", calendarEvent.Id, (T)(object)current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
             }
 
             return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
@@ -1488,29 +1604,14 @@ public sealed class SqlProductivityService : IProductivityService
         }
     }
 
-    private SqlCapabilityStatus EvaluateReplayOperation(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string operationKey, string canonicalRequest) => operationKey switch
-        {
-            "productivity.project.create" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.create"),
-            "productivity.project.update" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.update"),
-            "productivity.project.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX11", ProjectTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
-            "productivity.project.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.trash"),
-            "productivity.task.create" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.create"),
-            "productivity.task.update" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.update"),
-            "productivity.task.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX12", TaskTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
-            "productivity.task.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.trash"),
-            "calendar.event.create" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.create"),
-            "calendar.event.update" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.update"),
-            "calendar.event.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX13", EventTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
-            "calendar.event.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.cancel"),
-            _ => SqlCapabilityStatus.ModuleUnavailable
-        };
-
-    private static string? CanonicalValue(string canonicalRequest, string key)
+    // Check projection authority under the mutation's Serializable transaction. A committed
+    // write is still successful when its detail is unavailable; never fabricate a DTO.
+    private IdentityOperationResult<T> MutationProjection<T>(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string module, string readAction, Guid id, T? value, int status, string code)
     {
-        var prefix = key + ":";
-        return canonicalRequest.Split('|')
-            .FirstOrDefault(part => part.StartsWith(prefix, StringComparison.Ordinal))?[prefix.Length..];
+        if (value is null || !_capabilities.IsAllowed(connection, transaction, actor, module, readAction))
+            return IdentityOperationResult<T>.Committed(id, status, code);
+        return IdentityOperationResult<T>.Success(value, status, code);
     }
 
     private static string EncodeCursor<T>(T value)

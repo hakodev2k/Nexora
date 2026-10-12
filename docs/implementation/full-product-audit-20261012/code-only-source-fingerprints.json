@@ -1,0 +1,126 @@
+{
+  "baseline": "940f53c90254f0b4d2f8c4be6a2b3e5bd9e57589",
+  "scope": "Code-only publication; compilation and independent source review only; no fresh runtime acceptance",
+  "files": [
+    {
+      "path": "database/migrations/20261012_0055_productivity_dedicated_actions.sql",
+      "sha256": "81ad4bf6449a637d4377d286d611dfda04287bdda12c33da9a847a497af05c6e",
+      "publishedLfSha256": "81ad4bf6449a637d4377d286d611dfda04287bdda12c33da9a847a497af05c6e"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Files/FileEndpoints.cs",
+      "sha256": "dda10570629447dd43b9a666ea967b88b21b647a4aee877d4d3bc1ed6f1ee4fc",
+      "publishedLfSha256": "09f25454580aa6ed4a5a3371fda2994928b8100da2172a76135bc0d6f3902090"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Productivity/ProductivityContracts.cs",
+      "sha256": "69de9dbfc2ff7e4c14f038e8757c4767e6b553cfa15ed35979e9ac28f5337ec0",
+      "publishedLfSha256": "d7bd927783ae161b3bd8720a9bac63bd5fb837ec43393d67b6968e1415804c7b"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Productivity/ProductivityEndpoints.cs",
+      "sha256": "302f7c5bfa6da2231e2ab9f9dfdf4e097eabd077c2294effc576e1ec9ff1f4e3",
+      "publishedLfSha256": "03897fd99178340c2961e499e80963457f9ab4446e73799cd3ca496eb6da504e"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reminders/ReminderEndpoints.cs",
+      "sha256": "032d1e4a3472cc62b224f3e8b0770e447cfaa3b30cb935243549b93b155c28a3",
+      "publishedLfSha256": "af84140c8290aec75fb50082c2108e813af1ecfee0dd8a7bc6ce56d81466c004"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Snippets/SnippetEndpoints.cs",
+      "sha256": "eb5fec49333808d11ca8d23791ffc7ed6da310b511b5c256244eb335c4187d3f",
+      "publishedLfSha256": "591c9d42a9f6a07ed81c5ee171159f31905d8e1a2f7698aae356f5236643faa5"
+    },
+    {
+      "path": "src/Nexora.Application/Identity/IdentityServiceContracts.cs",
+      "sha256": "718b33d480ee377970ab3be3d3b8aececcb421b5f6c9a5328a9a42992712800c",
+      "publishedLfSha256": "698c2753d3dab2310e653f3ef5b27c87c08a3e55466604c49c4a33a2915b3a37"
+    },
+    {
+      "path": "src/Nexora.Application/Productivity/ProductivityServiceContracts.cs",
+      "sha256": "1c85ef3566a53290af97f37d6e0ac317fd83dbf73aa4b8ca2307d74e82794284",
+      "publishedLfSha256": "598f22ad6de5f8d97a215f9331919228533f94971c0cb80b01a084b96ed1ec6d"
+    },
+    {
+      "path": "src/Nexora.Application/Snippets/SnippetServiceContracts.cs",
+      "sha256": "b01bcb2af7dc4ded3a8244b7573658c9e1126110b9cc6ebe22e43e0142591984",
+      "publishedLfSha256": "0f20557b442a031178499f3cf57affadb2e8e7b53738f00d0db74c499169c1d1"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "bb490c1ce777a52c56dce0eb8f68aa562add9f55e999df08ee986b46347ee2a7",
+      "publishedLfSha256": "303b035d72e29498cc9f4f2147bafbec94cef532e5d3b889ffa9fd0181636bec"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlSelfCapability.cs",
+      "sha256": "abf67e4146f22fc52b06bf6fafe31c708b464979297888aca0e42b049c762316",
+      "publishedLfSha256": "a338da1a27e3e2e3df883c8323cb5d68351bdcffc440f92460931b6d16e3e91f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationTaskWorker.cs",
+      "sha256": "bf7960a6ae3b40a5bea748a3a59d5c83968c251f1efbcecbce2a508e793dc87f",
+      "publishedLfSha256": "ef431b4d2e1be5bc58689221857dd2cb5440d961d2bef6ae17c33f92f2b45f02"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "sha256": "28ce26e4810506e1215254266fe7b1b05eef957c979130562a27669792c91055",
+      "publishedLfSha256": "ff8fef5ce37a4803f7f3888a902802541ef1ce26716c2f395c3ca30d2e7a1735"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Focus/SqlFocusService.cs",
+      "sha256": "1fefae376ba597c7e8e86b2174517ca5c609a84e10a2a954471666c9e67f483e",
+      "publishedLfSha256": "40c1e3ab7fe086d86b61a611085ecb9c67276262daace706aed6b6dfdc651f96"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
+      "sha256": "288e9c6a19973586f35df95b4d771f3c1210091062578404ee1e7a3aec2af427",
+      "publishedLfSha256": "3876dc72d0006d39e36af8f1ae6bdcb9b5fb8bc5463f5079c88a59f8b91d90ee"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "41a0112991e78d8d898d7e40d8ad9510380197d3dc04f71130be28d721f42705",
+      "publishedLfSha256": "79f92d72a3dad7585f7742c9652da7f425fb81ea7e418bb821136e6065a1e620"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlProductivityService.cs",
+      "sha256": "a839d42e37a93b14683c722327565444d675b6cade796ae66ab4f7b47035150c",
+      "publishedLfSha256": "941c40ee2ff8317768a00932588ba5408e78e7dbc5dd45e43e0b8aba0e9ad028"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reminders/SqlReminderService.cs",
+      "sha256": "539aa4f57945f2fb6154fcb30d5f66e1049942cd36e97f48bdf02824dd61f1df",
+      "publishedLfSha256": "d8151e42505db240963d4170ec8cad83678d006e43c3ee2ca267e0ed4003c92c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Snippets/SnippetListCursor.cs",
+      "sha256": "195e9f5d46d22181be75278af9da52519bcc2b1175f6a395c913a11c4d02c76d",
+      "publishedLfSha256": "195e9f5d46d22181be75278af9da52519bcc2b1175f6a395c913a11c4d02c76d"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Snippets/SqlSnippetService.cs",
+      "sha256": "570232932eae36d5879b51791baa25a299fd0bcac92051833b5ba1ff40ddd230",
+      "publishedLfSha256": "bdb84b14532385cc31099083ceff5ffcd0ceeed26c27206073eba9dce7abfa00"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "d1f18d8e474f5d39495118ad67c9dba2694043fe20ad8150d571537e578031e2",
+      "publishedLfSha256": "fe04c4a7a1bf9c6ad31571d88e83d2063367bb70bb172e5b01494b8c3f37be95"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileRestoreDialog.tsx",
+      "sha256": "aa9aecb2faeafa6f0059a119554149dc6ec53380f74db5d33559491b49f55645",
+      "publishedLfSha256": "6dc865e0f6f434f0c506222826d56bdad292a20e65606f098b357c50a159eec1"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "65ebdd96ba7af65da61be21582d4cfba8ae21e7de7353cf9d77299d42c084f12",
+      "publishedLfSha256": "3b8412908b9fd219a3aad84b18d80377d48d17c9cf6f361bacffdf2aeb4ceae9"
+    }
+  ],
+  "independentReview": {
+    "reviewer": "security_review",
+    "scope": "File ACK; current authority/session/Productivity/Reminder critical patches; FX22 bounded source delta",
+    "result": "No confirmed scoped source blocker; full-product/runtime verification incomplete"
+  }
+}

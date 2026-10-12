@@ -1310,11 +1310,11 @@ OPTION (MAXRECURSION 32);"))
             : new IdentityPrincipal(row.Id, row.PersonalSpaceId.Value, row.Role, UtcNow());
         var isSuperAdmin = principal is not null && string.Equals(row.Role, "SuperAdmin", StringComparison.OrdinalIgnoreCase);
         var canViewAdminAccess = isSuperAdmin &&
-            _capabilities.IsAllowed(connection, transaction, principal!, "FX02", "access.user.read");
+            _capabilities.IsAllowedForProfileProjection(connection, transaction, principal!, "FX02", "access.user.read");
         var canViewModuleCatalog = isSuperAdmin &&
-            _capabilities.IsAllowed(connection, transaction, principal!, "FX03", "modules.catalog.read");
+            _capabilities.IsAllowedForProfileProjection(connection, transaction, principal!, "FX03", "modules.catalog.read");
         var canManageModulePolicy = isSuperAdmin &&
-            _capabilities.IsAllowed(connection, transaction, principal!, "FX03",
+            _capabilities.IsAllowedForProfileProjection(connection, transaction, principal!, "FX03",
                 "modules.policy.enable", "modules.policy.disable", "modules.policy.defaults");
 
         return new IdentityProfile(row.Id, row.Email, row.DisplayName, row.TimeZoneId, row.Locale,

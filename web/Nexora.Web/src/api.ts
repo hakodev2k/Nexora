@@ -1170,6 +1170,24 @@ export function revokeAllSessions(idempotencyKey = createIdempotencyKey()) {
   });
 }
 
+export type ProductivityCommittedAcknowledgement = { id: string; committed: true; detailAvailable: false };
+export function isProductivityAcknowledgement<T>(value: T | ProductivityCommittedAcknowledgement): value is ProductivityCommittedAcknowledgement {
+  return !!value && typeof value === 'object' && 'committed' in value && value.committed === true
+    && 'detailAvailable' in value && value.detailAvailable === false;
+}
+
+async function productivityMutation<T extends { id: string }>(path: string, init: RequestInit, expectedId?: string): Promise<T | ProductivityCommittedAcknowledgement> {
+  const value = await apiFetch<T | ProductivityCommittedAcknowledgement>(path, init, expectedId ? 200 : 201);
+  const validId = !!value && typeof value === 'object' && typeof value.id === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.id)
+    && value.id !== '00000000-0000-0000-0000-000000000000'
+    && (!expectedId || value.id.toLowerCase() === expectedId.toLowerCase());
+  const hasAcknowledgement = !!value && typeof value === 'object' && ('committed' in value || 'detailAvailable' in value);
+  if (!validId || (hasAcknowledgement && !isProductivityAcknowledgement(value)))
+    throw new NexoraApiError('Chưa xác nhận được kết quả đã lưu. Giữ nguyên thao tác và idempotency key để đối chiếu; không tạo thao tác mới.', 0, 'UnexpectedAcknowledgement');
+  return value;
+}
+
 export function listProjects(limit = 25, cursor = '') {
   const query = new URLSearchParams({ limit: String(limit) });
   if (cursor) query.set('cursor', cursor);
@@ -1181,7 +1199,7 @@ export function getProject(id: string) {
 }
 
 export function createProject(name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey(), confirmTaskBounds = false) {
-  return apiFetch<ProjectRecord>('/api/v1/projects', {
+  return productivityMutation<ProjectRecord>('/api/v1/projects', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes, confirmTaskBounds })
@@ -1189,11 +1207,11 @@ export function createProject(name: string, description: string | null, startAt:
 }
 
 export function updateProject(id: string, etag: string, name: string, description: string | null, startAt: string, endAt: string, priority = 'P3', tagsJson: string | null = null, notes: string | null = null, idempotencyKey = createIdempotencyKey(), confirmTaskBounds = false) {
-  return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}`, {
+  return productivityMutation<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ name, description, startAt, endAt, priority, tagsJson, notes, confirmTaskBounds })
-  });
+  }, id);
 }
 
 export function deleteProject(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
@@ -1204,11 +1222,11 @@ export function deleteProject(id: string, etag: string, idempotencyKey = createI
 }
 
 export function transitionProject(id: string, etag: string, status: string, reason: string | null, idempotencyKey = createIdempotencyKey(), confirm = false) {
-  return apiFetch<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}/transition`, {
+  return productivityMutation<ProjectRecord>(`/api/v1/projects/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status, reason, confirm })
-  });
+  }, id);
 }
 
 export function listTasks(projectId?: string, limit = 25, cursor = '') {
@@ -1239,37 +1257,36 @@ export function createTask(
   confirmProjectTimeBounds = false,
   manageReminder = false
 ) {
-  return apiFetch<TaskRecord>('/api/v1/tasks', {
+  return productivityMutation<TaskRecord>('/api/v1/tasks', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds, manageReminder })
   });
 }
 
-export function updateTask(
-  id: string,
-  etag: string,
-  projectId: string,
-  title: string,
-  description: string | null,
-  status: string,
-  dueAt: string | null,
-  startAt: string,
-  endAt: string,
-  priority: string | null = null,
-  tagsJson: string | null = null,
-  acceptanceCriteriaJson: string | null = null,
-  rank = 0,
-  reminderAt: string | null = null,
-  idempotencyKey = createIdempotencyKey(),
-  confirmProjectTimeBounds = false,
-  manageReminder = false
-) {
-  return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}`, {
-    method: 'PUT',
-    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ projectId, title, description, status, dueAt, startAt, endAt, priority, tagsJson, acceptanceCriteriaJson, rank, reminderAt, confirmProjectTimeBounds, manageReminder })
-  });
+export type TaskEditInput = {
+  title: string; description: string | null; dueAt: string | null; startAt: string; endAt: string;
+  priority: string | null; tagsJson: string; confirmProjectTimeBounds?: boolean;
+};
+
+export function updateTask(id: string, etag: string, input: TaskEditInput, idempotencyKey = createIdempotencyKey()) {
+  return productivityMutation<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify(input)
+  }, id);
+}
+
+export function setTaskCriteria(id: string, etag: string, acceptanceCriteriaJson: string, idempotencyKey = createIdempotencyKey()) {
+  return productivityMutation<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}/criteria`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    body: JSON.stringify({ acceptanceCriteriaJson })
+  }, id);
+}
+
+export function reorderTask(id: string, etag: string, rank: number, idempotencyKey = createIdempotencyKey()) {
+  return productivityMutation<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}/rank`, {
+    method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ rank })
+  }, id);
 }
 
 export function deleteTask(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
@@ -1280,11 +1297,11 @@ export function deleteTask(id: string, etag: string, idempotencyKey = createIdem
 }
 
 export function transitionTask(id: string, etag: string, status: string, reason: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}/transition`, {
+  return productivityMutation<TaskRecord>(`/api/v1/tasks/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status, reason })
-  });
+  }, id);
 }
 
 export function listCalendarEvents(from?: string, to?: string, limit = 25, cursor = '') {
@@ -1310,7 +1327,7 @@ export function createCalendarEvent(
   idempotencyKey = createIdempotencyKey(),
   dates?: { startDate: string; endDateExclusive: string }
 ) {
-  return apiFetch<CalendarEventRecord>('/api/v1/calendar/events', {
+  return productivityMutation<CalendarEventRecord>('/api/v1/calendar/events', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid, ...dates })
@@ -1330,11 +1347,11 @@ export function updateCalendarEvent(
   idempotencyKey = createIdempotencyKey(),
   dates?: { startDate: string; endDateExclusive: string }
 ) {
-  return apiFetch<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}`, {
+  return productivityMutation<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ title, description, startAt, endAt, timeZoneId, isAllDay, sourceUid, ...dates })
-  });
+  }, id);
 }
 
 export function deleteCalendarEvent(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
@@ -1345,11 +1362,11 @@ export function deleteCalendarEvent(id: string, etag: string, idempotencyKey = c
 }
 
 export function transitionCalendarEvent(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}/transition`, {
+  return productivityMutation<CalendarEventRecord>(`/api/v1/calendar/events/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })
-  });
+  }, id);
 }
 
 export function listDocuments(status?: string, limit = 100) {
@@ -1541,9 +1558,10 @@ export function transitionBookmark(id: string, etag: string, status: string, ide
   });
 }
 
-export function listSnippets(includeArchived = false, query = '', limit = 100) {
+export function listSnippets(includeArchived = false, query = '', limit = 25, cursor = '') {
   const params = new URLSearchParams({ includeArchived: String(includeArchived), limit: String(limit) });
   if (query.trim()) params.set('query', query.trim());
+  if (cursor) params.set('cursor', cursor);
   return apiFetch<SnippetPage>(`/api/v1/snippets?${params.toString()}`);
 }
 
@@ -1552,7 +1570,7 @@ export function getSnippet(id: string) {
 }
 
 export function createSnippet(title: string, language: string, body: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<SnippetRecord>('/api/v1/snippets', {
+  return productivityMutation<SnippetRecord>('/api/v1/snippets', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ title, language, body, description })
@@ -1560,19 +1578,19 @@ export function createSnippet(title: string, language: string, body: string, des
 }
 
 export function saveSnippet(id: string, etag: string, title: string, language: string, body: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}`, {
+  return productivityMutation<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ title, language, body, description })
-  });
+  }, id);
 }
 
 export function transitionSnippet(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}/transition`, {
+  return productivityMutation<SnippetRecord>(`/api/v1/snippets/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })
-  });
+  }, id);
 }
 
 export function listReadingQueue(state = '', limit = 100) {
@@ -1660,7 +1678,7 @@ export function getReminderSource(sourceType: 'Task' | 'CalendarEvent', sourceId
   return apiFetch<ReminderSourceView>(`/api/v1/reminders/${encodeURIComponent(sourceType)}/${encodeURIComponent(sourceId)}`);
 }
 
-export function setReminder(
+export async function setReminder(
   sourceType: 'Task' | 'CalendarEvent',
   sourceId: string,
   configType: 'None' | 'BeforeStart15m' | 'Exact',
@@ -1669,11 +1687,18 @@ export function setReminder(
   reminderETag: string | null,
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<ReminderSourceView>(`/api/v1/reminders/${encodeURIComponent(sourceType)}/${encodeURIComponent(sourceId)}`, {
+  const saved = await apiFetch<ReminderSourceView | ProductivityCommittedAcknowledgement>(`/api/v1/reminders/${encodeURIComponent(sourceType)}/${encodeURIComponent(sourceId)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, reminderETag ? { 'If-Match': reminderETag } : undefined),
     body: JSON.stringify({ configType, exactAt, sourceETag })
-  });
+  }, reminderETag ? 200 : 201);
+  if (isProductivityAcknowledgement(saved)) {
+    if (typeof saved.id !== 'string' || saved.id.toLowerCase() !== sourceId.toLowerCase())
+      throw new NexoraApiError('Chưa xác nhận được kết quả reminder. Giữ idempotency key để đối chiếu.', 0, 'UnexpectedAcknowledgement');
+  } else if (!saved || saved.sourceId !== sourceId || saved.sourceType !== sourceType) {
+    throw new NexoraApiError('Chưa xác nhận được nguồn reminder đã lưu.', 0, 'UnexpectedAcknowledgement');
+  }
+  return saved;
 }
 
 export function removeReminder(
@@ -2072,11 +2097,11 @@ export function trashFile(id: string, etag: string, idempotencyKey = createIdemp
 }
 
 export function restoreFile(id: string, etag: string, deletionBatchId: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<FileRecord>(`/api/v1/files/${encodeURIComponent(id)}/restore`, {
+  return productivityMutation<FileRecord>(`/api/v1/files/${encodeURIComponent(id)}/restore`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ deletionBatchId })
-  });
+  }, id);
 }
 
 export function purgeFile(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {

@@ -1,5 +1,7 @@
 # Audit continuation plan and execution amendment — 2026-10-12
 
+> Superseded execution authorization for the resumed 2026-10-13 turn: the user's current AGENTS instruction is code-only. See `continuation-20261013-code-only.md`. Do not use the older testing authorization below to run tests/fixtures/browser startup now. Prior evidence and authorized source work are retained with historical provenance.
+
 Accountable owner root; existing independent reviewer baseline_review. Main8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3; remote/local baseline028d94a064f000a48c8bd793c4996e5fc0475119 after scoped stash/fast-forward/apply. Stash nexora-fx35-before-028d94-sync preserves unpublished source; private artifacts/local-files remain untouched/excluded. No merge/force-push/main write. Remote expected HEAD must be checked before each publication.
 
 Latest explicit user instruction supersedes older AGENTS code-only amendment for this task: focused unit/integration/SQL/API/UI/E2E tests and synthetic fixtures in isolated local/test environments authorized. No live provider mutations/public webhooks/production/paid resources/real personal data or credentials. Local Windows integrated auth to loopback SQLEXPRESS creates new fixture-owned Nexora_Test_<GUID> databases; fixture validates nonexistence and drops only its owned generated target. Existing Nexora_Dev/retained databases are not modified/reseeded. No credentials printed or committed.

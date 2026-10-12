@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { registerDirtyLeaveGuard } from './App';
-import { apiFetch, createIdempotencyKey, type FileRecord } from './api';
+import { apiFetch, createIdempotencyKey, isProductivityAcknowledgement, restoreFile, type FileRecord } from './api';
 import { ResourceFormDialog } from './ResourceFormDialog';
 
 type Preview = { file: FileRecord; deletionBatchId: string; canRestore: boolean; blockCode: string | null };
 export function FileRestoreDialog({ fileId, onClose, onDone, onDenied }: {
-  fileId: string; onClose: () => void; onDone: () => void; onDenied: () => void;
+  fileId: string; onClose: () => void; onDone: (detailAvailable?: boolean) => void; onDenied: () => void;
 }) {
   const generation = useRef(0), flight = useRef(false);
   const request = useRef<{ etag: string; key: string; batchId: string } | null>(null);
@@ -49,15 +49,18 @@ export function FileRestoreDialog({ fileId, onClose, onDone, onDenied }: {
     const command = request.current, stamp = generation.current;
     flight.current = true; setBusy(true); setError('');
     try {
-      const ack = await apiFetch<FileRecord>(`/api/v1/files/${encodeURIComponent(fileId)}/restore`, {
-        method: 'POST', headers: { 'If-Match': command.etag, 'Idempotency-Key': command.key },
-        body: JSON.stringify({ deletionBatchId: command.batchId })
-      }, 200);
+      const ack = await restoreFile(fileId, command.etag, command.batchId, command.key);
       if (stamp !== generation.current) return;
+      if (isProductivityAcknowledgement(ack)) {
+        request.current = null; setUncertain(false); setPreview(null);
+        onDone(false);
+        return;
+      }
       if (!ack || ack.id !== fileId || typeof ack.etag !== 'string' || !/^"[A-Za-z0-9+/]{11}="$/.test(ack.etag) || ack.lifecycle !== 'Active') throw Object.assign(new Error('Invalid acknowledgement'), { status: 0 });
       const encoded = ack.etag.slice(1, -1), decoded = atob(encoded);
       if (decoded.length !== 8 || btoa(decoded) !== encoded) throw Object.assign(new Error('Invalid acknowledgement'), { status: 0 });
-      onDone();
+      request.current = null; setUncertain(false); setPreview(null);
+      onDone(true);
     } catch (e) {
       if (stamp !== generation.current) return;
       if (denied(e)) { onDenied(); return; }

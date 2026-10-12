@@ -1,5 +1,7 @@
 # Nexora audit checkpoint — 2026-10-12
 
+> Historical checkpoint below. Current continuation: [2026-10-13 code-only task brief](continuation-20261013-code-only.md) and [Task/session/File source and failure journal](session-20261012-task-boundaries.md). HEAD before publication `940f53c90254f0b4d2f8c4be6a2b3e5bd9e57589`. Earlier SQL-runtime absence statements below have historical scope; selected real SQL runs subsequently occurred. Later FX22 changes have compilation/source review only. Full-product verdict remains INCOMPLETE. RTM now has nine PARTIAL rows (four Tag plus five Snippet); the remaining724 stay UNVERIFIED, with zero COMPLETE. These counts are audit dispositions, not defect counts or acceptance percentages.
+
 **Verdict: INCOMPLETE.** Chưa hoàn tất nhiệm vụ audit và implementation toàn bộ Nexora. Những thay đổi dưới đây là production repairs thực tế trên PR #4, không phải tuyên bố toàn bộ requirement đã được phát hiện, triển khai hoặc nghiệm thu.
 
 Authority `main`: `8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3`. Implementation baseline: `fd7d087142e7e437cf742fdf401acea1757179cb`, branch `impl/m01-s00-scaffold`. Source fingerprint sau sửa nằm trong [verified-source-files.json](verified-source-files.json). Không thay đổi `main`, merge, migration, account/module enablement, secrets hoặc live provider.

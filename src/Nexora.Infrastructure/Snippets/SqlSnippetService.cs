@@ -24,45 +24,72 @@ public sealed class SqlSnippetService : ISnippetService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly SnippetListCursor _cursor;
 
     public SqlSnippetService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(secret);
+        _cursor = new SnippetListCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<SnippetPage> List(IdentityPrincipal actor, bool includeArchived = false,
-        string? query = null, int? limit = null)
+        string? query = null, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "FX22", "snippets.snippet.read")) return ModuleUnavailable<SnippetPage>();
         var take = Math.Clamp(limit ?? 25, 1, 100);
         var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
+        if (normalizedQuery is { Length: > 200 })
+            return Failure<SnippetPage>("ValidationFailed", 422, "Snippet search must be at most 200 characters.");
+        DateTime? afterTime = null;
+        Guid? afterId = null;
+        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, actor.OwnerId, includeArchived, normalizedQuery, take, out afterTime, out afterId))
+            return Failure<SnippetPage>("InvalidCursor", 422, "Snippet cursor does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read"))
+            return ModuleUnavailable<SnippetPage>();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit)
                 s.[Id], s.[Title], s.[Language], v.[SourceText], v.[Description],
                 s.[CurrentVersion], s.[Status], s.[CreatedAt], s.[UpdatedAt], s.[RowVersion]
-            FROM [knowledge].[Snippet] s WITH (NOLOCK)
-            INNER JOIN [knowledge].[SnippetVersion] v WITH (NOLOCK)
+            FROM [knowledge].[Snippet] s
+            INNER JOIN [knowledge].[SnippetVersion] v
                 ON v.[OwnerId] = s.[OwnerId] AND v.[SnippetId] = s.[Id] AND v.[VersionNumber] = s.[CurrentVersion]
             WHERE s.[OwnerId] = @OwnerId
+              AND s.[Status] IN ('Active', 'Archived')
               AND (@IncludeArchived = 1 OR s.[Status] = 'Active')
-              AND (@Query IS NULL OR s.[Title] LIKE @QueryLike OR s.[Language] LIKE @QueryLike
-                   OR v.[SourceText] LIKE @QueryLike OR v.[Description] LIKE @QueryLike)
+              AND (@AfterTime IS NULL OR s.[UpdatedAt] < @AfterTime OR (s.[UpdatedAt] = @AfterTime AND s.[Id] < @AfterId))
+              AND (@Query IS NULL OR s.[Title] LIKE @QueryLike ESCAPE N'~' OR s.[Language] LIKE @QueryLike ESCAPE N'~'
+                   OR v.[SourceText] LIKE @QueryLike ESCAPE N'~' OR v.[Description] LIKE @QueryLike ESCAPE N'~')
             ORDER BY s.[UpdatedAt] DESC, s.[Id] DESC;
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
+        Add(command, "@AfterTime", SqlDbType.DateTime2, (object?)afterTime ?? DBNull.Value);
+        Add(command, "@AfterId", SqlDbType.UniqueIdentifier, (object?)afterId ?? DBNull.Value);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@IncludeArchived", SqlDbType.Bit, includeArchived);
         Add(command, "@Query", SqlDbType.NVarChar, (object?)normalizedQuery ?? DBNull.Value, 200);
-        Add(command, "@QueryLike", SqlDbType.NVarChar, normalizedQuery is null ? DBNull.Value : $"%{normalizedQuery}%", 202);
-        using var reader = command.ExecuteReader();
+        Add(command, "@QueryLike", SqlDbType.NVarChar, normalizedQuery is null ? DBNull.Value : $"%{EscapeLike(normalizedQuery)}%", 402);
         var items = new List<SnippetRecord>();
-        while (reader.Read()) items.Add(Read(reader));
-        return IdentityOperationResult<SnippetPage>.Success(new SnippetPage(items, null));
+        using (var reader = command.ExecuteReader())
+            while (reader.Read()) items.Add(Read(reader));
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read"))
+            return ModuleUnavailable<SnippetPage>();
+        transaction.Commit();
+        string? nextCursor = null;
+        if (items.Count > take)
+        {
+            items.RemoveAt(take);
+            var last = items[^1];
+            nextCursor = _cursor.Encode(actor.OwnerId, includeArchived, normalizedQuery, take, last.UpdatedAt, last.Id);
+        }
+        return IdentityOperationResult<SnippetPage>.Success(new SnippetPage(items, nextCursor));
     }
 
     public IdentityOperationResult<SnippetRecord> Get(IdentityPrincipal actor, Guid snippetId)
@@ -71,8 +98,14 @@ public sealed class SqlSnippetService : ISnippetService
         if (snippetId == Guid.Empty) return Failure<SnippetRecord>("ResourceUnavailable", 404, "Snippet unavailable.");
         using var connection = _connections.Create();
         connection.Open();
-        var snippet = Read(connection, null, actor.OwnerId, snippetId, forUpdate: false);
-        return snippet is null || snippet.Status == "Deleted"
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read"))
+            return ModuleUnavailable<SnippetRecord>();
+        var snippet = Read(connection, transaction, actor.OwnerId, snippetId, forUpdate: false);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read"))
+            return ModuleUnavailable<SnippetRecord>();
+        transaction.Commit();
+        return snippet is null || snippet.Status is not ("Active" or "Archived")
             ? Failure<SnippetRecord>("ResourceUnavailable", 404, "Snippet unavailable.")
             : IdentityOperationResult<SnippetRecord>.Success(snippet);
     }
@@ -108,8 +141,7 @@ public sealed class SqlSnippetService : ISnippetService
             if (created is null) { transaction.Rollback(); return Failure<SnippetRecord>("PersistenceFailure", 500, "Snippet could not be loaded after creation."); }
             WriteAudit(connection, transaction, actor, id, "snippets.snippet.create", traceId);
             CompleteReceipt(connection, transaction, receipt, "SnippetCreated", 201, JsonSerializer.Serialize(created));
-            transaction.Commit();
-            return IdentityOperationResult<SnippetRecord>.Success(created, 201, "SnippetCreated");
+            return CommitResult(connection, transaction, actor, "snippets.snippet.create", created, 201, "SnippetCreated");
         }
         catch (SqlException exception)
         {
@@ -160,8 +192,7 @@ public sealed class SqlSnippetService : ISnippetService
             if (saved is null) { transaction.Rollback(); return Failure<SnippetRecord>("PersistenceFailure", 500, "Snippet could not be loaded after save."); }
             WriteAudit(connection, transaction, actor, snippetId, "snippets.snippet.save", traceId);
             CompleteReceipt(connection, transaction, receipt, "SnippetSaved", 200, JsonSerializer.Serialize(saved));
-            transaction.Commit();
-            return IdentityOperationResult<SnippetRecord>.Success(saved);
+            return CommitResult(connection, transaction, actor, "snippets.snippet.save", saved, 200, "SnippetSaved");
         }
         catch (SqlException exception)
         {
@@ -198,7 +229,7 @@ public sealed class SqlSnippetService : ISnippetService
                 transaction.Rollback();
                 return Revision<SnippetRecord>();
             }
-            if (current.Status == normalizedStatus)
+            if (current.Status is not ("Active" or "Archived") || current.Status == normalizedStatus)
             {
                 transaction.Rollback();
                 return Failure<SnippetRecord>("LifecycleLocked", 409, "Snippet is already in the requested state.");
@@ -212,8 +243,8 @@ public sealed class SqlSnippetService : ISnippetService
             if (updated is null) { transaction.Rollback(); return Failure<SnippetRecord>("PersistenceFailure", 500, "Snippet could not be loaded after transition."); }
             WriteAudit(connection, transaction, actor, snippetId, action, traceId);
             CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "SnippetArchived" : "SnippetUnarchived", 200, JsonSerializer.Serialize(updated));
-            transaction.Commit();
-            return IdentityOperationResult<SnippetRecord>.Success(updated);
+            return CommitResult(connection, transaction, actor, action, updated, 200,
+                normalizedStatus == "Archived" ? "SnippetArchived" : "SnippetUnarchived");
         }
         catch (SqlException exception)
         {
@@ -244,7 +275,11 @@ public sealed class SqlSnippetService : ISnippetService
     }
 
     private static string CanonicalRequest(string title, string language, string body, string? description) =>
-        $"title:{title}|language:{language}|body:{Convert.ToHexString(Digest(body))}|description:{Convert.ToHexString(Digest(description ?? string.Empty))}";
+        JsonSerializer.Serialize(new { title, language, bodyHash = Convert.ToHexString(Digest(body)), descriptionHash = Convert.ToHexString(Digest(description ?? string.Empty)) });
+
+    private static string EscapeLike(string value) => value.Replace("~", "~~", StringComparison.Ordinal)
+        .Replace("%", "~%", StringComparison.Ordinal).Replace("_", "~_", StringComparison.Ordinal)
+        .Replace("[", "~[", StringComparison.Ordinal);
 
     private static byte[] Digest(string value) => SHA256.HashData(Encoding.UTF8.GetBytes(value));
 
@@ -256,7 +291,7 @@ public sealed class SqlSnippetService : ISnippetService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT s.[Id], s.[Title], s.[Language], v.[SourceText], v.[Description], s.[CurrentVersion], s.[Status], s.[CreatedAt], s.[UpdatedAt], s.[RowVersion] FROM [knowledge].[Snippet] s WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) INNER JOIN [knowledge].[SnippetVersion] v WITH (NOLOCK) ON v.[OwnerId] = s.[OwnerId] AND v.[SnippetId] = s.[Id] AND v.[VersionNumber] = s.[CurrentVersion] WHERE s.[Id] = @Id AND s.[OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT s.[Id], s.[Title], s.[Language], v.[SourceText], v.[Description], s.[CurrentVersion], s.[Status], s.[CreatedAt], s.[UpdatedAt], s.[RowVersion] FROM [knowledge].[Snippet] s {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} INNER JOIN [knowledge].[SnippetVersion] v ON v.[OwnerId] = s.[OwnerId] AND v.[SnippetId] = s.[Id] AND v.[VersionNumber] = s.[CurrentVersion] WHERE s.[Id] = @Id AND s.[OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, snippetId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -267,6 +302,8 @@ public sealed class SqlSnippetService : ISnippetService
         string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
     {
         claim = default;
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", operationKey))
+            return ModuleUnavailable<T>();
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
@@ -279,8 +316,19 @@ public sealed class SqlSnippetService : ISnippetService
             try
             {
                 var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
-                if (value is not null)
-                    return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+                if (value is SnippetRecord historical && historical.Id != Guid.Empty)
+                {
+                    var canRead = _capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read");
+                    var current = canRead ? Read(connection, transaction, actor.OwnerId, historical.Id, false) : null;
+                    if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", operationKey))
+                        return ModuleUnavailable<T>();
+                    var status = claim.ResultStatusCode ?? 200;
+                    var replayCode = claim.ResultCode ?? "IdempotencyReplay";
+                    return current is { Status: "Active" or "Archived" } && current.ETag == historical.ETag
+                        && _capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read")
+                        ? IdentityOperationResult<T>.Success(value!, status, replayCode)
+                        : IdentityOperationResult<T>.Committed(historical.Id, status, replayCode);
+                }
             }
             catch (JsonException) { }
             catch (NotSupportedException) { }
@@ -292,6 +340,20 @@ public sealed class SqlSnippetService : ISnippetService
     private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
         int? resultStatusCode = null, string? resultJson = null) =>
         _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
+
+    private IdentityOperationResult<SnippetRecord> CommitResult(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string action, SnippetRecord value, int status, string code)
+    {
+        var canRead = _capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read");
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", action))
+        {
+            transaction.Rollback();
+            return ModuleUnavailable<SnippetRecord>();
+        }
+        transaction.Commit();
+        return canRead ? IdentityOperationResult<SnippetRecord>.Success(value, status, code)
+            : IdentityOperationResult<SnippetRecord>.Committed(value.Id, status, code);
+    }
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string actionKey, string? traceId) => Execute(connection, transaction,
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'knowledge.Snippet', @Target, 'Succeeded', @TraceId);",
