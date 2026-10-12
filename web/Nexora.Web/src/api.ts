@@ -1604,11 +1604,16 @@ export function updateReadingItem(id: string, etag: string, state: string, progr
   });
 }
 
-export function listOrganizationTags(tagNamespace = '', query = '', limit = 100) {
+export function listOrganizationTags(tagNamespace = '', query = '', limit = 25, cursor?: string) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (tagNamespace.trim()) params.set('namespace', tagNamespace.trim());
   if (query.trim()) params.set('query', query.trim());
+  if (cursor) params.set('cursor', cursor);
   return apiFetch<TagPage>(`/api/v1/organization/tags?${params.toString()}`);
+}
+
+export function getOrganizationTag(id: string) {
+  return apiFetch<TagRecord>(`/api/v1/organization/tags/${encodeURIComponent(id)}`);
 }
 
 export function createOrganizationTag(tagNamespace: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {

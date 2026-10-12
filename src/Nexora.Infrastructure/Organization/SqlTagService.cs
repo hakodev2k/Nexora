@@ -1,5 +1,6 @@
 using System.Data;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Organization;
@@ -29,16 +30,19 @@ public sealed class SqlTagService : ITagService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly TagListCursor _cursor;
 
     public SqlTagService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(secret);
+        _cursor = new TagListCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<TagPage> List(IdentityPrincipal actor, string? tagNamespace = null,
-        string? query = null, int? limit = null)
+        string? query = null, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "organization.tag.read"))
             return ModuleUnavailable<TagPage>();
@@ -49,9 +53,14 @@ public sealed class SqlTagService : ITagService
 
         var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         if (normalizedQuery is { Length: > 50 })
-            normalizedQuery = normalizedQuery[..50];
+            return Failure<TagPage>("ValidationFailed", 422, "Tag search must be at most 50 characters.");
 
-        var take = Math.Clamp(limit ?? 50, 1, 100);
+        var take = Math.Clamp(limit ?? 25, 1, 100);
+        string? cursorName = null;
+        Guid? cursorId = null;
+        if (cursor is not null && !_cursor.TryDecode(cursor, actor.OwnerId, normalizedNamespace, normalizedQuery, take,
+                out cursorName, out cursorId))
+            return Failure<TagPage>("ValidationFailed", 422, "Tag list cursor is invalid for these filters.");
         using var connection = _connections.Create();
         connection.Open();
         using var command = connection.CreateCommand();
@@ -59,27 +68,50 @@ public sealed class SqlTagService : ITagService
             SELECT TOP (@Limit)
                 t.[Id], t.[Namespace], t.[Name], t.[Color],
                 CONVERT(int, (SELECT COUNT_BIG(1)
-                              FROM [organization].[ResourceTag] rt WITH (NOLOCK)
+                              FROM [organization].[ResourceTag] rt
                               WHERE rt.[OwnerId] = t.[OwnerId] AND rt.[TagId] = t.[Id])),
                 t.[CreatedAt], t.[UpdatedAt], t.[RowVersion]
-            FROM [organization].[Tag] t WITH (NOLOCK)
+            FROM [organization].[Tag] t
             WHERE t.[OwnerId] = @OwnerId
               AND (@Namespace IS NULL OR t.[Namespace] = @Namespace)
-              AND (@Query IS NULL OR t.[Name] LIKE @QueryLike)
+              AND (@Query IS NULL OR t.[Name] LIKE @QueryLike ESCAPE N'\')
+              AND (@CursorId IS NULL OR t.[Name] > @CursorName
+                   OR (t.[Name] = @CursorName AND t.[Id] > @CursorId))
             ORDER BY t.[Name], t.[Id];
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@Namespace", SqlDbType.VarChar, (object?)normalizedNamespace ?? DBNull.Value, 64);
         Add(command, "@Query", SqlDbType.NVarChar, (object?)normalizedQuery ?? DBNull.Value, 50);
-        Add(command, "@QueryLike", SqlDbType.NVarChar, normalizedQuery is null ? DBNull.Value : $"%{normalizedQuery}%", 52);
+        Add(command, "@QueryLike", SqlDbType.NVarChar, normalizedQuery is null ? DBNull.Value : $"%{EscapeLike(normalizedQuery)}%", 102);
+        Add(command, "@CursorName", SqlDbType.NVarChar, (object?)cursorName ?? DBNull.Value, 50);
+        Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)cursorId ?? DBNull.Value);
 
         using var reader = command.ExecuteReader();
         var items = new List<TagRecord>();
         while (reader.Read())
             items.Add(Read(reader));
-        return IdentityOperationResult<TagPage>.Success(new TagPage(items, null));
+        var hasMore = items.Count > take;
+        if (hasMore) items.RemoveAt(take);
+        var nextCursor = hasMore ? _cursor.Encode(actor.OwnerId, normalizedNamespace, normalizedQuery, take,
+            items[^1].Name, items[^1].Id) : null;
+        return IdentityOperationResult<TagPage>.Success(new TagPage(items, nextCursor));
     }
+
+    public IdentityOperationResult<TagRecord> Get(IdentityPrincipal actor, Guid tagId)
+    {
+        if (!ModuleAvailable(actor, "organization.tag.read")) return ModuleUnavailable<TagRecord>();
+        using var connection = _connections.Create();
+        connection.Open();
+        var tag = Read(connection, null, actor.OwnerId, tagId, forUpdate: false);
+        return tag is null ? Missing<TagRecord>() : IdentityOperationResult<TagRecord>.Success(tag);
+    }
+
+    private static string EscapeLike(string value) => value
+        .Replace("\\", "\\\\", StringComparison.Ordinal)
+        .Replace("%", "\\%", StringComparison.Ordinal)
+        .Replace("_", "\\_", StringComparison.Ordinal)
+        .Replace("[", "\\[", StringComparison.Ordinal);
 
     public IdentityOperationResult<TagRecord> Create(IdentityPrincipal actor, TagCreateCommand command,
         string? idempotencyKey = null, string? traceId = null)
@@ -95,7 +127,7 @@ public sealed class SqlTagService : ITagService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<TagRecord>(connection, transaction, actor, "organization.tag.create", idempotencyKey,
-            $"namespace:{normalizedNamespace}|name:{normalizedName}|color:{color ?? string.Empty}", out var receipt);
+            JsonSerializer.Serialize(new { Namespace = normalizedNamespace, Name = name, Color = color }), out var receipt);
         if (receiptFailure is not null)
         {
             transaction.Rollback();
@@ -127,7 +159,7 @@ public sealed class SqlTagService : ITagService
             }
 
             WriteAudit(connection, transaction, actor, id, "organization.tag.create", traceId);
-            CompleteReceipt(connection, transaction, receipt, "TagCreated");
+            CompleteReceipt(connection, transaction, receipt, "TagCreated", 201, JsonSerializer.Serialize(created));
             transaction.Commit();
             return IdentityOperationResult<TagRecord>.Success(created, 201, "TagCreated");
         }
@@ -159,7 +191,7 @@ public sealed class SqlTagService : ITagService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<TagRecord>(connection, transaction, actor, "organization.tag.rename", idempotencyKey,
-            $"tag:{tagId:N}|etag:{ifMatch}|name:{normalizedName}|color:{color ?? string.Empty}", out var receipt);
+            JsonSerializer.Serialize(new { TagId = tagId, ETag = ifMatch, Name = name, Color = color }), out var receipt);
         if (receiptFailure is not null)
         {
             transaction.Rollback();
@@ -202,7 +234,7 @@ public sealed class SqlTagService : ITagService
             }
 
             WriteAudit(connection, transaction, actor, tagId, "organization.tag.rename", traceId);
-            CompleteReceipt(connection, transaction, receipt, "TagRenamed");
+            CompleteReceipt(connection, transaction, receipt, "Ok", 200, JsonSerializer.Serialize(updated));
             transaction.Commit();
             return IdentityOperationResult<TagRecord>.Success(updated);
         }
@@ -262,7 +294,7 @@ public sealed class SqlTagService : ITagService
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion));
             WriteAudit(connection, transaction, actor, tagId, "organization.tag.remove", traceId);
-            CompleteReceipt(connection, transaction, receipt, "NoContent");
+            CompleteReceipt(connection, transaction, receipt, "TagRemoved", 204);
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent("TagRemoved");
         }
@@ -319,10 +351,10 @@ public sealed class SqlTagService : ITagService
         command.CommandText = $"""
             SELECT t.[Id], t.[Namespace], t.[Name], t.[Color],
                    CONVERT(int, (SELECT COUNT_BIG(1)
-                                 FROM [organization].[ResourceTag] rt WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")})
+                                 FROM [organization].[ResourceTag] rt WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "READCOMMITTEDLOCK")})
                                  WHERE rt.[OwnerId] = t.[OwnerId] AND rt.[TagId] = t.[Id])),
                    t.[CreatedAt], t.[UpdatedAt], t.[RowVersion]
-            FROM [organization].[Tag] t WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")})
+            FROM [organization].[Tag] t WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "READCOMMITTEDLOCK")})
             WHERE t.[OwnerId] = @OwnerId AND t.[Id] = @Id;
             """;
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
@@ -342,17 +374,42 @@ public sealed class SqlTagService : ITagService
         out ReceiptClaim claim)
     {
         claim = default;
+        // Serializable authorization reads share the business transaction,
+        // so a grant/account/module change cannot commit around this write.
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX24", operationKey))
+            return ModuleUnavailable<T>();
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed)
             return null;
+        if (claim.IsInvalid)
+            return Failure<T>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay && claim.ResultStatusCode == 204)
+            return IdentityOperationResult<T>.NoContent(claim.ResultCode ?? "TagRemoved");
+        if (claim.IsReplay && !string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            // Receipt storage is not an alternate read authority. Re-check
+            // current owner read/lifecycle before returning its safe DTO.
+            if (!_capabilities.IsAllowed(connection, transaction, actor, "FX24", "organization.tag.read"))
+                return ModuleUnavailable<T>();
+            try
+            {
+                var tag = JsonSerializer.Deserialize<TagRecord>(claim.ResultJson);
+                if (tag is not null && Read(connection, transaction, actor.OwnerId, tag.Id, forUpdate: true) is not null)
+                    return IdentityOperationResult<T>.Success((T)(object)tag,
+                        claim.ResultStatusCode ?? 200, claim.ResultCode ?? "Ok");
+                return Missing<T>();
+            }
+            catch (JsonException) { }
+        }
         var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
+        int? statusCode = null, string? resultJson = null) =>
+        _receipts.Complete(connection, transaction, claim, resultCode, statusCode, resultJson);
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
         Guid targetId, string actionKey, string? traceId) => Execute(connection, transaction, """

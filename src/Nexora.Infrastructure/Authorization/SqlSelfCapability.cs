@@ -129,13 +129,10 @@ internal sealed class SqlSelfCapability
                                 ORDER BY CASE currentRole.[Code] WHEN 'SuperAdmin' THEN 3 WHEN 'Admin' THEN 2 ELSE 1 END DESC), 'User') <> @Role
                             OR
                             (
-                                NOT EXISTS
-                                (
-                                    SELECT 1
-                                    FROM [platform].[Permission] requestedPermission
-                                    WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
-                                      AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})
-                                )
+                                (SELECT COUNT(*)
+                                 FROM [platform].[Permission] requestedPermission
+                                 WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
+                                   AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})) <> @RequiredActionCount
                             )
                             OR EXISTS
                             (
@@ -153,9 +150,9 @@ internal sealed class SqlSelfCapability
                             ) THEN 0
                        WHEN @Role IN ('User', 'SuperAdmin') THEN 1
                        WHEN @Role = 'Admin'
-                            AND EXISTS
+                            AND @RequiredActionCount =
                             (
-                                SELECT 1
+                                SELECT COUNT(*)
                                 FROM [platform].[Permission] requestedPermission
                                 WHERE requestedPermission.[EffectiveStatus] = 'Resolved'
                                   AND requestedPermission.[ActionKey] IN ({string.Join(',', actionParameters)})
@@ -191,6 +188,9 @@ internal sealed class SqlSelfCapability
             WHERE m.[Code] = @ModuleCode
             OPTION (MAXRECURSION 32);
             """;
+        // A composite command requires every distinct canonical action. One
+        // resolved/allowed row must never authorize a missing prerequisite.
+        command.Parameters.Add("@RequiredActionCount", SqlDbType.Int).Value = actions.Length;
         command.Parameters.Add("@Role", SqlDbType.VarChar, 32).Value = actor.Role;
         command.Parameters.Add("@SessionId", SqlDbType.UniqueIdentifier).Value = (object?)actor.SessionId ?? DBNull.Value;
         command.Parameters.Add("@UserId", SqlDbType.UniqueIdentifier).Value = actor.UserId;

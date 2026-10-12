@@ -60,8 +60,8 @@ public sealed class SqlSearchService : ISearchService
 
         var candidates = new List<Candidate>();
         var providers = new List<SearchProviderStatus>();
-        var taskSourceAvailable = ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view");
-        AddSource(connection, actor, normalizedType, "Project", "FX11", "projects.project.read", "projects.view",
+        var taskSourceAvailable = ModuleAvailable(actor, "FX12", "tasks.task.read");
+        AddSource(connection, actor, normalizedType, "Project", "FX11", "projects.project.read", null,
             "/modules/FX11", """
             SELECT TOP (@Limit) p.[Id], p.[Name] AS [Title], p.[Description] AS [Snippet], p.[Status], p.[UpdatedAt],
                    CONVERT(int, CASE WHEN p.[Name] = @Query THEN 0 WHEN p.[Name] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
@@ -74,7 +74,7 @@ public sealed class SqlSearchService : ISearchService
               AND (p.[Name] LIKE @Like ESCAPE N'\' OR p.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] DESC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Task", "FX12", "tasks.task.read", "tasks.view",
+        AddSource(connection, actor, normalizedType, "Task", "FX12", "tasks.task.read", null,
             "/modules/FX12", """
             SELECT TOP (@Limit) t.[Id], t.[Title], t.[Description] AS [Snippet], t.[Status], t.[UpdatedAt],
                    CONVERT(int, CASE WHEN t.[Title] = @Query THEN 0 WHEN t.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
@@ -86,7 +86,7 @@ public sealed class SqlSearchService : ISearchService
               AND (t.[Title] LIKE @Like ESCAPE N'\' OR t.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], t.[UpdatedAt] DESC, t.[Id] DESC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Event", "FX13", "calendar.event.read", "calendar.view",
+        AddSource(connection, actor, normalizedType, "Event", "FX13", "calendar.event.read", null,
             "/modules/FX13", """
             SELECT TOP (@Limit) e.[Id], e.[Title], e.[Description] AS [Snippet], e.[Status], e.[UpdatedAt],
                    CONVERT(int, CASE WHEN e.[Title] = @Query THEN 0 WHEN e.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],

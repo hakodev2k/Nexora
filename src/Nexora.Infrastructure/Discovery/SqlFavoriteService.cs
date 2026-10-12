@@ -468,7 +468,7 @@ public sealed class SqlFavoriteService : IFavoriteService
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@ResourceId", SqlDbType.UniqueIdentifier, resourceId);
         Add(command, "@TaskSourceAvailable", SqlDbType.Bit,
-            resourceType == "Event" && _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view"));
+            resourceType == "Event" && _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read"));
         using var reader = command.ExecuteReader();
         if (!reader.Read())
             return null;

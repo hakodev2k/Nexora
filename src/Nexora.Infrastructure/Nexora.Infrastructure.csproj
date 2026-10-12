@@ -7,6 +7,10 @@
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.11" />
     <PackageReference Include="NodaTime" Version="3.3.3" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nexora.IntegrationTests" />
+    <InternalsVisibleTo Include="Nexora.UnitTests" />
+  </ItemGroup>
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -62,7 +62,14 @@ public sealed class M01PolicyAndCaptureContractTests
             "20261004_0043_sharing_policy_authority.sql",
             "20261004_0044_sharing_subset_readiness.sql",
                 "20261004_0045_monitoring_http_config.sql",
-                "20261005_0046_news_categories.sql"
+                "20261005_0046_news_categories.sql",
+                "20261011_0047_automation_definitions.sql",
+                "20261011_0048_automation_lifecycle.sql",
+                "20261011_0049_automation_manual_runs.sql",
+                "20261011_0050_automation_retry_step.sql",
+                "20261011_0051_automation_schedule_configuration.sql",
+                "20261011_0052_automation_schedule_occurrences.sql",
+                "20261011_0053_automation_purge_action.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);

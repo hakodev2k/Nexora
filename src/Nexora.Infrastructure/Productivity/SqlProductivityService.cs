@@ -32,7 +32,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectPage> ListProjects(IdentityPrincipal actor, int? limit = null, string? cursor = null)
     {
-        if (!ModuleAvailable(actor, "FX11", "projects.project.read", "projects.view")) return ModuleUnavailable<ProjectPage>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.read")) return ModuleUnavailable<ProjectPage>();
         var take = Math.Clamp(limit ?? 25, 1, 100);
         ProjectListCursor? position = null;
         if (cursor is not null && (!TryDecodeCursor(cursor, out position) || position is null || position.Scope != "projects"))
@@ -65,7 +65,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectRecord> GetProject(IdentityPrincipal actor, Guid projectId)
     {
-        if (!ModuleAvailable(actor, "FX11", "projects.project.read", "projects.view")) return ModuleUnavailable<ProjectRecord>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.read")) return ModuleUnavailable<ProjectRecord>();
         if (projectId == Guid.Empty) return Failure<ProjectRecord>("ResourceUnavailable", 404, "Project unavailable.");
         using var connection = _connections.Create();
         connection.Open();
@@ -77,7 +77,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectRecord> CreateProject(IdentityPrincipal actor, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11", "projects.project.create", "projects.create")) return ModuleUnavailable<ProjectRecord>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.create")) return ModuleUnavailable<ProjectRecord>();
         var validation = ValidateProject(command);
         if (validation is not null) return validation;
         var id = Guid.NewGuid();
@@ -122,7 +122,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<ProjectRecord> UpdateProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, ProjectCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11", "projects.project.update", "projects.update")) return ModuleUnavailable<ProjectRecord>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.update")) return ModuleUnavailable<ProjectRecord>();
         var validation = ValidateProject(command);
         if (validation is not null) return validation;
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<ProjectRecord>(ifMatch);
@@ -266,7 +266,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<object?> DeleteProject(IdentityPrincipal actor, Guid projectId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX11", "projects.project.trash", "projects.delete")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX11", "projects.project.trash")) return ModuleUnavailable<object?>();
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -321,7 +321,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskPage> ListTasks(IdentityPrincipal actor, Guid? projectId = null, int? limit = null, string? cursor = null)
     {
-        if (!ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view")) return ModuleUnavailable<TaskPage>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.read")) return ModuleUnavailable<TaskPage>();
         var take = Math.Clamp(limit ?? 25, 1, 100);
         var taskScope = projectId?.ToString("N") ?? string.Empty;
         TaskListCursor? position = null;
@@ -363,7 +363,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskRecord> GetTask(IdentityPrincipal actor, Guid taskId)
     {
-        if (!ModuleAvailable(actor, "FX12", "tasks.task.read", "tasks.view")) return ModuleUnavailable<TaskRecord>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.read")) return ModuleUnavailable<TaskRecord>();
         if (taskId == Guid.Empty) return Failure<TaskRecord>("ResourceUnavailable", 404, "Task unavailable.");
         using var connection = _connections.Create();
         connection.Open();
@@ -375,7 +375,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskRecord> CreateTask(IdentityPrincipal actor, TaskCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12", "tasks.task.create", "tasks.create")) return ModuleUnavailable<TaskRecord>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.create")) return ModuleUnavailable<TaskRecord>();
         var validation = ValidateTask(command);
         if (validation is not null) return validation;
         if (command.Status is "Completed" or "Skipped")
@@ -442,7 +442,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<TaskRecord> UpdateTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey = null, string? traceId = null) =>
         UpdateTaskCore(actor, taskId, ifMatch, command, idempotencyKey, traceId,
-            "productivity.task.update", "productivity.task.update", "tasks.task.update", "tasks.update");
+            "productivity.task.update", "productivity.task.update", "tasks.task.update");
 
     private IdentityOperationResult<TaskRecord> UpdateTaskCore(IdentityPrincipal actor, Guid taskId, string? ifMatch, TaskCommand command, string? idempotencyKey, string? traceId,
         string receiptOperationKey, string auditAction, params string[] actionKeys)
@@ -563,7 +563,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<object?> DeleteTask(IdentityPrincipal actor, Guid taskId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX12", "tasks.task.trash", "tasks.delete")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX12", "tasks.task.trash")) return ModuleUnavailable<object?>();
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -621,7 +621,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventPage> ListEvents(IdentityPrincipal actor, DateTimeOffset? from = null, DateTimeOffset? to = null, int? limit = null, string? cursor = null)
     {
-        if (!ModuleAvailable(actor, "FX13", "calendar.event.read", "calendar.view")) return ModuleUnavailable<EventPage>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.read")) return ModuleUnavailable<EventPage>();
         var take = Math.Clamp(limit ?? 25, 1, 100);
         var eventScope = $"{from?.UtcDateTime:o}|{to?.UtcDateTime:o}";
         EventListCursor? position = null;
@@ -630,7 +630,7 @@ public sealed class SqlProductivityService : IProductivityService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view");
+        var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read");
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
@@ -673,7 +673,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventRecord> GetEvent(IdentityPrincipal actor, Guid eventId)
     {
-        if (!ModuleAvailable(actor, "FX13", "calendar.event.read", "calendar.view")) return ModuleUnavailable<EventRecord>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.read")) return ModuleUnavailable<EventRecord>();
         if (eventId == Guid.Empty) return Failure<EventRecord>("ResourceUnavailable", 404, "Event unavailable.");
         using var connection = _connections.Create();
         connection.Open();
@@ -686,7 +686,7 @@ public sealed class SqlProductivityService : IProductivityService
         }
         if (current.TaskId is { } taskId)
         {
-            var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view");
+            var taskSourceAllowed = _capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read");
             var task = taskSourceAllowed ? ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true) : null;
             if (!taskSourceAllowed || task is null || task.Status == "Deleted")
             {
@@ -700,7 +700,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventRecord> CreateEvent(IdentityPrincipal actor, EventCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX13", "calendar.event.create", "calendar.create")) return ModuleUnavailable<EventRecord>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.create")) return ModuleUnavailable<EventRecord>();
         var validation = ValidateEvent(command);
         if (validation is not null) return validation;
         var id = Guid.NewGuid();
@@ -746,7 +746,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null) =>
         UpdateEventCore(actor, eventId, ifMatch, command, idempotencyKey, traceId,
-            "calendar.event.update", "calendar.event.update", "calendar.event.update", "calendar.update");
+            "calendar.event.update", "calendar.event.update", "calendar.event.update");
 
     private IdentityOperationResult<EventRecord> UpdateEventCore(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey, string? traceId,
         string receiptOperationKey, string auditAction, params string[] actionKeys)
@@ -846,7 +846,7 @@ public sealed class SqlProductivityService : IProductivityService
 
     public IdentityOperationResult<object?> DeleteEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX13", "calendar.event.cancel", "calendar.event.delete")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX13", "calendar.event.cancel")) return ModuleUnavailable<object?>();
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition<object?>(ifMatch);
         using var connection = _connections.Create();
         connection.Open();
@@ -1466,7 +1466,7 @@ public sealed class SqlProductivityService : IProductivityService
                     return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
                 if (current.TaskId is { } taskId)
                 {
-                    if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read", "tasks.view"))
+                    if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read"))
                         return Failure<T>("ResourceUnavailable", 404, "Event unavailable.");
                     var source = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: true);
                     if (source is null || source.Status == "Deleted")
@@ -1491,18 +1491,18 @@ public sealed class SqlProductivityService : IProductivityService
     private SqlCapabilityStatus EvaluateReplayOperation(SqlConnection connection, SqlTransaction transaction,
         IdentityPrincipal actor, string operationKey, string canonicalRequest) => operationKey switch
         {
-            "productivity.project.create" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.create", "projects.create"),
-            "productivity.project.update" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.update", "projects.update"),
+            "productivity.project.create" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.create"),
+            "productivity.project.update" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.update"),
             "productivity.project.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX11", ProjectTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
-            "productivity.project.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.trash", "projects.delete"),
-            "productivity.task.create" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.create", "tasks.create"),
-            "productivity.task.update" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.update", "tasks.update"),
+            "productivity.project.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX11", "projects.project.trash"),
+            "productivity.task.create" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.create"),
+            "productivity.task.update" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.update"),
             "productivity.task.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX12", TaskTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
-            "productivity.task.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.trash", "tasks.delete"),
-            "calendar.event.create" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.create", "calendar.create"),
-            "calendar.event.update" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.update", "calendar.update"),
+            "productivity.task.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX12", "tasks.task.trash"),
+            "calendar.event.create" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.create"),
+            "calendar.event.update" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.update"),
             "calendar.event.transition" => _capabilities.Evaluate(connection, transaction, actor, "FX13", EventTransitionAction(CanonicalValue(canonicalRequest, "status") ?? string.Empty)),
-            "calendar.event.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.cancel", "calendar.event.delete"),
+            "calendar.event.delete" => _capabilities.Evaluate(connection, transaction, actor, "FX13", "calendar.event.cancel"),
             _ => SqlCapabilityStatus.ModuleUnavailable
         };
 

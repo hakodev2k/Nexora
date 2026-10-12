@@ -167,6 +167,7 @@ import {
   removeReadingItem,
   updateReadingItem,
   listOrganizationTags,
+  getOrganizationTag,
   createOrganizationTag,
   renameOrganizationTag,
   removeOrganizationTag,
@@ -4353,6 +4354,9 @@ const LOCAL_TAG_NAMESPACES = ['projects', 'documents', 'bookmarks', 'snippets'] 
 
 function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<TagRecord[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const generation = useRef(0);
+  const listFlight = useRef(false);
   const [tagNamespace, setTagNamespace] = useState<(typeof LOCAL_TAG_NAMESPACES)[number]>('projects');
   const [queryDraft, setQueryDraft] = useState('');
   const [query, setQuery] = useState('');
@@ -4367,23 +4371,67 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
 
   const form = useResourceDialog({ name, color, tagNamespace });
 
-  async function load(nextNamespace = tagNamespace, nextQuery = query) {
+  function clearAuthorizedData() {
+    setItems([]);
+    setCursor(null);
+    setEditing(null);
+    setName('');
+    setColor('');
+    requestKey.current = null;
+  }
+
+  async function load(append = false) {
+    if (append && (listFlight.current || !cursor)) return;
+    const stamp = ++generation.current;
+    listFlight.current = true;
     setLoading(true);
     setError(null);
     setConflict(false);
+    if (!append) { setItems([]); setCursor(null); }
     try {
-      const page = await listOrganizationTags(nextNamespace, nextQuery, 100);
-      setItems(Array.isArray(page.items) ? page.items : []);
+      const page = await listOrganizationTags(tagNamespace, query, 25, append ? cursor! : undefined);
+      if (stamp !== generation.current) return;
+      const rows = Array.isArray(page.items) ? page.items : [];
+      setItems(current => append ? [...new Map([...current, ...rows].map(item => [item.id, item])).values()] : rows);
+      setCursor(page.nextCursor ?? null);
     } catch (requestError) {
+      if (stamp !== generation.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404, 409].includes(apiError.status)) clearAuthorizedData();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (stamp === generation.current) {
+        listFlight.current = false;
+        setLoading(false);
+      }
     }
   }
 
-  useEffect(() => { void load(); }, [tagNamespace, query]);
+  useEffect(() => {
+    void load();
+    return () => { generation.current++; listFlight.current = false; };
+  }, [tagNamespace, query]);
+
+  async function reloadEditorRevision() {
+    if (!editing || listFlight.current) return;
+    const stamp = generation.current;
+    setBusy('revision');
+    try {
+      const latest = await getOrganizationTag(editing.id);
+      if (stamp !== generation.current) return;
+      setEditing(latest);
+      requestKey.current = null;
+      setConflict(false);
+      setError(null);
+    } catch (requestError) {
+      if (stamp !== generation.current) return;
+      const apiError = asApiError(requestError);
+      setError(apiError);
+      if ([401, 403, 404, 409].includes(apiError.status)) clearAuthorizedData();
+      if (apiError.status === 401) await onAuthLost();
+    } finally { if (stamp === generation.current) setBusy(null); }
+  }
 
   function resetEditor() {
     setEditing(null);
@@ -4485,8 +4533,8 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
       </div>
 
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      <div className="field-group"><label htmlFor="tag-list-namespace">Namespace hiển thị</label><select id="tag-list-namespace" value={tagNamespace} onChange={event => setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number])}>{LOCAL_TAG_NAMESPACES.map(value => <option key={value}>{value}</option>)}</select></div><div className="resource-layout">
-        <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetEditor(); form.begin({ name: '', color: '', tagNamespace }); }}>Thêm tag</button><ResourceFormDialog open={form.open} title={editing ? 'Đổi tên tag' : 'Tag mới'} busy={busy !== null} dirty={form.dirty} onClose={() => { resetEditor(); form.finish(); }}>{conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (editing) { const next = await listOrganizationTags(tagNamespace, '', 100); const latest = next.items.find(item => item.id === editing.id); if (latest) { setEditing(latest); requestKey.current = null; setConflict(false); setError(null); } } }} disabled={loading}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>
+      <div className="field-group"><label htmlFor="tag-list-namespace">Namespace hiển thị</label><select id="tag-list-namespace" value={tagNamespace} disabled={busy !== null} onChange={event => { generation.current++; setItems([]); setCursor(null); setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); }}>{LOCAL_TAG_NAMESPACES.map(value => <option key={value}>{value}</option>)}</select></div><div className="resource-layout">
+        <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetEditor(); form.begin({ name: '', color: '', tagNamespace }); }}>Thêm tag</button><ResourceFormDialog open={form.open} title={editing ? 'Đổi tên tag' : 'Tag mới'} busy={busy !== null} dirty={form.dirty} onClose={() => { resetEditor(); form.finish(); }}>{conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={() => void reloadEditorRevision()} disabled={loading || busy !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{editing ? 'Đổi tên tag' : 'Tag mới'}</h2></div>
           <div className="field-group"><label htmlFor="organization-tag-namespace">Namespace</label><select id="organization-tag-namespace" value={tagNamespace} onChange={(event) => { requestKey.current = null; setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); setError(null); }} disabled={editing !== null || busy !== null}>{LOCAL_TAG_NAMESPACES.map((value) => <option key={value} value={value}>{value}</option>)}</select><p className="field-help">Projects và Tasks dùng chung namespace; các provider khác giữ namespace riêng.</p></div>
           <div className="field-group"><label htmlFor="organization-tag-name">Tên tag</label><input id="organization-tag-name" value={name} maxLength={50} onChange={(event) => { requestKey.current = null; setName(event.target.value); setError(null); }} required /></div>
@@ -4495,11 +4543,12 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
         </form></ResourceFormDialog>
         <div className="content-section">
           <form className="form-panel" onSubmit={applySearch} noValidate>
-            <div className="section-heading"><h2>Tags của bạn</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
-            <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
-            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+            <div className="section-heading"><h2>Tags của bạn</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading || busy !== null}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" disabled={loading || busy !== null} value={queryDraft} maxLength={50} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <button className="secondary-button" type="submit" disabled={loading || busy !== null}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><ConfirmActionButton confirmationTitle={`Xóa tag “${tag.name}”?`} confirmationDescription={`Tag sẽ bị xóa khỏi namespace ${tag.namespace}. Tag đang được resource dùng sẽ không thể xóa.`} confirmLabel="Xóa tag" disabled={busy !== null || tag.usageCount > 0} onConfirm={() => remove(tag)}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : error && !conflict ? <div className="empty-state"><p>Danh sách chưa tải được. Hãy tải lại hoặc sửa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><ConfirmActionButton confirmationTitle={`Xóa tag “${tag.name}”?`} confirmationDescription={`Tag sẽ bị xóa khỏi namespace ${tag.namespace}. Tag đang được resource dùng sẽ không thể xóa.`} confirmLabel="Xóa tag" disabled={busy !== null || tag.usageCount > 0} onConfirm={() => remove(tag)}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div></div>}
+          {cursor && !error && <button className="secondary-button" type="button" disabled={loading || busy !== null} onClick={() => void load(true)}>Tải thêm tags</button>}
         </div>
       </div>
       <div className="security-policy"><strong>Boundary</strong><span>Assignment vào Project/Task/Document/Bookmark/Snippet, Collections, Templates và sharing chưa nằm trong slice; server vẫn giữ action gate riêng cho các capability đó.</span></div>

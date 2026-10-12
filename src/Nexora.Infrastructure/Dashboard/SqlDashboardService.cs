@@ -64,7 +64,7 @@ public sealed class SqlDashboardService : IDashboardService
         const string module = "FX12";
         const string widgetId = "tasks-due";
         var refreshedAt = DateTimeOffset.UtcNow;
-        if (!ModuleAvailable(actor, module, "tasks.task.read", "tasks.view"))
+        if (!ModuleAvailable(actor, module, "tasks.task.read"))
             return Unavailable(widgetId, "Tasks due and overdue", module, refreshedAt);
 
         try
@@ -111,7 +111,7 @@ public sealed class SqlDashboardService : IDashboardService
         const string module = "FX13";
         const string widgetId = "calendar-today";
         var refreshedAt = DateTimeOffset.UtcNow;
-        if (!ModuleAvailable(actor, module, "calendar.event.read", "calendar.view"))
+        if (!ModuleAvailable(actor, module, "calendar.event.read"))
             return Unavailable(widgetId, "Calendar today", module, refreshedAt);
 
         try
@@ -198,7 +198,7 @@ public sealed class SqlDashboardService : IDashboardService
         const string module = "FX06";
         const string widgetId = "notifications-unread";
         var refreshedAt = DateTimeOffset.UtcNow;
-        if (!ModuleAvailable(actor, module, "notifications.inbox.read", "notifications.view"))
+        if (!ModuleAvailable(actor, module, "notifications.inbox.read"))
             return Unavailable(widgetId, "Unread notifications", module, refreshedAt);
 
         try

@@ -32,7 +32,7 @@ public sealed class SqlNotificationService : INotificationService
 
     public IdentityOperationResult<NotificationPage> List(IdentityPrincipal actor, bool unreadOnly = false, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.read", "notifications.view")) return ModuleUnavailable<NotificationPage>();
+        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.read")) return ModuleUnavailable<NotificationPage>();
         var take = Math.Clamp(limit ?? 50, 1, 200);
         using var connection = _connections.Create();
         connection.Open();
@@ -151,7 +151,7 @@ public sealed class SqlNotificationService : INotificationService
     public IdentityOperationResult<object?> Delete(IdentityPrincipal actor, NotificationDeleteCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.delete", "notifications.delete")) return ModuleUnavailable<object?>();
+        if (!ModuleAvailable(actor, "FX06", "notifications.inbox.delete")) return ModuleUnavailable<object?>();
         var ids = command.NotificationIds.Distinct().Take(100).ToArray();
         if (ids.Length == 0) return Failure<object?>("ValidationFailed", 422, "At least one notification is required.");
         using var connection = _connections.Create();

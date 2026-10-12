@@ -17,9 +17,16 @@ public static class OrganizationEndpoints
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.List(principal,
                     context.Request.Query["namespace"].ToString(),
-                    context.Request.Query["query"].ToString(), limit),
+                    context.Request.Query["query"].ToString(), limit,
+                    context.Request.Query.ContainsKey("cursor") ? context.Request.Query["cursor"].ToString() : null),
                 value => new TagPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listOrganizationTags");
+
+        api.MapGet("/organization/tags/{tagId:guid}", (HttpContext context, Guid tagId,
+            ITagService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Get(principal, tagId), ToResponse))
+            .WithName("getOrganizationTag");
 
         api.MapPost("/organization/tags", (HttpContext context, TagCreateRequest request,
             ITagService service, IIdentityService identity, SessionCookieService cookies) =>

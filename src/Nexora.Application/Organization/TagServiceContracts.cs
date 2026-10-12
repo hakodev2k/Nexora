@@ -21,7 +21,9 @@ public sealed record TagRenameCommand(string Name, string? Color);
 public interface ITagService
 {
     IdentityOperationResult<TagPage> List(IdentityPrincipal actor, string? tagNamespace = null,
-        string? query = null, int? limit = null);
+        string? query = null, int? limit = null, string? cursor = null);
+
+    IdentityOperationResult<TagRecord> Get(IdentityPrincipal actor, Guid tagId);
 
     IdentityOperationResult<TagRecord> Create(IdentityPrincipal actor, TagCreateCommand command,
         string? idempotencyKey = null, string? traceId = null);
