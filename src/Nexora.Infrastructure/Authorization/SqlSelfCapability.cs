@@ -58,6 +58,11 @@ internal sealed class SqlSelfCapability
             actions.Any(action => action is not ("automation.definition.read" or "automation.definition.create" or "automation.definition.save" or "automation.definition.history" or "automation.definition.validate" or "automation.definition.trash" or "automation.definition.restore" or "automation.definition.import" or "automation.definition.export" or "automation.definition.enable" or "automation.definition.disable" or "automation.run.start" or "automation.run.read" or "automation.run.cancel" or "automation.run.retry_step" or "automation.schedule.update" or "automation.definition.purge")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
+        // Configuration-only FX35. No grant can enable a provider/test/credential/webhook operation.
+        if (string.Equals(moduleCode, "FX35", StringComparison.Ordinal) &&
+            actions.Any(action => action is not ("integrations.connection.read" or "integrations.connection.create" or "integrations.connection.update" or "integrations.connection.disable")))
+            return SqlCapabilityStatus.ModuleUnavailable;
+
         // FX07 is installed only for this reviewed private source subset.
         // A Ready module name or stale Resolved permission cannot activate dormant handlers.
         if (string.Equals(moduleCode, "FX07", StringComparison.Ordinal) &&

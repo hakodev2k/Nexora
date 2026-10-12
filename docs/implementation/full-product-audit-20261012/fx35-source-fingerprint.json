@@ -1,0 +1,110 @@
+{
+  "parent": "028d94a064f000a48c8bd793c4996e5fc0475119",
+  "normalization": "UTF8 LF",
+  "files": [
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "51687c1804733410ce1341761258296a3d6e9d5ac8cd43eb8933178d8711c280"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Integrations/IntegrationConnectionEndpoints.cs",
+      "sha256": "935b89db30d5f499f1013ff182665dfd9572eb9a57d28e4babb90a6b0c2507aa"
+    },
+    {
+      "path": "src/Nexora.Application/Integrations/IntegrationConnectionContracts.cs",
+      "sha256": "abd7f7eef05cd3be392f9fb3453a22d3ab78ce88b5b9acc2dfd13592ceba4a86"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "1d1c6885f24607fa9fda07a9371ac9c0be737f4410e5ad4db29b108ba2d9835a"
+    },
+    {
+      "path": "src/Nexora.Domain/Modules/ModulePolicy.cs",
+      "sha256": "42216b4c9327c4b82f11339a1a4778df0bcae356fe19944fe131dfb924bc536e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Access/SqlAdminAccessService.cs",
+      "sha256": "ec973f1e88c3cb6e52d05260ff581089b62c8ae42afebde3a5ff042681be6226"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlSelfCapability.cs",
+      "sha256": "f4708361b9130dced99d199cd7039b3e4488387214e5b9375a9a49c363f8bad3"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Integrations/IntegrationConnectionInput.cs",
+      "sha256": "59647d1ed525af26ff291db7b09bc2416fe328be61fac8ffffc30f38ff8f2062"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Integrations/IntegrationConnectionCursor.cs",
+      "sha256": "dfcb7bc1e74088519b11e31159a5912ed0bcc27ff210563b1868547ea6fb0cee"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Integrations/SqlIntegrationConnectionService.cs",
+      "sha256": "b1d8ac472ea591396973518f390dff19bc58b800dd2ecda1d2a31f4396ab4890"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "03208627c702f131a3e8bddddca2c49a5891ddacf481de3e3b7212cc5468c78e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs",
+      "sha256": "84c443ab5315ddb9a5aa510e11c84608d3f415f0a980d77c9507c13f55f837eb"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
+      "sha256": "175cde67443cd36f675eb46fcae24e5144d324aa72583549815f49dcb1734bde"
+    },
+    {
+      "path": "database/migrations/20261011_0054_integration_connection_configuration.sql",
+      "sha256": "5d2dca317d0cd8e8a8039a78edf33c7f1f8f83b4d782742d210e5889769822a8"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "c892dea5a305e52c0dd5adeada470c83b0d2aea6f151d53fc7bb2b98a838f908"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "061abc82c257af35249ffc61db0a88c55fe80915c0b65afa6a77675103667aa6"
+    },
+    {
+      "path": "web/Nexora.Web/src/integrationApi.ts",
+      "sha256": "d093f097dcb1c14a7bcbdacdc2a7bc6571d545c3c4b410b2089ffc8509471fac"
+    },
+    {
+      "path": "web/Nexora.Web/src/IntegrationConnectionsScreen.tsx",
+      "sha256": "bb725b95055e7e855de77bdad14c02643c141e84a71aa4ed501465d86091e639"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlIntegrationConnectionTests.cs",
+      "sha256": "3501bc2999d5b26527d24553f2a7e35377b2a7838ae7f1602babee2bd05cc905"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256": "a964c08e6bd49bed7edd9796f6b228e9009960f21024e957e5413adcc334f19a"
+    },
+    {
+      "path": "docs/implementation/full-product-completion-20261011/fx35-connection-configuration-evidence.md",
+      "sha256": "6d0bc93ba5662ab06adc1af60dac79ea590085562b02d62f179692747944b848"
+    },
+    {
+      "path": "docs/implementation/full-product-completion-20261011/fx35-connection-action-ledger.csv",
+      "sha256": "171515f45bad8eac5741f0fa23acd5edb145e1d972a423f3f44483c475ab2982"
+    },
+    {
+      "path": "docs/implementation/full-product-completion-20261011/fx35-connection-screen-ledger.csv",
+      "sha256": "5885edd6f26d805bc8649a5d895bc725a1373cace6ca47c4d8bbf1e6aa334fe9"
+    },
+    {
+      "path": "docs/implementation/full-product-audit-20261012/continuation-plan.md",
+      "sha256": "83c4bf66b3caf1283be89413dc6bef3a6771c3fc1acf206d328047f3c60ca695"
+    },
+    {
+      "path": "docs/implementation/full-product-audit-20261012/continuation-verification.md",
+      "sha256": "57e8aebc3e09f1d076fdc57597f867a4f1c690c557480d52f578cb1040716426"
+    },
+    {
+      "path": "docs/implementation/full-product-audit-20261012/continuation-findings.csv",
+      "sha256": "8ce3c54a8bc338bcd727dfc851178549290f65c6e2d49a4bba192a1686d8257a"
+    }
+  ]
+}

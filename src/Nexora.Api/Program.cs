@@ -1,3 +1,6 @@
+using Nexora.Api.Features.Integrations;
+using Nexora.Application.Integrations;
+using Nexora.Infrastructure.Integrations;
 using Nexora.Api.Features.Automation;
 using Nexora.Application.Automation;
 using Nexora.Infrastructure.Automation;
@@ -279,6 +282,7 @@ builder.Services.AddSingleton<SqlAutomationDefinitionService>(s => new SqlAutoma
 builder.Services.AddSingleton<IAutomationDefinitionService>(s => s.GetRequiredService<SqlAutomationDefinitionService>());
 builder.Services.AddSingleton<IAutomationRunService>(s => s.GetRequiredService<SqlAutomationDefinitionService>());
 builder.Services.AddHostedService<AutomationTaskWorker>();
+builder.Services.AddSingleton<IIntegrationConnectionService>(s => new SqlIntegrationConnectionService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<INewsCategoryService>(s => new SqlNewsCategoryService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
@@ -349,6 +353,7 @@ app.MapMonitoringEndpoints();
 app.MapNewsCategoryEndpoints();
 app.MapAutomationDefinitionEndpoints();
 app.MapAutomationRunEndpoints();
+app.MapIntegrationConnectionEndpoints();
 app.MapSkillEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();

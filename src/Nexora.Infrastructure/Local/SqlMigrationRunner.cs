@@ -49,7 +49,7 @@ public sealed class SqlMigrationRunner
                 if (name == "20261003_0041_calendar_ics_import.sql")
                     await CalendarDateMigration.PrepareAsync(connection, cancellationToken);
                 // Repository migrations own their transaction and are idempotent after a crash before journaling.
-                foreach (var batch in Regex.Split(content, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase))
+                foreach (var batch in CompilationBatches(name, content))
                     if (!string.IsNullOrWhiteSpace(batch)) await Run(batch);
                 await using var journal = new SqlCommand("INSERT dbo.NexoraMigration(Name,ContentHash) VALUES(@name,@hash)", connection);
                 journal.Parameters.Add("@name", SqlDbType.NVarChar, 200).Value = name;
@@ -60,14 +60,34 @@ public sealed class SqlMigrationRunner
         finally
         {
             // Release on the same physical pooled connection, also after a failed batch.
-            await Run("IF @@TRANCOUNT > 0 ROLLBACK; EXEC sys.sp_releaseapplock @Resource=N'Nexora.Migrations', @LockOwner='Session';");
+            await Run("IF @@TRANCOUNT > 0 ROLLBACK; EXEC sys.sp_releaseapplock @Resource=N'Nexora.Migrations', @LockOwner='Session';", CancellationToken.None);
         }
 
-        async Task Run(string sql)
+        async Task Run(string sql, CancellationToken? token = null)
         {
             await using var command = new SqlCommand(sql, connection) { CommandTimeout = 60 };
-            await command.ExecuteNonQueryAsync(cancellationToken);
+            await command.ExecuteNonQueryAsync(token ?? cancellationToken);
         }
+    }
+
+    private static IEnumerable<string> CompilationBatches(string name, string content)
+    {
+        // Immutable 0052 adds authority columns and then binds a CHECK to them.
+        // SQL Server compiles that CHECK before the preceding ALTER in one batch.
+        // Keep the original SQL/checksum/transaction; use the same physical connection
+        // for two compilation batches, with COMMIT still owned by the original script.
+        if (name == "20261011_0052_automation_schedule_occurrences.sql")
+        {
+            const string check = "IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name='CK_AutomationSchedule_Authority'";
+            var boundary = content.IndexOf(check, StringComparison.Ordinal);
+            if (boundary <= 0 || content.IndexOf(check, boundary + check.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("The reviewed schedule migration compilation boundary is unavailable.");
+            yield return content[..boundary];
+            yield return content[boundary..];
+            yield break;
+        }
+        foreach (var batch in Regex.Split(content, @"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase))
+            yield return batch;
     }
 
     private static IReadOnlyList<string> ResolveMigrationFiles(

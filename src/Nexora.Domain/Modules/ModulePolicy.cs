@@ -22,8 +22,10 @@ public static class ModulePolicy
         IEnumerable<ModuleDependencyStatus> dependencies,
         string? installedContract = null)
     {
-        if (PoPausedModuleCodes.Contains(moduleCode) &&
-            !((moduleCode.Equals("FX34", StringComparison.OrdinalIgnoreCase) || moduleCode.Equals("Automation", StringComparison.OrdinalIgnoreCase)) && installedContract == "automation-definition-v1"))
+        var installedLocalSubset =
+            ((moduleCode.Equals("FX34", StringComparison.OrdinalIgnoreCase) || moduleCode.Equals("Automation", StringComparison.OrdinalIgnoreCase)) && installedContract == "automation-definition-v1") ||
+            ((moduleCode.Equals("FX35", StringComparison.OrdinalIgnoreCase) || moduleCode.Equals("Integrations", StringComparison.OrdinalIgnoreCase)) && installedContract == "integration-connection-v1");
+        if (PoPausedModuleCodes.Contains(moduleCode) && !installedLocalSubset)
         {
             return PolicyDecision.Deny("DecisionBlocked", "Product Owner-paused modules cannot be enabled by M01 policy.");
         }

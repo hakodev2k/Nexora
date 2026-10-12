@@ -424,7 +424,7 @@ public sealed class SqlAdminAccessService : IAdminAccessService
                     // Shape validation does not establish installation authority. The
                     // exact shipped Automation subset is checked against SQL below,
                     // both in preview and again inside the commit transaction.
-                    if (item.ActionKey.StartsWith("automation.", StringComparison.Ordinal) && ActionGrantPolicy.IsAdminGrantable(item.ActionKey)) continue;
+                    if (ActionGrantPolicy.IsInstalledContractCandidate(item.ActionKey)) continue;
                     var policy = ActionGrantPolicy.CanGrantAllow(item.ActionKey);
                     if (!policy.Allowed) return (policy.Code, 409, policy.Message);
                 }
@@ -493,7 +493,7 @@ public sealed class SqlAdminAccessService : IAdminAccessService
             case "permissions":
                 foreach (var item in change.PermissionChanges)
                 {
-                    var policy = ActionGrantPolicy.CanGrantAllow(item.ActionKey, InstalledAutomationAction(connection, transaction, item.ActionKey));
+                    var policy = ActionGrantPolicy.CanGrantAllow(item.ActionKey, InstalledLocalAction(connection, transaction, item.ActionKey));
                     if (!policy.Allowed) blockers.Add(new AdminAccessBlocker(policy.Code, policy.Message));
                 }
                 break;
@@ -713,8 +713,22 @@ public sealed class SqlAdminAccessService : IAdminAccessService
     // Installation context is derived solely from authoritative SQL, not from the
     // signed preview or client fields. EffectiveStatus also binds each action to
     // its installed migration rather than enabling all future automation keys.
-    private static string? InstalledAutomationAction(SqlConnection connection, SqlTransaction? transaction, string actionKey)
+    private static string? InstalledLocalAction(SqlConnection connection, SqlTransaction? transaction, string actionKey)
     {
+        if (actionKey.StartsWith("integrations.", StringComparison.Ordinal))
+        {
+            using var integration = connection.CreateCommand(); integration.Transaction = transaction;
+            integration.CommandText = """
+                SELECT rt.ContractVersion FROM [platform].[Permission] p
+                JOIN [platform].[Module] m ON m.Code='FX35'
+                JOIN [platform].[ResourceType] rt ON rt.ModuleId=m.Id
+                WHERE p.ActionKey=@Action AND p.EffectiveStatus='Resolved' AND m.State='Ready'
+                  AND rt.Code='IntegrationConnection' AND rt.ContractVersion='integration-connection-v1'
+                  AND OBJECT_ID('automation.Connection','U') IS NOT NULL
+                  AND EXISTS(SELECT 1 FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('automation.Connection') AND name='FK_IntegrationConnection_Resource' AND is_disabled=0 AND is_not_trusted=0);
+                """;
+            Add(integration,"@Action",SqlDbType.NVarChar,actionKey,160); return integration.ExecuteScalar() as string;
+        }
         if (!actionKey.StartsWith("automation.", StringComparison.Ordinal)) return null;
         using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = """

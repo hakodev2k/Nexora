@@ -1,3 +1,4 @@
+import { IntegrationConnectionsScreen } from './IntegrationConnectionsScreen';
 import { AutomationScreen } from './AutomationScreen';
 import { FileListFilters, type FileFilters } from './FileListFilters';
 import { FileRestoreDialog } from './FileRestoreDialog';
@@ -5548,6 +5549,7 @@ function ModuleScreen({
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX37') return <AssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX36') return <MonitoringScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX35') return <IntegrationConnectionsScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX34') return <AutomationScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX29') return <NewsCategoryScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;

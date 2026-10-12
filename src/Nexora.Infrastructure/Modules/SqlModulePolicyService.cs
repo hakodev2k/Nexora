@@ -356,8 +356,20 @@ public sealed class SqlModulePolicyService : IModulePolicyService
     }
 
     // Server-derived installation evidence, never accepted from a preview/commit request.
-    private static string? InstalledAutomationContract(SqlConnection connection, SqlTransaction? transaction, ModulePolicyRecord module)
+    private static string? InstalledLocalContract(SqlConnection connection, SqlTransaction? transaction, ModulePolicyRecord module)
     {
+        if (module.Code == "FX35")
+        {
+            using var integration = connection.CreateCommand(); integration.Transaction = transaction;
+            integration.CommandText = """
+                SELECT rt.ContractVersion FROM [platform].[ResourceType] rt
+                WHERE rt.ModuleId=@Module AND rt.Code='IntegrationConnection' AND rt.ContractVersion='integration-connection-v1'
+                  AND OBJECT_ID('automation.Connection','U') IS NOT NULL
+                  AND EXISTS(SELECT 1 FROM sys.foreign_keys WHERE parent_object_id=OBJECT_ID('automation.Connection') AND name='FK_IntegrationConnection_Resource' AND is_disabled=0 AND is_not_trusted=0);
+                """;
+            integration.Parameters.Add("@Module",System.Data.SqlDbType.UniqueIdentifier).Value=module.Id;
+            return integration.ExecuteScalar() as string;
+        }
         if (module.Code != "FX34") return null;
         using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = """
@@ -389,7 +401,7 @@ public sealed class SqlModulePolicyService : IModulePolicyService
                 .Select(dependency => new ModuleDependencyStatus(dependency.Code, dependency.Enabled, Required: true)).ToArray();
             var decision = ModulePolicy.CanEnable(module.Code,
                 Enum.TryParse<ModuleRuntimeState>(module.State, out var state) ? state : ModuleRuntimeState.Blocked,
-                dependencies, InstalledAutomationContract(connection, transaction, module));
+                dependencies, InstalledLocalContract(connection, transaction, module));
             if (!decision.Allowed) blockers.Add(new ModulePolicyBlocker(decision.Code, decision.Message, "systemEnabled"));
         }
 
