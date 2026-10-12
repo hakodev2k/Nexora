@@ -24,7 +24,15 @@ Migration `database/migrations/20260910_0010_snippets_manual.sql` adds `[knowled
 
 ## Explicitly deferred
 
-Version history/diff/restore UI, Trash/restore/purge, sharing/support projections, text export/download, tags/templates and secret detection remain separate contracts. They must not be inferred from this slice or enabled by a grant alone.
+Version history/diff/restore UI, Trash/restore/purge, sharing/support projections, text export/download and tags/templates remain separate contracts. They must not be inferred from this slice or enabled by a grant alone.
+
+## Source repairs — 2026-10-13 code-only continuation
+
+See [current task and evidence](full-product-audit-20261012/continuation-20261013-code-only.md). Current queries and fresh/keyless/replayed commands now use transactional SQL authority; mutation results use a minimal committed acknowledgement if current detail cannot be read. Literal search and encrypted owner/filter-bound25-page cursor browsing replace the hard100-row cap. Conflict recovery gets exact current ETag while retaining the user's draft, guarded against canceled/switched editors; transition retries retain command keys.
+
+`snippets.snippet.copy` is LOCAL with a current `snippets.snippet.read` prerequisite: the UI fetches the current owner resource before writing clipboard, rejects changed ETags and clears revoked source state. Clipboard content is never audited or included in notices. FX-22-BR-002 has an advisory browser-memory credential-pattern warning on the current editor body; it suggests Vault, echoes no match and makes no detection guarantee. No network scanning or persistent browser storage is introduced.
+
+Build/source review is distinct from human-owned runtime/functional QA; full FX22 acceptance remains incomplete.
 
 ## Verification boundary
 

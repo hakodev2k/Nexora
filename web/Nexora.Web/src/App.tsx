@@ -4277,15 +4277,22 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function copySnippet(item: SnippetRecord) {
+    const epoch = loadEpoch.current;
     setBusy(`copy:${item.id}`);
     setError(null);
     try {
-      if (!navigator.clipboard) throw new Error('ClipboardUnavailable');
-      await navigator.clipboard.writeText(item.body);
+      const current = await getSnippet(item.id);
+      if (epoch !== loadEpoch.current) return;
+      if (current.etag !== item.etag)
+        throw new NexoraApiError('Snippet đã thay đổi. Tải lại bản hiện hành trước khi copy.', 412, 'RevisionConflict');
+      if (!navigator.clipboard) throw new NexoraApiError('Clipboard không khả dụng.', 409, 'ClipboardUnavailable');
+      try { await navigator.clipboard.writeText(current.body); }
+      catch { throw new NexoraApiError('Clipboard không khả dụng; source vẫn chỉ được hiển thị dạng text.', 409, 'ClipboardUnavailable'); }
+      if (epoch !== loadEpoch.current) return;
       setCopiedId(item.id);
       window.setTimeout(() => setCopiedId((current) => current === item.id ? null : current), 1800);
-    } catch {
-      setError(new NexoraApiError('Clipboard không khả dụng; source vẫn chỉ được hiển thị dạng text.', 409, 'ClipboardUnavailable'));
+    } catch (requestError) {
+      if (epoch === loadEpoch.current) showError(requestError);
     } finally {
       setBusy(null);
     }
@@ -4296,9 +4303,13 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     setQuery(queryDraft.trim());
   }
 
+  // Advisory only, in browser memory. Never transmit matches or echo them in notices.
+  const credentialWarning = /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|\b(?:AKIA|ASIA)[A-Z0-9]{16}\b|\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b|\b(?:password|passwd|api[_-]?key|client[_-]?secret|access[_-]?token)\s*[:=]\s*["']?[^\s"';,]{8,}/i.test(draft.body);
+
   return (
     <section className="content-section" aria-labelledby="snippets-title">
       {commitNotice && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
+      {credentialWarning && <Notice kind="info">Nội dung có mẫu giống credential. Kiểm tra và cân nhắc lưu bí mật trong Vault. Cảnh báo này không phát hiện được mọi loại bí mật.</Notice>}
       <div className="content-heading">
         <div>
           <p className="eyebrow">FX22 / KNOWLEDGE</p>

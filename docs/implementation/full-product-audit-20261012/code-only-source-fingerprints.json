@@ -1,5 +1,5 @@
 {
-  "baseline": "940f53c90254f0b4d2f8c4be6a2b3e5bd9e57589",
+  "baseline": "e1a5e73d905ffd224db3955130e70c2e52ed203a",
   "scope": "Code-only publication; compilation and independent source review only; no fresh runtime acceptance",
   "files": [
     {
@@ -104,8 +104,8 @@
     },
     {
       "path": "web/Nexora.Web/src/App.tsx",
-      "sha256": "d1f18d8e474f5d39495118ad67c9dba2694043fe20ad8150d571537e578031e2",
-      "publishedLfSha256": "fe04c4a7a1bf9c6ad31571d88e83d2063367bb70bb172e5b01494b8c3f37be95"
+      "sha256": "4b8b44df822b808af76a8bde30332c3a78438159e45d65aa75627dda6e46a4d5",
+      "publishedLfSha256": "1798d1dd86b125da7e052495992b623d019a4595e8ef17fc6ce6d8873769eb4a"
     },
     {
       "path": "web/Nexora.Web/src/FileRestoreDialog.tsx",
@@ -120,7 +120,7 @@
   ],
   "independentReview": {
     "reviewer": "security_review",
-    "scope": "File ACK; current authority/session/Productivity/Reminder critical patches; FX22 bounded source delta",
+    "scope": "File ACK; current authority/session/Productivity/Reminder critical patches; FX22 bounded source delta; LOCAL Copy/current read and BR002 warning",
     "result": "No confirmed scoped source blocker; full-product/runtime verification incomplete"
   }
 }
