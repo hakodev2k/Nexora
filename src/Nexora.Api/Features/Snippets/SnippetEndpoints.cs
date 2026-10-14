@@ -12,6 +12,12 @@ public static class SnippetEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
+        api.MapGet("/snippets/capabilities", (HttpContext context, ISnippetService service,
+            IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Capabilities(principal), value => value))
+            .WithName("snippetCapabilities");
+
         api.MapGet("/snippets", (HttpContext context, bool? includeArchived, string? query, int? limit, string? cursor,
             ISnippetService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
@@ -21,7 +27,7 @@ public static class SnippetEndpoints
 
         api.MapGet("/snippets/{snippetId:guid}", (HttpContext context, Guid snippetId,
             ISnippetService service, IIdentityService identity, SessionCookieService cookies) =>
-            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Get(principal, snippetId), ToResponse))
             .WithName("getSnippet");
 

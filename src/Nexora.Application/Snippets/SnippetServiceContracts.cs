@@ -20,6 +20,7 @@ public sealed record SnippetCommand(string Title, string Language, string Body, 
 
 public interface ISnippetService
 {
+    IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
     IdentityOperationResult<SnippetPage> List(IdentityPrincipal actor, bool includeArchived = false,
         string? query = null, int? limit = null, string? cursor = null);
     IdentityOperationResult<SnippetRecord> Get(IdentityPrincipal actor, Guid snippetId);

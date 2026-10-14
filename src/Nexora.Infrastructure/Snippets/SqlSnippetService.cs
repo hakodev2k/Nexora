@@ -25,6 +25,7 @@ public sealed class SqlSnippetService : ISnippetService
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
     private readonly SnippetListCursor _cursor;
+    private static readonly string[] Actions = ["snippets.snippet.read", "snippets.snippet.create", "snippets.snippet.save", "snippets.snippet.archive", "snippets.snippet.unarchive"];
 
     public SqlSnippetService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
@@ -33,6 +34,20 @@ public sealed class SqlSnippetService : ISnippetService
         _receipts = new SqlRequestReceiptStore(secret);
         _cursor = new SnippetListCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
+    }
+
+    public IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor)
+    {
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Snippet capabilities are unavailable.");
+        var result = Actions.ToDictionary(action => action,
+            action => _capabilities.IsAllowed(connection, transaction, actor, "FX22", action), StringComparer.Ordinal);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Snippet capabilities are unavailable.");
+        transaction.Commit();
+        return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     }
 
     public IdentityOperationResult<SnippetPage> List(IdentityPrincipal actor, bool includeArchived = false,

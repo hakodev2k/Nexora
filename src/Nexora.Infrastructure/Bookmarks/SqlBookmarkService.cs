@@ -36,25 +36,35 @@ public sealed class SqlBookmarkService : IBookmarkService
         if (!ModuleAvailable(actor, "FX21", "bookmarks.bookmark.read")) return ModuleUnavailable<BookmarkPage>();
         var take = Math.Clamp(limit ?? 25, 1, 100);
         var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
+        if (normalizedQuery is { Length: > 200 })
+            return Failure<BookmarkPage>("ValidationFailed", 422, "Bookmark search must be at most 200 characters.");
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
+            return ModuleUnavailable<BookmarkPage>();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Url], [CanonicalUrl], [Title], [Description], [Health], [LastCheckedAt], [Status], [CreatedAt], [UpdatedAt], [RowVersion]
-            FROM [knowledge].[Bookmark] WITH (NOLOCK)
+            FROM [knowledge].[Bookmark]
             WHERE [OwnerId] = @OwnerId
+              AND [Status] IN ('Active', 'Archived')
               AND (@IncludeArchived = 1 OR [Status] = 'Active')
-              AND (@Query IS NULL OR [Title] LIKE @QueryLike OR [Url] LIKE @QueryLike OR [Description] LIKE @QueryLike)
+              AND (@Query IS NULL OR [Title] LIKE @QueryLike ESCAPE N'~' OR [Url] LIKE @QueryLike ESCAPE N'~' OR [Description] LIKE @QueryLike ESCAPE N'~')
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
         Add(command, "@Limit", SqlDbType.Int, take);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@IncludeArchived", SqlDbType.Bit, includeArchived);
         Add(command, "@Query", SqlDbType.NVarChar, (object?)normalizedQuery ?? DBNull.Value, 200);
-        Add(command, "@QueryLike", SqlDbType.NVarChar, normalizedQuery is null ? DBNull.Value : $"%{normalizedQuery}%", 202);
-        using var reader = command.ExecuteReader();
+        Add(command, "@QueryLike", SqlDbType.NVarChar, normalizedQuery is null ? DBNull.Value : $"%{EscapeLike(normalizedQuery)}%", 402);
         var items = new List<BookmarkRecord>();
-        while (reader.Read()) items.Add(Read(reader));
+        using (var reader = command.ExecuteReader())
+            while (reader.Read()) items.Add(Read(reader));
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
+            return ModuleUnavailable<BookmarkPage>();
+        transaction.Commit();
         return IdentityOperationResult<BookmarkPage>.Success(new BookmarkPage(items, null));
     }
 
@@ -64,8 +74,14 @@ public sealed class SqlBookmarkService : IBookmarkService
         if (bookmarkId == Guid.Empty) return Failure<BookmarkRecord>("ResourceUnavailable", 404, "Bookmark unavailable.");
         using var connection = _connections.Create();
         connection.Open();
-        var bookmark = Read(connection, null, actor.OwnerId, bookmarkId, forUpdate: false);
-        return bookmark is null || bookmark.Status == "Deleted"
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
+            return ModuleUnavailable<BookmarkRecord>();
+        var bookmark = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: false);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
+            return ModuleUnavailable<BookmarkRecord>();
+        transaction.Commit();
+        return bookmark is null || bookmark.Status is not ("Active" or "Archived")
             ? Failure<BookmarkRecord>("ResourceUnavailable", 404, "Bookmark unavailable.")
             : IdentityOperationResult<BookmarkRecord>.Success(bookmark);
     }
@@ -106,8 +122,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             if (created is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after creation."); }
             WriteAudit(connection, transaction, actor, id, "bookmarks.bookmark.create", traceId);
             CompleteReceipt(connection, transaction, receipt, "BookmarkCreated", 201, JsonSerializer.Serialize(created));
-            transaction.Commit();
-            return IdentityOperationResult<BookmarkRecord>.Success(created, 201, "BookmarkCreated");
+            return CommitResult(connection, transaction, actor, "bookmarks.bookmark.create", created, 201, "BookmarkCreated");
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -138,6 +153,8 @@ public sealed class SqlBookmarkService : IBookmarkService
         {
             var current = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: true);
             if (current is null) { transaction.Rollback(); return Missing<BookmarkRecord>(); }
+            if (current.Status != "Active")
+            { transaction.Rollback(); return Failure<BookmarkRecord>("LifecycleLocked", 409, "Archived bookmarks are read-only until unarchived."); }
             if (!CryptographicOperations.FixedTimeEquals(expectedVersion, DecodeETag(current.ETag)))
             {
                 transaction.Rollback();
@@ -166,8 +183,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             if (updated is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after update."); }
             WriteAudit(connection, transaction, actor, bookmarkId, "bookmarks.bookmark.update", traceId);
             CompleteReceipt(connection, transaction, receipt, "BookmarkUpdated", 200, JsonSerializer.Serialize(updated));
-            transaction.Commit();
-            return IdentityOperationResult<BookmarkRecord>.Success(updated);
+            return CommitResult(connection, transaction, actor, "bookmarks.bookmark.update", updated, 200, "BookmarkUpdated");
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -209,7 +225,7 @@ public sealed class SqlBookmarkService : IBookmarkService
                 transaction.Rollback();
                 return Revision<BookmarkRecord>();
             }
-            if (string.Equals(current.Status, normalizedStatus, StringComparison.Ordinal))
+            if (current.Status is not ("Active" or "Archived") || string.Equals(current.Status, normalizedStatus, StringComparison.Ordinal))
             {
                 transaction.Rollback();
                 return Failure<BookmarkRecord>("LifecycleLocked", 409, "Bookmark is already in the requested state.");
@@ -223,8 +239,8 @@ public sealed class SqlBookmarkService : IBookmarkService
             if (updated is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after transition."); }
             WriteAudit(connection, transaction, actor, bookmarkId, action, traceId);
             CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived", 200, JsonSerializer.Serialize(updated));
-            transaction.Commit();
-            return IdentityOperationResult<BookmarkRecord>.Success(updated);
+            return CommitResult(connection, transaction, actor, action, updated, 200,
+                normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived");
         }
         catch (SqlException exception)
         {
@@ -234,7 +250,10 @@ public sealed class SqlBookmarkService : IBookmarkService
     }
 
     private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) =>
-        _capabilities.IsAllowed(actor, moduleCode, actionKeys);
+        _capabilities.IsAllowed(actor, moduleCode, actionKeys.SelectMany(RequiredActions).Distinct(StringComparer.Ordinal).ToArray());
+
+    private static string[] RequiredActions(string action) => action == "bookmarks.bookmark.update"
+        ? [action, "bookmarks.bookmark.read"] : [action];
 
     private static IdentityOperationResult<BookmarkRecord>? Validate(BookmarkCommand command, out string? url, out string? canonicalUrl)
     {
@@ -268,6 +287,10 @@ public sealed class SqlBookmarkService : IBookmarkService
     private static string CanonicalRequest(string url, string title, string? description) =>
         $"url:{Convert.ToHexString(Digest(url))}|title:{title.Trim()}|description:{Convert.ToHexString(Digest(description?.Trim() ?? string.Empty))}";
 
+    private static string EscapeLike(string value) => value.Replace("~", "~~", StringComparison.Ordinal)
+        .Replace("%", "~%", StringComparison.Ordinal).Replace("_", "~_", StringComparison.Ordinal)
+        .Replace("[", "~[", StringComparison.Ordinal);
+
     private static byte[] Digest(string value) => SHA256.HashData(Encoding.UTF8.GetBytes(value));
 
     private static string? TrimOrNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -281,7 +304,7 @@ public sealed class SqlBookmarkService : IBookmarkService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Url], [CanonicalUrl], [Title], [Description], [Health], [LastCheckedAt], [Status], [CreatedAt], [UpdatedAt], [RowVersion] FROM [knowledge].[Bookmark] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [Url], [CanonicalUrl], [Title], [Description], [Health], [LastCheckedAt], [Status], [CreatedAt], [UpdatedAt], [RowVersion] FROM [knowledge].[Bookmark] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, bookmarkId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -292,6 +315,8 @@ public sealed class SqlBookmarkService : IBookmarkService
         string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
     {
         claim = default;
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(operationKey)))
+            return ModuleUnavailable<T>();
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
@@ -304,8 +329,19 @@ public sealed class SqlBookmarkService : IBookmarkService
             try
             {
                 var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
-                if (value is not null)
-                    return IdentityOperationResult<T>.Success(value, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
+                if (value is BookmarkRecord historical && historical.Id != Guid.Empty)
+                {
+                    var canRead = _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
+                    var current = canRead ? Read(connection, transaction, actor.OwnerId, historical.Id, false) : null;
+                    if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(operationKey)))
+                        return ModuleUnavailable<T>();
+                    var status = claim.ResultStatusCode ?? 200;
+                    var replayCode = claim.ResultCode ?? "IdempotencyReplay";
+                    return current is { Status: "Active" or "Archived" } && current.ETag == historical.ETag
+                        && _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read")
+                        ? IdentityOperationResult<T>.Success(value!, status, replayCode)
+                        : IdentityOperationResult<T>.Committed(historical.Id, status, replayCode);
+                }
             }
             catch (JsonException) { }
             catch (NotSupportedException) { }
@@ -317,6 +353,17 @@ public sealed class SqlBookmarkService : IBookmarkService
     private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
         int? resultStatusCode = null, string? resultJson = null) =>
         _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
+
+    private IdentityOperationResult<BookmarkRecord> CommitResult(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string action, BookmarkRecord value, int status, string code)
+    {
+        var canRead = _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(action)))
+        { transaction.Rollback(); return ModuleUnavailable<BookmarkRecord>(); }
+        transaction.Commit();
+        return canRead ? IdentityOperationResult<BookmarkRecord>.Success(value, status, code)
+            : IdentityOperationResult<BookmarkRecord>.Committed(value.Id, status, code);
+    }
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string actionKey, string? traceId) => Execute(connection, transaction,
         "INSERT INTO [security].[AuditEvent] ([ActorUserId], [OwnerUserId], [ActionKey], [TargetType], [TargetId], [Result], [TraceId]) VALUES (@Actor, @Owner, @Action, N'knowledge.Bookmark', @Target, 'Succeeded', @TraceId);",

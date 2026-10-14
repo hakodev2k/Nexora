@@ -109,6 +109,7 @@ import {
   listProjects,
   listSessions,
   listSnippets,
+  snippetCapabilities,
   listTasks,
   login,
   markAllNotificationsRead,
@@ -561,10 +562,10 @@ function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-function SubmitButton({ busy, children }: { busy: boolean; children: React.ReactNode }) {
+function SubmitButton({ busy, children, disabled = false }: { busy: boolean; children: React.ReactNode; disabled?: boolean }) {
   const { t } = useI18n();
   return (
-    <button className="primary-button" type="submit" disabled={busy} aria-busy={busy}>
+    <button className="primary-button" type="submit" disabled={busy || disabled} aria-busy={busy}>
       {busy ? t('processing') : children}
     </button>
   );
@@ -3939,28 +3940,49 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
   const requestKey = useRef<string | null>(null);
+  const loadEpoch = useRef(0);
+  const editorEpoch = useRef(0);
+  const mutationFlight = useRef(false);
+  const [commitNotice, setCommitNotice] = useState(false);
+  const [pendingOutcome, setPendingOutcome] = useState<string | null>(null);
+  const pendingTransition = useRef<Pick<BookmarkRecord, 'id' | 'etag' | 'status'> | null>(null);
+  const transitionKeys = useRef(new Map<string, string>());
+  const unknownOutcome = (failure: NexoraApiError) => failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress';
 
   const form = useResourceDialog(draft);
 
-  async function load(nextQuery = query, nextIncludeArchived = includeArchived) {
+  function clearPrivateBookmark() {
+    loadEpoch.current++;
+    setItems([]); setLoading(false); transitionKeys.current.clear(); pendingTransition.current = null; setPendingOutcome(null); resetEditor(); form.finish();
+  }
+
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived, reconciled = false) {
+    if ((!reconciled && pendingOutcome !== null) || mutationFlight.current) return;
+    const epoch = ++loadEpoch.current;
     setLoading(true);
     setError(null);
     setConflict(false);
     try {
       const page = await listBookmarks(nextIncludeArchived, nextQuery, 100);
+      if (epoch !== loadEpoch.current) return;
       setItems(Array.isArray(page.items) ? page.items : []);
     } catch (requestError) {
+      if (epoch !== loadEpoch.current) return;
       const apiError = asApiError(requestError);
+      if ([401, 403, 404].includes(apiError.status) || apiError.code === 'ModuleUnavailable') clearPrivateBookmark();
+      else setItems([]);
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (epoch === loadEpoch.current) setLoading(false);
     }
   }
 
-  useEffect(() => { void load(); }, [query, includeArchived]);
+  useEffect(() => { void load(); return () => { loadEpoch.current++; editorEpoch.current++; }; }, [query, includeArchived]);
 
   function resetEditor() {
+    editorEpoch.current++;
+    setPendingOutcome(null);
     setEditing(null);
     setDraft({ url: '', title: '', description: '' });
     requestKey.current = null;
@@ -3969,6 +3991,8 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   function beginEdit(item: BookmarkRecord) {
+    if (busy !== null || loading || pendingOutcome !== null || item.status !== 'Active') return;
+    editorEpoch.current++;
     form.begin({ url: item.url, title: item.title, description: item.description ?? '' });
     setEditing(item);
     setDraft({ url: item.url, title: item.title, description: item.description ?? '' });
@@ -3979,6 +4003,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function showError(requestError: unknown) {
     const apiError = asApiError(requestError);
+    if ([401, 403, 404].includes(apiError.status) || apiError.code === 'ModuleUnavailable') clearPrivateBookmark();
     setError(apiError);
     if (apiError.status === 401) void onAuthLost();
     return apiError;
@@ -3986,6 +4011,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== 'save')) return;
     setError(null);
     setConflict(false);
     const url = draft.url.trim();
@@ -4000,49 +4026,77 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       return;
     }
     requestKey.current ??= createIdempotencyKey();
+    const epoch = loadEpoch.current;
+    mutationFlight.current = true;
     setBusy('save');
     try {
-      if (editing) {
-        await updateBookmark(editing.id, editing.etag, url, title, description, requestKey.current);
-      } else {
-        await createBookmark(url, title, description, requestKey.current);
+      const saved = editing
+        ? await updateBookmark(editing.id, editing.etag, url, title, description, requestKey.current)
+        : await createBookmark(url, title, description, requestKey.current);
+      if (epoch !== loadEpoch.current) return;
+      if (isProductivityAcknowledgement(saved)) {
+        clearPrivateBookmark(); setCommitNotice(true); return;
       }
+      setCommitNotice(false);
+      setPendingOutcome(null);
+      mutationFlight.current = false;
       requestKey.current = null;
       resetEditor();
       form.finish();
-      await load();
+      await load(query, includeArchived, true);
     } catch (requestError) {
+      if (epoch !== loadEpoch.current) return;
       const apiError = showError(requestError);
+      setPendingOutcome(unknownOutcome(apiError) ? 'save' : null);
       if (apiError.status === 412) {
         setConflict(true);
 
       }
     } finally {
+      mutationFlight.current = false;
       setBusy(null);
     }
   }
 
-  async function transition(item: BookmarkRecord) {
+  async function transition(item: Pick<BookmarkRecord, 'id' | 'etag' | 'status'>) {
+    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== `transition:${item.id}`) || !['Active', 'Archived'].includes(item.status)) return false;
+    const epoch = loadEpoch.current;
+    mutationFlight.current = true;
     const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
-    const key = createIdempotencyKey();
+    const signature = JSON.stringify([item.id, item.etag, nextStatus]);
+    const key = transitionKeys.current.get(signature) ?? createIdempotencyKey();
+    transitionKeys.current.set(signature, key);
     setBusy(`transition:${item.id}`);
     setError(null);
     try {
-      await transitionBookmark(item.id, item.etag, nextStatus, key);
-      await load();
+      const saved = await transitionBookmark(item.id, item.etag, nextStatus, key);
+      if (epoch !== loadEpoch.current) return false;
+      if (isProductivityAcknowledgement(saved)) {
+        clearPrivateBookmark(); setCommitNotice(true); return true;
+      }
+      setCommitNotice(false);
+      transitionKeys.current.delete(signature); pendingTransition.current = null; setPendingOutcome(null);
+      mutationFlight.current = false;
+      await load(query, includeArchived, true);
       if (editing?.id === item.id) resetEditor();
       return true;
     } catch (requestError) {
+      if (epoch !== loadEpoch.current) return false;
       const apiError = showError(requestError);
-      if (apiError.status === 412) await load();
+      const unknown = unknownOutcome(apiError);
+      if (unknown) { pendingTransition.current = { id: item.id, etag: item.etag, status: item.status }; setPendingOutcome(`transition:${item.id}`); }
+      else { transitionKeys.current.delete(signature); pendingTransition.current = null; setPendingOutcome(null); }
+      if (apiError.status === 412) { mutationFlight.current = false; await load(); }
       return { error: apiError.message };
     } finally {
+      mutationFlight.current = false;
       setBusy(null);
     }
   }
 
   function applySearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutationFlight.current || pendingOutcome !== null || busy !== null || loading) return;
     setQuery(queryDraft.trim());
   }
 
@@ -4054,29 +4108,31 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           <h1 id="bookmarks-title">Bookmarks</h1>
           <p className="lead">Lưu URL và metadata thủ công trong PersonalSpace hiện tại. URL chỉ là dữ liệu bất hoạt; Nexora không tự fetch, nhúng hoặc mở provider bên ngoài.</p>
         </div>
-        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null || pendingOutcome !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
 
+      {pendingOutcome && <Notice kind="error">Kết quả thao tác chưa rõ. Hãy đối chiếu bằng cách gửi lại đúng lệnh; giữ nguyên dữ liệu và khóa hiện tại.{pendingTransition.current && <button type="button" className="secondary-button" disabled={busy !== null} onClick={() => { if (pendingTransition.current) void transition(pendingTransition.current); }}>Đối chiếu lệnh chuyển trạng thái</button>}</Notice>}
+      {commitNotice && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetEditor(); form.begin({ url: '', title: '', description: '' }); }}>Thêm bookmark</button><ResourceFormDialog open={form.open} title={editing ? 'Sửa bookmark' : 'Bookmark mới'} busy={busy !== null} dirty={form.dirty} onClose={() => { resetEditor(); form.finish(); }}>{conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (editing) { const etag = (await getBookmark(editing.id)).etag; setEditing({ ...editing, etag }); requestKey.current = null; setConflict(false); setError(null); } }} disabled={loading}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
+          <button className="primary-button" type="button" disabled={loading || busy !== null || pendingOutcome !== null} onClick={() => { resetEditor(); form.begin({ url: '', title: '', description: '' }); }}>Thêm bookmark</button><ResourceFormDialog open={form.open} title={editing ? 'Sửa bookmark' : 'Bookmark mới'} busy={busy !== null} dirty={form.dirty || pendingOutcome !== null} onClose={() => { resetEditor(); form.finish(); }}>{pendingOutcome && <Notice kind="error">Kết quả chưa rõ. Gửi lại đúng lệnh để đối chiếu. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (!editing || busy !== null || loading) return; const current = editing; const generation = editorEpoch.current; try { const latest = await getBookmark(current.id); if (generation !== editorEpoch.current) return; if (latest.status !== 'Active') { clearPrivateBookmark(); setError(new NexoraApiError('Bookmark đã archive; hãy unarchive trước khi sửa.', 409, 'LifecycleLocked')); return; } setEditing({ ...current, etag: latest.etag }); requestKey.current = null; setConflict(false); setError(null); } catch (requestError) { if (generation === editorEpoch.current) showError(requestError); } }} disabled={loading || busy !== null || pendingOutcome !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate><fieldset disabled={loading || busy !== null || pendingOutcome !== null}>
             <div className="section-heading"><h2>{editing ? 'Sửa bookmark' : 'Bookmark mới'}</h2></div>
             <div className="field-group"><label htmlFor="bookmark-url">URL</label><input id="bookmark-url" type="url" value={draft.url} maxLength={2048} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, url: event.target.value }); setError(null); }} placeholder="https://example.test/path" required aria-describedby="bookmark-url-error" /><FieldError id="bookmark-url-error" message={error ? firstFieldError(error, 'url') : undefined} /></div>
             <div className="field-group"><label htmlFor="bookmark-title">Tiêu đề</label><input id="bookmark-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="bookmark-title-error" /><FieldError id="bookmark-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
             <div className="field-group"><label htmlFor="bookmark-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="bookmark-description" value={draft.description} maxLength={20000} rows={4} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
-            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
+            </fieldset><div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null || pendingOutcome !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={loading || (pendingOutcome !== null && pendingOutcome !== 'save')}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
           </form></ResourceFormDialog>
           <div className="security-policy"><strong>Provider boundary</strong><span>Health chỉ là trạng thái metadata hiện tại; refresh, external navigation, sharing, tags và collections chưa nằm trong slice này.</span></div>
         </div>
         <div className="content-section">
           <form className="form-panel" onSubmit={applySearch} noValidate>
-            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
-            <div className="field-group"><label htmlFor="bookmark-query">Tìm theo tiêu đề, URL hoặc mô tả</label><input id="bookmark-query" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
-            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị bookmark đã archive</span></label>
-            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { if (mutationFlight.current || busy !== null || pendingOutcome !== null) return; setQueryDraft(''); setQuery(''); }} disabled={loading || busy !== null || pendingOutcome !== null}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="bookmark-query">Tìm theo tiêu đề, URL hoặc mô tả</label><input id="bookmark-query" disabled={loading || busy !== null || pendingOutcome !== null} maxLength={200} value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
+            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => { if (!mutationFlight.current && busy === null && pendingOutcome === null) setIncludeArchived(event.target.checked); }} disabled={loading || busy !== null || pendingOutcome !== null} /><span>Hiển thị bookmark đã archive</span></label>
+            <button className="secondary-button" type="submit" disabled={loading || busy !== null || pendingOutcome !== null}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : error && pendingOutcome === null ? <div className="empty-state"><h2>Không thể tải thư viện</h2><p>Hãy thử lại khi quyền truy cập hoặc kết nối được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || loading || pendingOutcome !== null || item.status !== 'Active'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null || pendingOutcome !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null || pendingOutcome !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
         </div>
       </div>
     </section>
@@ -4092,6 +4148,8 @@ type SnippetDraft = {
 
 function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<SnippetRecord[]>([]);
+  const [caps, setCaps] = useState<Record<string, boolean>>({});
+  const canSnippet = (action: string) => caps[`snippets.snippet.${action}`] === true;
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [query, setQuery] = useState('');
@@ -4106,18 +4164,33 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [commitNotice, setCommitNotice] = useState(false);
   const loadEpoch = useRef(0);
   const transitionKeys = useRef(new Map<string, string>());
+  const pendingTransition = useRef<Pick<SnippetRecord, 'id' | 'etag' | 'status'> | null>(null);
   const editorEpoch = useRef(0);
+  const mutationFlight = useRef(false);
+  const [pendingOutcome, setPendingOutcome] = useState<string | null>(null);
+  const [leaveSnippet, setLeaveSnippet] = useState<{ proceed: () => void } | null>(null);
   const requestKey = useRef<string | null>(null);
+  const snippetDirty = editing
+    ? draft.title !== editing.title || draft.language !== editing.language || draft.body !== editing.body || draft.description !== (editing.description ?? '')
+    : draft.title !== '' || draft.language !== 'plaintext' || draft.body !== '' || draft.description !== '';
+  useEffect(() => registerDirtyLeaveGuard(proceed => {
+    if (!snippetDirty && !busy && pendingOutcome === null) return false;
+    setLeaveSnippet({ proceed }); return true;
+  }), [snippetDirty, busy, pendingOutcome]);
 
   function clearPrivateSnippet() {
     loadEpoch.current++;
     editorEpoch.current++;
     setItems([]);
+    setCaps({});
     setNextCursor(null);
     setEditing(null);
     setDraft({ title: '', language: 'plaintext', body: '', description: '' });
     setCopiedId(null);
     setConflict(false);
+    setPendingOutcome(null);
+    setLeaveSnippet(null);
+    pendingTransition.current = null;
     requestKey.current = null;
     transitionKeys.current.clear();
     setLoading(false);
@@ -4129,10 +4202,19 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function load(nextQuery = query, nextIncludeArchived = includeArchived, append = false) {
+    if (mutationFlight.current) return;
     const epoch = ++loadEpoch.current;
     setLoading(true);
     setError(null);
     try {
+      const allowed = await snippetCapabilities();
+      if (epoch !== loadEpoch.current) return;
+      if (allowed['snippets.snippet.read'] !== true) {
+        clearPrivateSnippet();
+        setCaps(allowed);
+        return;
+      }
+      setCaps(allowed);
       const page = await listSnippets(nextIncludeArchived, nextQuery, 25, append ? nextCursor ?? '' : '');
       if (epoch !== loadEpoch.current) return;
       const incoming = Array.isArray(page.items) ? page.items : [];
@@ -4158,9 +4240,29 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     requestKey.current = null;
     setConflict(false);
     setError(null);
+    setPendingOutcome(null);
+    transitionKeys.current.clear();
+    pendingTransition.current = null;
+  }
+
+  function requestSnippetReset() {
+    if (mutationFlight.current) return;
+    if (snippetDirty || pendingOutcome !== null) setLeaveSnippet({ proceed: resetEditor });
+    else resetEditor();
+  }
+
+  function requestSnippetEdit(item: SnippetRecord) {
+    if (mutationFlight.current || pendingOutcome !== null || loading) return;
+    if (snippetDirty) setLeaveSnippet({ proceed: () => beginEdit(item) });
+    else beginEdit(item);
+  }
+
+  function isUnknownSnippetOutcome(apiError: NexoraApiError) {
+    return apiError.status === 0 || apiError.status >= 500 || apiError.code === 'RequestInProgress';
   }
 
   function beginEdit(item: SnippetRecord) {
+    if (!canSnippet('save') || item.status !== 'Active') return;
     editorEpoch.current++;
     setEditing(item);
     setDraft({ title: item.title, language: item.language, body: item.body, description: item.description ?? '' });
@@ -4205,6 +4307,7 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== 'save') || !canSnippet(editing ? 'save' : 'create')) return;
     setError(null);
     setConflict(false);
     const title = draft.title.trim();
@@ -4224,13 +4327,17 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       return;
     }
     requestKey.current ??= createIdempotencyKey();
+    const requestEpoch = loadEpoch.current;
+    mutationFlight.current = true;
     setBusy('save');
     try {
       const saved = editing
         ? await saveSnippet(editing.id, editing.etag, title, language, body, description, requestKey.current)
         : await createSnippet(title, language, body, description, requestKey.current);
+      if (requestEpoch !== loadEpoch.current) return;
       requestKey.current = null;
       resetEditor();
+      mutationFlight.current = false;
       if (isProductivityAcknowledgement(saved)) {
         clearPrivateSnippet();
         setCommitNotice(true);
@@ -4239,25 +4346,36 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setCommitNotice(false);
       await load();
     } catch (requestError) {
+      if (requestEpoch !== loadEpoch.current) return;
       const apiError = showError(requestError);
+      setPendingOutcome(isUnknownSnippetOutcome(apiError) ? 'save' : null);
       if (apiError.status === 412) {
         setConflict(true);
       }
     } finally {
+      mutationFlight.current = false;
       setBusy(null);
     }
   }
 
-  async function transition(item: SnippetRecord) {
+  async function transition(item: Pick<SnippetRecord, 'id' | 'etag' | 'status'>) {
     const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
+    const pendingId = `transition:${item.id}`;
+    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== pendingId) || !canSnippet(nextStatus === 'Active' ? 'unarchive' : 'archive')) return false;
     const signature = JSON.stringify([item.id, item.etag, nextStatus]);
     const key = transitionKeys.current.get(signature) ?? createIdempotencyKey();
     transitionKeys.current.set(signature, key);
+    const requestEpoch = loadEpoch.current;
+    mutationFlight.current = true;
     setBusy(`transition:${item.id}`);
     setError(null);
     try {
       const saved = await transitionSnippet(item.id, item.etag, nextStatus, key);
+      if (requestEpoch !== loadEpoch.current) return false;
       transitionKeys.current.delete(signature);
+      setPendingOutcome(null);
+      pendingTransition.current = null;
+      mutationFlight.current = false;
       if (isProductivityAcknowledgement(saved)) {
         clearPrivateSnippet();
         setCommitNotice(true);
@@ -4268,15 +4386,21 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       if (editing?.id === item.id) resetEditor();
       return true;
     } catch (requestError) {
+      if (requestEpoch !== loadEpoch.current) return false;
       const apiError = showError(requestError);
+      pendingTransition.current = isUnknownSnippetOutcome(apiError) ? { id: item.id, etag: item.etag, status: item.status } : null;
+      setPendingOutcome(isUnknownSnippetOutcome(apiError) ? pendingId : null);
       if (apiError.status === 412) await load();
       return { error: apiError.message };
     } finally {
+      mutationFlight.current = false;
       setBusy(null);
     }
   }
 
   async function copySnippet(item: SnippetRecord) {
+    if (mutationFlight.current || busy !== null || loading || pendingOutcome !== null || !canSnippet('read')) return;
+    mutationFlight.current = true;
     const epoch = loadEpoch.current;
     setBusy(`copy:${item.id}`);
     setError(null);
@@ -4294,6 +4418,7 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     } catch (requestError) {
       if (epoch === loadEpoch.current) showError(requestError);
     } finally {
+      mutationFlight.current = false;
       setBusy(null);
     }
   }
@@ -4309,6 +4434,9 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   return (
     <section className="content-section" aria-labelledby="snippets-title">
       {commitNotice && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
+      {!loading && !canSnippet('read') && !error && <Notice kind="info">Không có quyền đọc Snippet hiện tại. Chỉ các thao tác được cho phép mới khả dụng.</Notice>}
+      {pendingOutcome && <Notice kind="error">Chưa xác nhận được kết quả lệnh đã gửi. Giữ nguyên dữ liệu và đối chiếu lại đúng lệnh; không tạo thao tác mới.</Notice>}
+      {pendingOutcome?.startsWith('transition:') && pendingTransition.current && <button className="secondary-button" type="button" disabled={busy !== null || loading} onClick={() => { if (pendingTransition.current) void transition(pendingTransition.current); }}>Đối chiếu lệnh chuyển trạng thái</button>}
       {credentialWarning && <Notice kind="info">Nội dung có mẫu giống credential. Kiểm tra và cân nhắc lưu bí mật trong Vault. Cảnh báo này không phát hiện được mọi loại bí mật.</Notice>}
       <div className="content-heading">
         <div>
@@ -4316,33 +4444,36 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           <h1 id="snippets-title">Code snippets</h1>
           <p className="lead">Lưu code/text cá nhân dưới dạng dữ liệu escaped. Nexora không chạy, compile, gửi AI/lint service hoặc publish source.</p>
         </div>
-        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null || pendingOutcome !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
-      {conflict && <Notice kind="error"><span>Snippet đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; tải revision mới trước khi áp dụng lại.</span><button className="inline-button" type="button" onClick={() => void recoverSnippetRevision()} disabled={loading || busy !== null}>Tải revision</button></Notice>}
+      {conflict && <Notice kind="error"><span>Snippet đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; tải revision mới trước khi áp dụng lại.</span><button className="inline-button" type="button" onClick={() => void recoverSnippetRevision()} disabled={loading || busy !== null || pendingOutcome !== null}>Tải revision</button></Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
           <form className="form-panel" onSubmit={save} noValidate>
-            <div className="section-heading"><h2>{editing ? 'Sửa snippet' : 'Snippet mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
+            <div className="section-heading"><h2>{editing ? 'Sửa snippet' : 'Snippet mới'}</h2>{editing && <button className="link-button" type="button" onClick={requestSnippetReset} disabled={busy !== null}>Hủy sửa</button>}</div>
+            <fieldset className="resource-dialog-fields" disabled={loading || busy !== null || pendingOutcome !== null || !canSnippet(editing ? 'save' : 'create')}>
             <div className="field-group"><label htmlFor="snippet-title">Tiêu đề</label><input id="snippet-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="snippet-title-error" /><FieldError id="snippet-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
             <div className="field-group"><label htmlFor="snippet-language">Language</label><input id="snippet-language" value={draft.language} maxLength={50} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, language: event.target.value }); setError(null); }} placeholder="plaintext" required aria-describedby="snippet-language-error" /><FieldError id="snippet-language-error" message={error ? firstFieldError(error, 'language') : undefined} /></div>
             <div className="field-group"><label htmlFor="snippet-body">Source code / text</label><textarea id="snippet-body" value={draft.body} maxLength={1024 * 1024} rows={13} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, body: event.target.value }); setError(null); }} spellCheck={false} required aria-describedby="snippet-body-help snippet-body-error" /><p className="field-help" id="snippet-body-help">Tối đa 1 MiB UTF-8; shell/HTML/script chỉ được lưu và hiển thị như text.</p><FieldError id="snippet-body-error" message={error ? firstFieldError(error, 'body') : undefined} /></div>
             <div className="field-group"><label htmlFor="snippet-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="snippet-description" value={draft.description} maxLength={20000} rows={3} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
-            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu version' : 'Tạo snippet'}</SubmitButton></div>
+            </fieldset>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={requestSnippetReset} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={busy !== null || loading || !canSnippet(editing ? 'save' : 'create') || (pendingOutcome !== null && pendingOutcome !== 'save')}>{pendingOutcome === 'save' ? 'Đối chiếu lệnh đã gửi' : editing ? 'Lưu version' : 'Tạo snippet'}</SubmitButton></div>
           </form>
           <div className="security-policy"><strong>Safety boundary</strong><span>Version cũ được giữ append-only trong SQL; Archive là readonly. Copy chỉ xảy ra khi người dùng bấm rõ ràng và không ghi source vào audit.</span></div>
         </div>
         <div className="content-section">
           <form className="form-panel" onSubmit={applySearch} noValidate>
-            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading}>Xóa tìm kiếm</button></div>
+            <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading || busy !== null || pendingOutcome !== null}>Xóa tìm kiếm</button></div>
             <div className="field-group"><label htmlFor="snippet-query">Tìm theo tiêu đề, language, mô tả hoặc source</label><input id="snippet-query" value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
-            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading} /><span>Hiển thị snippet đã archive</span></label>
-            <button className="secondary-button" type="submit" disabled={loading}>Áp dụng</button>
+            <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} disabled={loading || busy !== null || pendingOutcome !== null} /><span>Hiển thị snippet đã archive</span></label>
+            <button className="secondary-button" type="submit" disabled={loading || busy !== null || pendingOutcome !== null}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : error ? <div className="empty-state"><p>Danh sách chưa được cập nhật. Hãy tải lại hoặc sửa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={busy !== null}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || item.status === 'Archived'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive snippet “${item.title}”?`} confirmationDescription="Snippet sẽ trở thành chỉ-đọc. Version và source vẫn được lưu; bạn có thể unarchive lại sau." confirmLabel="Archive snippet" disabled={busy !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
-          {nextCursor && !error && <button className="secondary-button" type="button" disabled={loading || busy !== null} onClick={() => void load(query, includeArchived, true)}>Tải thêm snippets</button>}
+          {loading ? <div className="loading-state" role="status">Đang tải snippets…</div> : error && !pendingOutcome ? <div className="empty-state"><p>Danh sách chưa được cập nhật. Hãy tải lại hoặc sửa bộ lọc.</p></div> : !canSnippet('read') ? <div className="empty-state"><p>Danh sách không khả dụng theo quyền hiện tại.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có snippet</h2><p>{query ? 'Không có snippet phù hợp với tìm kiếm.' : 'Tạo snippet đầu tiên; source sẽ không được thực thi.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card snippet-card" key={item.id}><div className="snippet-content"><div className="section-heading"><div><h3>{item.title}</h3><span className="muted">{item.language} · version {item.versionNumber} · {item.status} · cập nhật {dateTime(item.updatedAt)}</span></div></div>{item.description && <p>{item.description}</p>}<pre className="snippet-code"><code>{item.body}</code></pre></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void copySnippet(item)} disabled={loading || busy !== null || pendingOutcome !== null || !canSnippet('read')}>{copiedId === item.id ? 'Đã copy' : 'Copy'}</button><button className="secondary-button" type="button" onClick={() => requestSnippetEdit(item)} disabled={loading || busy !== null || pendingOutcome !== null || item.status === 'Archived' || !canSnippet('save')}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={loading || busy !== null || (pendingOutcome !== null && pendingOutcome !== `transition:${item.id}`) || !canSnippet('unarchive')}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive snippet “${item.title}”?`} confirmationDescription="Snippet sẽ trở thành chỉ-đọc. Version và source vẫn được lưu; bạn có thể unarchive lại sau." confirmLabel="Archive snippet" disabled={loading || busy !== null || (pendingOutcome !== null && pendingOutcome !== `transition:${item.id}`) || !canSnippet('archive')} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
+          {nextCursor && !error && <button className="secondary-button" type="button" disabled={loading || busy !== null || pendingOutcome !== null} onClick={() => void load(query, includeArchived, true)}>Tải thêm snippets</button>}
         </div>
       </div>
+      {leaveSnippet && <ActionDialog title="Bỏ bản nháp Snippet?" description={pendingOutcome ? 'Kết quả lệnh đã gửi chưa được xác định. Bỏ bản nháp không hoàn tác thay đổi đã lưu trên server.' : 'Bản nháp Snippet chưa được lưu.'} confirmLabel="Bỏ bản nháp" cancelLabel="Giữ chỉnh sửa" confirmDisabled={busy !== null} onClose={() => { if (!mutationFlight.current) setLeaveSnippet(null); }} onConfirm={() => { if (mutationFlight.current) return false; const proceed = leaveSnippet.proceed; setLeaveSnippet(null); resetEditor(); proceed(); return true; }} />}
     </section>
   );
 }

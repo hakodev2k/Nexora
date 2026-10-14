@@ -1535,7 +1535,7 @@ export function getBookmark(id: string) {
 }
 
 export function createBookmark(url: string, title: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<BookmarkRecord>('/api/v1/bookmarks', {
+  return productivityMutation<BookmarkRecord>('/api/v1/bookmarks', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ url, title, description })
@@ -1543,19 +1543,19 @@ export function createBookmark(url: string, title: string, description: string |
 }
 
 export function updateBookmark(id: string, etag: string, url: string, title: string, description: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}`, {
+  return productivityMutation<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ url, title, description })
-  });
+  }, id);
 }
 
 export function transitionBookmark(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}/transition`, {
+  return productivityMutation<BookmarkRecord>(`/api/v1/bookmarks/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })
-  });
+  }, id);
 }
 
 export function listSnippets(includeArchived = false, query = '', limit = 25, cursor = '') {
@@ -1563,6 +1563,10 @@ export function listSnippets(includeArchived = false, query = '', limit = 25, cu
   if (query.trim()) params.set('query', query.trim());
   if (cursor) params.set('cursor', cursor);
   return apiFetch<SnippetPage>(`/api/v1/snippets?${params.toString()}`);
+}
+
+export function snippetCapabilities() {
+  return apiFetch<Record<string, boolean>>('/api/v1/snippets/capabilities');
 }
 
 export function getSnippet(id: string) {

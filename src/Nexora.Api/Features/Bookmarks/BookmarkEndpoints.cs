@@ -21,7 +21,7 @@ public static class BookmarkEndpoints
 
         api.MapGet("/bookmarks/{bookmarkId:guid}", (HttpContext context, Guid bookmarkId,
             IBookmarkService service, IIdentityService identity, SessionCookieService cookies) =>
-            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Get(principal, bookmarkId), ToResponse))
             .WithName("getBookmark");
 
@@ -66,6 +66,8 @@ public static class BookmarkEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         if (result.Succeeded && result.Value is BookmarkRecord bookmark)
             context.Response.Headers.ETag = bookmark.ETag;
         return result.Succeeded && result.Value is not null
