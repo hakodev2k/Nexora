@@ -1,6 +1,6 @@
 # Reviewable proposal — Read Later Admin eligibility and capability query
 
-Status: NOT APPLIED. Automatic approval review rejected this exact permission-scope change twice; source evidence and independent review did not substitute for explicit user re-approval. Current production policy/endpoint remain unchanged.
+Status: APPLIED AFTER EXPLICIT USER APPROVAL. The user answered “Cho phép đúng đề xuất này” to this exact published proposal on continuation. The earlier two automatic approval rejections remain historical evidence; they blocked application until that reply. The six-key eligibility, boolean endpoint and UI are now implemented. No grants or module/provider activation occurred.
 
 Baseline d2e4eac / main8782f46. Main FX23 catalog lists these six SELF actions Admin checkbox Yes,gated/Resolved delegated; existing migration0011 registers their permission metadata. Proposed eligibility does not write Allow/Deny grants or enable modules. Current SQL owner/session/module/role/Deny/absent controls and SuperAdmin grant-assignment controls remain.
 

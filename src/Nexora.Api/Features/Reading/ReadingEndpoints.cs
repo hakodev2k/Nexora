@@ -12,6 +12,12 @@ public static class ReadingEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
+        api.MapGet("/read-later/capabilities", (HttpContext context, IReadingService service,
+            IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Capabilities(principal), value => value))
+            .WithName("readingCapabilities");
+
         api.MapGet("/read-later", (HttpContext context, string? state, int? limit, string? cursor,
             IReadingService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),

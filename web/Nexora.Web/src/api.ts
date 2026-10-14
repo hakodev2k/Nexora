@@ -1603,6 +1603,10 @@ export function transitionSnippet(id: string, etag: string, status: string, idem
   }, id);
 }
 
+export function readingCapabilities() {
+  return apiFetch<Record<string, boolean>>('/api/v1/read-later/capabilities');
+}
+
 export function listReadingQueue(state = '', limit = 25, cursor = '') {
   const params = new URLSearchParams({ limit: String(limit) });
   if (state.trim()) params.set('state', state.trim());

@@ -107,6 +107,7 @@ import {
   listAdminUsers,
   listBookmarks,
   listReadingQueue,
+  readingCapabilities,
   listProjects,
   listSessions,
   listSnippets,
@@ -4506,6 +4507,8 @@ type ReadingPendingCommand =
   | { kind: 'remove'; id: string; etag: string; key: string };
 
 function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [capabilities, setCapabilities] = useState<Record<string, boolean>>({});
+  const can = (action: string) => capabilities[`reading.${action}`] === true;
   const [items, setItems] = useState<ReadingItemRecord[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkRecord[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -4530,7 +4533,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function setCommand(command: ReadingPendingCommand | null) { pendingRef.current = command; setPending(command); }
   function clearPrivateReading() {
-    epoch.current++; setItems([]); setBookmarks([]); setNextCursor(null); setSourceCursor(null); setSelectedBookmarkId('');
+    epoch.current++; setCapabilities({}); setItems([]); setBookmarks([]); setNextCursor(null); setSourceCursor(null); setSelectedBookmarkId('');
     requestKey.current = null; setCommand(null); setConflict(false); setLoading(false); form.finish();
   }
   const denied = (failure: NexoraApiError) => [401, 403, 404].includes(failure.status) || failure.code === 'ModuleUnavailable';
@@ -4543,7 +4546,24 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (!append) { setNextCursor(null); setSourceCursor(null); }
     const current = ++epoch.current;
     setLoading(true); setError(null); setSourceError(null); setConflict(false);
+    let currentCapabilities = capabilities;
     try {
+      if (!append) {
+        currentCapabilities = await readingCapabilities();
+        if (current !== epoch.current) return;
+        setCapabilities(currentCapabilities);
+      }
+    } catch (requestError) {
+      if (current !== epoch.current) return;
+      const failure = asApiError(requestError);
+      clearPrivateReading(); setError(failure);
+      if (failure.status === 401) await onAuthLost();
+      return;
+    }
+    if (currentCapabilities['reading.queue.read'] !== true) {
+      setItems([]); setNextCursor(null);
+      setError(new NexoraApiError('Bạn không có quyền đọc queue hiện tại.', 403, 'PermissionDenied'));
+    } else try {
       const page = await listReadingQueue(nextState, 25, cursor ?? '');
       if (current !== epoch.current) return;
       const incoming = Array.isArray(page.items) ? page.items : [];
@@ -4556,6 +4576,9 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       if (denied(failure)) { clearPrivateReading(); if (failure.status === 401) await onAuthLost(); return; }
     }
     if (append) { if (current === epoch.current) setLoading(false); return; }
+    if (currentCapabilities['reading.item.save'] !== true) {
+      setBookmarks([]); setSourceCursor(null); setSelectedBookmarkId(''); setLoading(false); return;
+    }
     try {
       const page = await listBookmarks(true, '', 25);
       if (current !== epoch.current) return;
@@ -4571,7 +4594,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   useEffect(() => { void load(); return () => { epoch.current++; }; }, [stateFilter]);
 
   async function loadMoreSources() {
-    if (flight.current || sourceFlight.current || loading || pendingRef.current || !sourceCursor) return;
+    if (flight.current || sourceFlight.current || loading || pendingRef.current || !can('item.save') || !sourceCursor) return;
     const current = epoch.current, cursor = sourceCursor;
     sourceFlight.current = true; setSourceLoading(true); setSourceError(null);
     try {
@@ -4590,6 +4613,9 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function execute(command: ReadingPendingCommand) {
     if (flight.current || sourceFlight.current || loading || (pendingRef.current && JSON.stringify(pendingRef.current) !== JSON.stringify(command))) return false;
+    const action = command.kind === 'save' ? 'item.save' : command.kind === 'remove' ? 'item.remove'
+      : command.state === 'Read' ? 'item.read' : command.state === 'Unread' ? 'item.unread' : 'item.position';
+    if (!can(action)) return false;
     const current = epoch.current;
     flight.current = true; setCommand(command); setBusy(command.kind); setError(null); setConflict(false); setCommitNotice(false);
     try {
@@ -4657,7 +4683,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       {sourceError && <Notice kind="info">Không tải được danh sách Bookmark nguồn; queue hiện có vẫn được hiển thị, nhưng không thể lưu nguồn mới. {sourceError.message}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={blocked} onClick={() => { form.begin(); }}>Thêm vào Read Later</button><ResourceFormDialog open={form.open} title={'Thêm vào Read Later'} busy={loading || sourceLoading || busy !== null} dirty={form.dirty || pending !== null} onClose={() => { setCommand(null); requestKey.current = null; form.cancel(); }}>{sourceError && <Notice kind="error">{sourceError.message}</Notice>}{pending && <Notice kind="error">Kết quả chưa rõ. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
+          <button className="primary-button" type="button" disabled={blocked || !can('item.save')} onClick={() => { form.begin(); }}>Thêm vào Read Later</button><ResourceFormDialog open={form.open} title={'Thêm vào Read Later'} busy={loading || sourceLoading || busy !== null} dirty={form.dirty || pending !== null} onClose={() => { setCommand(null); requestKey.current = null; form.cancel(); }}>{sourceError && <Notice kind="error">{sourceError.message}</Notice>}{pending && <Notice kind="error">Kết quả chưa rõ. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
             <div className="section-heading"><h2>Lưu source</h2></div>
             <div className="field-group">
               <label htmlFor="read-later-source">Bookmark nguồn</label>
@@ -4667,7 +4693,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
               </select>
               <p className="field-help">Save retry cùng source chỉ giữ một queue entry theo owner; source Archived vẫn chỉ là metadata được phép đọc.</p>
             </div>
-            <div className="form-actions">{sourceCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void loadMoreSources()}>Tải thêm Bookmark nguồn</button>}<SubmitButton busy={busy === 'save'} disabled={loading || sourceLoading || (pending !== null && pending.kind !== 'save')}>Lưu vào Read Later</SubmitButton></div>
+            <div className="form-actions">{sourceCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void loadMoreSources()}>Tải thêm Bookmark nguồn</button>}<SubmitButton busy={busy === 'save'} disabled={loading || sourceLoading || !can('item.save') || (pending !== null && pending.kind !== 'save')}>Lưu vào Read Later</SubmitButton></div>
           </form></ResourceFormDialog>
           <div className="security-policy"><strong>Source boundary</strong><span>Xóa queue không xóa Bookmark. Khi source bị xóa, disabled hoặc không còn quyền đọc, UI chỉ giữ snapshot an toàn và không hiển thị body cache.</span></div>
         </div>
@@ -4676,7 +4702,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <div className="section-heading"><h2>Queue của bạn</h2><span className="muted">{items.length} mục</span></div>
             <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => { if (!flight.current && !pendingRef.current) setStateFilter(event.target.value); }} disabled={blocked}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
           </div>
-          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : error && !pending && items.length === 0 ? <div className="empty-state"><h2>Không thể tải queue</h2><p>Hãy thử lại khi kết nối hoặc quyền truy cập được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <PromptActionButton confirmationTitle="Position metadata" confirmationDescription="Vị trí metadata từ 0 đến 1; không phải tỷ lệ đọc body." inputLabel="Position metadata (0–1)" initialValue={String(item.progress)} confirmLabel="Lưu vị trí" disabled={blocked} onConfirm={raw => savePosition(item, raw)}>Đổi vị trí</PromptActionButton> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || blocked || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || blocked}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Bookmark nguồn sẽ không bị xóa." confirmLabel="Gỡ khỏi queue" disabled={blocked} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void load(stateFilter, false, true)}>Tải thêm</button>}</div>}
+          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : error && !pending && items.length === 0 ? <div className="empty-state"><h2>Không thể tải queue</h2><p>Hãy thử lại khi kết nối hoặc quyền truy cập được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <PromptActionButton confirmationTitle="Position metadata" confirmationDescription="Vị trí metadata từ 0 đến 1; không phải tỷ lệ đọc body." inputLabel="Position metadata (0–1)" initialValue={String(item.progress)} confirmLabel="Lưu vị trí" disabled={blocked || !can('item.position') || item.state === 'Archived'} onConfirm={raw => savePosition(item, raw)}>Đổi vị trí</PromptActionButton> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || blocked || item.state === 'Archived' || !can(item.state === 'Read' ? 'item.unread' : 'item.read')}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || blocked || !can('item.position')}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Bookmark nguồn sẽ không bị xóa." confirmLabel="Gỡ khỏi queue" disabled={blocked || !can('item.remove')} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void load(stateFilter, false, true)}>Tải thêm</button>}</div>}
         </div>
       </div>
     </section>

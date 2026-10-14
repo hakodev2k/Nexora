@@ -31,6 +31,22 @@ public sealed class SqlReadingService : IReadingService
         _capabilities = new SqlSelfCapability(connections);
     }
 
+    public IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor)
+    {
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Reading capabilities are unavailable.");
+        string[] actions = ["reading.queue.read", "reading.item.save", "reading.item.remove", "reading.item.read", "reading.item.unread", "reading.item.position"];
+        var result = actions.ToDictionary(action => action, action => action == "reading.queue.read"
+            ? _capabilities.IsAllowed(connection, transaction, actor, "FX23", action)
+            : CurrentMutationAuthority(connection, transaction, actor, action), StringComparer.Ordinal);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Reading capabilities are unavailable.");
+        transaction.Commit();
+        return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
+    }
+
     public IdentityOperationResult<ReadingPage> List(IdentityPrincipal actor, string? state = null, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "FX23", "reading.queue.read")) return ModuleUnavailable<ReadingPage>();
