@@ -1,0 +1,7 @@
+{
+  "parent": "f980f9cb3376550f3092129ea00566a31f8519b4",
+  "source": "src/Nexora.Infrastructure/Reading/SqlReadingService.cs",
+  "sha256": "a291d3baec1975dfbb0211dc1eeabb38b4983cc133ca172cff049c403d6acda8",
+  "verification": "API Release build PASS0warnings/errors;scoped diff PASS;no runtime tests code-only",
+  "review": "security_review source only no new blocker in bounded delta;existing High response and other defects explicitly open"
+}

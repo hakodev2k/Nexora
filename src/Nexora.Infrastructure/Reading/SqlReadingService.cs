@@ -34,18 +34,23 @@ public sealed class SqlReadingService : IReadingService
         var normalizedState = string.IsNullOrWhiteSpace(state) ? null : state.Trim();
         if (normalizedState is not null && normalizedState is not ("Unread" or "Reading" or "Read" or "Archived"))
             return Failure<ReadingPage>("ValidationFailed", 422, "Reading state must be Unread, Reading, Read or Archived.");
-        var sourceReadable = ModuleAvailable(actor, "FX21", "bookmarks.bookmark.read");
+
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX23", "reading.queue.read"))
+            return ModuleUnavailable<ReadingPage>();
+        var sourceReadable = _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit)
                 r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt],
                 r.[SafeTitleSnapshot], r.[SafeUrlSnapshot],
                 CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') THEN 1 ELSE 0 END),
                 r.[UpdatedAt], r.[RowVersion]
-            FROM [knowledge].[ReadingItem] r WITH (NOLOCK)
-            LEFT JOIN [knowledge].[Bookmark] b WITH (NOLOCK)
+            FROM [knowledge].[ReadingItem] r
+            LEFT JOIN [knowledge].[Bookmark] b
               ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] AND r.[SourceType] = 'Bookmark'
             WHERE r.[OwnerId] = @OwnerId AND (@State IS NULL OR r.[State] = @State)
             ORDER BY r.[SavedAt] DESC, r.[Id] DESC;
@@ -53,9 +58,12 @@ public sealed class SqlReadingService : IReadingService
         Add(command, "@Limit", SqlDbType.Int, take);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@State", SqlDbType.VarChar, (object?)normalizedState ?? DBNull.Value, 64);
-        using var reader = command.ExecuteReader();
         var items = new List<ReadingItemRecord>();
-        while (reader.Read()) items.Add(Read(reader, sourceReadable));
+        using (var reader = command.ExecuteReader())
+            while (reader.Read()) items.Add(Read(reader, sourceReadable));
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX23", "reading.queue.read"))
+            return ModuleUnavailable<ReadingPage>();
+        transaction.Commit();
         return IdentityOperationResult<ReadingPage>.Success(new ReadingPage(items, null));
     }
 
@@ -86,6 +94,8 @@ public sealed class SqlReadingService : IReadingService
             if (created is null) { transaction.Rollback(); return Failure<ReadingItemRecord>("PersistenceFailure", 500, "Reading item could not be loaded after creation."); }
             WriteAudit(connection, transaction, actor, id, "reading.item.save", traceId);
             CompleteReceipt(connection, transaction, receipt, "ReadingItemSaved");
+            if (!CurrentMutationAuthority(connection, transaction, actor, "reading.item.save"))
+            { transaction.Rollback(); return ModuleUnavailable<ReadingItemRecord>(); }
             transaction.Commit();
             return IdentityOperationResult<ReadingItemRecord>.Success(created, 201, "ReadingItemSaved");
         }
@@ -132,6 +142,8 @@ public sealed class SqlReadingService : IReadingService
                 ("@RowVersion", SqlDbType.Binary, expectedVersion));
             WriteAudit(connection, transaction, actor, itemId, "reading.item.remove", traceId);
             CompleteReceipt(connection, transaction, receipt, "ReadingItemRemoved");
+            if (!CurrentMutationAuthority(connection, transaction, actor, "reading.item.remove"))
+            { transaction.Rollback(); return ModuleUnavailable<object?>(); }
             transaction.Commit();
             return IdentityOperationResult<object?>.NoContent("ReadingItemRemoved");
         }
@@ -184,6 +196,8 @@ public sealed class SqlReadingService : IReadingService
             if (updated is null) { transaction.Rollback(); return Failure<ReadingItemRecord>("PersistenceFailure", 500, "Reading item could not be loaded after update."); }
             WriteAudit(connection, transaction, actor, itemId, action, traceId);
             CompleteReceipt(connection, transaction, receipt, state == "Read" ? "ReadingItemRead" : state == "Unread" ? "ReadingItemUnread" : "ReadingPositionSaved");
+            if (!CurrentMutationAuthority(connection, transaction, actor, action))
+            { transaction.Rollback(); return ModuleUnavailable<ReadingItemRecord>(); }
             transaction.Commit();
             return IdentityOperationResult<ReadingItemRecord>.Success(updated);
         }
@@ -193,6 +207,10 @@ public sealed class SqlReadingService : IReadingService
             return PersistenceFailure<ReadingItemRecord>(exception);
         }
     }
+
+    private bool CurrentMutationAuthority(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string action) =>
+        _capabilities.IsAllowed(connection, transaction, actor, "FX23", action)
+        && (action == "reading.item.remove" || _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"));
 
     private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, params string[] actionKeys) => _capabilities.IsAllowed(actor, moduleCode, actionKeys);
 
@@ -210,7 +228,7 @@ public sealed class SqlReadingService : IReadingService
     private static ReadingItemRecord? ReadBySource(SqlConnection connection, Guid ownerId, Guid sourceId)
     {
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], r.[SafeTitleSnapshot], r.[SafeUrlSnapshot], CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r WITH (NOLOCK) LEFT JOIN [knowledge].[Bookmark] b WITH (NOLOCK) ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[SourceType] = 'Bookmark' AND r.[SourceId] = @SourceId;";
+        command.CommandText = "SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], r.[SafeTitleSnapshot], r.[SafeUrlSnapshot], CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r WITH (NOLOCK) LEFT JOIN [knowledge].[Bookmark] b ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[SourceType] = 'Bookmark' AND r.[SourceId] = @SourceId;";
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@SourceId", SqlDbType.UniqueIdentifier, sourceId);
         using var reader = command.ExecuteReader();
@@ -221,7 +239,7 @@ public sealed class SqlReadingService : IReadingService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], r.[SafeTitleSnapshot], r.[SafeUrlSnapshot], CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) LEFT JOIN [knowledge].[Bookmark] b WITH (NOLOCK) ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[Id] = @Id;";
+        command.CommandText = $"SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], r.[SafeTitleSnapshot], r.[SafeUrlSnapshot], CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} LEFT JOIN [knowledge].[Bookmark] b ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[Id] = @Id;";
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@Id", SqlDbType.UniqueIdentifier, itemId);
         using var reader = command.ExecuteReader();
@@ -237,6 +255,8 @@ public sealed class SqlReadingService : IReadingService
         string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
     {
         claim = default;
+        if (!CurrentMutationAuthority(connection, transaction, actor, operationKey))
+            return ModuleUnavailable<T>();
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;
