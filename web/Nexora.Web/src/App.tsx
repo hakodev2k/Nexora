@@ -2578,49 +2578,74 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
 
+  const epoch = useRef(0);
+  const controller = useRef<AbortController | null>(null);
+  const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function invalidate() {
+    epoch.current++;
+    controller.current?.abort();
+    controller.current = null;
+    if (debounce.current !== null) { clearTimeout(debounce.current); debounce.current = null; }
+    setPage(null); setError(null); setLoading(false);
+  }
   async function run(event?: FormEvent) {
     event?.preventDefault();
-    if (!query.trim()) {
-      setPage(null);
-      setError(null);
-      return;
-    }
+    invalidate();
+    if (!query.trim()) return;
+    const current = epoch.current;
+    const request = new AbortController();
+    controller.current = request;
     setLoading(true);
-    setError(null);
     try {
-      setPage(await searchResources(query, resourceType, from, to, includeArchived));
+      const result = await searchResources(query, resourceType, from, to, includeArchived, 25, request.signal);
+      if (current !== epoch.current || request.signal.aborted) return;
+      setPage(result);
     } catch (requestError) {
+      if (current !== epoch.current || request.signal.aborted) return;
       const apiError = asApiError(requestError);
-      setError(apiError);
+      setPage(null); setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (current === epoch.current) { setLoading(false); controller.current = null; }
     }
   }
+  useEffect(() => {
+    invalidate();
+    if (query.trim()) debounce.current = setTimeout(() => { debounce.current = null; void run(); }, 250);
+    return () => {
+      epoch.current++; controller.current?.abort();
+      if (debounce.current !== null) clearTimeout(debounce.current);
+    };
+  }, [query, resourceType, from, to, includeArchived]);
+
+  const allSourcesUnavailable = page !== null && page.providers.length > 0 &&
+    page.providers.every(provider => provider.state === 'Unavailable' || provider.state === 'Degraded');
 
   return (
     <section className="content-section" aria-labelledby="search-title">
       <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="search-title">Global Search</h1><p className="lead">Tìm trong các nguồn đã được cấp quyền. Search không tạo authority mới và không trả Vault/secret payload.</p></div></div>
       <form className="form-panel" onSubmit={(event) => void run(event)}>
         <div className="form-grid">
-          <div className="field-group"><label htmlFor="global-search-query">Query</label><input id="global-search-query" value={query} onChange={(event) => setQuery(event.target.value)} maxLength={500} placeholder="Tiêu đề, mô tả hoặc nội dung…" autoComplete="off" /></div>
-          <div className="field-group"><label htmlFor="global-search-type">Resource type</label><select id="global-search-type" value={resourceType} onChange={(event) => setResourceType(event.target.value)}><option value="">All enabled sources</option><option value="Project">Projects</option><option value="Task">Tasks</option><option value="Event">Calendar events</option><option value="Document">Documents</option><option value="Bookmark">Bookmarks</option><option value="Snippet">Snippets</option><option value="Goal">Goals</option></select></div>
-          <div className="field-group"><label htmlFor="global-search-from">Updated from</label><input id="global-search-from" type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></div>
-          <div className="field-group"><label htmlFor="global-search-to">Updated to</label><input id="global-search-to" type="date" value={to} onChange={(event) => setTo(event.target.value)} /></div>
+          <div className="field-group"><label htmlFor="global-search-query">Query</label><input id="global-search-query" value={query} onChange={(event) => { invalidate(); setQuery(event.target.value); }} maxLength={500} placeholder="Tiêu đề, mô tả hoặc nội dung…" autoComplete="off" /></div>
+          <div className="field-group"><label htmlFor="global-search-type">Resource type</label><select id="global-search-type" value={resourceType} onChange={(event) => { invalidate(); setResourceType(event.target.value); }}><option value="">All enabled sources</option><option value="Project">Projects</option><option value="Task">Tasks</option><option value="Event">Calendar events</option><option value="Document">Documents</option><option value="Bookmark">Bookmarks</option><option value="Snippet">Snippets</option><option value="Goal">Goals</option></select></div>
+          <div className="field-group"><label htmlFor="global-search-from">Updated from</label><input id="global-search-from" type="date" value={from} onChange={(event) => { invalidate(); setFrom(event.target.value); }} /></div>
+          <div className="field-group"><label htmlFor="global-search-to">Updated to</label><input id="global-search-to" type="date" value={to} onChange={(event) => { invalidate(); setTo(event.target.value); }} /></div>
         </div>
-        <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} /> Include archived source records</label>
-        <div className="form-actions"><button className="primary-button" type="submit" disabled={loading || !query.trim()}>{loading ? 'Đang tìm…' : 'Tìm kiếm'}</button></div>
+        <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => { invalidate(); setIncludeArchived(event.target.checked); }} /> Include archived source records</label>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={!query.trim()}>{loading ? 'Đang tìm…' : 'Tìm kiếm'}</button></div>
       </form>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {loading && <div className="loading-state" role="status">Đang tìm trong các nguồn được phép…</div>}
       {page && <>
         {page.providers.some((provider) => provider.state === 'Degraded' || provider.state === 'Unavailable') && <Notice kind="info">Một số nguồn không khả dụng; kết quả hiện tại là partial và không đại diện cho toàn bộ dữ liệu.</Notice>}
         <div className="section-heading"><h2>Kết quả cho “{page.query}”</h2><span className="muted">{page.items.length} kết quả hiển thị</span></div>
         <div className="module-grid">
-          {page.items.length === 0 ? <div className="empty-state"><h3>Không có kết quả</h3><p>Thử từ khóa khác hoặc xóa bộ lọc.</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {dateTime(item.updatedAt)}</p><button className="secondary-button" type="button" onClick={() => navigate('resource', item.resourceType, false, item.id)}>Mở nguồn</button></article>)}
+          {page.items.length === 0 ? <div className="empty-state"><h3>{allSourcesUnavailable ? 'Các nguồn hiện không khả dụng' : 'Không có kết quả trong nguồn khả dụng'}</h3><p>{allSourcesUnavailable ? 'Thử tải lại hoặc quay về màn hình trước.' : 'Thử từ khóa khác hoặc xóa bộ lọc.'}</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {dateTime(item.updatedAt)}</p><button className="secondary-button" type="button" onClick={() => navigate('resource', item.resourceType, false, item.id)}>Mở nguồn</button></article>)}
         </div>
         <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
       </>}
-      {!page && !loading && <div className="empty-state"><h2>Bắt đầu tìm kiếm</h2><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
+      {!page && !loading && !error && <div className="empty-state"><h2>Bắt đầu tìm kiếm</h2><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
     </section>
   );
 }

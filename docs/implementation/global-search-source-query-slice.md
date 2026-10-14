@@ -38,7 +38,7 @@ payloads and reported as unavailable when requested.
 - Every source query filters by `IdentityPrincipal.OwnerId`; no owner or source
   scope is accepted from the client. Notification/Vault/audit/support data is
   not indexed or queried by this slice.
-- Source module/action checks run immediately before each query. A search hit
+- Root/current session and source module/action checks run in the same Serializable SQL transaction as matches and counts, with final root proof before commit. Source rows are staged until the source reader succeeds; failed sources expose no partial rows. Active owner Trash references and deleted records are excluded before matching/counts, including linked Task lifecycle for Events. A search hit
   is not an authorization grant and the returned route only points to an
   internal source screen.
 - LIKE metacharacters are escaped. Snippets are whitespace-collapsed,

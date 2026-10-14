@@ -1098,7 +1098,8 @@ export function searchResources(
   from = '',
   to = '',
   includeArchived = false,
-  limit = 25
+  limit = 25,
+  signal?: AbortSignal
 ) {
   const params = new URLSearchParams();
   if (query.trim()) params.set('q', query.trim());
@@ -1107,7 +1108,7 @@ export function searchResources(
   if (to) params.set('to', to);
   if (includeArchived) params.set('includeArchived', 'true');
   params.set('limit', String(limit));
-  return apiFetch<SearchPage>(`/api/v1/search?${params.toString()}`);
+  return apiFetch<SearchPage>(`/api/v1/search?${params.toString()}`, { signal });
 }
 
 export function listFavorites(resourceType = '', limit = 100, cursor = '') {

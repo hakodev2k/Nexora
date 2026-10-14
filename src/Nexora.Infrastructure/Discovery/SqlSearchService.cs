@@ -1,4 +1,5 @@
 using System.Data;
+using System.Data.SqlTypes;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Discovery;
@@ -33,9 +34,6 @@ public sealed class SqlSearchService : ISearchService
         string? resourceType = null, DateOnly? from = null, DateOnly? to = null,
         bool includeArchived = false, int? limit = null)
     {
-        if (!ModuleAvailable(actor, "FX25", "discovery.search.query"))
-            return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
-
         var normalizedQuery = query?.Trim() ?? string.Empty;
         if (normalizedQuery.Length > MaxQueryLength)
             return Failure<SearchPage>("ValidationFailed", 422, "Search query must be at most 500 characters.");
@@ -45,129 +43,173 @@ public sealed class SqlSearchService : ISearchService
         if (from is not null && to is not null && to < from)
             return Failure<SearchPage>("ValidationFailed", 422, "Search end date cannot be before its start date.");
 
+        try { return SearchCurrent(actor, normalizedQuery, normalizedType, from, to, includeArchived, limit); }
+        catch (SqlException) { return Failure<SearchPage>("SearchUnavailable", 503, "Search is temporarily unavailable."); }
+    }
+
+    private IdentityOperationResult<SearchPage> SearchCurrent(IdentityPrincipal actor, string normalizedQuery,
+        string? normalizedType, DateOnly? from, DateOnly? to, bool includeArchived, int? limit)
+    {
+        using var connection = _connections.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
+            return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
         var take = Math.Clamp(limit ?? MaxLimit, 1, MaxLimit);
         if (normalizedQuery.Length == 0)
+        {
+            transaction.Commit();
             return IdentityOperationResult<SearchPage>.Success(new SearchPage(
                 normalizedQuery, normalizedType, includeArchived,
                 Array.Empty<SearchResult>(), Array.Empty<SearchProviderStatus>(), null));
+        }
 
         var like = $"%{EscapeLike(normalizedQuery)}%";
         var starts = $"{EscapeLike(normalizedQuery)}%";
         var fromUtc = from?.ToDateTime(TimeOnly.MinValue);
-        var toUtc = to?.AddDays(1).ToDateTime(TimeOnly.MinValue);
-        using var connection = _connections.Create();
-        connection.Open();
+        var toUtc = to is null || to == DateOnly.MaxValue ? (DateTime?)null : to.Value.AddDays(1).ToDateTime(TimeOnly.MinValue);
 
         var candidates = new List<Candidate>();
         var providers = new List<SearchProviderStatus>();
-        var taskSourceAvailable = ModuleAvailable(actor, "FX12", "tasks.task.read");
-        AddSource(connection, actor, normalizedType, "Project", "FX11", "projects.project.read", null,
+        var taskSourceAvailable = ModuleAvailable(connection, transaction, actor, "FX12", "tasks.task.read");
+        AddSource(connection, transaction, actor, normalizedType, "Project", "FX11", "projects.project.read", null,
             "/modules/FX11", """
             SELECT TOP (@Limit) p.[Id], p.[Name] AS [Title], p.[Description] AS [Snippet], p.[Status], p.[UpdatedAt],
                    CONVERT(int, CASE WHEN p.[Name] = @Query THEN 0 WHEN p.[Name] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [productivity].[Project] p WITH (NOLOCK)
-            WHERE p.[OwnerId] = @OwnerId AND p.[Status] <> 'Deleted'
+            FROM [productivity].[Project] p
+            WHERE p.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Project'
+                    AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) AND p.[Status] <> 'Deleted'
               AND (@IncludeArchived = 1 OR p.[Status] <> 'Archived')
               AND (@FromUtc IS NULL OR p.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR p.[UpdatedAt] < @ToUtc)
               AND (p.[Name] LIKE @Like ESCAPE N'\' OR p.[Description] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] DESC;
+            ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Task", "FX12", "tasks.task.read", null,
+        AddSource(connection, transaction, actor, normalizedType, "Task", "FX12", "tasks.task.read", null,
             "/modules/FX12", """
             SELECT TOP (@Limit) t.[Id], t.[Title], t.[Description] AS [Snippet], t.[Status], t.[UpdatedAt],
                    CONVERT(int, CASE WHEN t.[Title] = @Query THEN 0 WHEN t.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [productivity].[Task] t WITH (NOLOCK)
-            WHERE t.[OwnerId] = @OwnerId AND t.[Status] <> 'Deleted'
+            FROM [productivity].[Task] t
+            WHERE t.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = t.[OwnerId] AND tr.[ResourceType] = 'Task'
+                    AND tr.[ResourceId] = t.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) AND t.[Status] <> 'Deleted'
               AND (@FromUtc IS NULL OR t.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR t.[UpdatedAt] < @ToUtc)
               AND (t.[Title] LIKE @Like ESCAPE N'\' OR t.[Description] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], t.[UpdatedAt] DESC, t.[Id] DESC;
+            ORDER BY [Score], t.[UpdatedAt] DESC, t.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Event", "FX13", "calendar.event.read", null,
+        AddSource(connection, transaction, actor, normalizedType, "Event", "FX13", "calendar.event.read", null,
             "/modules/FX13", """
             SELECT TOP (@Limit) e.[Id], e.[Title], e.[Description] AS [Snippet], e.[Status], e.[UpdatedAt],
                    CONVERT(int, CASE WHEN e.[Title] = @Query THEN 0 WHEN e.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [calendar].[Event] e WITH (NOLOCK)
-            LEFT JOIN [productivity].[Task] taskRow WITH (NOLOCK)
+            FROM [calendar].[Event] e
+            LEFT JOIN [productivity].[Task] taskRow
               ON taskRow.[Id] = e.[TaskId] AND taskRow.[OwnerId] = e.[OwnerId]
-            WHERE e.[OwnerId] = @OwnerId AND e.[Status] <> 'Deleted'
-              AND (e.[TaskId] IS NULL OR (@TaskSourceAvailable = 1 AND taskRow.[Id] IS NOT NULL AND taskRow.[Status] <> 'Deleted'))
+            WHERE e.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = e.[OwnerId] AND tr.[ResourceType] = 'Event'
+                    AND tr.[ResourceId] = e.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) AND e.[Status] <> 'Deleted'
+              AND (e.[TaskId] IS NULL OR (@TaskSourceAvailable = 1 AND taskRow.[Id] IS NOT NULL AND taskRow.[Status] <> 'Deleted'
+                  AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] taskTrash
+                      WHERE taskTrash.[OwnerId] = taskRow.[OwnerId] AND taskTrash.[ResourceType] = 'Task'
+                        AND taskTrash.[ResourceId] = taskRow.[Id] AND taskTrash.[RestoredAt] IS NULL AND taskTrash.[PurgedAt] IS NULL)))
               AND (@FromUtc IS NULL OR e.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR e.[UpdatedAt] < @ToUtc)
               AND (e.[Title] LIKE @Like ESCAPE N'\' OR e.[Description] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], e.[UpdatedAt] DESC, e.[Id] DESC;
+            ORDER BY [Score], e.[UpdatedAt] DESC, e.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers, taskSourceAvailable);
-        AddSource(connection, actor, normalizedType, "Document", "FX20", "documents.page.read", "documents.library.read",
+        AddSource(connection, transaction, actor, normalizedType, "Document", "FX20", "documents.page.read", "documents.library.read",
             "/modules/FX20", """
             SELECT TOP (@Limit) p.[Id], p.[Title], LEFT(p.[Body], 512) AS [Snippet], p.[Status], p.[UpdatedAt],
                    CONVERT(int, CASE WHEN p.[Title] = @Query THEN 0 WHEN p.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [documents].[Page] p WITH (NOLOCK)
+            FROM [documents].[Page] p
             WHERE p.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document'
+                    AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
+              AND p.[DeletedAt] IS NULL
               AND (@IncludeArchived = 1 OR p.[Status] <> 'Archived')
               AND (@FromUtc IS NULL OR p.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR p.[UpdatedAt] < @ToUtc)
               AND (p.[Title] LIKE @Like ESCAPE N'\' OR p.[Body] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] DESC;
+            ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Bookmark", "FX21", "bookmarks.bookmark.read", null,
+        AddSource(connection, transaction, actor, normalizedType, "Bookmark", "FX21", "bookmarks.bookmark.read", null,
             "/bookmarks", """
             SELECT TOP (@Limit) b.[Id], b.[Title], b.[Description] AS [Snippet], b.[Status], b.[UpdatedAt],
                    CONVERT(int, CASE WHEN b.[Title] = @Query THEN 0 WHEN b.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [knowledge].[Bookmark] b WITH (NOLOCK)
+            FROM [knowledge].[Bookmark] b
             WHERE b.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark'
+                    AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
+              AND b.[Status] IN ('Active', 'Archived')
               AND (@IncludeArchived = 1 OR b.[Status] <> 'Archived')
               AND (@FromUtc IS NULL OR b.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR b.[UpdatedAt] < @ToUtc)
               AND (b.[Title] LIKE @Like ESCAPE N'\' OR b.[Description] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], b.[UpdatedAt] DESC, b.[Id] DESC;
+            ORDER BY [Score], b.[UpdatedAt] DESC, b.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Snippet", "FX22", "snippets.snippet.read", null,
+        AddSource(connection, transaction, actor, normalizedType, "Snippet", "FX22", "snippets.snippet.read", null,
             "/snippets", """
             SELECT TOP (@Limit) s.[Id], v.[Title], LEFT(v.[Description], 512) AS [Snippet], s.[Status], s.[UpdatedAt],
                    CONVERT(int, CASE WHEN v.[Title] = @Query THEN 0 WHEN v.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [knowledge].[Snippet] s WITH (NOLOCK)
-            INNER JOIN [knowledge].[SnippetVersion] v WITH (NOLOCK)
+            FROM [knowledge].[Snippet] s
+            INNER JOIN [knowledge].[SnippetVersion] v
                 ON v.[OwnerId] = s.[OwnerId] AND v.[SnippetId] = s.[Id] AND v.[VersionNumber] = s.[CurrentVersion]
             WHERE s.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = s.[OwnerId] AND tr.[ResourceType] = 'Snippet'
+                    AND tr.[ResourceId] = s.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
+              AND s.[Status] IN ('Active', 'Archived')
               AND (@IncludeArchived = 1 OR s.[Status] <> 'Archived')
               AND (@FromUtc IS NULL OR s.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR s.[UpdatedAt] < @ToUtc)
               AND (v.[Title] LIKE @Like ESCAPE N'\' OR v.[Language] LIKE @Like ESCAPE N'\' OR v.[SourceText] LIKE @Like ESCAPE N'\' OR v.[Description] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], s.[UpdatedAt] DESC, s.[Id] DESC;
+            ORDER BY [Score], s.[UpdatedAt] DESC, s.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
-        AddSource(connection, actor, normalizedType, "Goal", "FX16", "goals.goal.read", null,
+        AddSource(connection, transaction, actor, normalizedType, "Goal", "FX16", "goals.goal.read", null,
             "/goals", """
             SELECT TOP (@Limit) g.[Id], g.[Title], g.[Description] AS [Snippet], g.[Status], g.[UpdatedAt],
                    CONVERT(int, CASE WHEN g.[Title] = @Query THEN 0 WHEN g.[Title] LIKE @Starts ESCAPE N'\' THEN 1 ELSE 2 END) AS [Score],
                    COUNT_BIG(1) OVER() AS [TotalCount]
-            FROM [productivity].[Goal] g WITH (NOLOCK)
-            WHERE g.[OwnerId] = @OwnerId AND g.[Status] <> 'Deleted'
+            FROM [productivity].[Goal] g
+            WHERE g.[OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = g.[OwnerId] AND tr.[ResourceType] = 'Goal'
+                    AND tr.[ResourceId] = g.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) AND g.[Status] <> 'Deleted'
               AND (@IncludeArchived = 1 OR g.[Status] <> 'Archived')
               AND (@FromUtc IS NULL OR g.[UpdatedAt] >= @FromUtc)
               AND (@ToUtc IS NULL OR g.[UpdatedAt] < @ToUtc)
               AND (g.[Title] LIKE @Like ESCAPE N'\' OR g.[Description] LIKE @Like ESCAPE N'\')
-            ORDER BY [Score], g.[UpdatedAt] DESC, g.[Id] DESC;
+            ORDER BY [Score], g.[UpdatedAt] DESC, g.[Id] ASC;
             """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
 
         var items = candidates
             .OrderBy(candidate => candidate.Score)
             .ThenByDescending(candidate => candidate.Result.UpdatedAt)
-            .ThenBy(candidate => candidate.Result.Id)
+            .ThenBy(candidate => new SqlGuid(candidate.Result.Id))
+            .ThenBy(candidate => candidate.Result.ResourceType, StringComparer.Ordinal)
             .Take(take)
             .Select(candidate => candidate.Result)
             .ToArray();
+        if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
+            return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
+        transaction.Commit();
         return IdentityOperationResult<SearchPage>.Success(new SearchPage(
             normalizedQuery, normalizedType, includeArchived, items, providers, null));
     }
 
-    private void AddSource(SqlConnection connection, IdentityPrincipal actor, string? requestedType,
+    private void AddSource(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string? requestedType,
         string resourceType, string moduleCode, string actionKey, string? legacyActionKey, string route,
         string sql, string query, string like, string starts, DateTime? fromUtc, DateTime? toUtc,
         bool includeArchived, int limit, List<Candidate> candidates, List<SearchProviderStatus> providers,
@@ -175,8 +217,7 @@ public sealed class SqlSearchService : ISearchService
     {
         if (requestedType is not null && !string.Equals(requestedType, resourceType, StringComparison.Ordinal))
             return;
-        var refreshedAt = DateTimeOffset.UtcNow;
-        if (!ModuleAvailable(actor, moduleCode, actionKey, legacyActionKey))
+        if (!ModuleAvailable(connection, transaction, actor, moduleCode, actionKey, legacyActionKey))
         {
             providers.Add(new SearchProviderStatus(resourceType, moduleCode, "Unavailable",
                 "Source module or read capability is unavailable.", 0));
@@ -184,7 +225,9 @@ public sealed class SqlSearchService : ISearchService
         }
         try
         {
+            var sourceCandidates = new List<Candidate>();
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandTimeout = 3;
             command.CommandText = sql;
             Add(command, "@Limit", SqlDbType.Int, Math.Min(limit, PerSourceLimit));
@@ -200,15 +243,23 @@ public sealed class SqlSearchService : ISearchService
             var total = 0;
             while (reader.Read())
             {
-                total = Math.Max(total, Convert.ToInt32(reader.GetInt64(6)));
+                total = Math.Max(total, (int)Math.Min(int.MaxValue, reader.GetInt64(6)));
                 var title = reader.GetString(1);
                 var snippet = reader.IsDBNull(2) ? null : reader.GetString(2);
                 var status = reader.IsDBNull(3) ? null : reader.GetString(3);
                 var updatedAt = new DateTimeOffset(DateTime.SpecifyKind(reader.GetDateTime(4), DateTimeKind.Utc), TimeSpan.Zero);
                 var resourceId = reader.GetGuid(0);
-                candidates.Add(new Candidate(new SearchResult(resourceId, resourceType, moduleCode,
+                sourceCandidates.Add(new Candidate(new SearchResult(resourceId, resourceType, moduleCode,
                     title, SafeSnippet(snippet), status, updatedAt, RouteFor(resourceType, resourceId)), reader.GetInt32(5)));
             }
+            reader.Close();
+            if (!ModuleAvailable(connection, transaction, actor, moduleCode, actionKey, legacyActionKey))
+            {
+                providers.Add(new SearchProviderStatus(resourceType, moduleCode, "Unavailable",
+                    "Source module or read capability is unavailable.", 0));
+                return;
+            }
+            candidates.AddRange(sourceCandidates);
             providers.Add(new SearchProviderStatus(resourceType, moduleCode, total == 0 ? "Empty" : "Ready", null, total));
         }
         catch (SqlException)
@@ -218,19 +269,10 @@ public sealed class SqlSearchService : ISearchService
         }
     }
 
-    private bool ModuleAvailable(IdentityPrincipal actor, string moduleCode, string actionKey, string? legacyActionKey = null)
-    {
-        try
-        {
-            return legacyActionKey is null
-                ? _capabilities.IsAllowed(actor, moduleCode, actionKey)
-                : _capabilities.IsAllowed(actor, moduleCode, actionKey, legacyActionKey);
-        }
-        catch (SqlException)
-        {
-            return false;
-        }
-    }
+    private bool ModuleAvailable(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        string moduleCode, string actionKey, string? legacyActionKey = null) => legacyActionKey is null
+        ? _capabilities.IsAllowed(connection, transaction, actor, moduleCode, actionKey)
+        : _capabilities.IsAllowed(connection, transaction, actor, moduleCode, actionKey, legacyActionKey);
 
     private static string? NormalizeResourceType(string? value)
     {
