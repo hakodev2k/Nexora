@@ -1,0 +1,43 @@
+{
+  "parent": "7d205735642929e75346263afe6eac721d00fc37",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "verification": "API build PASS0warnings/errors;frontend TypeScript/Vite PASSexistingbundlewarning;no runtime tests code-only",
+  "reviewer": "security_review source only no confirmed scoped blocker",
+  "sources": [
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "9c8b9c1ad4ff9a4c93fe126cf37936c457b9f932b172faa2fd49792c3b475f77",
+      "publishedLfSha256": "b09085ffbaeaf49aa779b927b95cbbacbbe8fa3baad1803dfe7483574e216777"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Bookmarks/SqlBookmarkService.cs",
+      "sha256": "9f19051c8deb4816c231781c2ce0d56347d194e87b6b3c6797700073c0fc2949",
+      "publishedLfSha256": "9f19051c8deb4816c231781c2ce0d56347d194e87b6b3c6797700073c0fc2949"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Bookmarks/BookmarkListCursor.cs",
+      "sha256": "5ad60118c1f526add824e57ef59670d30bbe4c440f86ad23ca22efe8a3ae6593",
+      "publishedLfSha256": "5ad60118c1f526add824e57ef59670d30bbe4c440f86ad23ca22efe8a3ae6593"
+    },
+    {
+      "path": "src/Nexora.Application/Bookmarks/BookmarkServiceContracts.cs",
+      "sha256": "55706129c7ac03a5412a967c3f34367da96dac336d6e3a72ebc02903951f4e9c",
+      "publishedLfSha256": "62e93748d9be7075c690b10c79c5833873e23dc283be57d71a3c9c8f04f1fc1d"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Bookmarks/BookmarkEndpoints.cs",
+      "sha256": "28ef7d35622fc6c9720f05c5ee1315191152cf90e3f58e3756fce9ca01201177",
+      "publishedLfSha256": "28ef7d35622fc6c9720f05c5ee1315191152cf90e3f58e3756fce9ca01201177"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "c7740be00c2e97945ef34239721a72d3d2952a05e7e6886c1d972e0403118e5e",
+      "publishedLfSha256": "c7740be00c2e97945ef34239721a72d3d2952a05e7e6886c1d972e0403118e5e"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "52a0d91a648a1ed3b2bff135cff1aa367467c2754707282c03864f9f699f7f87",
+      "publishedLfSha256": "52a0d91a648a1ed3b2bff135cff1aa367467c2754707282c03864f9f699f7f87"
+    }
+  ]
+}

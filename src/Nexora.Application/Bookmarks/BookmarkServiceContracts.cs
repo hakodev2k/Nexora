@@ -21,8 +21,9 @@ public sealed record BookmarkCommand(string Url, string Title, string? Descripti
 
 public interface IBookmarkService
 {
+    IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor);
     IdentityOperationResult<BookmarkPage> List(IdentityPrincipal actor, bool includeArchived = false,
-        string? query = null, int? limit = null);
+        string? query = null, int? limit = null, string? cursor = null);
     IdentityOperationResult<BookmarkRecord> Get(IdentityPrincipal actor, Guid bookmarkId);
     IdentityOperationResult<BookmarkRecord> Create(IdentityPrincipal actor, BookmarkCommand command,
         string? idempotencyKey = null, string? traceId = null);

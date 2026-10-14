@@ -1524,10 +1524,15 @@ export function updateFinanceRecord(id: string, etag: string, input: FinanceReco
   });
 }
 
-export function listBookmarks(includeArchived = false, query = '', limit = 100) {
+export function listBookmarks(includeArchived = false, query = '', limit = 25, cursor = '') {
   const params = new URLSearchParams({ includeArchived: String(includeArchived), limit: String(limit) });
   if (query.trim()) params.set('query', query.trim());
+  if (cursor) params.set('cursor', cursor);
   return apiFetch<BookmarkPage>(`/api/v1/bookmarks?${params.toString()}`);
+}
+
+export function bookmarkCapabilities() {
+  return apiFetch<Record<string, boolean>>('/api/v1/bookmarks/capabilities');
 }
 
 export function getBookmark(id: string) {

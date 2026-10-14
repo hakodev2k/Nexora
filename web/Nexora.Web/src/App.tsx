@@ -70,6 +70,7 @@ import {
   clearProfileRevision,
   confirmPasswordReset,
   createBookmark,
+  bookmarkCapabilities,
   createCalendarEvent,
   createDocument,
   createFinanceCategory,
@@ -3930,6 +3931,9 @@ type BookmarkDraft = {
 
 function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<BookmarkRecord[]>([]);
+  const [caps, setCaps] = useState<Record<string, boolean>>({});
+  const canBookmark = (action: string) => caps[`bookmarks.bookmark.${action}`] === true;
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [query, setQuery] = useState('');
   const [queryDraft, setQueryDraft] = useState('');
@@ -3951,26 +3955,42 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   const form = useResourceDialog(draft);
 
-  function clearPrivateBookmark() {
+  function clearPrivateBookmark(clearCapabilities = true) {
+    if (clearCapabilities) setCaps({});
     loadEpoch.current++;
-    setItems([]); setLoading(false); transitionKeys.current.clear(); pendingTransition.current = null; setPendingOutcome(null); resetEditor(); form.finish();
+    setItems([]); setNextCursor(null); setLoading(false); transitionKeys.current.clear(); pendingTransition.current = null; setPendingOutcome(null); resetEditor(); form.finish();
   }
 
-  async function load(nextQuery = query, nextIncludeArchived = includeArchived, reconciled = false) {
+  async function load(nextQuery = query, nextIncludeArchived = includeArchived, reconciled = false, append = false) {
     if ((!reconciled && pendingOutcome !== null) || mutationFlight.current) return;
+    const cursor = append ? nextCursor : null;
+    if (append && !cursor) return;
     const epoch = ++loadEpoch.current;
+    if (!append) setNextCursor(null);
     setLoading(true);
     setError(null);
     setConflict(false);
     try {
-      const page = await listBookmarks(nextIncludeArchived, nextQuery, 100);
+      if (!append) {
+        const currentCaps = await bookmarkCapabilities();
+        if (epoch !== loadEpoch.current) return;
+        setCaps(currentCaps);
+        if (currentCaps['bookmarks.bookmark.read'] !== true) {
+          clearPrivateBookmark(false);
+          setError(new NexoraApiError('Không có quyền đọc thư viện Bookmarks hiện tại.', 403, 'PermissionDenied'));
+          return;
+        }
+      }
+      const page = await listBookmarks(nextIncludeArchived, nextQuery, 25, cursor ?? '');
       if (epoch !== loadEpoch.current) return;
-      setItems(Array.isArray(page.items) ? page.items : []);
+      const incoming = Array.isArray(page.items) ? page.items : [];
+      setItems(previous => append ? Array.from(new Map([...previous, ...incoming].map(item => [item.id, item])).values()) : incoming);
+      setNextCursor(page.nextCursor ?? null);
     } catch (requestError) {
       if (epoch !== loadEpoch.current) return;
       const apiError = asApiError(requestError);
       if ([401, 403, 404].includes(apiError.status) || apiError.code === 'ModuleUnavailable') clearPrivateBookmark();
-      else setItems([]);
+      else { setItems([]); setNextCursor(null); }
       setError(apiError);
       if (apiError.status === 401) await onAuthLost();
     } finally {
@@ -3991,7 +4011,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   function beginEdit(item: BookmarkRecord) {
-    if (busy !== null || loading || pendingOutcome !== null || item.status !== 'Active') return;
+    if (busy !== null || loading || pendingOutcome !== null || !canBookmark('update') || item.status !== 'Active') return;
     editorEpoch.current++;
     form.begin({ url: item.url, title: item.title, description: item.description ?? '' });
     setEditing(item);
@@ -4011,7 +4031,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== 'save')) return;
+    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== 'save') || !canBookmark(editing ? 'update' : 'create')) return;
     setError(null);
     setConflict(false);
     const url = draft.url.trim();
@@ -4059,7 +4079,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   async function transition(item: Pick<BookmarkRecord, 'id' | 'etag' | 'status'>) {
-    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== `transition:${item.id}`) || !['Active', 'Archived'].includes(item.status)) return false;
+    if (mutationFlight.current || busy !== null || loading || (pendingOutcome !== null && pendingOutcome !== `transition:${item.id}`) || !['Active', 'Archived'].includes(item.status) || !canBookmark(item.status === 'Archived' ? 'unarchive' : 'archive')) return false;
     const epoch = loadEpoch.current;
     mutationFlight.current = true;
     const nextStatus = item.status === 'Archived' ? 'Active' : 'Archived';
@@ -4116,12 +4136,12 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={loading || busy !== null || pendingOutcome !== null} onClick={() => { resetEditor(); form.begin({ url: '', title: '', description: '' }); }}>Thêm bookmark</button><ResourceFormDialog open={form.open} title={editing ? 'Sửa bookmark' : 'Bookmark mới'} busy={busy !== null} dirty={form.dirty || pendingOutcome !== null} onClose={() => { resetEditor(); form.finish(); }}>{pendingOutcome && <Notice kind="error">Kết quả chưa rõ. Gửi lại đúng lệnh để đối chiếu. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (!editing || busy !== null || loading) return; const current = editing; const generation = editorEpoch.current; try { const latest = await getBookmark(current.id); if (generation !== editorEpoch.current) return; if (latest.status !== 'Active') { clearPrivateBookmark(); setError(new NexoraApiError('Bookmark đã archive; hãy unarchive trước khi sửa.', 409, 'LifecycleLocked')); return; } setEditing({ ...current, etag: latest.etag }); requestKey.current = null; setConflict(false); setError(null); } catch (requestError) { if (generation === editorEpoch.current) showError(requestError); } }} disabled={loading || busy !== null || pendingOutcome !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate><fieldset disabled={loading || busy !== null || pendingOutcome !== null}>
+          <button className="primary-button" type="button" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark('create')} onClick={() => { resetEditor(); form.begin({ url: '', title: '', description: '' }); }}>Thêm bookmark</button><ResourceFormDialog open={form.open} title={editing ? 'Sửa bookmark' : 'Bookmark mới'} busy={busy !== null} dirty={form.dirty || pendingOutcome !== null} onClose={() => { resetEditor(); form.finish(); }}>{pendingOutcome && <Notice kind="error">Kết quả chưa rõ. Gửi lại đúng lệnh để đối chiếu. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (!editing || busy !== null || loading) return; const current = editing; const generation = editorEpoch.current; try { const latest = await getBookmark(current.id); if (generation !== editorEpoch.current) return; if (latest.status !== 'Active') { clearPrivateBookmark(); setError(new NexoraApiError('Bookmark đã archive; hãy unarchive trước khi sửa.', 409, 'LifecycleLocked')); return; } setEditing({ ...current, etag: latest.etag }); requestKey.current = null; setConflict(false); setError(null); } catch (requestError) { if (generation === editorEpoch.current) showError(requestError); } }} disabled={loading || busy !== null || pendingOutcome !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate><fieldset disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark(editing ? 'update' : 'create')}>
             <div className="section-heading"><h2>{editing ? 'Sửa bookmark' : 'Bookmark mới'}</h2></div>
             <div className="field-group"><label htmlFor="bookmark-url">URL</label><input id="bookmark-url" type="url" value={draft.url} maxLength={2048} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, url: event.target.value }); setError(null); }} placeholder="https://example.test/path" required aria-describedby="bookmark-url-error" /><FieldError id="bookmark-url-error" message={error ? firstFieldError(error, 'url') : undefined} /></div>
             <div className="field-group"><label htmlFor="bookmark-title">Tiêu đề</label><input id="bookmark-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="bookmark-title-error" /><FieldError id="bookmark-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
             <div className="field-group"><label htmlFor="bookmark-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="bookmark-description" value={draft.description} maxLength={20000} rows={4} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
-            </fieldset><div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null || pendingOutcome !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={loading || (pendingOutcome !== null && pendingOutcome !== 'save')}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
+            </fieldset><div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null || pendingOutcome !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={loading || (pendingOutcome !== null && pendingOutcome !== 'save') || !canBookmark(editing ? 'update' : 'create')}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
           </form></ResourceFormDialog>
           <div className="security-policy"><strong>Provider boundary</strong><span>Health chỉ là trạng thái metadata hiện tại; refresh, external navigation, sharing, tags và collections chưa nằm trong slice này.</span></div>
         </div>
@@ -4132,7 +4152,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => { if (!mutationFlight.current && busy === null && pendingOutcome === null) setIncludeArchived(event.target.checked); }} disabled={loading || busy !== null || pendingOutcome !== null} /><span>Hiển thị bookmark đã archive</span></label>
             <button className="secondary-button" type="submit" disabled={loading || busy !== null || pendingOutcome !== null}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : error && pendingOutcome === null ? <div className="empty-state"><h2>Không thể tải thư viện</h2><p>Hãy thử lại khi quyền truy cập hoặc kết nối được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || loading || pendingOutcome !== null || item.status !== 'Active'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null || pendingOutcome !== null}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null || pendingOutcome !== null} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : error && pendingOutcome === null ? <div className="empty-state"><h2>Không thể tải thư viện</h2><p>Hãy thử lại khi quyền truy cập hoặc kết nối được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || loading || pendingOutcome !== null || !canBookmark('update') || item.status !== 'Active'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null || pendingOutcome !== null || !canBookmark('unarchive')}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null || pendingOutcome !== null || !canBookmark('archive')} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark('read')} onClick={() => void load(query, includeArchived, false, true)}>Tải thêm</button>}</div>}
         </div>
       </div>
     </section>

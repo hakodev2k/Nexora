@@ -12,10 +12,16 @@ public static class BookmarkEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
-        api.MapGet("/bookmarks", (HttpContext context, bool? includeArchived, string? query, int? limit,
+        api.MapGet("/bookmarks/capabilities", (HttpContext context, IBookmarkService service,
+            IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Capabilities(principal), value => value))
+            .WithName("bookmarkCapabilities");
+
+        api.MapGet("/bookmarks", (HttpContext context, bool? includeArchived, string? query, int? limit, string? cursor,
             IBookmarkService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, includeArchived ?? false, query, limit),
+                principal => service.List(principal, includeArchived ?? false, query, limit, cursor),
                 value => new BookmarkPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listBookmarks");
 

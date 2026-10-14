@@ -22,22 +22,43 @@ public sealed class SqlBookmarkService : IBookmarkService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly BookmarkListCursor _cursor;
 
     public SqlBookmarkService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(secret);
+        _cursor = new BookmarkListCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
+    public IdentityOperationResult<IReadOnlyDictionary<string, bool>> Capabilities(IdentityPrincipal actor)
+    {
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Bookmark capabilities are unavailable.");
+        string[] actions = ["bookmarks.bookmark.read", "bookmarks.bookmark.create", "bookmarks.bookmark.update", "bookmarks.bookmark.archive", "bookmarks.bookmark.unarchive"];
+        var result = actions.ToDictionary(action => action,
+            action => _capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(action)), StringComparer.Ordinal);
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor))
+            return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Bookmark capabilities are unavailable.");
+        transaction.Commit();
+        return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
+    }
+
     public IdentityOperationResult<BookmarkPage> List(IdentityPrincipal actor, bool includeArchived = false,
-        string? query = null, int? limit = null)
+        string? query = null, int? limit = null, string? cursor = null)
     {
         if (!ModuleAvailable(actor, "FX21", "bookmarks.bookmark.read")) return ModuleUnavailable<BookmarkPage>();
         var take = Math.Clamp(limit ?? 25, 1, 100);
         var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         if (normalizedQuery is { Length: > 200 })
             return Failure<BookmarkPage>("ValidationFailed", 422, "Bookmark search must be at most 200 characters.");
+        DateTime? afterTime = null; Guid? afterId = null;
+        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, actor.OwnerId, includeArchived, normalizedQuery, take, out afterTime, out afterId))
+            return Failure<BookmarkPage>("InvalidCursor", 422, "Bookmark cursor does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
@@ -51,10 +72,13 @@ public sealed class SqlBookmarkService : IBookmarkService
             WHERE [OwnerId] = @OwnerId
               AND [Status] IN ('Active', 'Archived')
               AND (@IncludeArchived = 1 OR [Status] = 'Active')
+              AND (@AfterTime IS NULL OR [UpdatedAt] < @AfterTime OR ([UpdatedAt] = @AfterTime AND [Id] < @AfterId))
               AND (@Query IS NULL OR [Title] LIKE @QueryLike ESCAPE N'~' OR [Url] LIKE @QueryLike ESCAPE N'~' OR [Description] LIKE @QueryLike ESCAPE N'~')
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
+        Add(command, "@AfterTime", SqlDbType.DateTime2, (object?)afterTime ?? DBNull.Value);
+        Add(command, "@AfterId", SqlDbType.UniqueIdentifier, (object?)afterId ?? DBNull.Value);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@IncludeArchived", SqlDbType.Bit, includeArchived);
         Add(command, "@Query", SqlDbType.NVarChar, (object?)normalizedQuery ?? DBNull.Value, 200);
@@ -65,7 +89,14 @@ public sealed class SqlBookmarkService : IBookmarkService
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
             return ModuleUnavailable<BookmarkPage>();
         transaction.Commit();
-        return IdentityOperationResult<BookmarkPage>.Success(new BookmarkPage(items, null));
+        string? nextCursor = null;
+        if (items.Count > take)
+        {
+            items.RemoveAt(take);
+            var last = items[^1];
+            nextCursor = _cursor.Encode(actor.OwnerId, includeArchived, normalizedQuery, take, last.UpdatedAt, last.Id);
+        }
+        return IdentityOperationResult<BookmarkPage>.Success(new BookmarkPage(items, nextCursor));
     }
 
     public IdentityOperationResult<BookmarkRecord> Get(IdentityPrincipal actor, Guid bookmarkId)
