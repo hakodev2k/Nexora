@@ -233,7 +233,7 @@ builder.Services.AddSingleton<INotificationService>(services =>
 builder.Services.AddSingleton<IFavoriteService>(services =>
     new SqlFavoriteService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<ISearchService>(services =>
-    new SqlSearchService(services.GetRequiredService<SqlConnectionFactory>()));
+    new SqlSearchService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IBookmarkService>(services =>
     new SqlBookmarkService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IReadingService>(services =>

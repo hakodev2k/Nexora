@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.SqlTypes;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Discovery;
@@ -19,20 +20,23 @@ public sealed class SqlSearchService : ISearchService
 {
     private const int MaxQueryLength = 500;
     private const int MaxLimit = 25;
-    private const int PerSourceLimit = 25;
+    private const int PerSourceLimit = 26;
     private static readonly Regex Whitespace = new(@"\s+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
     private readonly SqlConnectionFactory _connections;
     private readonly SqlSelfCapability _capabilities;
 
-    public SqlSearchService(SqlConnectionFactory connections)
+    private readonly SearchCursor _cursor;
+
+    public SqlSearchService(SqlConnectionFactory connections, string? cursorSecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _capabilities = new SqlSelfCapability(connections);
+        _cursor = new SearchCursor(cursorSecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
     }
 
     public IdentityOperationResult<SearchPage> Search(IdentityPrincipal actor, string? query = null,
         string? resourceType = null, DateOnly? from = null, DateOnly? to = null,
-        bool includeArchived = false, int? limit = null)
+        bool includeArchived = false, int? limit = null, string? cursor = null)
     {
         var normalizedQuery = query?.Trim() ?? string.Empty;
         if (normalizedQuery.Length > MaxQueryLength)
@@ -43,12 +47,12 @@ public sealed class SqlSearchService : ISearchService
         if (from is not null && to is not null && to < from)
             return Failure<SearchPage>("ValidationFailed", 422, "Search end date cannot be before its start date.");
 
-        try { return SearchCurrent(actor, normalizedQuery, normalizedType, from, to, includeArchived, limit); }
+        try { return SearchCurrent(actor, normalizedQuery, normalizedType, from, to, includeArchived, limit, cursor); }
         catch (SqlException) { return Failure<SearchPage>("SearchUnavailable", 503, "Search is temporarily unavailable."); }
     }
 
     private IdentityOperationResult<SearchPage> SearchCurrent(IdentityPrincipal actor, string normalizedQuery,
-        string? normalizedType, DateOnly? from, DateOnly? to, bool includeArchived, int? limit)
+        string? normalizedType, DateOnly? from, DateOnly? to, bool includeArchived, int? limit, string? cursor)
     {
         using var connection = _connections.Create();
         connection.Open();
@@ -56,6 +60,10 @@ public sealed class SqlSearchService : ISearchService
         if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
             return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
         var take = Math.Clamp(limit ?? MaxLimit, 1, MaxLimit);
+        var cursorContext = new SearchCursor.Context(actor.OwnerId, normalizedQuery, normalizedType, from, to, includeArchived, take);
+        SearchCursor.Position? after = null;
+        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
+            return Failure<SearchPage>("InvalidCursor", 422, "Search cursor does not match this query.");
         if (normalizedQuery.Length == 0)
         {
             transaction.Commit();
@@ -87,7 +95,7 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR p.[UpdatedAt] < @ToUtc)
               AND (p.[Name] LIKE @Like ESCAPE N'\' OR p.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after);
         AddSource(connection, transaction, actor, normalizedType, "Task", "FX12", "tasks.task.read", null,
             "/modules/FX12", """
             SELECT TOP (@Limit) t.[Id], t.[Title], t.[Description] AS [Snippet], t.[Status], t.[UpdatedAt],
@@ -102,7 +110,7 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR t.[UpdatedAt] < @ToUtc)
               AND (t.[Title] LIKE @Like ESCAPE N'\' OR t.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], t.[UpdatedAt] DESC, t.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after);
         AddSource(connection, transaction, actor, normalizedType, "Event", "FX13", "calendar.event.read", null,
             "/modules/FX13", """
             SELECT TOP (@Limit) e.[Id], e.[Title], e.[Description] AS [Snippet], e.[Status], e.[UpdatedAt],
@@ -123,7 +131,7 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR e.[UpdatedAt] < @ToUtc)
               AND (e.[Title] LIKE @Like ESCAPE N'\' OR e.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], e.[UpdatedAt] DESC, e.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers, taskSourceAvailable);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after, taskSourceAvailable);
         AddSource(connection, transaction, actor, normalizedType, "Document", "FX20", "documents.page.read", "documents.library.read",
             "/modules/FX20", """
             SELECT TOP (@Limit) p.[Id], p.[Title], LEFT(p.[Body], 512) AS [Snippet], p.[Status], p.[UpdatedAt],
@@ -140,7 +148,7 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR p.[UpdatedAt] < @ToUtc)
               AND (p.[Title] LIKE @Like ESCAPE N'\' OR p.[Body] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], p.[UpdatedAt] DESC, p.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after);
         AddSource(connection, transaction, actor, normalizedType, "Bookmark", "FX21", "bookmarks.bookmark.read", null,
             "/bookmarks", """
             SELECT TOP (@Limit) b.[Id], b.[Title], b.[Description] AS [Snippet], b.[Status], b.[UpdatedAt],
@@ -157,7 +165,7 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR b.[UpdatedAt] < @ToUtc)
               AND (b.[Title] LIKE @Like ESCAPE N'\' OR b.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], b.[UpdatedAt] DESC, b.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after);
         AddSource(connection, transaction, actor, normalizedType, "Snippet", "FX22", "snippets.snippet.read", null,
             "/snippets", """
             SELECT TOP (@Limit) s.[Id], v.[Title], LEFT(v.[Description], 512) AS [Snippet], s.[Status], s.[UpdatedAt],
@@ -176,7 +184,7 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR s.[UpdatedAt] < @ToUtc)
               AND (v.[Title] LIKE @Like ESCAPE N'\' OR v.[Language] LIKE @Like ESCAPE N'\' OR v.[SourceText] LIKE @Like ESCAPE N'\' OR v.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], s.[UpdatedAt] DESC, s.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after);
         AddSource(connection, transaction, actor, normalizedType, "Goal", "FX16", "goals.goal.read", null,
             "/goals", """
             SELECT TOP (@Limit) g.[Id], g.[Title], g.[Description] AS [Snippet], g.[Status], g.[UpdatedAt],
@@ -192,28 +200,33 @@ public sealed class SqlSearchService : ISearchService
               AND (@ToUtc IS NULL OR g.[UpdatedAt] < @ToUtc)
               AND (g.[Title] LIKE @Like ESCAPE N'\' OR g.[Description] LIKE @Like ESCAPE N'\')
             ORDER BY [Score], g.[UpdatedAt] DESC, g.[Id] ASC;
-            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take, candidates, providers);
+            """, normalizedQuery, like, starts, fromUtc, toUtc, includeArchived, take + 1, candidates, providers, after);
 
-        var items = candidates
+        var ordered = candidates
             .OrderBy(candidate => candidate.Score)
             .ThenByDescending(candidate => candidate.Result.UpdatedAt)
             .ThenBy(candidate => new SqlGuid(candidate.Result.Id))
             .ThenBy(candidate => candidate.Result.ResourceType, StringComparer.Ordinal)
-            .Take(take)
-            .Select(candidate => candidate.Result)
+            .Take(take + 1)
             .ToArray();
+        var pageRows = ordered.Take(take).ToArray();
+        var items = pageRows.Select(candidate => candidate.Result).ToArray();
+        var last = pageRows.LastOrDefault();
+        var nextCursor = ordered.Length > take && last is not null
+            ? _cursor.Encode(cursorContext, new SearchCursor.Position(last.Score, last.Result.UpdatedAt.UtcDateTime,
+                last.Result.Id, last.Result.ResourceType)) : null;
         if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
             return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
         transaction.Commit();
         return IdentityOperationResult<SearchPage>.Success(new SearchPage(
-            normalizedQuery, normalizedType, includeArchived, items, providers, null));
+            normalizedQuery, normalizedType, includeArchived, items, providers, nextCursor));
     }
 
     private void AddSource(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string? requestedType,
         string resourceType, string moduleCode, string actionKey, string? legacyActionKey, string route,
         string sql, string query, string like, string starts, DateTime? fromUtc, DateTime? toUtc,
         bool includeArchived, int limit, List<Candidate> candidates, List<SearchProviderStatus> providers,
-        bool taskSourceAvailable = true)
+        SearchCursor.Position? after, bool taskSourceAvailable = true)
     {
         if (requestedType is not null && !string.Equals(requestedType, resourceType, StringComparison.Ordinal))
             return;
@@ -229,8 +242,14 @@ public sealed class SqlSearchService : ISearchService
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandTimeout = 3;
-            command.CommandText = sql;
+            // Source SQL is trusted and retains all owner/lifecycle filters before count and seek.
+            command.CommandText = PageSourceSql(sql);
             Add(command, "@Limit", SqlDbType.Int, Math.Min(limit, PerSourceLimit));
+            Add(command, "@AfterScore", SqlDbType.Int, (object?)after?.Score ?? DBNull.Value);
+            Add(command, "@AfterUpdatedAt", SqlDbType.DateTime2, (object?)after?.UpdatedAt ?? DBNull.Value);
+            Add(command, "@AfterId", SqlDbType.UniqueIdentifier, (object?)after?.Id ?? DBNull.Value);
+            Add(command, "@AfterType", SqlDbType.VarChar, (object?)after?.ResourceType ?? DBNull.Value, 32);
+            Add(command, "@SourceType", SqlDbType.VarChar, resourceType, 32);
             Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
             Add(command, "@Query", SqlDbType.NVarChar, query, 500);
             Add(command, "@Like", SqlDbType.NVarChar, like, 1004);
@@ -244,6 +263,7 @@ public sealed class SqlSearchService : ISearchService
             while (reader.Read())
             {
                 total = Math.Max(total, (int)Math.Min(int.MaxValue, reader.GetInt64(6)));
+                if (reader.IsDBNull(0)) continue;
                 var title = reader.GetString(1);
                 var snippet = reader.IsDBNull(2) ? null : reader.GetString(2);
                 var status = reader.IsDBNull(3) ? null : reader.GetString(3);
@@ -267,6 +287,28 @@ public sealed class SqlSearchService : ISearchService
             providers.Add(new SearchProviderStatus(resourceType, moduleCode, "Degraded",
                 "This source is temporarily unavailable.", 0));
         }
+    }
+
+    private static string PageSourceSql(string sourceSql)
+    {
+        var order = sourceSql.LastIndexOf("ORDER BY", StringComparison.Ordinal);
+        var matches = sourceSql[..order].Replace("SELECT TOP (@Limit)", "SELECT", StringComparison.Ordinal);
+        return $"""
+            WITH sourceMatches AS ({matches}),
+            sourceCount AS (SELECT COALESCE(MAX([TotalCount]), CONVERT(bigint, 0)) AS [TotalCount] FROM sourceMatches)
+            SELECT pageRow.[Id], pageRow.[Title], pageRow.[Snippet], pageRow.[Status], pageRow.[UpdatedAt], pageRow.[Score], sourceCount.[TotalCount]
+            FROM sourceCount
+            OUTER APPLY (
+                SELECT TOP (@Limit) [Id], [Title], [Snippet], [Status], [UpdatedAt], [Score]
+                FROM sourceMatches
+                WHERE @AfterScore IS NULL OR [Score] > @AfterScore
+                   OR ([Score] = @AfterScore AND ([UpdatedAt] < @AfterUpdatedAt
+                   OR ([UpdatedAt] = @AfterUpdatedAt AND ([Id] > @AfterId
+                   OR ([Id] = @AfterId AND @SourceType COLLATE Latin1_General_100_BIN2 > @AfterType COLLATE Latin1_General_100_BIN2)))))
+                ORDER BY [Score], [UpdatedAt] DESC, [Id] ASC
+            ) pageRow
+            ORDER BY pageRow.[Score], pageRow.[UpdatedAt] DESC, pageRow.[Id] ASC;
+            """;
     }
 
     private bool ModuleAvailable(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,

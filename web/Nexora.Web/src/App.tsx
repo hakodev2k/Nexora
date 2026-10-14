@@ -2589,18 +2589,25 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
     if (debounce.current !== null) { clearTimeout(debounce.current); debounce.current = null; }
     setPage(null); setError(null); setLoading(false);
   }
-  async function run(event?: FormEvent) {
+  async function run(event?: FormEvent, append = false) {
     event?.preventDefault();
-    invalidate();
+    if (append && (controller.current !== null || loading || !page?.nextCursor)) return;
+    const previous = append ? page : null;
+    if (!append) invalidate();
+    else { epoch.current++; controller.current?.abort(); setError(null); }
     if (!query.trim()) return;
     const current = epoch.current;
     const request = new AbortController();
     controller.current = request;
     setLoading(true);
     try {
-      const result = await searchResources(query, resourceType, from, to, includeArchived, 25, request.signal);
+      const result = await searchResources(query, resourceType, from, to, includeArchived, 25, request.signal, previous?.nextCursor ?? '');
       if (current !== epoch.current || request.signal.aborted) return;
-      setPage(result);
+      const availableSources = new Set(result.providers.filter(provider => provider.state === 'Ready')
+        .map(provider => provider.resourceType));
+      const retained = previous?.items.filter(item => availableSources.has(item.resourceType)) ?? [];
+      setPage(previous ? { ...result, items: Array.from(new Map([...retained, ...result.items]
+        .map(item => [item.resourceType + ':' + item.id, item])).values()) } : result);
     } catch (requestError) {
       if (current !== epoch.current || request.signal.aborted) return;
       const apiError = asApiError(requestError);
@@ -2643,6 +2650,7 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
         <div className="module-grid">
           {page.items.length === 0 ? <div className="empty-state"><h3>{allSourcesUnavailable ? 'Các nguồn hiện không khả dụng' : 'Không có kết quả trong nguồn khả dụng'}</h3><p>{allSourcesUnavailable ? 'Thử tải lại hoặc quay về màn hình trước.' : 'Thử từ khóa khác hoặc xóa bộ lọc.'}</p></div> : page.items.map((item) => <article className="module-card" key={`${item.resourceType}-${item.id}`}><div className="module-card-heading"><h3>{item.title}</h3><span className="state-pill">{item.resourceType}</span></div><p>{item.snippet ?? 'Không có preview an toàn.'}</p><p className="muted">{item.status ?? 'Active'} · {dateTime(item.updatedAt)}</p><button className="secondary-button" type="button" onClick={() => navigate('resource', item.resourceType, false, item.id)}>Mở nguồn</button></article>)}
         </div>
+        {page.nextCursor && <button type="button" className="secondary-button" disabled={loading} onClick={() => void run(undefined, true)}>Tải thêm kết quả</button>}
         <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
       </>}
       {!page && !loading && !error && <div className="empty-state"><h2>Bắt đầu tìm kiếm</h2><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}

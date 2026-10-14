@@ -31,5 +31,5 @@ public interface ISearchService
 {
     IdentityOperationResult<SearchPage> Search(IdentityPrincipal actor, string? query = null,
         string? resourceType = null, DateOnly? from = null, DateOnly? to = null,
-        bool includeArchived = false, int? limit = null);
+        bool includeArchived = false, int? limit = null, string? cursor = null);
 }

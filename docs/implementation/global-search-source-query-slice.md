@@ -15,20 +15,22 @@ change source-of-truth ownership.
 
 ## API and query contract
 
-`GET /api/v1/search?q=&resourceType=&from=&to=&includeArchived=&limit=` requires
+`GET /api/v1/search?q=&resourceType=&from=&to=&includeArchived=&limit=&cursor=` requires
 the authenticated owner session, `FX25` enablement and
 `discovery.search.query`. Query is trimmed and bounded to 500 characters;
 `resourceType` is one of `Project`, `Task`, `Event`, `Document`, `Bookmark`,
 `Snippet` or `Goal`; dates are UTC date boundaries; `limit` is bounded to 25.
 
-The service queries at most 25 rows per enabled source, then merges by exact
+The service queries at most limit+1 (maximum26) rows per enabled source, then merges by exact
 title match, title-prefix match, title/body match, updated time descending and
-stable ID. Each provider reports a count and `Ready`, `Empty`, `Unavailable` or
+SQL uniqueidentifier ID ascending and resource-type ordinal tie. Each provider reports its full current pre-seek matched count (saturated at int.MaxValue) and `Ready`, `Empty`, `Unavailable` or
 `Degraded` state. A blank query intentionally returns an empty page and does
 not execute broad source scans.
 
 Documents search Title and Body; Snippets search current-version Title,
 Language, SourceText and Description but never return source text as preview.
+An encrypted authenticated sg1 cursor binds owner, normalized query/type, dates, archive flag and effective limit. A changed context/tampered token is rejected422 InvalidCursor. Seek follows the same score/time/SQLGuid/type order as merge; the next cursor is emitted only with another visible hit. Pagination reads current data each request and promises stable traversal under a stable dataset, not a snapshot across later changes. The React Load More flow deduplicates typed identities and clears accumulated hits for sources currently unavailable/degraded/empty.
+
 Archived rows are excluded unless `includeArchived=true`; Trash/deleted rows
 are always excluded. Unsupported or disabled modules are omitted from result
 payloads and reported as unavailable when requested.
