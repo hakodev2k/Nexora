@@ -4500,9 +4500,18 @@ function SnippetsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
 type ReadingState = 'Unread' | 'Reading' | 'Read' | 'Archived';
 
+type ReadingPendingCommand =
+  | { kind: 'save'; sourceId: string; key: string }
+  | { kind: 'update'; id: string; etag: string; state: 'Unread' | 'Reading' | 'Read'; progress?: number; key: string }
+  | { kind: 'remove'; id: string; etag: string; key: string };
+
 function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<ReadingItemRecord[]>([]);
   const [bookmarks, setBookmarks] = useState<BookmarkRecord[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [sourceCursor, setSourceCursor] = useState<string | null>(null);
+  const [sourceLoading, setSourceLoading] = useState(false);
+  const sourceFlight = useRef(false);
   const [stateFilter, setStateFilter] = useState('');
   const [selectedBookmarkId, setSelectedBookmarkId] = useState('');
   const [loading, setLoading] = useState(true);
@@ -4510,116 +4519,124 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [sourceError, setSourceError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [commitNotice, setCommitNotice] = useState(false);
+  const [pending, setPending] = useState<ReadingPendingCommand | null>(null);
+  const pendingRef = useRef<ReadingPendingCommand | null>(null);
   const requestKey = useRef<string | null>(null);
-
+  const flight = useRef(false);
+  const epoch = useRef(0);
   const form = useResourceDialog(selectedBookmarkId, setSelectedBookmarkId);
+  const blocked = loading || sourceLoading || busy !== null || pending !== null;
 
-  async function load(nextState = stateFilter) {
-    setLoading(true);
-    setError(null);
-    setSourceError(null);
-    setConflict(false);
+  function setCommand(command: ReadingPendingCommand | null) { pendingRef.current = command; setPending(command); }
+  function clearPrivateReading() {
+    epoch.current++; setItems([]); setBookmarks([]); setNextCursor(null); setSourceCursor(null); setSelectedBookmarkId('');
+    requestKey.current = null; setCommand(null); setConflict(false); setLoading(false); form.finish();
+  }
+  const denied = (failure: NexoraApiError) => [401, 403, 404].includes(failure.status) || failure.code === 'ModuleUnavailable';
+  const unknown = (failure: NexoraApiError) => failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress';
+
+  async function load(nextState = stateFilter, reconciled = false, append = false) {
+    if (flight.current || sourceFlight.current || (!reconciled && pendingRef.current)) return;
+    const cursor = append ? nextCursor : null;
+    if (append && !cursor) return;
+    if (!append) { setNextCursor(null); setSourceCursor(null); }
+    const current = ++epoch.current;
+    setLoading(true); setError(null); setSourceError(null); setConflict(false);
     try {
-      const page = await listReadingQueue(nextState, 100);
-      const nextItems = Array.isArray(page.items) ? page.items : [];
-      setItems(nextItems);
+      const page = await listReadingQueue(nextState, 25, cursor ?? '');
+      if (current !== epoch.current) return;
+      const incoming = Array.isArray(page.items) ? page.items : [];
+      setItems(previous => append ? Array.from(new Map([...previous, ...incoming].map(item => [item.id, item])).values()) : incoming);
+      setNextCursor(page.nextCursor ?? null);
     } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
+      if (current !== epoch.current) return;
+      const failure = asApiError(requestError);
+      if (!append) setItems([]); setError(failure);
+      if (denied(failure)) { clearPrivateReading(); if (failure.status === 401) await onAuthLost(); return; }
     }
+    if (append) { if (current === epoch.current) setLoading(false); return; }
     try {
-      const page = await listBookmarks(true, '', 100);
+      const page = await listBookmarks(true, '', 25);
+      if (current !== epoch.current) return;
       setBookmarks(Array.isArray(page.items) ? page.items : []);
+      setSourceCursor(page.nextCursor ?? null);
     } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setSourceError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setLoading(false);
-    }
+      if (current !== epoch.current) return;
+      const failure = asApiError(requestError);
+      setBookmarks([]); setSourceCursor(null); setSelectedBookmarkId(''); requestKey.current = null; setSourceError(failure);
+      if (failure.status === 401) { clearPrivateReading(); await onAuthLost(); }
+    } finally { if (current === epoch.current) setLoading(false); }
+  }
+  useEffect(() => { void load(); return () => { epoch.current++; }; }, [stateFilter]);
+
+  async function loadMoreSources() {
+    if (flight.current || sourceFlight.current || loading || pendingRef.current || !sourceCursor) return;
+    const current = epoch.current, cursor = sourceCursor;
+    sourceFlight.current = true; setSourceLoading(true); setSourceError(null);
+    try {
+      const page = await listBookmarks(true, '', 25, cursor);
+      if (current !== epoch.current) return;
+      const incoming = Array.isArray(page.items) ? page.items : [];
+      setBookmarks(previous => Array.from(new Map([...previous, ...incoming].map(item => [item.id, item])).values()));
+      setSourceCursor(page.nextCursor ?? null);
+    } catch (requestError) {
+      if (current !== epoch.current) return;
+      const failure = asApiError(requestError); setSourceError(failure);
+      if (denied(failure)) { setBookmarks([]); setSourceCursor(null); setSelectedBookmarkId(''); requestKey.current = null; form.finish(); }
+      if (failure.status === 401) { clearPrivateReading(); await onAuthLost(); }
+    } finally { sourceFlight.current = false; setSourceLoading(false); }
   }
 
-  useEffect(() => { void load(); }, [stateFilter]);
-
-  function showError(requestError: unknown) {
-    const apiError = asApiError(requestError);
-    setError(apiError);
-    if (apiError.status === 401) void onAuthLost();
-    return apiError;
+  async function execute(command: ReadingPendingCommand) {
+    if (flight.current || sourceFlight.current || loading || (pendingRef.current && JSON.stringify(pendingRef.current) !== JSON.stringify(command))) return false;
+    const current = epoch.current;
+    flight.current = true; setCommand(command); setBusy(command.kind); setError(null); setConflict(false); setCommitNotice(false);
+    try {
+      const result = command.kind === 'save'
+        ? await saveReadingItem('Bookmark', command.sourceId, command.key)
+        : command.kind === 'update'
+          ? await updateReadingItem(command.id, command.etag, command.state, command.progress, command.key)
+          : await removeReadingItem(command.id, command.etag, command.key);
+      if (current !== epoch.current) return false;
+      setCommand(null); requestKey.current = null; setSelectedBookmarkId(''); form.finish();
+      flight.current = false;
+      if (command.kind !== 'remove' && (result === undefined || isProductivityAcknowledgement(result))) {
+        clearPrivateReading(); setCommitNotice(true); return true;
+      }
+      setCommitNotice(true);
+      await load(stateFilter, true);
+      return true;
+    } catch (requestError) {
+      if (current !== epoch.current) return false;
+      const failure = asApiError(requestError);
+      if (!unknown(failure)) setCommand(null);
+      if (denied(failure)) clearPrivateReading();
+      setError(failure);
+      if (failure.status === 412) setConflict(true);
+      if (failure.status === 401) await onAuthLost();
+      return { error: failure.message };
+    } finally { flight.current = false; setBusy(null); }
   }
-
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError(null);
-    setConflict(false);
-    if (!selectedBookmarkId) {
-      setError(new NexoraApiError('Chọn một bookmark trước khi lưu vào Read Later.', 422, 'ValidationFailed'));
-      return;
-    }
+    if (flight.current || loading || (pendingRef.current && pendingRef.current.kind !== 'save')) return;
+    if (!selectedBookmarkId) { setError(new NexoraApiError('Chọn Bookmark trước khi lưu.', 422, 'ValidationFailed')); return; }
     requestKey.current ??= createIdempotencyKey();
-    setBusy('save');
-    try {
-      await saveReadingItem('Bookmark', selectedBookmarkId, requestKey.current);
-      requestKey.current = null;
-      setSelectedBookmarkId('');
-      form.finish();
-      await load();
-    } catch (requestError) {
-      showError(requestError);
-    } finally {
-      setBusy(null);
-    }
+    await execute(pendingRef.current ?? { kind: 'save', sourceId: selectedBookmarkId, key: requestKey.current });
   }
-
   async function changeState(item: ReadingItemRecord, state: Exclude<ReadingState, 'Archived'>, progress?: number) {
-    if (!item.sourceAvailable) return { error: 'Source unavailable.' };
-    const key = createIdempotencyKey();
-    setBusy(`state:${item.id}`);
-    setError(null);
-    setConflict(false);
-    try {
-      await updateReadingItem(item.id, item.etag, state, progress, key);
-      await load();
-      return true;
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) {
-        setConflict(true);
-        await load();
-      }
-      return { error: apiError.message };
-    } finally {
-      setBusy(null);
-    }
+    if (pendingRef.current || flight.current || loading || !item.sourceAvailable) return { error: 'Đối chiếu thao tác hiện tại trước khi thay đổi.' };
+    return execute({ kind: 'update', id: item.id, etag: item.etag, state, progress, key: createIdempotencyKey() });
   }
-
   async function savePosition(item: ReadingItemRecord, raw: string) {
     const progress = Number(raw);
-    if (!Number.isFinite(progress) || progress < 0 || progress > 1) {
-      return { error: 'Position phải là số từ 0 đến 1.' };
-    }
+    if (!raw.trim() || !Number.isFinite(progress) || progress < 0 || progress > 1) return { error: 'Position phải là số từ 0 đến 1.' };
     return changeState(item, 'Reading', progress);
   }
-
   async function remove(item: ReadingItemRecord) {
-    setBusy(`remove:${item.id}`);
-    setError(null);
-    setConflict(false);
-    try {
-      await removeReadingItem(item.id, item.etag, createIdempotencyKey());
-      await load();
-      return true;
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) {
-        setConflict(true);
-        await load();
-      }
-      return { error: apiError.message };
-    } finally {
-      setBusy(null);
-    }
+    if (pendingRef.current || flight.current || loading) return false;
+    return execute({ kind: 'remove', id: item.id, etag: item.etag, key: createIdempotencyKey() });
   }
 
   const selectableBookmarks = bookmarks.filter((bookmark) => bookmark.status === 'Active' || bookmark.status === 'Archived');
@@ -4631,33 +4648,35 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           <h1 id="read-later-title">Read Later</h1>
           <p className="lead">Queue chỉ lưu tham chiếu Bookmark và snapshot title/URL an toàn. Không copy body, không tự fetch hoặc mở provider bên ngoài.</p>
         </div>
-        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={blocked}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
-      {conflict && <Notice kind="error"><span>Reading item đã thay đổi ở nơi khác. Hãy tải revision mới rồi thực hiện lại thao tác.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={loading}>Tải revision</button></Notice>}
+      {commitNotice && <Notice kind="success">Thao tác đã được lưu. Không cần gửi lại; chi tiết chỉ hiển thị khi còn quyền đọc.</Notice>}
+      {pending && !busy && <Notice kind="error">Kết quả thao tác chưa rõ. Giữ nguyên thao tác để đối chiếu.<button type="button" className="secondary-button" onClick={() => { if (pendingRef.current) void execute(pendingRef.current); }}>Đối chiếu thao tác</button></Notice>}
+      {conflict && <Notice kind="error"><span>Reading item đã thay đổi ở nơi khác. Hãy tải revision mới rồi thực hiện lại thao tác.</span><button className="inline-button" type="button" onClick={() => void load()} disabled={blocked}>Tải revision</button></Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {sourceError && <Notice kind="info">Không tải được danh sách Bookmark nguồn; queue hiện có vẫn được hiển thị, nhưng không thể lưu nguồn mới. {sourceError.message}</Notice>}
       <div className="resource-layout">
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={loading || busy !== null} onClick={() => { form.begin(); }}>Thêm vào Read Later</button><ResourceFormDialog open={form.open} title={'Thêm vào Read Later'} busy={loading || busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
+          <button className="primary-button" type="button" disabled={blocked} onClick={() => { form.begin(); }}>Thêm vào Read Later</button><ResourceFormDialog open={form.open} title={'Thêm vào Read Later'} busy={loading || sourceLoading || busy !== null} dirty={form.dirty || pending !== null} onClose={() => { setCommand(null); requestKey.current = null; form.cancel(); }}>{sourceError && <Notice kind="error">{sourceError.message}</Notice>}{pending && <Notice kind="error">Kết quả chưa rõ. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate>
             <div className="section-heading"><h2>Lưu source</h2></div>
             <div className="field-group">
               <label htmlFor="read-later-source">Bookmark nguồn</label>
-              <select id="read-later-source" value={selectedBookmarkId} onChange={(event) => { requestKey.current = null; setSelectedBookmarkId(event.target.value); setError(null); }} disabled={loading || busy !== null || selectableBookmarks.length === 0}>
+              <select id="read-later-source" value={selectedBookmarkId} onChange={(event) => { if (flight.current || pendingRef.current) return; requestKey.current = null; setSelectedBookmarkId(event.target.value); setError(null); }} disabled={blocked || selectableBookmarks.length === 0}>
                 <option value="">{selectableBookmarks.length === 0 ? 'Không có bookmark khả dụng' : 'Chọn bookmark'}</option>
                 {selectableBookmarks.map((bookmark) => <option key={bookmark.id} value={bookmark.id}>{bookmark.title} · {bookmark.url}</option>)}
               </select>
               <p className="field-help">Save retry cùng source chỉ giữ một queue entry theo owner; source Archived vẫn chỉ là metadata được phép đọc.</p>
             </div>
-            <div className="form-actions"><SubmitButton busy={busy === 'save'}>Lưu vào Read Later</SubmitButton></div>
+            <div className="form-actions">{sourceCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void loadMoreSources()}>Tải thêm Bookmark nguồn</button>}<SubmitButton busy={busy === 'save'} disabled={loading || sourceLoading || (pending !== null && pending.kind !== 'save')}>Lưu vào Read Later</SubmitButton></div>
           </form></ResourceFormDialog>
           <div className="security-policy"><strong>Source boundary</strong><span>Xóa queue không xóa Bookmark. Khi source bị xóa, disabled hoặc không còn quyền đọc, UI chỉ giữ snapshot an toàn và không hiển thị body cache.</span></div>
         </div>
         <div className="content-section">
           <div className="form-panel">
             <div className="section-heading"><h2>Queue của bạn</h2><span className="muted">{items.length} mục</span></div>
-            <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} disabled={loading || busy !== null}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
+            <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => { if (!flight.current && !pendingRef.current) setStateFilter(event.target.value); }} disabled={blocked}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
           </div>
-          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <PromptActionButton confirmationTitle="Position metadata" confirmationDescription="Vị trí metadata từ 0 đến 1; không phải tỷ lệ đọc body." inputLabel="Position metadata (0–1)" initialValue={String(item.progress)} confirmLabel="Lưu vị trí" disabled={busy !== null} onConfirm={raw => savePosition(item, raw)}>Đổi vị trí</PromptActionButton> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || busy !== null || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || busy !== null}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Bookmark nguồn sẽ không bị xóa." confirmLabel="Gỡ khỏi queue" disabled={busy !== null} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div></div>}
+          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : error && !pending && items.length === 0 ? <div className="empty-state"><h2>Không thể tải queue</h2><p>Hãy thử lại khi kết nối hoặc quyền truy cập được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <PromptActionButton confirmationTitle="Position metadata" confirmationDescription="Vị trí metadata từ 0 đến 1; không phải tỷ lệ đọc body." inputLabel="Position metadata (0–1)" initialValue={String(item.progress)} confirmLabel="Lưu vị trí" disabled={blocked} onConfirm={raw => savePosition(item, raw)}>Đổi vị trí</PromptActionButton> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || blocked || item.state === 'Archived'}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || blocked}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Bookmark nguồn sẽ không bị xóa." confirmLabel="Gỡ khỏi queue" disabled={blocked} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void load(stateFilter, false, true)}>Tải thêm</button>}</div>}
         </div>
       </div>
     </section>

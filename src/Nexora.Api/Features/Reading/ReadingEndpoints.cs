@@ -12,10 +12,10 @@ public static class ReadingEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
-        api.MapGet("/read-later", (HttpContext context, string? state, int? limit,
+        api.MapGet("/read-later", (HttpContext context, string? state, int? limit, string? cursor,
             IReadingService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, state, limit),
+                principal => service.List(principal, state, limit, cursor),
                 value => new ReadingPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listReadingQueue");
 
@@ -61,6 +61,10 @@ public static class ReadingEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.StatusCode == 204)
+            return ToHttp(context, IdentityOperationResult<TOut>.NoContent(result.Code));
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         if (result.Succeeded && result.Value is ReadingItemRecord item)
             context.Response.Headers.ETag = item.ETag;
         return result.Succeeded && result.Value is not null

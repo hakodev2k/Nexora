@@ -24,7 +24,7 @@ public sealed record UpdateReadingCommand(string State, decimal? Progress);
 
 public interface IReadingService
 {
-    IdentityOperationResult<ReadingPage> List(IdentityPrincipal actor, string? state = null, int? limit = null);
+    IdentityOperationResult<ReadingPage> List(IdentityPrincipal actor, string? state = null, int? limit = null, string? cursor = null);
     IdentityOperationResult<ReadingItemRecord> Save(IdentityPrincipal actor, SaveReadingCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<object?> Remove(IdentityPrincipal actor, Guid itemId, string? ifMatch,

@@ -829,7 +829,7 @@ export function clearProfileRevision(): void {
   currentProfileETag = null;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}, expectedStatus?: 200 | 201 | 202 | 204): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}, expectedStatus?: 200 | 201 | 202 | 204 | readonly (200 | 201 | 202 | 204)[]): Promise<T> {
   const method = init.method ?? 'GET';
   const unsafe = !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase());
   if (unsafe && csrfToken === null) {
@@ -886,7 +886,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, expected
     currentProfileETag = response.headers.get('ETag');
   }
 
-  if (expectedStatus !== undefined && response.status !== expectedStatus) {
+  if (expectedStatus !== undefined && !(Array.isArray(expectedStatus) ? expectedStatus.includes(response.status as 200 | 201 | 202 | 204) : response.status === expectedStatus)) {
     throw new NexoraApiError('Không thể xác nhận acknowledgement của API.', 0, 'UnexpectedAcknowledgement');
   }
 
@@ -896,6 +896,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}, expected
 
   const contentType = response.headers.get('Content-Type') ?? '';
   if (!contentType.includes('json')) {
+    if (expectedStatus !== undefined) throw new NexoraApiError('Không thể xác nhận kết quả API.', 0, 'UnexpectedAcknowledgement');
     return undefined as T;
   }
 
@@ -1602,14 +1603,28 @@ export function transitionSnippet(id: string, etag: string, status: string, idem
   }, id);
 }
 
-export function listReadingQueue(state = '', limit = 100) {
+export function listReadingQueue(state = '', limit = 25, cursor = '') {
   const params = new URLSearchParams({ limit: String(limit) });
   if (state.trim()) params.set('state', state.trim());
+  if (cursor) params.set('cursor', cursor);
   return apiFetch<ReadingPage>(`/api/v1/read-later?${params.toString()}`);
 }
 
+async function readingResourceMutation(path: string, init: RequestInit, expectedId?: string) {
+  const result = await apiFetch<ReadingItemRecord | ProductivityCommittedAcknowledgement | undefined>(path, init,
+    expectedId ? [200, 204] : [200, 201, 204]);
+  if (result === undefined) return result; // Only an accepted204 can return no body.
+  if (!result || typeof result !== 'object' || typeof result.id !== 'string'
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.id)
+      || result.id === '00000000-0000-0000-0000-000000000000'
+      || (expectedId && result.id.toLowerCase() !== expectedId.toLowerCase())
+      || (('committed' in result || 'detailAvailable' in result) && !isProductivityAcknowledgement(result)))
+    throw new NexoraApiError('Chưa xác nhận được kết quả đã lưu. Giữ nguyên lệnh và khóa để đối chiếu.', 0, 'UnexpectedAcknowledgement');
+  return result;
+}
+
 export function saveReadingItem(sourceType: string, sourceId: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<ReadingItemRecord>('/api/v1/read-later', {
+  return readingResourceMutation('/api/v1/read-later', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ sourceType, sourceId })
@@ -1620,15 +1635,15 @@ export function removeReadingItem(id: string, etag: string, idempotencyKey = cre
   return apiFetch<void>(`/api/v1/read-later/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
-  });
+  }, 204);
 }
 
 export function updateReadingItem(id: string, etag: string, state: string, progress?: number, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<ReadingItemRecord>(`/api/v1/read-later/${encodeURIComponent(id)}`, {
+  return readingResourceMutation(`/api/v1/read-later/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify(progress === undefined ? { state } : { state, progress })
-  });
+  }, id);
 }
 
 export function listOrganizationTags(tagNamespace = '', query = '', limit = 25, cursor?: string) {
