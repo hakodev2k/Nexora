@@ -6,8 +6,9 @@ namespace Nexora.Infrastructure.Documents;
 
 internal sealed class DocumentListCursor(string secret)
 {
-    private readonly byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes("nexora/documents/list/key/v1\0" + secret));
-    internal sealed record Context(Guid Owner, string? Status, string Query, string? DocumentType, int Limit);
+    private readonly byte[] key = SHA256.HashData(Encoding.UTF8.GetBytes("nexora/documents/list/key/v2\0" + secret));
+    internal sealed record Context(Guid Owner, string? Status, string Query, string? DocumentType, int Limit,
+        DateOnly? CreatedFrom, DateOnly? CreatedTo, string? TimeZoneId, string? TimeZoneVersion, DateTime? FromUtc, DateTime? ToUtc);
     internal sealed record Position(DateTime UpdatedAt, Guid Id);
 
     public string Encode(Context context, DateTimeOffset updatedAt, Guid id)
@@ -18,13 +19,13 @@ internal sealed class DocumentListCursor(string secret)
         using var aes = new AesGcm(key, 16);
         aes.Encrypt(envelope.AsSpan(0, 12), plain, envelope.AsSpan(28), envelope.AsSpan(12, 16),
             JsonSerializer.SerializeToUtf8Bytes(context));
-        return "dl1." + Convert.ToBase64String(envelope).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        return "dl2." + Convert.ToBase64String(envelope).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
     public bool TryDecode(string token, Context context, out Position? position)
     {
         position = null;
-        if (token.Length is < 44 or > 1024 || !token.StartsWith("dl1.", StringComparison.Ordinal)) return false;
+        if (token.Length is < 44 or > 1024 || !token.StartsWith("dl2.", StringComparison.Ordinal)) return false;
         try
         {
             var encoded = token[4..];

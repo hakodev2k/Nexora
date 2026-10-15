@@ -1373,12 +1373,14 @@ export function transitionCalendarEvent(id: string, etag: string, status: string
   }, id);
 }
 
-export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal) {
+export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal, createdFrom = '', createdTo = '') {
   const query = new URLSearchParams({ limit: String(limit) });
   if (status) query.set('status', status);
   if (cursor) query.set('cursor', cursor);
   if (titleQuery.trim()) query.set('query', titleQuery.trim());
   if (documentType) query.set('documentType', documentType);
+  if (createdFrom) query.set('createdFrom', createdFrom);
+  if (createdTo) query.set('createdTo', createdTo);
   return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`, { signal });
 }
 

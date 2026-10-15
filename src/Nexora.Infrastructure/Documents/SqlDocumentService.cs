@@ -34,7 +34,8 @@ public sealed class SqlDocumentService : IDocumentService
     }
 
     public IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null,
-        string? cursor = null, string? query = null, string? documentType = null)
+        string? cursor = null, string? query = null, string? documentType = null,
+        DateOnly? createdFrom = null, DateOnly? createdTo = null)
     {
         if (!ModuleAvailable(actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
         var normalizedStatus = NormalizeStatus(status);
@@ -48,14 +49,18 @@ public sealed class SqlDocumentService : IDocumentService
         if (normalizedType is not null && normalizedType is not ("Document" or "Note" or "Knowledge"))
             return Failure<DocumentPage>("ValidationFailed", 422, "Document type is invalid.");
         var take = Math.Clamp(limit ?? 25, 1, 100);
-        var cursorContext = new DocumentListCursor.Context(actor.OwnerId, normalizedStatus, normalizedQuery, normalizedType, take);
-        DocumentListCursor.Position? after = null;
-        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
-            return Failure<DocumentPage>("InvalidCursor", 422, "Document cursor does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
+        var dateRange = SqlOwnerLocalDateRange.Read(connection, transaction, actor, createdFrom, createdTo);
+        if (!dateRange.Succeeded) return Failure<DocumentPage>(dateRange.Code, dateRange.StatusCode, dateRange.Title);
+        var range = dateRange.Value!;
+        var cursorContext = new DocumentListCursor.Context(actor.OwnerId, normalizedStatus, normalizedQuery, normalizedType, take,
+            createdFrom, createdTo, range.TimeZoneId, range.TimeZoneVersion, range.FromUtc, range.ToUtc);
+        DocumentListCursor.Position? after = null;
+        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
+            return Failure<DocumentPage>("InvalidCursor", 422, "Document cursor does not match this query.");
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
@@ -70,6 +75,8 @@ public sealed class SqlDocumentService : IDocumentService
               AND ((@Status IS NULL AND p.[Status] <> 'Archived') OR p.[Status] = @Status)
               AND (@Type IS NULL OR p.[DocumentType] = @Type)
               AND (@TitleQuery = N'' OR p.[Title] LIKE @TitleLike ESCAPE N'\')
+              AND (@CreatedFromUtc IS NULL OR p.[CreatedAt] >= @CreatedFromUtc)
+              AND (@CreatedToUtc IS NULL OR p.[CreatedAt] < @CreatedToUtc)
               AND (@AfterUpdatedAt IS NULL OR p.[UpdatedAt] < @AfterUpdatedAt
                    OR (p.[UpdatedAt] = @AfterUpdatedAt AND p.[Id] < @AfterId))
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
@@ -78,6 +85,8 @@ public sealed class SqlDocumentService : IDocumentService
         Add(command, "@Type", SqlDbType.VarChar, (object?)normalizedType ?? DBNull.Value, 32);
         Add(command, "@TitleQuery", SqlDbType.NVarChar, normalizedQuery, 200);
         Add(command, "@TitleLike", SqlDbType.NVarChar, "%" + normalizedQuery.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal).Replace("[", "\\[", StringComparison.Ordinal) + "%", 402);
+        Add(command, "@CreatedFromUtc", SqlDbType.DateTime2, (object?)range.FromUtc ?? DBNull.Value);
+        Add(command, "@CreatedToUtc", SqlDbType.DateTime2, (object?)range.ToUtc ?? DBNull.Value);
         Add(command, "@AfterUpdatedAt", SqlDbType.DateTime2, (object?)after?.UpdatedAt ?? DBNull.Value);
         Add(command, "@AfterId", SqlDbType.UniqueIdentifier, (object?)after?.Id ?? DBNull.Value);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);

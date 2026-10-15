@@ -7,7 +7,7 @@ using Nexora.Application.Discovery;
 using Nexora.Application.Identity;
 using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Persistence;
-using NodaTime;
+using Nexora.Infrastructure.Identity;
 
 namespace Nexora.Infrastructure.Discovery;
 
@@ -61,20 +61,13 @@ public sealed class SqlSearchService : ISearchService
         if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
             return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
         var take = Math.Clamp(limit ?? MaxLimit, 1, MaxLimit);
-        DateTime? fromUtc = null, toUtc = null;
-        string? timeZoneId = null, timeZoneVersion = null;
-        if (from is not null || to is not null)
-        {
-            timeZoneId = ReadOwnerTimeZone(connection, transaction, actor);
-            var zone = string.IsNullOrWhiteSpace(timeZoneId) ? null : DateTimeZoneProviders.Tzdb.GetZoneOrNull(timeZoneId);
-            if (zone is null)
-                return Failure<SearchPage>("TimeZoneUnavailable", 503, "The configured profile IANA timezone is unavailable. Correct the profile timezone before filtering by date.");
-            if (!TryDateRange(zone, from, to, out fromUtc, out toUtc))
-                return Failure<SearchPage>("DateRangeUnavailable", 422, "The requested local-day boundary does not exist or is outside the supported date range.");
-            timeZoneVersion = DateTimeZoneProviders.Tzdb.VersionId;
-        }
+        var dateRange = SqlOwnerLocalDateRange.Read(connection, transaction, actor, from, to);
+        if (!dateRange.Succeeded) return Failure<SearchPage>(dateRange.Code, dateRange.StatusCode, dateRange.Title);
+        var range = dateRange.Value!;
+        var fromUtc = range.FromUtc;
+        var toUtc = range.ToUtc;
         var cursorContext = new SearchCursor.Context(actor.OwnerId, normalizedQuery, normalizedType, from, to, includeArchived, take,
-            timeZoneId, timeZoneVersion, fromUtc, toUtc);
+            range.TimeZoneId, range.TimeZoneVersion, fromUtc, toUtc);
         SearchCursor.Position? after = null;
         if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
             return Failure<SearchPage>("InvalidCursor", 422, "Search cursor does not match this query.");
@@ -327,39 +320,6 @@ public sealed class SqlSearchService : ISearchService
         string moduleCode, string actionKey, string? legacyActionKey = null) => legacyActionKey is null
         ? _capabilities.IsAllowed(connection, transaction, actor, moduleCode, actionKey)
         : _capabilities.IsAllowed(connection, transaction, actor, moduleCode, actionKey, legacyActionKey);
-
-    private static string? ReadOwnerTimeZone(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor)
-    {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = """
-            SELECT u.[TimeZoneId] FROM [identity].[User] u
-            INNER JOIN [platform].[PersonalSpace] ps ON ps.[UserId] = u.[Id]
-            WHERE u.[Id] = @UserId AND ps.[Id] = @OwnerId;
-            """;
-        Add(command, "@UserId", SqlDbType.UniqueIdentifier, actor.UserId);
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
-        return command.ExecuteScalar() as string;
-    }
-
-    private static bool TryDateRange(DateTimeZone zone, DateOnly? from, DateOnly? to,
-        out DateTime? fromUtc, out DateTime? toUtc)
-    {
-        fromUtc = null; toUtc = null;
-        try
-        {
-            if (from is { } first)
-                fromUtc = zone.AtStartOfDay(new LocalDate(first.Year, first.Month, first.Day)).ToInstant().ToDateTimeUtc();
-            if (to is { } last)
-            {
-                var end = last.AddDays(1);
-                toUtc = zone.AtStartOfDay(new LocalDate(end.Year, end.Month, end.Day)).ToInstant().ToDateTimeUtc();
-            }
-            return true;
-        }
-        catch (Exception error) when (error is SkippedTimeException or ArgumentOutOfRangeException or InvalidOperationException or OverflowException)
-        { fromUtc = null; toUtc = null; return false; }
-    }
 
     private static string? NormalizeResourceType(string? value)
     {

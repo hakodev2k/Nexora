@@ -45,7 +45,8 @@ public sealed record DocumentTransitionCommand(string Status);
 public interface IDocumentService
 {
     IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null,
-        string? cursor = null, string? query = null, string? documentType = null);
+        string? cursor = null, string? query = null, string? documentType = null,
+        DateOnly? createdFrom = null, DateOnly? createdTo = null);
     IdentityOperationResult<DocumentDetail> Get(IdentityPrincipal actor, Guid documentId);
     IdentityOperationResult<DocumentDetail> Create(IdentityPrincipal actor, DocumentCreateCommand command,
         string? idempotencyKey = null, string? traceId = null);

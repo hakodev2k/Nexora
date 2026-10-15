@@ -15,10 +15,10 @@ public static class DocumentEndpoints
         // the document group instead of weakening the global 64 KiB default.
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
-        api.MapGet("/documents", (HttpContext context, string? status, int? limit, string? cursor, string? query, string? documentType, IDocumentService service,
+        api.MapGet("/documents", (HttpContext context, string? status, int? limit, string? cursor, string? query, string? documentType, DateOnly? createdFrom, DateOnly? createdTo, IDocumentService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, status, limit, cursor, query, documentType), value =>
+                principal => service.List(principal, status, limit, cursor, query, documentType, createdFrom, createdTo), value =>
                     new DocumentPageResponse(value.Items.Select(ToSummary).ToArray(), value.NextCursor)))
             .WithName("listDocuments");
 
