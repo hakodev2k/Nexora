@@ -1672,11 +1672,11 @@ export function listOrganizationTags(tagNamespace = '', query = '', limit = 25, 
   if (tagNamespace.trim()) params.set('namespace', tagNamespace.trim());
   if (query.trim()) params.set('query', query.trim());
   if (cursor) params.set('cursor', cursor);
-  return apiFetch<TagPage>(`/api/v1/organization/tags?${params.toString()}`);
+  return apiFetch<TagPage>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags?${params.toString()}`);
 }
 
-export function getOrganizationTag(id: string) {
-  return apiFetch<TagRecord>(`/api/v1/organization/tags/${encodeURIComponent(id)}`);
+export function getOrganizationTag(id: string, tagNamespace = '') {
+  return apiFetch<TagRecord>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags/${encodeURIComponent(id)}`);
 }
 
 function validateTagMutation(result: TagRecord | ProductivityCommittedAcknowledgement, expectedId?: string) {
@@ -1691,23 +1691,23 @@ function validateTagMutation(result: TagRecord | ProductivityCommittedAcknowledg
 }
 
 export function createOrganizationTag(tagNamespace: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<TagRecord | ProductivityCommittedAcknowledgement>('/api/v1/organization/tags', {
+  return apiFetch<TagRecord | ProductivityCommittedAcknowledgement>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ namespace: tagNamespace, name, color })
   }, [201]).then(result => validateTagMutation(result));
 }
 
-export function renameOrganizationTag(id: string, etag: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<TagRecord | ProductivityCommittedAcknowledgement>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
+export function renameOrganizationTag(id: string, etag: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey(), tagNamespace = '') {
+  return apiFetch<TagRecord | ProductivityCommittedAcknowledgement>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ name, color })
   }, [200]).then(result => validateTagMutation(result, id));
 }
 
-export function removeOrganizationTag(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<void>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
+export function removeOrganizationTag(id: string, etag: string, idempotencyKey = createIdempotencyKey(), tagNamespace = '') {
+  return apiFetch<void>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
   }, [204]);

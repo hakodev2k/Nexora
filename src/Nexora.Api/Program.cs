@@ -224,6 +224,8 @@ builder.Services.AddSingleton<IHabitService>(services =>
     new SqlHabitService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IGoalService>(services =>
     new SqlGoalService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IDocumentTagService>(services =>
+    new SqlDocumentTagService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<ITagService>(services =>
     new SqlTagService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<ISettingsService>(services =>
@@ -367,6 +369,7 @@ app.MapReadingEndpoints();
 app.MapFinanceEndpoints();
 app.MapSnippetEndpoints();
 app.MapDocumentEndpoints();
+app.MapDocumentTagEndpoints();
 app.MapSharingEndpoints();
 app.MapSupportEndpoints();
 app.MapDeveloperToolsEndpoints();

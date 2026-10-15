@@ -1,0 +1,51 @@
+{
+  "parent": "573a4da663bf30f7ad007470675b3b9071ea2c58",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "database/migrations/20261015_0056_documents_tag_catalog.sql",
+      "sha256": "19b06461f3e3860b3994bd249cc1e0f0a9616819ccd3425c0a516fa2b4cf22e4",
+      "publishedLfSha256": "19b06461f3e3860b3994bd249cc1e0f0a9616819ccd3425c0a516fa2b4cf22e4"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTagService.cs",
+      "sha256": "b346b210f76da79fbbaeb303f289e85fc3b10b3e5116f1dfa05eafb525555e9f",
+      "publishedLfSha256": "b346b210f76da79fbbaeb303f289e85fc3b10b3e5116f1dfa05eafb525555e9f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Organization/SqlTagService.cs",
+      "sha256": "9701557763522c39a7d5b3102e3e86526c3269a167378bdbe188a7838112d3c4",
+      "publishedLfSha256": "9701557763522c39a7d5b3102e3e86526c3269a167378bdbe188a7838112d3c4"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentTagEndpoints.cs",
+      "sha256": "9fbe2dd6eea70b0332536577990924324b12e0890c26d25924ea38bd8602656d",
+      "publishedLfSha256": "9fbe2dd6eea70b0332536577990924324b12e0890c26d25924ea38bd8602656d"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentTagServiceContracts.cs",
+      "sha256": "e2100ac50c46843cd2848c6d5414e0340adf8ac9779c3eb5da99734f2dfcd0e4",
+      "publishedLfSha256": "e2100ac50c46843cd2848c6d5414e0340adf8ac9779c3eb5da99734f2dfcd0e4"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "15b399bf133774af7f4d3ce94ab289e36df540f291fba7add2a7174faf223017",
+      "publishedLfSha256": "3aad97711c5dde55c276e7eb91aa598e496aa090011f32d92896bfa0abca5d7b"
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "03b646e2090b04e6ac6520a92de744bfdc6a85e8734c841c38232a361df5c306",
+      "publishedLfSha256": "9192ef628e114b5fb2ba6cc28d9a270e95defd960ba743c0e373eebae4257946"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "6f36fead1c8e6462b691263bf45e32459beef56c53ca81ce10828cad7f90197d",
+      "publishedLfSha256": "6f36fead1c8e6462b691263bf45e32459beef56c53ca81ce10828cad7f90197d"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "b3bad7bf1a7ed9057d7e9b26f5e68170e192c296435cae5730108e5937cd66a7",
+      "publishedLfSha256": "b3bad7bf1a7ed9057d7e9b26f5e68170e192c296435cae5730108e5937cd66a7"
+    }
+  ]
+}

@@ -4792,8 +4792,8 @@ const LOCAL_TAG_NAMESPACES = ['projects', 'documents', 'bookmarks', 'snippets'] 
 
 type TagPendingCommand =
   | { kind: 'create'; key: string; namespace: string; name: string; color: string | null }
-  | { kind: 'rename'; key: string; id: string; etag: string; name: string; color: string | null }
-  | { kind: 'remove'; key: string; id: string; etag: string };
+  | { kind: 'rename'; key: string; namespace: string; id: string; etag: string; name: string; color: string | null }
+  | { kind: 'remove'; key: string; namespace: string; id: string; etag: string };
 
 function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<TagRecord[]>([]);
@@ -4887,7 +4887,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
     const stamp = ++generation.current;
     setBusy('revision');
     try {
-      const latest = await getOrganizationTag(editing.id);
+      const latest = await getOrganizationTag(editing.id, editing.namespace);
       if (stamp !== generation.current) return;
       setEditing(latest);
       setCommand(null);
@@ -4938,8 +4938,8 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
       const result = command.kind === 'create'
         ? await createOrganizationTag(command.namespace, command.name, command.color, command.key)
         : command.kind === 'rename'
-          ? await renameOrganizationTag(command.id, command.etag, command.name, command.color, command.key)
-          : await removeOrganizationTag(command.id, command.etag, command.key);
+          ? await renameOrganizationTag(command.id, command.etag, command.name, command.color, command.key, command.namespace)
+          : await removeOrganizationTag(command.id, command.etag, command.key, command.namespace);
       if (!mounted.current || pendingRef.current !== command) return { error: 'Màn hình đã thay đổi.' };
       detailAvailable = result !== undefined && !isProductivityAcknowledgement(result);
       setCommand(null);
@@ -4979,14 +4979,14 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
       setError(new NexoraApiError('Màu tag phải có dạng #RRGGBB.', 422, 'ValidationFailed')); return;
     }
     const key = createIdempotencyKey();
-    await execute(editing ? { kind: 'rename', id: editing.id, etag: editing.etag, name: trimmedName, color: trimmedColor || null, key }
+    await execute(editing ? { kind: 'rename', namespace: editing.namespace, id: editing.id, etag: editing.etag, name: trimmedName, color: trimmedColor || null, key }
       : { kind: 'create', namespace: tagNamespace, name: trimmedName, color: trimmedColor || null, key });
   }
 
   async function remove(tag: TagRecord) {
     if (mutationFlight.current || pendingRef.current || busy !== null) return { error: 'Đối chiếu thao tác Tag hiện tại trước.' };
     if (tag.usageCount > 0) return { error: 'Tag này đang được sử dụng và không thể xóa.' };
-    return execute({ kind: 'remove', id: tag.id, etag: tag.etag, key: createIdempotencyKey() });
+    return execute({ kind: 'remove', namespace: tag.namespace, id: tag.id, etag: tag.etag, key: createIdempotencyKey() });
   }
 
   function retryPending() { if (pendingRef.current && !mutationFlight.current) void execute(pendingRef.current); }

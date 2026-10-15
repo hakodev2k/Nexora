@@ -5,6 +5,7 @@ using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Organization;
 using Nexora.Infrastructure.Authorization;
+using Nexora.Infrastructure.Documents;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
 
@@ -27,6 +28,7 @@ public sealed class SqlTagService : ITagService
         "snippets"
     };
 
+    private readonly SqlDocumentTagService _documentTags;
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
@@ -36,6 +38,7 @@ public sealed class SqlTagService : ITagService
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _documentTags = new SqlDocumentTagService(connections, secret, organizationWrapper: true);
         _receipts = new SqlRequestReceiptStore(secret);
         _cursor = new TagListCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
@@ -50,6 +53,8 @@ public sealed class SqlTagService : ITagService
         var normalizedNamespace = NormalizeNamespace(tagNamespace, allowEmpty: true);
         if (normalizedNamespace is not null && !LocalNamespaces.Contains(normalizedNamespace))
             return Failure<TagPage>("ValidationFailed", 422, "Tag namespace is not supported by the local slice.");
+
+        if (normalizedNamespace == "documents") return _documentTags.List(actor, "documents", query, limit, cursor);
 
         var normalizedQuery = string.IsNullOrWhiteSpace(query) ? null : query.Trim();
         if (normalizedQuery is { Length: > 50 })
@@ -72,11 +77,17 @@ public sealed class SqlTagService : ITagService
         command.CommandText = """
             SELECT TOP (@Limit)
                 t.[Id], t.[Namespace], t.[Name], t.[Color],
-                CONVERT(int, (SELECT COUNT_BIG(1)
-                              FROM [organization].[ResourceTag] rt
-                              WHERE rt.[OwnerId] = t.[OwnerId] AND rt.[TagId] = t.[Id])),
+                t.[UsageCount],
                 t.[CreatedAt], t.[UpdatedAt], t.[RowVersion]
-            FROM [organization].[Tag] t
+            FROM (
+                SELECT t.[Id],t.[OwnerId],t.[Namespace],t.[Name],t.[Color],t.[CreatedAt],t.[UpdatedAt],t.[RowVersion],
+                    CONVERT(int,(SELECT COUNT_BIG(*) FROM [organization].[ResourceTag] r
+                        WHERE r.[OwnerId]=t.[OwnerId] AND r.[TagId]=t.[Id])) AS [UsageCount]
+                FROM [organization].[Tag] t WHERE t.[Namespace]<>'documents'
+                UNION ALL
+                SELECT d.[Id],d.[OwnerId],d.[Namespace],d.[Name],d.[Color],d.[CreatedAt],d.[UpdatedAt],d.[RowVersion],d.[UsageCount]
+                FROM [documents].[TagCatalogProjection] d WHERE @DocumentsAllowed=1
+            ) t
             WHERE t.[OwnerId] = @OwnerId
               AND t.[Namespace] IN ('projects', 'documents', 'bookmarks', 'snippets')
               AND (t.[Namespace] <> 'documents' OR @DocumentsAllowed = 1)
@@ -112,6 +123,7 @@ public sealed class SqlTagService : ITagService
     public IdentityOperationResult<TagRecord> Get(IdentityPrincipal actor, Guid tagId)
     {
         if (!ModuleAvailable(actor, "organization.tag.read")) return ModuleUnavailable<TagRecord>();
+        if (IsDocumentTarget(actor, tagId, "organization.tag.read")) return _documentTags.Get(actor, tagId);
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
@@ -122,6 +134,25 @@ public sealed class SqlTagService : ITagService
             !CurrentAuthority(connection, transaction, actor, "organization.tag.read")) return ModuleUnavailable<TagRecord>();
         transaction.Commit();
         return IdentityOperationResult<TagRecord>.Success(tag);
+    }
+
+    // Routing hint only. The owning provider revalidates both current authorities in its transaction.
+    private bool IsDocumentTarget(IdentityPrincipal actor, Guid id, string action)
+    {
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!CurrentAuthority(connection, transaction, actor, action)) return false;
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = """
+            SELECT TOP(1) [Id] FROM (
+                SELECT [Id] FROM [documents].[TagCatalogProjection] WHERE [OwnerId]=@Owner AND [Id]=@Id
+                UNION ALL
+                SELECT [Id] FROM [organization].[Tag] WHERE [OwnerId]=@Owner AND [Id]=@Id AND [Namespace]='documents'
+            ) owned;
+            """;
+        Add(command, "@Owner", SqlDbType.UniqueIdentifier, actor.OwnerId);
+        Add(command, "@Id", SqlDbType.UniqueIdentifier, id);
+        return command.ExecuteScalar() is not null;
     }
 
     private static string EscapeLike(string value) => value
@@ -140,6 +171,7 @@ public sealed class SqlTagService : ITagService
         if (validation is not null)
             return validation;
 
+        if (normalizedNamespace == "documents") return _documentTags.Create(actor, command, idempotencyKey, traceId);
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
@@ -197,6 +229,7 @@ public sealed class SqlTagService : ITagService
         if (!ModuleAvailable(actor, "organization.tag.rename"))
             return ModuleUnavailable<TagRecord>();
 
+        if (IsDocumentTarget(actor, tagId, "organization.tag.rename")) return _documentTags.Rename(actor, tagId, ifMatch, command, idempotencyKey, traceId);
         var validation = ValidateNameAndColor(command.Name, command.Color, out var name, out var normalizedName, out var color);
         if (validation is not null)
             return validation;
@@ -212,7 +245,8 @@ public sealed class SqlTagService : ITagService
         if (receiptFailure is not null)
         {
             transaction.Rollback();
-            return receiptFailure;
+            return receiptFailure.Code == "DelegateDocumentTag"
+                ? _documentTags.Rename(actor, tagId, ifMatch, command, idempotencyKey, traceId) : receiptFailure;
         }
 
         try
@@ -270,6 +304,7 @@ public sealed class SqlTagService : ITagService
     {
         if (!ModuleAvailable(actor, "organization.tag.remove"))
             return ModuleUnavailable<object?>();
+        if (IsDocumentTarget(actor, tagId, "organization.tag.remove")) return _documentTags.Remove(actor, tagId, ifMatch, idempotencyKey, traceId);
         if (!TryETag(ifMatch, out var expectedVersion))
             return Precondition<object?>();
 
@@ -282,7 +317,8 @@ public sealed class SqlTagService : ITagService
         if (receiptFailure is not null)
         {
             transaction.Rollback();
-            return receiptFailure;
+            return receiptFailure.Code == "DelegateDocumentTag"
+                ? _documentTags.Remove(actor, tagId, ifMatch, idempotencyKey, traceId) : receiptFailure;
         }
 
         try
@@ -460,6 +496,8 @@ public sealed class SqlTagService : ITagService
             catch (JsonException) { }
             var expectedStatus = operationKey == "organization.tag.create" ? 201 : operationKey == "organization.tag.remove" ? 204 : 200;
             var expectedCode = operationKey == "organization.tag.create" ? "TagCreated" : operationKey == "organization.tag.remove" ? "TagRemoved" : "Ok";
+            if (stored?.Namespace == "documents")
+                return Failure<T>("DelegateDocumentTag", 409, "Document catalog owns this receipt.");
             if (stored is null || stored.Version != 2 || stored.Id == Guid.Empty || stored.Action != operationKey ||
                 stored.Namespace is null || !LocalNamespaces.Contains(stored.Namespace) || !TryETag(stored.ETag, out _) ||
                 (targetId is { } expectedId && stored.Id != expectedId) ||
