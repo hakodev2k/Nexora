@@ -15,25 +15,25 @@ export function useResourceDialog<T>(value: T, restore?: (baseline: T) => void) 
 }
 
 export function ResourceFormDialog(props: {
-  open: boolean; title: string; busy: boolean; dirty: boolean;
+  open: boolean; title: string; busy: boolean; dirty: boolean; closeBlocked?: boolean;
   onClose: () => void; children: ReactNode;
 }) {
   return props.open ? <OpenFormDialog {...props} /> : null;
 }
 
-function OpenFormDialog({ title, busy, dirty, onClose, children }: {
-  title: string; busy: boolean; dirty: boolean; onClose: () => void; children: ReactNode;
+function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, children }: {
+  title: string; busy: boolean; dirty: boolean; closeBlocked?: boolean; onClose: () => void; children: ReactNode;
 }) {
   const titleId = useId();
   const layer = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const trigger = useRef(document.activeElement instanceof HTMLElement ? document.activeElement : null);
-  const state = useRef({ busy, dirty, onClose });
-  state.current = { busy, dirty, onClose };
+  const state = useRef({ busy, dirty, closeBlocked, onClose });
+  state.current = { busy, dirty, closeBlocked, onClose };
   const [discard, setDiscard] = useState(false);
   const resume = useRef<HTMLButtonElement>(null);
   function requestClose() {
-    if (state.current.busy) return;
+    if (state.current.busy || state.current.closeBlocked) return;
     if (state.current.dirty) setDiscard(true); else state.current.onClose();
   }
   useEffect(() => {
@@ -72,8 +72,8 @@ function OpenFormDialog({ title, busy, dirty, onClose, children }: {
       <fieldset className="resource-dialog-fields" hidden={discard} disabled={busy}>{children}</fieldset>
       {discard ? <div role="alert"><p>Bỏ thay đổi chưa lưu?</p><div className="dialog-actions">
         <button ref={resume} type="button" className="secondary-button" onClick={() => setDiscard(false)}>Tiếp tục sửa</button>
-        <button type="button" className="danger-button" disabled={busy} onClick={onClose}>Bỏ bản nháp</button>
-      </div></div> : <div className="dialog-actions"><button className="secondary-button" type="button" disabled={busy} onClick={requestClose}>Hủy</button></div>}
+        <button type="button" className="danger-button" disabled={busy || closeBlocked} onClick={onClose}>Bỏ bản nháp</button>
+      </div></div> : <div className="dialog-actions"><button className="secondary-button" type="button" disabled={busy || closeBlocked} onClick={requestClose}>Hủy</button></div>}
     </div>
   </div>, document.body);
 }

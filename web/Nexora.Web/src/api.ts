@@ -1680,7 +1680,9 @@ export function getOrganizationTag(id: string) {
 }
 
 function validateTagMutation(result: TagRecord | ProductivityCommittedAcknowledgement, expectedId?: string) {
-  if (!result || typeof result.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.id) || (expectedId !== undefined && result.id.toLowerCase() !== expectedId.toLowerCase()))
+  if (!result || typeof result.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.id) || result.id === '00000000-0000-0000-0000-000000000000' || (expectedId !== undefined && result.id.toLowerCase() !== expectedId.toLowerCase()))
+    throw new NexoraApiError('Không thể xác nhận kết quả Tag.', 0, 'UnexpectedAcknowledgement');
+  if (('committed' in result || 'detailAvailable' in result) && !isProductivityAcknowledgement(result))
     throw new NexoraApiError('Không thể xác nhận kết quả Tag.', 0, 'UnexpectedAcknowledgement');
   if (isProductivityAcknowledgement(result)) return result;
   if (typeof result.name !== 'string' || typeof result.namespace !== 'string' || typeof result.etag !== 'string' || !Number.isInteger(result.usageCount) || result.usageCount < 0)
@@ -1708,7 +1710,7 @@ export function removeOrganizationTag(id: string, etag: string, idempotencyKey =
   return apiFetch<void>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
-  });
+  }, [204]);
 }
 
 export function listDeveloperTools() {

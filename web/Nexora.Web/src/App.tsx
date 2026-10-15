@@ -4790,6 +4790,11 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
 const LOCAL_TAG_NAMESPACES = ['projects', 'documents', 'bookmarks', 'snippets'] as const;
 
+type TagPendingCommand =
+  | { kind: 'create'; key: string; namespace: string; name: string; color: string | null }
+  | { kind: 'rename'; key: string; id: string; etag: string; name: string; color: string | null }
+  | { kind: 'remove'; key: string; id: string; etag: string };
+
 function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [items, setItems] = useState<TagRecord[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -4806,7 +4811,26 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
   const [committedNotice, setCommittedNotice] = useState(false);
-  const requestKey = useRef<string | null>(null);
+  const [abandonedNotice, setAbandonedNotice] = useState(false);
+  const [pending, setPending] = useState<TagPendingCommand | null>(null);
+  const pendingRef = useRef<TagPendingCommand | null>(null);
+  const mutationFlight = useRef(false);
+  const mounted = useRef(true);
+  const blocked = busy !== null || pending !== null;
+  function setCommand(command: TagPendingCommand | null) { pendingRef.current = command; setPending(command); }
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => registerDirtyLeaveGuard(() => {
+    if (!pendingRef.current && !mutationFlight.current) return false;
+    setError(new NexoraApiError('Hãy đối chiếu thao tác Tag đang chờ trước khi rời màn hình.', 0, 'PendingCommand'));
+    return true;
+  }), []);
+  useEffect(() => {
+    const protect = (event: BeforeUnloadEvent) => {
+      if (pendingRef.current || mutationFlight.current) { event.preventDefault(); event.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', protect);
+    return () => window.removeEventListener('beforeunload', protect);
+  }, []);
 
   const form = useResourceDialog({ name, color, tagNamespace });
 
@@ -4819,16 +4843,18 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
     setEditing(null);
     setName('');
     setColor('');
-    requestKey.current = null;
+    setCommand(null);
   }
 
   async function load(append = false) {
+    if (mutationFlight.current || pendingRef.current) return;
     if (append && (listFlight.current || !cursor)) return;
     const stamp = ++generation.current;
     listFlight.current = true;
     setLoading(true);
     setError(null);
     setCommittedNotice(false);
+    setAbandonedNotice(false);
     setConflict(false);
     if (!append) { setItems([]); setCursor(null); }
     try {
@@ -4857,14 +4883,14 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
   }, [tagNamespace, query]);
 
   async function reloadEditorRevision() {
-    if (!editing || listFlight.current) return;
-    const stamp = generation.current;
+    if (!editing || listFlight.current || mutationFlight.current || pendingRef.current) return;
+    const stamp = ++generation.current;
     setBusy('revision');
     try {
       const latest = await getOrganizationTag(editing.id);
       if (stamp !== generation.current) return;
       setEditing(latest);
-      requestKey.current = null;
+      setCommand(null);
       setConflict(false);
       setError(null);
     } catch (requestError) {
@@ -4873,99 +4899,106 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
       setError(apiError);
       if ([401, 403, 404, 409].includes(apiError.status)) clearAuthorizedData();
       if (apiError.status === 401) await onAuthLost();
-    } finally { if (stamp === generation.current) setBusy(null); }
+    } finally { if (mounted.current) setBusy(current => current === 'revision' ? null : current); }
   }
 
-  function resetEditor() {
+  function resetEditor(force = false) {
+    if (!force && (mutationFlight.current || pendingRef.current)) return;
+    generation.current++; listFlight.current = false; setLoading(false);
     setEditing(null);
     setName('');
     setColor('');
-    requestKey.current = null;
+    setCommand(null);
     setError(null);
     setConflict(false);
   }
 
   function beginEdit(tag: TagRecord) {
+    if (mutationFlight.current || pendingRef.current) return;
+    generation.current++; listFlight.current = false; setLoading(false);
     form.begin({ name: tag.name, color: tag.color ?? '', tagNamespace: tag.namespace as (typeof LOCAL_TAG_NAMESPACES)[number] });
     setEditing(tag);
     setTagNamespace(tag.namespace as (typeof LOCAL_TAG_NAMESPACES)[number]);
     setName(tag.name);
     setColor(tag.color ?? '');
-    requestKey.current = null;
+    setCommand(null);
     setError(null);
     setConflict(false);
+  }
+
+  async function execute(command: TagPendingCommand): Promise<true | { error: string }> {
+    if (mutationFlight.current || (pendingRef.current && pendingRef.current !== command))
+      return { error: 'Đối chiếu thao tác Tag hiện tại trước.' };
+    mutationFlight.current = true;
+    setCommand(command);
+    generation.current++; listFlight.current = false; setLoading(false);
+    setBusy(command.kind); setError(null); setConflict(false); setCommittedNotice(false); setAbandonedNotice(false);
+    let detailAvailable = false;
+    try {
+      const result = command.kind === 'create'
+        ? await createOrganizationTag(command.namespace, command.name, command.color, command.key)
+        : command.kind === 'rename'
+          ? await renameOrganizationTag(command.id, command.etag, command.name, command.color, command.key)
+          : await removeOrganizationTag(command.id, command.etag, command.key);
+      if (!mounted.current || pendingRef.current !== command) return { error: 'Màn hình đã thay đổi.' };
+      detailAvailable = result !== undefined && !isProductivityAcknowledgement(result);
+      setCommand(null);
+      clearAuthorizedData(); resetEditor(true); form.finish(); setCommittedNotice(true);
+    } catch (requestError) {
+      if (!mounted.current) return { error: 'Màn hình đã thay đổi.' };
+      const failure = asApiError(requestError);
+      const uncertain = failure.status === 0 || failure.status >= 500 ||
+        ['RequestInProgress', 'IdempotencyConflict', 'IdempotencyReplay'].includes(failure.code ?? '');
+      if (!uncertain) setCommand(null);
+      if ([401, 403, 404].includes(failure.status) || failure.code === 'ModuleUnavailable') {
+        clearAuthorizedData(); form.finish();
+      }
+      setError(failure); setConflict(failure.status === 412);
+      if (failure.status === 401) await onAuthLost();
+      return { error: failure.message };
+    } finally {
+      mutationFlight.current = false;
+      if (mounted.current) setBusy(null);
+    }
+    // The command is already committed. A read failure cannot make it retryable.
+    if (detailAvailable && mounted.current) {
+      try { await load(); } catch { /* query/auth handling is separate from command outcome */ }
+      if (mounted.current) setCommittedNotice(true);
+    }
+    return true;
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const trimmedName = name.trim();
-    const trimmedColor = color.trim();
+    if (mutationFlight.current || pendingRef.current || busy !== null) return;
+    const trimmedName = name.trim(), trimmedColor = color.trim();
     if (!trimmedName || trimmedName.length > 50) {
-      setError(new NexoraApiError('Tên tag phải từ 1 đến 50 ký tự.', 422, 'ValidationFailed'));
-      return;
+      setError(new NexoraApiError('Tên tag phải từ 1 đến 50 ký tự.', 422, 'ValidationFailed')); return;
     }
     if (trimmedColor && !/^#[0-9a-f]{6}$/i.test(trimmedColor)) {
-      setError(new NexoraApiError('Màu tag phải có dạng #RRGGBB.', 422, 'ValidationFailed'));
-      return;
+      setError(new NexoraApiError('Màu tag phải có dạng #RRGGBB.', 422, 'ValidationFailed')); return;
     }
-    requestKey.current ??= createIdempotencyKey();
-    setBusy('save');
-    setError(null);
-    setConflict(false);
-    try {
-      const result = editing
-        ? await renameOrganizationTag(editing.id, editing.etag, trimmedName, trimmedColor || null, requestKey.current)
-        : await createOrganizationTag(tagNamespace, trimmedName, trimmedColor || null, requestKey.current);
-      if (isProductivityAcknowledgement(result)) {
-        clearAuthorizedData();
-        resetEditor();
-        form.finish();
-        setCommittedNotice(true);
-        return;
-      }
-      requestKey.current = null;
-      resetEditor();
-      form.finish();
-      await load();
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 412) {
-        setConflict(true);
-
-      }
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setBusy(null);
-    }
+    const key = createIdempotencyKey();
+    await execute(editing ? { kind: 'rename', id: editing.id, etag: editing.etag, name: trimmedName, color: trimmedColor || null, key }
+      : { kind: 'create', namespace: tagNamespace, name: trimmedName, color: trimmedColor || null, key });
   }
 
   async function remove(tag: TagRecord) {
+    if (mutationFlight.current || pendingRef.current || busy !== null) return { error: 'Đối chiếu thao tác Tag hiện tại trước.' };
     if (tag.usageCount > 0) return { error: 'Tag này đang được sử dụng và không thể xóa.' };
-    setBusy(`remove:${tag.id}`);
-    setError(null);
-    setConflict(false);
-    try {
-      await removeOrganizationTag(tag.id, tag.etag);
-      if (editing?.id === tag.id) resetEditor();
-      await load();
-      return true;
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 412) {
-        setConflict(true);
-        await load();
-      }
-      if (apiError.status === 401) await onAuthLost();
-      return { error: apiError.message };
-    } finally {
-      setBusy(null);
-    }
+    return execute({ kind: 'remove', id: tag.id, etag: tag.etag, key: createIdempotencyKey() });
+  }
+
+  function retryPending() { if (pendingRef.current && !mutationFlight.current) void execute(pendingRef.current); }
+  function abandonPending(): true | { error: string } {
+    if (mutationFlight.current) return { error: 'Đợi yêu cầu đang gửi kết thúc trước.' };
+    clearAuthorizedData(); resetEditor(true); form.finish(); setAbandonedNotice(true);
+    return true;
   }
 
   function applySearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (mutationFlight.current || pendingRef.current) return;
     setQuery(queryDraft.trim());
   }
 
@@ -4977,27 +5010,29 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
           <h1 id="organization-tags-title">Tag management</h1>
           <p className="lead">Tag là nhãn cá nhân theo namespace. Slice này chỉ quản lý catalog; chưa gắn tag vào resource và tag không cấp quyền.</p>
         </div>
-        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || blocked}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
 
-      {committedNotice && <Notice kind="success">Thao tác đã được ghi nhận. Chi tiết chưa khả dụng; bạn có thể tải lại khi có quyền đọc hiện tại.</Notice>}
+      {pending && <Notice kind="error"><span>Chưa đối chiếu xong thao tác Tag. Giữ nguyên nội dung và mã yêu cầu; thử lại đúng thao tác đang chờ.</span><button className="secondary-button" type="button" disabled={busy !== null} onClick={retryPending}>Thử lại thao tác đang chờ</button><ConfirmActionButton confirmationTitle="Dừng đối chiếu thao tác Tag?" confirmationDescription="Server có thể đã ghi nhận thao tác. Dừng đối chiếu không hủy hoặc hoàn tác kết quả; hãy kiểm tra dữ liệu hiện tại trước khi tạo ý định mới. Mã yêu cầu đang chờ sẽ được bỏ khỏi bộ nhớ, không có request thay thế tự động." confirmLabel="Dừng đối chiếu" disabled={busy !== null} onConfirm={abandonPending}>Dừng đối chiếu</ConfirmActionButton></Notice>}
+      {abandonedNotice && <Notice kind="info">Đã dừng đối chiếu trên màn hình. Kết quả server vẫn chưa rõ; kiểm tra dữ liệu hiện tại trước khi thực hiện ý định mới.</Notice>}
+      {committedNotice && <Notice kind="success">Thao tác đã được ghi nhận. Nếu cần, tải lại danh sách bằng quyền đọc hiện tại.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      <div className="field-group"><label htmlFor="tag-list-namespace">Namespace hiển thị</label><select id="tag-list-namespace" value={tagNamespace} disabled={busy !== null} onChange={event => { generation.current++; setItems([]); setCursor(null); setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); }}>{LOCAL_TAG_NAMESPACES.map(value => <option key={value}>{value}</option>)}</select></div><div className="resource-layout">
-        <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetEditor(); form.begin({ name: '', color: '', tagNamespace }); }}>Thêm tag</button><ResourceFormDialog open={form.open} title={editing ? 'Đổi tên tag' : 'Tag mới'} busy={busy !== null} dirty={form.dirty} onClose={() => { resetEditor(); form.finish(); }}>{conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={() => void reloadEditorRevision()} disabled={loading || busy !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>
+      <div className="field-group"><label htmlFor="tag-list-namespace">Namespace hiển thị</label><select id="tag-list-namespace" value={tagNamespace} disabled={blocked} onChange={event => { if (mutationFlight.current || pendingRef.current) return; generation.current++; setItems([]); setCursor(null); setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); }}>{LOCAL_TAG_NAMESPACES.map(value => <option key={value}>{value}</option>)}</select></div><div className="resource-layout">
+        <button className="primary-button" type="button" disabled={blocked} onClick={() => { if (mutationFlight.current || pendingRef.current) return; resetEditor(); form.begin({ name: '', color: '', tagNamespace }); }}>Thêm tag</button><ResourceFormDialog open={form.open} title={editing ? 'Đổi tên tag' : 'Tag mới'} busy={busy !== null} closeBlocked={pending !== null} dirty={form.dirty} onClose={() => { if (mutationFlight.current || pendingRef.current) return; resetEditor(); form.finish(); }}>{pending && <Notice kind="error"><span>Chưa đối chiếu xong thao tác Tag. Giữ nguyên nội dung và mã yêu cầu; thử lại đúng thao tác đang chờ.</span><button className="secondary-button" type="button" disabled={busy !== null} onClick={retryPending}>Thử lại thao tác đang chờ</button><ConfirmActionButton confirmationTitle="Dừng đối chiếu thao tác Tag?" confirmationDescription="Server có thể đã ghi nhận thao tác. Dừng đối chiếu không hủy hoặc hoàn tác kết quả; hãy kiểm tra dữ liệu hiện tại trước khi tạo ý định mới. Mã yêu cầu đang chờ sẽ được bỏ khỏi bộ nhớ, không có request thay thế tự động." confirmLabel="Dừng đối chiếu" disabled={busy !== null} onConfirm={abandonPending}>Dừng đối chiếu</ConfirmActionButton></Notice>}{conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={() => void reloadEditorRevision()} disabled={loading || blocked}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{editing ? 'Đổi tên tag' : 'Tag mới'}</h2></div>
-          <div className="field-group"><label htmlFor="organization-tag-namespace">Namespace</label><select id="organization-tag-namespace" value={tagNamespace} onChange={(event) => { requestKey.current = null; setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); setError(null); }} disabled={editing !== null || busy !== null}>{LOCAL_TAG_NAMESPACES.map((value) => <option key={value} value={value}>{value}</option>)}</select><p className="field-help">Projects và Tasks dùng chung namespace; các provider khác giữ namespace riêng.</p></div>
-          <div className="field-group"><label htmlFor="organization-tag-name">Tên tag</label><input id="organization-tag-name" value={name} maxLength={50} onChange={(event) => { requestKey.current = null; setName(event.target.value); setError(null); }} required /></div>
-          <div className="field-group"><label htmlFor="organization-tag-color">Màu <span className="optional">(#RRGGBB, tùy chọn)</span></label><input id="organization-tag-color" value={color} maxLength={7} placeholder="#2F67D8" onChange={(event) => { requestKey.current = null; setColor(event.target.value); setError(null); }} /></div>
-          <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu tag' : 'Tạo tag'}</SubmitButton></div>
+          <div className="field-group"><label htmlFor="organization-tag-namespace">Namespace</label><select id="organization-tag-namespace" value={tagNamespace} onChange={(event) => { if (mutationFlight.current || pendingRef.current) return; setCommand(null); setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); setError(null); }} disabled={editing !== null || blocked}>{LOCAL_TAG_NAMESPACES.map((value) => <option key={value} value={value}>{value}</option>)}</select><p className="field-help">Projects và Tasks dùng chung namespace; các provider khác giữ namespace riêng.</p></div>
+          <div className="field-group"><label htmlFor="organization-tag-name">Tên tag</label><input id="organization-tag-name" disabled={blocked} value={name} maxLength={50} onChange={(event) => { if (mutationFlight.current || pendingRef.current) return; setCommand(null); setName(event.target.value); setError(null); }} required /></div>
+          <div className="field-group"><label htmlFor="organization-tag-color">Màu <span className="optional">(#RRGGBB, tùy chọn)</span></label><input id="organization-tag-color" disabled={blocked} value={color} maxLength={7} placeholder="#2F67D8" onChange={(event) => { if (mutationFlight.current || pendingRef.current) return; setCommand(null); setColor(event.target.value); setError(null); }} /></div>
+          <div className="form-actions"><button className="secondary-button" type="button" onClick={() => resetEditor()} disabled={blocked}>Làm mới</button><SubmitButton busy={busy === 'create' || busy === 'rename'} disabled={blocked}>{editing ? 'Lưu tag' : 'Tạo tag'}</SubmitButton></div>
         </form></ResourceFormDialog>
         <div className="content-section">
           <form className="form-panel" onSubmit={applySearch} noValidate>
-            <div className="section-heading"><h2>Tags của bạn</h2><button className="link-button" type="button" onClick={() => { setQueryDraft(''); setQuery(''); }} disabled={loading || busy !== null}>Xóa tìm kiếm</button></div>
-            <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" disabled={loading || busy !== null} value={queryDraft} maxLength={50} onChange={(event) => setQueryDraft(event.target.value)} /></div>
-            <button className="secondary-button" type="submit" disabled={loading || busy !== null}>Áp dụng</button>
+            <div className="section-heading"><h2>Tags của bạn</h2><button className="link-button" type="button" onClick={() => { if (mutationFlight.current || pendingRef.current) return; setQueryDraft(''); setQuery(''); }} disabled={loading || blocked}>Xóa tìm kiếm</button></div>
+            <div className="field-group"><label htmlFor="organization-tag-search">Tìm theo tên</label><input id="organization-tag-search" disabled={loading || blocked} value={queryDraft} maxLength={50} onChange={(event) => { if (!mutationFlight.current && !pendingRef.current) setQueryDraft(event.target.value); }} /></div>
+            <button className="secondary-button" type="submit" disabled={loading || blocked}>Áp dụng</button>
           </form>
-          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : error && !conflict ? <div className="empty-state"><p>Danh sách chưa tải được. Hãy tải lại hoặc sửa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={busy !== null}>Đổi tên</button><ConfirmActionButton confirmationTitle={`Xóa tag “${tag.name}”?`} confirmationDescription={`Tag sẽ bị xóa khỏi namespace ${tag.namespace}. Tag đang được resource dùng sẽ không thể xóa.`} confirmLabel="Xóa tag" disabled={busy !== null || tag.usageCount > 0} onConfirm={() => remove(tag)}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div></div>}
-          {cursor && !error && <button className="secondary-button" type="button" disabled={loading || busy !== null} onClick={() => void load(true)}>Tải thêm tags</button>}
+          {loading ? <div className="loading-state" role="status">Đang tải tags…</div> : error && !conflict ? <div className="empty-state"><p>Danh sách chưa tải được. Hãy tải lại hoặc sửa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có tag</h2><p>{query ? 'Không có tag phù hợp với tìm kiếm.' : `Tạo tag đầu tiên trong namespace ${tagNamespace}.`}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">Namespace: {tagNamespace} · {items.length} tag</span></div><div className="resource-cards">{items.map((tag) => <article className="resource-card" key={tag.id}><div><h3>{tag.color && <span aria-hidden="true" style={{ color: tag.color }}>● </span>}{tag.name}</h3><span className="muted">{tag.namespace} · {tag.usageCount} resource · cập nhật {dateTime(tag.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(tag)} disabled={blocked}>Đổi tên</button><ConfirmActionButton confirmationTitle={`Xóa tag “${tag.name}”?`} confirmationDescription={`Tag sẽ bị xóa khỏi namespace ${tag.namespace}. Tag đang được resource dùng sẽ không thể xóa.`} confirmLabel="Xóa tag" disabled={blocked || tag.usageCount > 0} onConfirm={() => remove(tag)}>{tag.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div></div>}
+          {cursor && !error && <button className="secondary-button" type="button" disabled={loading || blocked} onClick={() => void load(true)}>Tải thêm tags</button>}
         </div>
       </div>
       <div className="security-policy"><strong>Boundary</strong><span>Assignment vào Project/Task/Document/Bookmark/Snippet, Collections, Templates và sharing chưa nằm trong slice; server vẫn giữ action gate riêng cho các capability đó.</span></div>
