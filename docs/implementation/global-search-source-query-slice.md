@@ -19,7 +19,7 @@ change source-of-truth ownership.
 the authenticated owner session, `FX25` enablement and
 `discovery.search.query`. Query is trimmed and bounded to 500 characters;
 `resourceType` is one of `Project`, `Task`, `Event`, `Document`, `Bookmark`,
-`Snippet` or `Goal`; dates are UTC date boundaries; `limit` is bounded to 25.
+`Snippet` or `Goal`; dates are User-profile IANA local calendar days, resolved in the same SQL transaction to inclusive start/exclusive next-day UTC boundaries; `limit` is bounded to 25.
 
 The service queries at most limit+1 (maximum26) rows per enabled source, then merges by exact
 title match, title-prefix match, title/body match, updated time descending and
@@ -29,7 +29,9 @@ not execute broad source scans.
 
 Documents search Title and Body; Snippets search current-version Title,
 Language, SourceText and Description but never return source text as preview.
-An encrypted authenticated sg1 cursor binds owner, normalized query/type, dates, archive flag and effective limit. A changed context/tampered token is rejected422 InvalidCursor. Seek follows the same score/time/SQLGuid/type order as merge; the next cursor is emitted only with another visible hit. Pagination reads current data each request and promises stable traversal under a stable dataset, not a snapshot across later changes. The React Load More flow deduplicates typed identities and clears accumulated hits for sources currently unavailable/degraded/empty.
+An encrypted authenticated sg2 cursor binds owner, normalized query/type, dates, archive flag, effective limit, configured profile IANA zone, TZDB version and resolved UTC date boundaries. Old sg1 cursors are rejected422 after this semantics correction; a profile timezone/TZDB change also requires a fresh query. A changed context/tampered token is rejected422 InvalidCursor. Seek follows the same score/time/SQLGuid/type order as merge; the next cursor is emitted only with another visible hit. Pagination reads current data each request and promises stable traversal under a stable dataset, not a snapshot across later changes. The React Load More flow deduplicates typed identities and clears accumulated hits for sources currently unavailable/degraded/empty.
+
+A missing/unknown configured IANA zone fails503 TimeZoneUnavailable without guessing UTC. Entire-skipped or unrepresentable day boundaries (including an inclusive To date whose next day is outside the supported calendar range) fail422 DateRangeUnavailable instead of silently clamping or returning a wrong range. Whole calendar days use earliest valid starts, preserving short/long DST days. Blank/no-date queries do not scan sources/look up profile timezone unnecessarily.
 
 Archived rows are excluded unless `includeArchived=true`; Trash/deleted rows
 are always excluded. Unsupported or disabled modules are omitted from result
