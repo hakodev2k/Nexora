@@ -23,9 +23,7 @@ verification under `DEC-20260909-014`.
   Save checks the quoted SQL `ETag`/`If-Match`, keeps type/editor immutable and
   rejects obvious executable markup. Published pages can be archived; archive
   does not create a content version.
-- List responses are summaries; page bodies are returned only by the owner
-  detail endpoint. UI drafts remain in memory and all writes carry a durable
-  idempotency key.
+- List responses are summaries. List/Get now hold current session/action and owner/Trash/deleted lifecycle proof in the same Serializable SQL transaction as projection; default library excludes Archived, which uses an explicit filter/tab. UI clears denied projections and guards stale reads/reset. Mutation detail responses and durable receipt/body/read-authorization gaps remain open in documents-authority-continuation-20261015.md; this read repair does not claim they are safe. UI drafts remain in memory.
 
 ## Deliberately outside this slice
 

@@ -40,13 +40,20 @@ public sealed class SqlDocumentService : IDocumentService
         var take = Math.Clamp(limit ?? 25, 1, 100);
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Title], [DocumentType], [EditorMode], [Status],
                    [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion]
-            FROM [documents].[Page] WITH (NOLOCK)
-            WHERE [OwnerId] = @OwnerId AND [DeletedAt] IS NULL
-              AND (@Status IS NULL OR [Status] = @Status)
+            FROM [documents].[Page] p
+            WHERE p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL
+              AND p.[Status] IN ('Draft', 'Published', 'Archived')
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document'
+                    AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
+              AND ((@Status IS NULL AND p.[Status] <> 'Archived') OR p.[Status] = @Status)
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
         Add(command, "@Limit", SqlDbType.Int, take);
@@ -55,6 +62,9 @@ public sealed class SqlDocumentService : IDocumentService
         using var reader = command.ExecuteReader();
         var items = new List<DocumentSummary>();
         while (reader.Read()) items.Add(ReadSummary(reader));
+        reader.Close();
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
+        transaction.Commit();
         return IdentityOperationResult<DocumentPage>.Success(new DocumentPage(items, null));
     }
 
@@ -63,7 +73,11 @@ public sealed class SqlDocumentService : IDocumentService
         if (!ModuleAvailable(actor, "FX20", "documents.page.read")) return ModuleUnavailable<DocumentDetail>();
         using var connection = _connections.Create();
         connection.Open();
-        var document = ReadDetail(connection, null, actor.OwnerId, documentId, forUpdate: false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.page.read")) return ModuleUnavailable<DocumentDetail>();
+        var document = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.page.read")) return ModuleUnavailable<DocumentDetail>();
+        transaction.Commit();
         return document is null ? Missing() : IdentityOperationResult<DocumentDetail>.Success(document);
     }
 
@@ -274,7 +288,7 @@ public sealed class SqlDocumentService : IDocumentService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion] FROM [documents].[Page] WITH ({(forUpdate ? "UPDLOCK, ROWLOCK" : "NOLOCK")}) WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [DeletedAt] IS NULL;";
+        command.CommandText = $"SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion] FROM [documents].[Page] p {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE p.[Id] = @Id AND p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL AND p.[Status] IN ('Draft', 'Published', 'Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document' AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, documentId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
