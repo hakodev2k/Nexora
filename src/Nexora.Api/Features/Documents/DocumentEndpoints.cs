@@ -28,6 +28,20 @@ public static class DocumentEndpoints
                 principal => service.Get(principal, documentId), ToResponse))
             .WithName("getDocument");
 
+        api.MapGet("/documents/{documentId:guid}/versions", (HttpContext context, Guid documentId, string? cursor,
+            IDocumentService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.History(principal, documentId, cursor), value =>
+                    new DocumentVersionsResponse(value.Items.Select(ToVersionResponse).ToArray(), value.NextCursor)))
+            .WithName("listDocumentVersions");
+
+        api.MapGet("/documents/{documentId:guid}/versions/{versionNumber:long}", (HttpContext context, Guid documentId, long versionNumber,
+            IDocumentService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Version(principal, documentId, versionNumber), value =>
+                    new DocumentVersionPreviewResponse(ToVersionResponse(value.Snapshot), value.Body)))
+            .WithName("getDocumentVersion");
+
         api.MapPost("/documents", (HttpContext context, DocumentCreateRequest request, IDocumentService service,
             IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
@@ -52,6 +66,10 @@ public static class DocumentEndpoints
 
         return app;
     }
+
+    private static DocumentVersionResponse ToVersionResponse(DocumentVersionSummary value) => new(
+        value.Id, value.PageId, value.VersionNumber, value.Title, value.DocumentType, value.EditorMode, value.SavedStatus,
+        value.ChangeNote, value.CreatedAt, value.CreatedByUserId, value.TagSnapshotCaptured, value.TagId, value.TagName);
 
     private static IResult Map<TIn, TOut>(HttpContext context, IdentityOperationResult<IdentityPrincipal> auth,
         Func<IdentityPrincipal, IdentityOperationResult<TIn>> operation, Func<TIn, TOut> map)

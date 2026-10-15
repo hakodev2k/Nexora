@@ -1387,6 +1387,35 @@ export function listDocuments(status?: string, limit = 25, cursor = '', titleQue
   return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`, { signal });
 }
 
+export type DocumentVersionSummary = {
+  id: string; pageId: string; versionNumber: number; title: string; documentType: string;
+  editorMode: string; savedStatus: string; changeNote: string | null; createdAt: string;
+  createdByUserId: string | null; tagSnapshotCaptured: boolean; tagId: string | null; tagName: string | null;
+};
+export type DocumentVersionPage = { items: DocumentVersionSummary[]; nextCursor: string | null };
+export type DocumentVersionPreview = { snapshot: DocumentVersionSummary; body: string };
+
+function validateDocumentVersion(value: DocumentVersionSummary, pageId: string) {
+  if (!value || value.pageId?.toLowerCase() !== pageId.toLowerCase() || !Number.isSafeInteger(value.versionNumber) || value.versionNumber < 1 ||
+      typeof value.id !== 'string' || typeof value.title !== 'string' || typeof value.tagSnapshotCaptured !== 'boolean')
+    throw new NexoraApiError('Không xác nhận được phiên bản Document.', 0, 'UnexpectedResponse');
+  return value;
+}
+export async function listDocumentVersions(id: string, cursor = '', signal?: AbortSignal) {
+  const query = new URLSearchParams(); if (cursor) query.set('cursor', cursor);
+  const page = await apiFetch<DocumentVersionPage>(`/api/v1/documents/${encodeURIComponent(id)}/versions?${query}`, { signal });
+  if (!page || !Array.isArray(page.items) || page.items.length > 25 || (page.nextCursor !== null && typeof page.nextCursor !== 'string'))
+    throw new NexoraApiError('Không xác nhận được danh sách phiên bản.', 0, 'UnexpectedResponse');
+  page.items.forEach(item => validateDocumentVersion(item, id));
+  return page;
+}
+export async function getDocumentVersion(id: string, version: number, signal?: AbortSignal) {
+  const result = await apiFetch<DocumentVersionPreview>(`/api/v1/documents/${encodeURIComponent(id)}/versions/${version}`, { signal });
+  if (!result || typeof result.body !== 'string' || validateDocumentVersion(result.snapshot, id).versionNumber !== version)
+    throw new NexoraApiError('Không xác nhận được nội dung phiên bản.', 0, 'UnexpectedResponse');
+  return result;
+}
+
 export function getDocument(id: string) {
   return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}`);
 }

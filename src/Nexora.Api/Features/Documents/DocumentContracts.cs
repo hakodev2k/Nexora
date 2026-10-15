@@ -40,3 +40,11 @@ public sealed record DocumentSaveRequest(string Title, string? Body, string? Cha
 public sealed record DocumentTagChangeRequest([property: JsonRequired] Guid? Id);
 
 public sealed record DocumentTransitionRequest(string Status);
+
+public sealed record DocumentVersionResponse(Guid Id, Guid PageId, long VersionNumber, string Title,
+    string DocumentType, string EditorMode, string SavedStatus, string? ChangeNote, DateTimeOffset CreatedAt,
+    Guid? CreatedByUserId, bool TagSnapshotCaptured, Guid? TagId, string? TagName);
+
+public sealed record DocumentVersionsResponse(IReadOnlyList<DocumentVersionResponse> Items, string? NextCursor);
+
+public sealed record DocumentVersionPreviewResponse(DocumentVersionResponse Snapshot, string Body);

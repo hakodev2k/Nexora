@@ -27,7 +27,7 @@ verification under `DEC-20260909-014`.
 
 ## Deliberately outside this slice
 
-Folders/hierarchy, inline Tag create, covers/files, version-history browsing/restore,
+Folders/hierarchy, covers/files, full snapshot/compare/version restore,
 sharing links, Trash cohorts and DOCX/Markdown import/export are not claimed.
 They require their own contracts and migrations before implementation.
 
@@ -35,8 +35,7 @@ They require their own contracts and migrations before implementation.
 
 The code-only run may execute frontend build and structural static checks. The
 agent does not add or run functional, SQL integration, E2E/browser tests,
-fixtures or manual QA. .NET/SQL runtime verification remains `Not run` when
-the required tooling is unavailable.
+fixtures or manual QA. .NET Release builds are implementation-error checks only; SQL/API/browser runtime verification remains `Not run` under the current code-only amendment.
 
 ## Bounded library query continuation
 
@@ -46,8 +45,12 @@ GETdocuments now also accepts optional createdFrom/createdTo, inclusive profile-
 
 ## Single Tag Save and current library projection
 
-Create accepts optional tagId; Save accepts optional tag:{id:Guid|null}. Omitted/null object preserves assignment; id property is required when object exists, and explicit id:null clears. Owner-scoped Tag lookup and same-owner FK enforce maxoneTag. Save snapshots Id/name in PageVersion without live Tag FK; TagSnapshotCaptured distinguishes unknown legacy versions from captured untagged. Catalog rename/delete does not rewrite history. Library matches literal Title OR current Tag name (not Body) and optional tagId before seek. Cursor dl3 binds Tag/date/type/query/owner/scope/limit, retiring dl2. UI existing-Tag picker has search/paging/stale guards, tracks Tag dirty/conflict/immutable command state, displays label in Grid/Table and suspends automatic catalog reads after ACK/denial. Inline create and history restore/rebind remain required work; not module-complete. Evidence: full-product-audit-20261012/documents-tag-save-continuation-20261015.md; migration/runtime not run.
+Create accepts optional tagId; Save accepts optional tag:{id:Guid|null}. Omitted/null object preserves assignment; id property is required when object exists, and explicit id:null clears. Owner-scoped Tag lookup and same-owner FK enforce maxoneTag. Save snapshots Id/name in PageVersion without live Tag FK; TagSnapshotCaptured distinguishes unknown legacy versions from captured untagged. Catalog rename/delete does not rewrite history. Library matches literal Title OR current Tag name (not Body) and optional tagId before seek. Cursor dl3 binds Tag/date/type/query/owner/scope/limit, retiring dl2. UI existing-Tag picker has search/paging/stale guards, tracks Tag dirty/conflict/immutable command state, displays label in Grid/Table and suspends automatic catalog reads after ACK/denial. Inline create is implemented in the continuation below; history restore/rebind remains required work; not module-complete. Evidence: full-product-audit-20261012/documents-tag-save-continuation-20261015.md; migration/runtime not run.
 
 ### Inline Tag create continuation (2026-10-15)
 
 Editor-only inline name1..50 uses exact documents.tag.create independently of page.create/save and catalog.read. Detailed authorized create response selects Tag into draft; no Page autosave. Immutable pending name/key and flight ref freeze Page operations until settle or confirmed stop. ACK does not assign guessed Tag or automatically query catalog. Unsent inline name participates in dirty warning and must be created or cleared before Page Save. Catalog denial keeps Page draft;401 uses root auth loss. See full-product-audit-20261012/documents-inline-tag-continuation-20261015.md for source evidence and not-run runtime cases. No eligibility/grant/API/schema change.
+
+## Owner history browse/preview continuation
+
+Exact SELF documents.page.history now exposes GET /documents/{id}/versions (newest25 with owner/page/take-bound dh1 cursor) and GET /documents/{id}/versions/{number} for the stored core snapshot. Current session/module/action and owner Page/nonTrash proof are held in Serializable reads and checked before staged response commit. Metadata lists omit Body; exact preview returns escaped source text and saved metadata/actor/time. Legacy TagSnapshotCaptured0 stays explicitly unknown. UI reads only on user intent, preserves current editor draft and clears private history on failure/disable/Page or revision change. Additive0058 registers history permission metadata only; no Admin eligibility/Allow/Deny or policy change. History restore/rebind, visual snapshots, richer editor preview/diff remain required. See full-product-audit-20261012/documents-history-read-20261015.md. Migrations and functional/runtime acceptance not run.

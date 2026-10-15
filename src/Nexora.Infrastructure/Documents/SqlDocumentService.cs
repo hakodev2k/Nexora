@@ -16,13 +16,14 @@ namespace Nexora.Infrastructure.Documents;
 /// keeps folder, file, sharing and import/export concerns out of this slice;
 /// every body write is versioned in SQL and guarded by the current rowversion.
 /// </summary>
-public sealed class SqlDocumentService : IDocumentService
+public sealed partial class SqlDocumentService : IDocumentService
 {
     private const int MaxBodyBytes = 1_048_576;
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
     private readonly DocumentListCursor _cursor;
+    private readonly DocumentHistoryCursor _historyCursor;
 
     public SqlDocumentService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
@@ -30,6 +31,7 @@ public sealed class SqlDocumentService : IDocumentService
         var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _receipts = new SqlRequestReceiptStore(secret);
         _cursor = new DocumentListCursor(secret);
+        _historyCursor = new DocumentHistoryCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
