@@ -72,6 +72,8 @@ public static class OrganizationEndpoints
         if (!auth.Succeeded || auth.Value is null)
             return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         if (result.Succeeded && result.Value is TagRecord tag)
             context.Response.Headers.ETag = tag.ETag;
         return result.Succeeded && result.Value is not null

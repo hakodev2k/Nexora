@@ -4805,11 +4805,15 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [committedNotice, setCommittedNotice] = useState(false);
   const requestKey = useRef<string | null>(null);
 
   const form = useResourceDialog({ name, color, tagNamespace });
 
   function clearAuthorizedData() {
+    generation.current++;
+    listFlight.current = false;
+    setLoading(false);
     setItems([]);
     setCursor(null);
     setEditing(null);
@@ -4824,6 +4828,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
     listFlight.current = true;
     setLoading(true);
     setError(null);
+    setCommittedNotice(false);
     setConflict(false);
     if (!append) { setItems([]); setCursor(null); }
     try {
@@ -4908,10 +4913,15 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
     setError(null);
     setConflict(false);
     try {
-      if (editing) {
-        await renameOrganizationTag(editing.id, editing.etag, trimmedName, trimmedColor || null, requestKey.current);
-      } else {
-        await createOrganizationTag(tagNamespace, trimmedName, trimmedColor || null, requestKey.current);
+      const result = editing
+        ? await renameOrganizationTag(editing.id, editing.etag, trimmedName, trimmedColor || null, requestKey.current)
+        : await createOrganizationTag(tagNamespace, trimmedName, trimmedColor || null, requestKey.current);
+      if (isProductivityAcknowledgement(result)) {
+        clearAuthorizedData();
+        resetEditor();
+        form.finish();
+        setCommittedNotice(true);
+        return;
       }
       requestKey.current = null;
       resetEditor();
@@ -4970,6 +4980,7 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
 
+      {committedNotice && <Notice kind="success">Thao tác đã được ghi nhận. Chi tiết chưa khả dụng; bạn có thể tải lại khi có quyền đọc hiện tại.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       <div className="field-group"><label htmlFor="tag-list-namespace">Namespace hiển thị</label><select id="tag-list-namespace" value={tagNamespace} disabled={busy !== null} onChange={event => { generation.current++; setItems([]); setCursor(null); setTagNamespace(event.target.value as (typeof LOCAL_TAG_NAMESPACES)[number]); }}>{LOCAL_TAG_NAMESPACES.map(value => <option key={value}>{value}</option>)}</select></div><div className="resource-layout">
         <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetEditor(); form.begin({ name: '', color: '', tagNamespace }); }}>Thêm tag</button><ResourceFormDialog open={form.open} title={editing ? 'Đổi tên tag' : 'Tag mới'} busy={busy !== null} dirty={form.dirty} onClose={() => { resetEditor(); form.finish(); }}>{conflict && <Notice kind="error"><span>Tag đã thay đổi ở nơi khác. Draft vẫn được giữ trong memory; tải revision mới trước khi lưu lại.</span><button className="inline-button" type="button" onClick={() => void reloadEditorRevision()} disabled={loading || busy !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate>

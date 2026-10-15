@@ -18,13 +18,13 @@ authority and boundaries; it is not a runtime or functional-test claim.
   `TagInUse` with no side effect.
 
 All mutations require a UUID `Idempotency-Key`, CSRF and current FX24 action
-grant. SQL `rowversion` is the ETag authority. Audit rows contain action and
+grant plus current source namespace authority. Documents requires the exact FX20 documents.tag operation in addition to the generic endpoint wrapper; missing/unregistered source capability fails closed. SQL `rowversion` is the ETag authority. Audit rows contain action and
 target metadata only. The `organization.ResourceTag` table is a future
 provider-assignment boundary; this slice does not expose assignment writes.
 
 ## Explicit non-goals
 
-`organization.tag.assign`, Documents tag delegation, Collections, Templates,
+`organization.tag.assign`, Documents page-tag assignment, Collections, Templates,
 sharing/support projections, tag history, export/import and provider/network
 work are not implemented here. Tags never grant permission or ownership.
 
@@ -42,3 +42,7 @@ The code-only run ran frontend/static checks listed in
 `docs/implementation/local-e2e-status.md`. .NET/SQL runtime, integration and
 functional/browser verification were not run in this environment and are
 owner-owned. No mock, fixture or demo data is introduced by this slice.
+
+## Current namespace/receipt authority repair
+
+List/Get now hold live actor/session/root proof with projection in Serializable SQL and recheck before response. Document namespace also requires documents.tag.read; all-namespace lists exclude unauthorized document tags before TOP and usage projection. Cursor tl2 binds source visibility; tl1 requires a fresh query. Mutations use the owned immutable namespace and exact documents.tag operation when appropriate, on keyless/fresh/replay/final commit paths. New receipts contain only Id/Namespace/Action/ETag, including remove204; structured JSONv2 digests bind owner and prevent old receipt replay without namespace proof. Old keys conflict409 safely, not compatibility-complete. Detail requires current read authority; otherwise committed ACK clears UI private state without automatic refresh. Page assignment remains unimplemented and must require page.save for field diff. See full-product-audit-20261012/tag-namespace-authority-continuation-20261015.md. Source/build evidence only, runtime not run; uncertain-command UI recovery remains followup.

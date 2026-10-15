@@ -1679,20 +1679,29 @@ export function getOrganizationTag(id: string) {
   return apiFetch<TagRecord>(`/api/v1/organization/tags/${encodeURIComponent(id)}`);
 }
 
+function validateTagMutation(result: TagRecord | ProductivityCommittedAcknowledgement, expectedId?: string) {
+  if (!result || typeof result.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.id) || (expectedId !== undefined && result.id.toLowerCase() !== expectedId.toLowerCase()))
+    throw new NexoraApiError('Không thể xác nhận kết quả Tag.', 0, 'UnexpectedAcknowledgement');
+  if (isProductivityAcknowledgement(result)) return result;
+  if (typeof result.name !== 'string' || typeof result.namespace !== 'string' || typeof result.etag !== 'string' || !Number.isInteger(result.usageCount) || result.usageCount < 0)
+    throw new NexoraApiError('Không thể xác nhận chi tiết Tag.', 0, 'UnexpectedAcknowledgement');
+  return result;
+}
+
 export function createOrganizationTag(tagNamespace: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<TagRecord>('/api/v1/organization/tags', {
+  return apiFetch<TagRecord | ProductivityCommittedAcknowledgement>('/api/v1/organization/tags', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ namespace: tagNamespace, name, color })
-  });
+  }, [201]).then(result => validateTagMutation(result));
 }
 
 export function renameOrganizationTag(id: string, etag: string, name: string, color: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<TagRecord>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
+  return apiFetch<TagRecord | ProductivityCommittedAcknowledgement>(`/api/v1/organization/tags/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ name, color })
-  });
+  }, [200]).then(result => validateTagMutation(result, id));
 }
 
 export function removeOrganizationTag(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
