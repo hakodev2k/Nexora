@@ -1373,10 +1373,13 @@ export function transitionCalendarEvent(id: string, etag: string, status: string
   }, id);
 }
 
-export function listDocuments(status?: string, limit = 100) {
+export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal) {
   const query = new URLSearchParams({ limit: String(limit) });
   if (status) query.set('status', status);
-  return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`);
+  if (cursor) query.set('cursor', cursor);
+  if (titleQuery.trim()) query.set('query', titleQuery.trim());
+  if (documentType) query.set('documentType', documentType);
+  return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`, { signal });
 }
 
 export function getDocument(id: string) {

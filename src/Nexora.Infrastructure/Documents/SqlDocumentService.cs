@@ -22,22 +22,36 @@ public sealed class SqlDocumentService : IDocumentService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly DocumentListCursor _cursor;
 
     public SqlDocumentService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(secret);
+        _cursor = new DocumentListCursor(secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
-    public IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null)
+    public IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null,
+        string? cursor = null, string? query = null, string? documentType = null)
     {
         if (!ModuleAvailable(actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
         var normalizedStatus = NormalizeStatus(status);
         if (status is not null && normalizedStatus is null)
             return Failure<DocumentPage>("ValidationFailed", 422, "Document status is invalid.");
 
+        var normalizedQuery = query?.Trim() ?? string.Empty;
+        if (normalizedQuery.Length > 200)
+            return Failure<DocumentPage>("ValidationFailed", 422, "Document title query must be at most 200 characters.");
+        var normalizedType = string.IsNullOrWhiteSpace(documentType) ? null : documentType.Trim();
+        if (normalizedType is not null && normalizedType is not ("Document" or "Note" or "Knowledge"))
+            return Failure<DocumentPage>("ValidationFailed", 422, "Document type is invalid.");
         var take = Math.Clamp(limit ?? 25, 1, 100);
+        var cursorContext = new DocumentListCursor.Context(actor.OwnerId, normalizedStatus, normalizedQuery, normalizedType, take);
+        DocumentListCursor.Position? after = null;
+        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
+            return Failure<DocumentPage>("InvalidCursor", 422, "Document cursor does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
@@ -54,18 +68,30 @@ public sealed class SqlDocumentService : IDocumentService
                   WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document'
                     AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
               AND ((@Status IS NULL AND p.[Status] <> 'Archived') OR p.[Status] = @Status)
+              AND (@Type IS NULL OR p.[DocumentType] = @Type)
+              AND (@TitleQuery = N'' OR p.[Title] LIKE @TitleLike ESCAPE N'\')
+              AND (@AfterUpdatedAt IS NULL OR p.[UpdatedAt] < @AfterUpdatedAt
+                   OR (p.[UpdatedAt] = @AfterUpdatedAt AND p.[Id] < @AfterId))
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
+        Add(command, "@Type", SqlDbType.VarChar, (object?)normalizedType ?? DBNull.Value, 32);
+        Add(command, "@TitleQuery", SqlDbType.NVarChar, normalizedQuery, 200);
+        Add(command, "@TitleLike", SqlDbType.NVarChar, "%" + normalizedQuery.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal).Replace("[", "\\[", StringComparison.Ordinal) + "%", 402);
+        Add(command, "@AfterUpdatedAt", SqlDbType.DateTime2, (object?)after?.UpdatedAt ?? DBNull.Value);
+        Add(command, "@AfterId", SqlDbType.UniqueIdentifier, (object?)after?.Id ?? DBNull.Value);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@Status", SqlDbType.VarChar, (object?)normalizedStatus ?? DBNull.Value, 16);
         using var reader = command.ExecuteReader();
         var items = new List<DocumentSummary>();
         while (reader.Read()) items.Add(ReadSummary(reader));
         reader.Close();
+        var hasMore = items.Count > take;
+        if (hasMore) items.RemoveAt(items.Count - 1);
+        var nextCursor = hasMore ? _cursor.Encode(cursorContext, items[^1].UpdatedAt, items[^1].Id) : null;
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
         transaction.Commit();
-        return IdentityOperationResult<DocumentPage>.Success(new DocumentPage(items, null));
+        return IdentityOperationResult<DocumentPage>.Success(new DocumentPage(items, nextCursor));
     }
 
     public IdentityOperationResult<DocumentDetail> Get(IdentityPrincipal actor, Guid documentId)

@@ -37,3 +37,7 @@ The code-only run may execute frontend build and structural static checks. The
 agent does not add or run functional, SQL integration, E2E/browser tests,
 fixtures or manual QA. .NET/SQL runtime verification remains `Not run` when
 the required tooling is unavailable.
+
+## Bounded library query continuation
+
+GETdocuments also accepts cursor/query/documentType. Default page25 (maximum100), UpdatedAtDESC/IdDESC seek with encrypted authenticated owner/filter/limit-bound cursor and take+1. Query<=200 is a literal Title match, never Body; known typefilter only. UI uses25/page, LoadMore dedup, 300ms typingdebounce/Enter andabort/epoch invalidation, keeps editor draft acrosslistfilters andclearsdeniedprojections. Tag/CreatedDate/location/folder semantics remain unimplemented requirements, not removed fromR1. Evidence: full-product-audit-20261012/documents-list-continuation-20261015.md.
