@@ -23,7 +23,7 @@ verification under `DEC-20260909-014`.
   Save checks the quoted SQL `ETag`/`If-Match`, keeps type/editor immutable and
   rejects obvious executable markup. Published pages can be archived; archive
   does not create a content version.
-- List responses are summaries. List/Get now hold current session/action and owner/Trash/deleted lifecycle proof in the same Serializable SQL transaction as projection; default library excludes Archived, which uses an explicit filter/tab. UI clears denied projections and guards stale reads/reset. Mutation detail responses and durable receipt/body/read-authorization gaps remain open in documents-authority-continuation-20261015.md; this read repair does not claim they are safe. UI drafts remain in memory.
+- List responses are summaries. List/Get now hold current session/action and owner/Trash/deleted lifecycle proof in the same Serializable SQL transaction as projection; default library excludes Archived, which uses an explicit filter/tab. UI clears denied projections and guards stale reads/reset. The subsequent mutation checkpoint uses current transactional action proof, structured digests and minimal durable receipts. Detail requires current page.read; otherwise API/UI use committed ACK without body. Original transition action is rechecked on replay. UI keeps exact uncertain command/key and protects dirty drafts before lifecycle. Legacy delimiter receipt keys fail409 safely rather than reproduce legacy responses. See full-product-audit-20261012/documents-mutation-contract-20261015.md; runtime acceptance remains not run. UI drafts remain in memory.
 
 ## Deliberately outside this slice
 

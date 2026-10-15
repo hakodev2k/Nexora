@@ -92,7 +92,7 @@ public sealed class SqlDocumentService : IDocumentService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt(connection, transaction, actor, "documents.page.create", idempotencyKey,
-            $"title:{command.Title.Trim()}|type:{command.DocumentType}|mode:{command.EditorMode}|body:{command.Body ?? string.Empty}", out var receipt);
+            JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body) }), out var receipt);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         try
         {
@@ -119,9 +119,7 @@ public sealed class SqlDocumentService : IDocumentService
             WriteAudit(connection, transaction, actor, id, "documents.page.create", traceId);
             var created = ReadDetail(connection, transaction, actor.OwnerId, id, forUpdate: false);
             if (created is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after creation."); }
-            CompleteReceipt(connection, transaction, receipt, "DocumentCreated", 201, JsonSerializer.Serialize(created));
-            transaction.Commit();
-            return IdentityOperationResult<DocumentDetail>.Success(created, 201, "DocumentCreated");
+            return CommitResource(connection, transaction, actor, receipt, created, "documents.page.create", "DocumentCreated", 201);
         }
         catch (SqlException exception)
         {
@@ -142,7 +140,7 @@ public sealed class SqlDocumentService : IDocumentService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt(connection, transaction, actor, "documents.page.save", idempotencyKey,
-            $"document:{documentId:N}|etag:{ifMatch}|title:{command.Title.Trim()}|body:{command.Body ?? string.Empty}|note:{command.ChangeNote ?? string.Empty}", out var receipt);
+            JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Id = documentId, ETag = EncodeETag(expectedVersion), Title = command.Title.Trim(), Body = NormalizeBody(command.Body), ChangeNote = TrimOrNull(command.ChangeNote, 500) }), out var receipt, documentId);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         try
         {
@@ -183,9 +181,7 @@ public sealed class SqlDocumentService : IDocumentService
             WriteAudit(connection, transaction, actor, documentId, "documents.page.save", traceId);
             var saved = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
             if (saved is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after save."); }
-            CompleteReceipt(connection, transaction, receipt, "DocumentSaved", 200, JsonSerializer.Serialize(saved));
-            transaction.Commit();
-            return IdentityOperationResult<DocumentDetail>.Success(saved);
+            return CommitResource(connection, transaction, actor, receipt, saved, "documents.page.save", "DocumentSaved", 200);
         }
         catch (SqlException exception)
         {
@@ -197,7 +193,6 @@ public sealed class SqlDocumentService : IDocumentService
     public IdentityOperationResult<DocumentDetail> Transition(IdentityPrincipal actor, Guid documentId, string? ifMatch,
         DocumentTransitionCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!ModuleAvailable(actor, "FX20", DocumentTransitionAction(command.Status))) return ModuleUnavailable<DocumentDetail>();
         if (command.Status is not ("Draft" or "Published" or "Archived"))
             return Failure<DocumentDetail>("ValidationFailed", 422, "Document status must be Draft, Published or Archived.");
         if (!TryDecodeETag(ifMatch, out var expectedVersion)) return Precondition(ifMatch);
@@ -206,7 +201,7 @@ public sealed class SqlDocumentService : IDocumentService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt(connection, transaction, actor, "documents.page.transition", idempotencyKey,
-            $"document:{documentId:N}|etag:{ifMatch}|status:{command.Status}", out var receipt);
+            JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Id = documentId, ETag = EncodeETag(expectedVersion), command.Status }), out var receipt, documentId, command.Status);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         try
         {
@@ -222,19 +217,21 @@ public sealed class SqlDocumentService : IDocumentService
                 transaction.Rollback();
                 return Failure<DocumentDetail>("LifecycleLocked", 409, "The requested document lifecycle transition is not allowed.");
             }
-            Execute(connection, transaction,
+            var action = current.Status == "Archived" && command.Status != "Archived"
+                ? "documents.page.unarchive" : DocumentTransitionAction(command.Status);
+            if (!CurrentAuthority(connection, transaction, actor, action))
+            { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
+            if (current.Status != command.Status) Execute(connection, transaction,
                 "UPDATE [documents].[Page] SET [Status] = @Status, [PreArchiveStatus] = CASE WHEN @Status = 'Archived' THEN [Status] ELSE NULL END, [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @UserId WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [DeletedAt] IS NULL;",
                 ("@Status", SqlDbType.VarChar, command.Status),
                 ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId),
                 ("@Id", SqlDbType.UniqueIdentifier, documentId),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion));
-            WriteAudit(connection, transaction, actor, documentId, "documents.page.transition", traceId);
+            WriteAudit(connection, transaction, actor, documentId, action, traceId);
             var transitioned = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
             if (transitioned is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after transition."); }
-            CompleteReceipt(connection, transaction, receipt, "DocumentTransitioned", 200, JsonSerializer.Serialize(transitioned));
-            transaction.Commit();
-            return IdentityOperationResult<DocumentDetail>.Success(transitioned);
+            return CommitResource(connection, transaction, actor, receipt, transitioned, action, "DocumentTransitioned", 200);
         }
         catch (SqlException exception)
         {
@@ -314,7 +311,7 @@ public sealed class SqlDocumentService : IDocumentService
     {
         "Draft" => next == "Published" || next == "Archived",
         "Published" => next == "Draft" || next == "Archived",
-        "Archived" => next == (preArchiveStatus ?? "Draft"),
+        "Archived" => preArchiveStatus is "Draft" or "Published" && next == preArchiveStatus,
         _ => false
     };
 
@@ -345,41 +342,74 @@ public sealed class SqlDocumentService : IDocumentService
     private static byte[] DecodeETag(string value) => Convert.FromBase64String(value.Trim().Trim('"'));
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    private IdentityOperationResult<DocumentDetail>? CheckReceipt(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
+    private sealed record DocumentReceipt(Guid Id, string ETag, string Action);
+
+    private bool CurrentAuthority(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string action) => _capabilities.IsAllowed(connection, transaction, actor, "FX20", action);
+
+    private IdentityOperationResult<DocumentDetail> CommitResource(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, ReceiptClaim claim, DocumentDetail detail, string action, string code, int status)
     {
-        claim = default;
-        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
-        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey!, canonicalRequest, DateTime.UtcNow);
-        if (claim.IsClaimed) return null;
-        if (claim.IsInvalid)
-            return Failure<DocumentDetail>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
-        if (claim.IsReplay && claim.ResultStatusCode == 204)
-            return IdentityOperationResult<DocumentDetail>.NoContent(claim.ResultCode ?? "NoContent");
-        if (claim.IsReplay && !string.IsNullOrWhiteSpace(claim.ResultJson))
-        {
-            try
-            {
-                var stored = JsonSerializer.Deserialize<DocumentDetail>(claim.ResultJson);
-                if (stored is not null)
-                {
-                    var current = ReadDetail(connection, transaction, actor.OwnerId, stored.Id, forUpdate: true);
-                    return current is null
-                        ? Missing()
-                        : IdentityOperationResult<DocumentDetail>.Success(current, claim.ResultStatusCode ?? 200, claim.ResultCode ?? "IdempotencyReplay");
-                }
-            }
-            catch (JsonException) { }
-            catch (NotSupportedException) { }
-        }
-        var code = claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress";
-        var message = claim.IsConflict ? "The same Idempotency-Key was already used with a different request." : "The request was already completed or is in progress.";
-        return Failure<DocumentDetail>(code, 409, message);
+        _receipts.Complete(connection, transaction, claim, code, status,
+            JsonSerializer.Serialize(new DocumentReceipt(detail.Id, detail.ETag, action)));
+        if (!CurrentAuthority(connection, transaction, actor, action))
+        { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
+        var canRead = CurrentAuthority(connection, transaction, actor, "documents.page.read");
+        // Time may expire without another transaction changing any locked row.
+        if (!CurrentAuthority(connection, transaction, actor, action))
+        { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
+        transaction.Commit();
+        return canRead ? IdentityOperationResult<DocumentDetail>.Success(detail, status, code)
+            : IdentityOperationResult<DocumentDetail>.Committed(detail.Id, status, "DocumentCommitted");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
-        int? resultStatusCode = null, string? resultJson = null) =>
-        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
+    private IdentityOperationResult<DocumentDetail>? CheckReceipt(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim, Guid? expectedId = null, string? targetStatus = null)
+    {
+        claim = default;
+        string[] actions = operationKey switch
+        {
+            "documents.page.create" => ["documents.page.create"],
+            "documents.page.save" => ["documents.page.save"],
+            "documents.page.transition" => ["documents.page.publish", "documents.page.unpublish", "documents.page.archive", "documents.page.unarchive"],
+            _ => []
+        };
+        if (!actions.Any(action => CurrentAuthority(connection, transaction, actor, action))) return ModuleUnavailable<DocumentDetail>();
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
+        if (claim.IsClaimed) return null;
+        if (claim.IsInvalid) return Failure<DocumentDetail>("InvalidIdempotencyKey", 422, "The Idempotency-Key must be a UUID.");
+        if (claim.IsReplay)
+        {
+            DocumentReceipt? stored;
+            try { stored = JsonSerializer.Deserialize<DocumentReceipt>(claim.ResultJson ?? string.Empty); }
+            catch (JsonException) { stored = null; }
+            if (stored is null || stored.Id == Guid.Empty || !TryDecodeETag(stored.ETag, out _) ||
+                !actions.Contains(stored.Action, StringComparer.Ordinal) || (expectedId is not null && stored.Id != expectedId) ||
+                (operationKey == "documents.page.transition" && !(stored.Action switch
+                {
+                    "documents.page.publish" => targetStatus == "Published",
+                    "documents.page.unpublish" => targetStatus == "Draft",
+                    "documents.page.archive" => targetStatus == "Archived",
+                    "documents.page.unarchive" => targetStatus is "Draft" or "Published",
+                    _ => false
+                })) ||
+                claim.ResultStatusCode != (operationKey == "documents.page.create" ? 201 : 200) ||
+                claim.ResultCode != (operationKey == "documents.page.create" ? "DocumentCreated" : operationKey == "documents.page.save" ? "DocumentSaved" : "DocumentTransitioned"))
+                return Failure<DocumentDetail>("ReceiptUnavailable", 503, "The committed document receipt is unavailable.");
+            if (!CurrentAuthority(connection, transaction, actor, stored.Action)) return ModuleUnavailable<DocumentDetail>();
+            DocumentDetail? current = null;
+            if (CurrentAuthority(connection, transaction, actor, "documents.page.read"))
+                current = ReadDetail(connection, transaction, actor.OwnerId, stored.Id, forUpdate: false);
+            var canRead = current is not null && current.ETag == stored.ETag &&
+                CurrentAuthority(connection, transaction, actor, "documents.page.read");
+            if (!CurrentAuthority(connection, transaction, actor, stored.Action)) return ModuleUnavailable<DocumentDetail>();
+            return canRead ? IdentityOperationResult<DocumentDetail>.Success(current!, claim.ResultStatusCode.Value, claim.ResultCode)
+                : IdentityOperationResult<DocumentDetail>.Committed(stored.Id, claim.ResultStatusCode.Value, "DocumentCommitted");
+        }
+        return Failure<DocumentDetail>(claim.IsConflict ? "IdempotencyConflict" : "RequestInProgress", 409,
+            claim.IsConflict ? "The same Idempotency-Key was already used with a different request or older receipt format." : "The request is in progress.");
+    }
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid targetId, string action, string? traceId)
     {

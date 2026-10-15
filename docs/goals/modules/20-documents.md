@@ -2,7 +2,7 @@
 
 Product phase: **P03** · Delivery: **RM09** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-20 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** Full local implementation approved by DEC-20260909-014; limited page-core/read/mutation authority slices implemented on PR4 with code-only build/source-review evidence. Full FX20 remains PARTIAL; runtime verification not run. Goals có điều kiện không là quyền code. FX-20 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

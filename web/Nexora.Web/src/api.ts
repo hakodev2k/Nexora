@@ -1383,28 +1383,37 @@ export function getDocument(id: string) {
   return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}`);
 }
 
+function validateDocumentMutation(result: DocumentRecord | ProductivityCommittedAcknowledgement | void, expectedId?: string) {
+  if (result === undefined) return result;
+  if (!result || typeof result.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.id) || (expectedId !== undefined && result.id.toLowerCase() !== expectedId.toLowerCase())) throw new NexoraApiError('Không thể xác nhận kết quả Document.', 0, 'UnexpectedAcknowledgement');
+  if (isProductivityAcknowledgement(result)) return result;
+  if (typeof result.title !== 'string' || typeof result.body !== 'string' || typeof result.etag !== 'string')
+    throw new NexoraApiError('Không thể xác nhận chi tiết Document.', 0, 'UnexpectedAcknowledgement');
+  return result;
+}
+
 export function createDocument(title: string, documentType: string, editorMode: string, body: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<DocumentRecord>('/api/v1/documents', {
+  return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement | void>('/api/v1/documents', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ title, documentType, editorMode, body })
-  });
+  }, [201, 204]).then(validateDocumentMutation);
 }
 
 export function saveDocument(id: string, etag: string, title: string, body: string, changeNote: string | null = null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}`, {
+  return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement | void>(`/api/v1/documents/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ title, body, changeNote })
-  });
+  }, [200, 204]).then(result => validateDocumentMutation(result, id));
 }
 
 export function transitionDocument(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}/transition`, {
+  return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement | void>(`/api/v1/documents/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })
-  });
+  }, [200, 204]).then(result => validateDocumentMutation(result, id));
 }
 
 export function listNotifications(unreadOnly = false, limit = 50) {
