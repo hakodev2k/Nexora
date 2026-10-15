@@ -15,10 +15,10 @@ public static class DocumentEndpoints
         // the document group instead of weakening the global 64 KiB default.
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
-        api.MapGet("/documents", (HttpContext context, string? status, int? limit, string? cursor, string? query, string? documentType, DateOnly? createdFrom, DateOnly? createdTo, IDocumentService service,
+        api.MapGet("/documents", (HttpContext context, string? status, int? limit, string? cursor, string? query, string? documentType, DateOnly? createdFrom, DateOnly? createdTo, Guid? tagId, IDocumentService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, status, limit, cursor, query, documentType, createdFrom, createdTo), value =>
+                principal => service.List(principal, status, limit, cursor, query, documentType, createdFrom, createdTo, tagId), value =>
                     new DocumentPageResponse(value.Items.Select(ToSummary).ToArray(), value.NextCursor)))
             .WithName("listDocuments");
 
@@ -32,7 +32,7 @@ public static class DocumentEndpoints
             IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Create(principal,
-                    new DocumentCreateCommand(request.Title, request.DocumentType, request.EditorMode, request.Body),
+                    new DocumentCreateCommand(request.Title, request.DocumentType, request.EditorMode, request.Body, request.TagId),
                     IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("createDocument");
 
@@ -40,7 +40,7 @@ public static class DocumentEndpoints
             IDocumentService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Save(principal, documentId, context.Request.Headers.IfMatch.ToString(),
-                    new DocumentSaveCommand(request.Title, request.Body, request.ChangeNote), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                    new DocumentSaveCommand(request.Title, request.Body, request.ChangeNote, request.Tag is null ? null : new DocumentTagChange(request.Tag.Id)), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("saveDocument");
 
         api.MapPost("/documents/{documentId:guid}/transition", (HttpContext context, Guid documentId,
@@ -85,9 +85,9 @@ public static class DocumentEndpoints
 
     private static DocumentSummaryResponse ToSummary(DocumentSummary value) => new(
         value.Id, value.Title, value.DocumentType, value.EditorMode, value.Status, value.PreArchiveStatus, value.VersionNumber,
-        value.CreatedAt, value.UpdatedAt, value.ETag);
+        value.CreatedAt, value.UpdatedAt, value.ETag, value.TagId, value.TagName);
 
     private static DocumentResponse ToResponse(DocumentDetail value) => new(
         value.Id, value.Title, value.DocumentType, value.EditorMode, value.Body, value.Status, value.PreArchiveStatus, value.VersionNumber,
-        value.CreatedAt, value.UpdatedAt, value.ETag);
+        value.CreatedAt, value.UpdatedAt, value.ETag, value.TagId, value.TagName);
 }

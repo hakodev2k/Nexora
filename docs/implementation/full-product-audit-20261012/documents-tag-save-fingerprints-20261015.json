@@ -1,0 +1,51 @@
+{
+  "parent": "50a82e3032de029a5f144acc43ac96bfd51b94ee",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "database/migrations/20261015_0057_document_tag_version_snapshots.sql",
+      "sha256": "c301c74b582277caab9e7f2b965f2eeb8aae7d593aac033e328069d89fd6197f",
+      "publishedLfSha256": "c301c74b582277caab9e7f2b965f2eeb8aae7d593aac033e328069d89fd6197f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "6e1146833f448da3803040199e07c06b20df1e554d92189b68d3b22b1a51ff74",
+      "publishedLfSha256": "407048ffa8aeb1f2e16748ee54686f531dfec4a2ee8a986cf457308a58d2b563"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentService.cs",
+      "sha256": "846d5123de3182cdfc2eef2cb42834f119083b8aa793d48d1249cf4e625c5cb3",
+      "publishedLfSha256": "846d5123de3182cdfc2eef2cb42834f119083b8aa793d48d1249cf4e625c5cb3"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentListCursor.cs",
+      "sha256": "8f306a609356921ad7046f93fdec486debbf334396a2232a4547400a0549dd04",
+      "publishedLfSha256": "8f306a609356921ad7046f93fdec486debbf334396a2232a4547400a0549dd04"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentServiceContracts.cs",
+      "sha256": "84b3caa6761576a411475f8c3f1fcdd36812fb6eabb99e8cb15b031c95af62d9",
+      "publishedLfSha256": "a7b51840ac2775c495419b1ff9a4a919889b7ce1b8343d53759081ece280b36e"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentContracts.cs",
+      "sha256": "6a3879b9d12d90e73fbddebe41b0d39c42810aa312676c970b9f81fac890f123",
+      "publishedLfSha256": "b7da7ae7b504a600a8a65e4963fd773739d4b62bdd9b27d6fbc85c9692251b66"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentEndpoints.cs",
+      "sha256": "f8b1a6b06493f5e21fa1548d7c5226c6eb077f373df4eb074f83954055d2606f",
+      "publishedLfSha256": "76e5e175b3ead1f75c102152c6dd4da7d513144535ecf9788f7baf3f42baba0c"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "f0d6ec4ed111d73277d5347b40797bf628a3640e11f68817c1fb2d60a5be2c43",
+      "publishedLfSha256": "f0d6ec4ed111d73277d5347b40797bf628a3640e11f68817c1fb2d60a5be2c43"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "5af4ed9a76533659671bfdd4ad210bc52218c175a9bd1b924119cc96c73b427d",
+      "publishedLfSha256": "5af4ed9a76533659671bfdd4ad210bc52218c175a9bd1b924119cc96c73b427d"
+    }
+  ]
+}

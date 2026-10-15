@@ -35,7 +35,7 @@ public sealed class SqlDocumentService : IDocumentService
 
     public IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null,
         string? cursor = null, string? query = null, string? documentType = null,
-        DateOnly? createdFrom = null, DateOnly? createdTo = null)
+        DateOnly? createdFrom = null, DateOnly? createdTo = null, Guid? tagId = null)
     {
         if (!ModuleAvailable(actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
         var normalizedStatus = NormalizeStatus(status);
@@ -48,6 +48,7 @@ public sealed class SqlDocumentService : IDocumentService
         var normalizedType = string.IsNullOrWhiteSpace(documentType) ? null : documentType.Trim();
         if (normalizedType is not null && normalizedType is not ("Document" or "Note" or "Knowledge"))
             return Failure<DocumentPage>("ValidationFailed", 422, "Document type is invalid.");
+        if (tagId == Guid.Empty) return Failure<DocumentPage>("ValidationFailed", 422, "Tag filter is invalid.");
         var take = Math.Clamp(limit ?? 25, 1, 100);
         using var connection = _connections.Create();
         connection.Open();
@@ -57,7 +58,7 @@ public sealed class SqlDocumentService : IDocumentService
         if (!dateRange.Succeeded) return Failure<DocumentPage>(dateRange.Code, dateRange.StatusCode, dateRange.Title);
         var range = dateRange.Value!;
         var cursorContext = new DocumentListCursor.Context(actor.OwnerId, normalizedStatus, normalizedQuery, normalizedType, take,
-            createdFrom, createdTo, range.TimeZoneId, range.TimeZoneVersion, range.FromUtc, range.ToUtc);
+            createdFrom, createdTo, range.TimeZoneId, range.TimeZoneVersion, range.FromUtc, range.ToUtc, tagId);
         DocumentListCursor.Position? after = null;
         if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
             return Failure<DocumentPage>("InvalidCursor", 422, "Document cursor does not match this query.");
@@ -65,7 +66,8 @@ public sealed class SqlDocumentService : IDocumentService
         command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Title], [DocumentType], [EditorMode], [Status],
-                   [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion]
+                   [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion], p.[TagId],
+                   (SELECT t.[Name] FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId])
             FROM [documents].[Page] p
             WHERE p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL
               AND p.[Status] IN ('Draft', 'Published', 'Archived')
@@ -74,7 +76,9 @@ public sealed class SqlDocumentService : IDocumentService
                     AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
               AND ((@Status IS NULL AND p.[Status] <> 'Archived') OR p.[Status] = @Status)
               AND (@Type IS NULL OR p.[DocumentType] = @Type)
-              AND (@TitleQuery = N'' OR p.[Title] LIKE @TitleLike ESCAPE N'\')
+              AND (@TagId IS NULL OR p.[TagId]=@TagId)
+              AND (@TitleQuery = N'' OR p.[Title] LIKE @TitleLike ESCAPE N'\' OR EXISTS
+                  (SELECT 1 FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId] AND t.[Name] LIKE @TitleLike ESCAPE N'\'))
               AND (@CreatedFromUtc IS NULL OR p.[CreatedAt] >= @CreatedFromUtc)
               AND (@CreatedToUtc IS NULL OR p.[CreatedAt] < @CreatedToUtc)
               AND (@AfterUpdatedAt IS NULL OR p.[UpdatedAt] < @AfterUpdatedAt
@@ -82,6 +86,7 @@ public sealed class SqlDocumentService : IDocumentService
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
         Add(command, "@Limit", SqlDbType.Int, take + 1);
+        Add(command, "@TagId", SqlDbType.UniqueIdentifier, (object?)tagId ?? DBNull.Value);
         Add(command, "@Type", SqlDbType.VarChar, (object?)normalizedType ?? DBNull.Value, 32);
         Add(command, "@TitleQuery", SqlDbType.NVarChar, normalizedQuery, 200);
         Add(command, "@TitleLike", SqlDbType.NVarChar, "%" + normalizedQuery.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal).Replace("[", "\\[", StringComparison.Ordinal) + "%", 402);
@@ -127,13 +132,17 @@ public sealed class SqlDocumentService : IDocumentService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt(connection, transaction, actor, "documents.page.create", idempotencyKey,
-            JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body) }), out var receipt);
+            command.TagId is null ? JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body) }) :
+            JsonSerializer.Serialize(new { Version = 3, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body), command.TagId }), out var receipt);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         try
         {
+            var tagName = command.TagId is { } selectedTag ? ReadTagName(connection, transaction, actor.OwnerId, selectedTag) : null;
+            if (command.TagId is not null && tagName is null) return Failure<DocumentDetail>("ResourceUnavailable", 404, "Tag unavailable.");
             var id = Guid.NewGuid();
             Execute(connection, transaction,
-                "INSERT INTO [documents].[Page] ([Id], [OwnerId], [CreatedByUserId], [UpdatedByUserId], [Title], [DocumentType], [EditorMode], [Body], [Status], [VersionNumber]) VALUES (@Id, @OwnerId, @UserId, @UserId, @Title, @DocumentType, @EditorMode, @Body, 'Draft', 1);",
+                "INSERT INTO [documents].[Page] ([Id], [OwnerId], [CreatedByUserId], [UpdatedByUserId], [Title], [DocumentType], [EditorMode], [Body], [Status], [VersionNumber], [TagId]) VALUES (@Id, @OwnerId, @UserId, @UserId, @Title, @DocumentType, @EditorMode, @Body, 'Draft', 1, @TagId);",
+                ("@TagId", SqlDbType.UniqueIdentifier, (object?)command.TagId ?? DBNull.Value),
                 ("@Id", SqlDbType.UniqueIdentifier, id),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId),
@@ -142,7 +151,9 @@ public sealed class SqlDocumentService : IDocumentService
                 ("@EditorMode", SqlDbType.VarChar, command.EditorMode),
                 ("@Body", SqlDbType.NVarChar, (object?)NormalizeBody(command.Body) ?? string.Empty));
             Execute(connection, transaction,
-                "INSERT INTO [documents].[PageVersion] ([PageId], [OwnerId], [VersionNumber], [Title], [Body], [DocumentType], [EditorMode], [Status], [ChangeNote], [CreatedByUserId]) VALUES (@PageId, @OwnerId, 1, @Title, @Body, @DocumentType, @EditorMode, 'Draft', @ChangeNote, @UserId);",
+                "INSERT INTO [documents].[PageVersion] ([PageId], [OwnerId], [VersionNumber], [Title], [Body], [DocumentType], [EditorMode], [Status], [ChangeNote], [CreatedByUserId], [TagIdSnapshot], [TagNameSnapshot], [TagSnapshotCaptured]) VALUES (@PageId, @OwnerId, 1, @Title, @Body, @DocumentType, @EditorMode, 'Draft', @ChangeNote, @UserId, @TagIdSnapshot, @TagNameSnapshot, 1);",
+                ("@TagIdSnapshot", SqlDbType.UniqueIdentifier, (object?)command.TagId ?? DBNull.Value),
+                ("@TagNameSnapshot", SqlDbType.NVarChar, (object?)tagName ?? DBNull.Value),
                 ("@PageId", SqlDbType.UniqueIdentifier, id),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@Title", SqlDbType.NVarChar, command.Title.Trim()),
@@ -175,7 +186,8 @@ public sealed class SqlDocumentService : IDocumentService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt(connection, transaction, actor, "documents.page.save", idempotencyKey,
-            JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Id = documentId, ETag = EncodeETag(expectedVersion), Title = command.Title.Trim(), Body = NormalizeBody(command.Body), ChangeNote = TrimOrNull(command.ChangeNote, 500) }), out var receipt, documentId);
+            command.Tag is null ? JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Id = documentId, ETag = EncodeETag(expectedVersion), Title = command.Title.Trim(), Body = NormalizeBody(command.Body), ChangeNote = TrimOrNull(command.ChangeNote, 500) }) :
+            JsonSerializer.Serialize(new { Version = 3, OwnerId = actor.OwnerId, Id = documentId, ETag = EncodeETag(expectedVersion), Title = command.Title.Trim(), Body = NormalizeBody(command.Body), ChangeNote = TrimOrNull(command.ChangeNote, 500), TagId = command.Tag.Id }), out var receipt, documentId);
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         try
         {
@@ -191,18 +203,24 @@ public sealed class SqlDocumentService : IDocumentService
                 transaction.Rollback();
                 return Failure<DocumentDetail>("LifecycleLocked", 409, "Archived documents are read-only.");
             }
+            var nextTagId = command.Tag is null ? current.TagId : command.Tag.Id;
+            var tagName = nextTagId is { } selectedTag ? ReadTagName(connection, transaction, actor.OwnerId, selectedTag) : null;
+            if (nextTagId is not null && tagName is null) return Failure<DocumentDetail>("ResourceUnavailable", 404, "Tag unavailable.");
             var nextVersion = current.VersionNumber + 1;
             Execute(connection, transaction,
-                "UPDATE [documents].[Page] SET [Title] = @Title, [Body] = @Body, [VersionNumber] = @VersionNumber, [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @UserId WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [DeletedAt] IS NULL;",
+                "UPDATE [documents].[Page] SET [Title] = @Title, [Body] = @Body, [TagId] = @TagId, [VersionNumber] = @VersionNumber, [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @UserId WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [DeletedAt] IS NULL;",
                 ("@Title", SqlDbType.NVarChar, command.Title.Trim()),
                 ("@Body", SqlDbType.NVarChar, (object?)NormalizeBody(command.Body) ?? string.Empty),
+                ("@TagId", SqlDbType.UniqueIdentifier, (object?)nextTagId ?? DBNull.Value),
                 ("@VersionNumber", SqlDbType.BigInt, nextVersion),
                 ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId),
                 ("@Id", SqlDbType.UniqueIdentifier, documentId),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion));
             Execute(connection, transaction,
-                "INSERT INTO [documents].[PageVersion] ([PageId], [OwnerId], [VersionNumber], [Title], [Body], [DocumentType], [EditorMode], [Status], [ChangeNote], [CreatedByUserId]) VALUES (@PageId, @OwnerId, @VersionNumber, @Title, @Body, @DocumentType, @EditorMode, @Status, @ChangeNote, @UserId);",
+                "INSERT INTO [documents].[PageVersion] ([PageId], [OwnerId], [VersionNumber], [Title], [Body], [DocumentType], [EditorMode], [Status], [ChangeNote], [CreatedByUserId], [TagIdSnapshot], [TagNameSnapshot], [TagSnapshotCaptured]) VALUES (@PageId, @OwnerId, @VersionNumber, @Title, @Body, @DocumentType, @EditorMode, @Status, @ChangeNote, @UserId, @TagIdSnapshot, @TagNameSnapshot, 1);",
+                ("@TagIdSnapshot", SqlDbType.UniqueIdentifier, (object?)nextTagId ?? DBNull.Value),
+                ("@TagNameSnapshot", SqlDbType.NVarChar, (object?)tagName ?? DBNull.Value),
                 ("@PageId", SqlDbType.UniqueIdentifier, documentId),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@VersionNumber", SqlDbType.BigInt, nextVersion),
@@ -277,6 +295,7 @@ public sealed class SqlDocumentService : IDocumentService
 
     private static IdentityOperationResult<DocumentDetail>? ValidateCreate(DocumentCreateCommand command)
     {
+        if (command.TagId == Guid.Empty) return Failure<DocumentDetail>("ValidationFailed", 422, "Tag selection is invalid.");
         if (string.IsNullOrWhiteSpace(command.Title) || command.Title.Trim().Length > 200)
             return Failure<DocumentDetail>("ValidationFailed", 422, "Document title is required and must be at most 200 characters.");
         if (command.DocumentType is not ("Document" or "Note" or "Knowledge"))
@@ -288,6 +307,7 @@ public sealed class SqlDocumentService : IDocumentService
 
     private static IdentityOperationResult<DocumentDetail>? ValidateSave(DocumentSaveCommand command)
     {
+        if (command.Tag?.Id == Guid.Empty) return Failure<DocumentDetail>("ValidationFailed", 422, "Tag selection is invalid.");
         if (string.IsNullOrWhiteSpace(command.Title) || command.Title.Trim().Length > 200)
             return Failure<DocumentDetail>("ValidationFailed", 422, "Document title is required and must be at most 200 characters.");
         if (command.ChangeNote is { Length: > 500 })
@@ -320,20 +340,29 @@ public sealed class SqlDocumentService : IDocumentService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion] FROM [documents].[Page] p {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE p.[Id] = @Id AND p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL AND p.[Status] IN ('Draft', 'Published', 'Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document' AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);";
+        command.CommandText = $"SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion], p.[TagId], (SELECT t.[Name] FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId]) FROM [documents].[Page] p {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE p.[Id] = @Id AND p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL AND p.[Status] IN ('Draft', 'Published', 'Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document' AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, documentId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
         return reader.Read() ? ReadDetail(reader) : null;
     }
 
+    private static string? ReadTagName(SqlConnection connection, SqlTransaction transaction, Guid ownerId, Guid tagId)
+    {
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "SELECT [Name] FROM [documents].[Tag] WITH(HOLDLOCK) WHERE [OwnerId]=@Owner AND [Id]=@Tag;";
+        Add(command, "@Owner", SqlDbType.UniqueIdentifier, ownerId);
+        Add(command, "@Tag", SqlDbType.UniqueIdentifier, tagId);
+        return command.ExecuteScalar() as string;
+    }
+
     private static DocumentSummary ReadSummary(SqlDataReader reader) => new(
         reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
-        reader.IsDBNull(5) ? null : reader.GetString(5), reader.GetInt64(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]));
+        reader.IsDBNull(5) ? null : reader.GetString(5), reader.GetInt64(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.IsDBNull(10) ? null : reader.GetGuid(10), reader.IsDBNull(11) ? null : reader.GetString(11));
 
     private static DocumentDetail ReadDetail(SqlDataReader reader) => new(
         reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetString(5),
-        reader.IsDBNull(6) ? null : reader.GetString(6), reader.GetInt64(7), ToOffset(reader.GetDateTime(8)), ToOffset(reader.GetDateTime(9)), EncodeETag((byte[])reader[10]));
+        reader.IsDBNull(6) ? null : reader.GetString(6), reader.GetInt64(7), ToOffset(reader.GetDateTime(8)), ToOffset(reader.GetDateTime(9)), EncodeETag((byte[])reader[10]), reader.IsDBNull(11) ? null : reader.GetGuid(11), reader.IsDBNull(12) ? null : reader.GetString(12));
 
     private static IdentityOperationResult<DocumentDetail> Missing() => Failure<DocumentDetail>("ResourceUnavailable", 404, "Document unavailable.");
     private static IdentityOperationResult<T> ModuleUnavailable<T>() => Failure<T>("ModuleUnavailable", 409, "The requested module is disabled or unavailable for this user.");

@@ -1925,9 +1925,58 @@ function TrashScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   );
 }
 
+function DocumentTagSelector({ controlId, value, label, onChange, disabled, onAuthLost, emptyLabel = 'Không có Tag', autoLoad = true }: {
+  controlId: string; value: string; label?: string | null; onChange: (id: string, name: string | null) => void;
+  disabled: boolean; onAuthLost: () => Promise<void>; emptyLabel?: string; autoLoad?: boolean;
+}) {
+  const [items, setItems] = useState<TagRecord[]>([]);
+  const [query, setQuery] = useState('');
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<NexoraApiError | null>(null);
+  const epoch = useRef(0), flight = useRef(false);
+  const controller = useRef<AbortController | null>(null);
+  const disabledRef = useRef(disabled); disabledRef.current = disabled;
+  async function load(append = false) {
+    if (disabledRef.current || flight.current || (append && !cursor)) return;
+    const stamp = ++epoch.current, request = new AbortController();
+    controller.current?.abort(); controller.current = request; flight.current = true;
+    setLoading(true); setError(null);
+    if (!append) { setItems([]); setCursor(null); }
+    try {
+      const page = await listOrganizationTags('documents', query, 25, append ? cursor! : undefined, request.signal);
+      if (stamp !== epoch.current || request.signal.aborted) return;
+      setItems(previous => append ? [...new Map([...previous, ...page.items].map(item => [item.id, item])).values()] : page.items);
+      setCursor(page.nextCursor ?? null);
+    } catch (requestError) {
+      if (stamp !== epoch.current || request.signal.aborted) return;
+      const failure = asApiError(requestError); setItems([]); setCursor(null); setError(failure);
+      if (failure.status === 401) await onAuthLost();
+    } finally { if (stamp === epoch.current) { flight.current = false; setLoading(false); controller.current = null; } }
+  }
+  useEffect(() => () => { epoch.current++; controller.current?.abort(); flight.current = false; }, []);
+  useEffect(() => {
+    epoch.current++; controller.current?.abort(); flight.current = false; setItems([]); setCursor(null); setError(null); setLoading(false);
+    if (disabled || !autoLoad) return;
+    const timer = setTimeout(() => { void load(); }, query.trim() ? 300 : 0);
+    return () => { clearTimeout(timer); epoch.current++; controller.current?.abort(); flight.current = false; };
+  }, [query, disabled, autoLoad]);
+  return <div className="field-group"><label htmlFor={controlId}>Tag</label>
+    <select id={controlId} value={value} disabled={disabled} onChange={event => {
+      if (!disabledRef.current) onChange(event.target.value, items.find(item => item.id === event.target.value)?.name ?? (event.target.value === value ? label ?? null : null));
+    }}><option value="">{emptyLabel}</option>{value && !items.some(item => item.id === value) && <option value={value}>{label ?? 'Tag đang chọn'}</option>}{items.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+    <label htmlFor={controlId + '-query'}>Tìm Tag theo tên</label><input id={controlId + '-query'} value={query} maxLength={50} disabled={disabled} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); if (!disabledRef.current) void load(); } }} onChange={event => {
+      if (disabledRef.current) return;
+      epoch.current++; controller.current?.abort(); flight.current = false; setItems([]); setCursor(null); setQuery(event.target.value);
+    }} />
+    {loading && <span role="status">Đang tải Tag…</span>}{error && <Notice kind="error">Không tải được catalog Tag: {error.message}</Notice>}
+    <div className="form-actions"><button type="button" className="link-button" disabled={disabled || loading} onClick={() => void load()}>Tải lại Tag</button>{cursor && <button type="button" className="link-button" disabled={disabled || loading} onClick={() => void load(true)}>Tải thêm Tag</button>}</div>
+  </div>;
+}
+
 type DocumentPendingCommand =
-  | { kind: 'create'; title: string; body: string; documentType: string; editorMode: string; key: string }
-  | { kind: 'save'; id: string; etag: string; title: string; body: string; key: string }
+  | { kind: 'create'; title: string; body: string; documentType: string; editorMode: string; tagId: string | null; key: string }
+  | { kind: 'save'; id: string; etag: string; title: string; body: string; tag?: { id: string | null }; key: string }
   | { kind: 'transition'; id: string; etag: string; status: string; key: string };
 
 function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
@@ -1935,6 +1984,11 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [selected, setSelected] = useState<DocumentRecord | null>(null);
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [tagId, setTagId] = useState('');
+  const [readSuspended, setReadSuspended] = useState(false);
+  const [tagLabel, setTagLabel] = useState<string | null>(null);
+  const [libraryTag, setLibraryTag] = useState('');
+  const [libraryTagLabel, setLibraryTagLabel] = useState<string | null>(null);
   const [documentType, setDocumentType] = useState('');
   const [editorMode, setEditorMode] = useState('');
   const [libraryStatus, setLibraryStatus] = useState<'' | 'Archived'>('');
@@ -1962,8 +2016,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   function setCommand(command: DocumentPendingCommand | null) { pendingRef.current = command; setPending(command); }
 
   const isDirty = pending !== null || (selected
-    ? title !== selected.title || body !== selected.body
-    : Boolean(title || body || documentType || editorMode));
+    ? title !== selected.title || body !== selected.body || tagId !== (selected.tagId ?? '')
+    : Boolean(title || body || documentType || editorMode || tagId));
 
   useEffect(() => {
     dirtyLeaveGuard.current = (continueAction) => {
@@ -2028,6 +2082,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   async function load(append = false) {
     if (flight.current || pendingRef.current || busy !== null) return;
     if (append && (listController.current !== null || loading || !nextCursor)) return;
+    setReadSuspended(false);
     if (listDebounce.current !== null) { clearTimeout(listDebounce.current); listDebounce.current = null; }
     const current = ++readEpoch.current;
     listController.current?.abort();
@@ -2036,7 +2091,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (!append) { setItems([]); setNextCursor(null); setHasLoadedList(false); }
     setLoading(true); setError(null);
     try {
-      const page = await listDocuments(libraryStatus || undefined, 25, cursor, libraryQuery, libraryType, request.signal, libraryCreatedFrom, libraryCreatedTo);
+      const page = await listDocuments(libraryStatus || undefined, 25, cursor, libraryQuery, libraryType, request.signal, libraryCreatedFrom, libraryCreatedTo, libraryTag);
       if (current !== readEpoch.current || request.signal.aborted) return;
       const incoming = Array.isArray(page.items) ? page.items : [];
       setItems(previous => append ? Array.from(new Map([...previous, ...incoming].map(item => [item.id, item])).values()) : incoming);
@@ -2060,13 +2115,15 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       readEpoch.current++; listController.current?.abort(); listController.current = null;
       if (listDebounce.current !== null) clearTimeout(listDebounce.current);
     };
-  }, [libraryStatus, libraryQuery, libraryType, libraryCreatedFrom, libraryCreatedTo]);
+  }, [libraryStatus, libraryQuery, libraryType, libraryCreatedFrom, libraryCreatedTo, libraryTag]);
 
   function clearEditor() {
+    setReadSuspended(false);
     readEpoch.current++; setLoading(false); setCommand(null);
     setSelected(null);
     setTitle('');
     setBody('');
+    setTagId(''); setTagLabel(null);
     setDocumentType('');
     setEditorMode('');
     setConflict(null);
@@ -2075,7 +2132,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function handlePrivateFailure(failure: NexoraApiError) {
     if ([401, 403, 404].includes(failure.status) || failure.code === 'ModuleUnavailable') {
-      readEpoch.current++; listController.current?.abort(); listController.current = null; setItems([]); setNextCursor(null); setHasLoadedList(false); clearEditor(); setLeavePrompt(null); setLoading(false);
+      readEpoch.current++; listController.current?.abort(); listController.current = null; setItems([]); setNextCursor(null); setHasLoadedList(false); clearEditor(); setReadSuspended(true); setLibraryTagLabel(null); setLeavePrompt(null); setLoading(false);
       setCommand(null);
     }
     setError(failure);
@@ -2106,6 +2163,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setSelected(document);
       setTitle(document.title);
       setBody(document.body);
+      setTagId(document.tagId ?? ''); setTagLabel(document.tagName ?? null);
       setDocumentType(document.documentType);
       setEditorMode(document.editorMode);
     } catch (requestError) {
@@ -2129,16 +2187,16 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     setError(null); setConflict(null); setCommitNotice(false);
     try {
       const saved = command.kind === 'create'
-        ? await createDocument(command.title, command.documentType, command.editorMode, command.body, command.key)
+        ? await createDocument(command.title, command.documentType, command.editorMode, command.body, command.key, command.tagId)
         : command.kind === 'save'
-          ? await saveDocument(command.id, command.etag, command.title, command.body, null, command.key)
+          ? await saveDocument(command.id, command.etag, command.title, command.body, null, command.key, command.tag)
           : await transitionDocument(command.id, command.etag, command.status, command.key);
       if (current !== readEpoch.current) return false;
       setCommand(null);
       if (saved === undefined || isProductivityAcknowledgement(saved)) {
-        clearEditor(); setItems([]); setNextCursor(null); setHasLoadedList(false); setCommitNotice(true); return true;
+        clearEditor(); setReadSuspended(true); setLibraryTagLabel(null); setItems([]); setNextCursor(null); setHasLoadedList(false); setCommitNotice(true); return true;
       }
-      setSelected(saved); setTitle(saved.title); setBody(saved.body);
+      setSelected(saved); setTitle(saved.title); setBody(saved.body); setTagId(saved.tagId ?? ''); setTagLabel(saved.tagName ?? null);
       setDocumentType(saved.documentType); setEditorMode(saved.editorMode); setConflict(null); setCommitNotice(true);
       // A protected read failure must never relabel the known committed command as failed.
       flight.current = false; setBusy(null);
@@ -2172,8 +2230,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       return false;
     }
     return execute(selected
-      ? { kind: 'save', id: selected.id, etag: selected.etag, title: title.trim(), body, key: createIdempotencyKey() }
-      : { kind: 'create', title: title.trim(), body, documentType, editorMode, key: createIdempotencyKey() });
+      ? { kind: 'save', id: selected.id, etag: selected.etag, title: title.trim(), body, tag: tagId === (selected.tagId ?? '') ? undefined : { id: tagId || null }, key: createIdempotencyKey() }
+      : { kind: 'create', title: title.trim(), body, documentType, editorMode, tagId: tagId || null, key: createIdempotencyKey() });
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -2210,17 +2268,18 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       {pending && !busy && <Notice kind="error">Kết quả chưa rõ hoặc key cần đối chiếu. Giữ nguyên thao tác để thử lại.<button type="button" className="secondary-button" onClick={() => { if (pendingRef.current) void execute(pendingRef.current); }}>Đối chiếu thao tác</button></Notice>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {leavePrompt && <div className="dialog-backdrop" role="presentation"><div ref={leaveDialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="unsaved-changes-title"><h2 id="unsaved-changes-title">Unsaved changes</h2><p>Document hiện có thay đổi chưa lưu hoặc thao tác đã gửi cần đối chiếu. Bỏ draft không hủy thao tác đã gửi. Bạn muốn lưu thay đổi, bỏ draft hay tiếp tục chỉnh sửa?</p><div className="form-actions"><button className="primary-button" type="button" onClick={() => void saveAndContinue()} disabled={busy !== null}>Save changes</button><button className="danger-button" type="button" onClick={discardAndContinue} disabled={busy !== null}>Discard changes</button><button className="link-button" type="button" onClick={() => setLeavePrompt(null)} disabled={busy !== null}>Keep editing</button></div></div></div>}
-      {conflict && <div className="conflict-panel" role="alert" aria-labelledby="document-conflict-title"><div><h2 id="document-conflict-title">Document đã thay đổi trên server</h2><p>Draft hiện tại vẫn giữ nguyên trong memory. Revision server là v{conflict.versionNumber}; chọn cách xử lý trước khi lưu tiếp.</p><details><summary>So sánh bản server</summary><p><strong>Tiêu đề:</strong> {conflict.title}</p><p><strong>Trạng thái:</strong> {conflict.status}</p><pre className="conflict-preview">{conflict.body}</pre></details></div><div className="form-actions"><button className="secondary-button" type="button" onClick={() => { setSelected(conflict); setTitle(conflict.title); setBody(conflict.body); setDocumentType(conflict.documentType); setEditorMode(conflict.editorMode); setConflict(null); setError(null); }}>Tải bản server</button><button className="primary-button" type="button" onClick={() => { setSelected(conflict); setConflict(null); setError(null); }}>Giữ draft và áp dụng lại</button><button className="link-button" type="button" onClick={() => setConflict(null)}>Hủy xử lý</button></div></div>}
+      {conflict && <div className="conflict-panel" role="alert" aria-labelledby="document-conflict-title"><div><h2 id="document-conflict-title">Document đã thay đổi trên server</h2><p>Draft hiện tại vẫn giữ nguyên trong memory. Revision server là v{conflict.versionNumber}; chọn cách xử lý trước khi lưu tiếp.</p><details><summary>So sánh bản server</summary><p><strong>Tiêu đề:</strong> {conflict.title}</p><p><strong>Trạng thái:</strong> {conflict.status}</p><pre className="conflict-preview">{conflict.body}</pre></details></div><div className="form-actions"><button className="secondary-button" type="button" onClick={() => { setSelected(conflict); setTitle(conflict.title); setBody(conflict.body); setTagId(conflict.tagId ?? ''); setTagLabel(conflict.tagName ?? null); setDocumentType(conflict.documentType); setEditorMode(conflict.editorMode); setConflict(null); setError(null); }}>Tải bản server</button><button className="primary-button" type="button" onClick={() => { setSelected(conflict); setConflict(null); setError(null); }}>Giữ draft và áp dụng lại</button><button className="link-button" type="button" onClick={() => setConflict(null)}>Hủy xử lý</button></div></div>}
       <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew} disabled={loading || busy !== null}>Tạo mới</button>}</div>
           <div className="field-group"><label htmlFor="document-title">Tiêu đề</label><input id="document-title" value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} disabled={loading || busy !== null || pending !== null || selected?.status === 'Archived'} required /></div>
           <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={loading || busy !== null || pending !== null || selected !== null} required><option value="">Chọn Document type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={loading || busy !== null || pending !== null || selected !== null} required><option value="">Chọn Editor mode</option><option value="Markdown">Markdown</option><option value="Block">Block</option></select></div></div>
+          <DocumentTagSelector autoLoad={!readSuspended} controlId="document-tag" value={tagId} label={tagLabel} onChange={(id, name) => { if (!flight.current && !pendingRef.current) { setTagId(id); setTagLabel(name); } }} disabled={loading || busy !== null || pending !== null || selected?.status === 'Archived'} onAuthLost={onAuthLost} />
           <div className="field-group"><label htmlFor="document-body">Body <span className="optional">(tối đa 1 MiB)</span></label><textarea id="document-body" value={body} onChange={(event) => setBody(event.target.value)} rows={12} maxLength={1048576} disabled={loading || busy !== null || pending !== null || selected?.status === 'Archived'} /></div>
           <div className="form-actions"><button className="secondary-button" type="button" onClick={startNew} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={loading || busy !== null || pending !== null || selected?.status === 'Archived'}>{selected ? 'Save version' : 'Tạo page'}</SubmitButton></div>
           {selected && isDirty && <p className="field-help">Hãy Save hoặc dùng Làm mới để quyết định giữ/bỏ bản nháp trước khi đổi lifecycle. Thay đổi chưa lưu được giữ nguyên.</p>}{selected && <div className="form-actions">{selected.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(selected.preArchiveStatus ?? '')} disabled={loading || busy !== null || pending !== null || isDirty || !['Draft', 'Published'].includes(selected.preArchiveStatus ?? '')}>Unarchive</button> : <><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : 'Draft')} disabled={loading || busy !== null || pending !== null || isDirty}>{selected.status === 'Draft' ? 'Publish' : 'Return to Draft'}</button><ConfirmActionButton confirmationTitle={`Archive “${selected.title}”?`} confirmationDescription="Document sẽ trở thành chỉ-đọc. Version hiện tại được giữ; Unarchive chỉ trở về trạng thái trước đó." confirmLabel="Archive document" disabled={loading || busy !== null || pending !== null || isDirty} onConfirm={() => transition('Archived')}>Archive</ConfirmActionButton></>}<span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
         </form>
-        <div className="resource-list"><form className="form-panel" onSubmit={event => { event.preventDefault(); void load(); }}><div className="form-grid"><div className="field-group"><label htmlFor="document-library-query">Tìm theo tiêu đề</label><input id="document-library-query" value={libraryQuery} maxLength={200} onChange={event => { invalidateList(); setLibraryQuery(event.target.value); }} disabled={busy !== null || pending !== null} /><p className="field-help">Chỉ tìm Title, không tìm nội dung body.</p></div><div className="field-group"><label htmlFor="document-library-type">Lọc Document type</label><select id="document-library-type" value={libraryType} onChange={event => { invalidateList(); setLibraryType(event.target.value); }} disabled={busy !== null || pending !== null}><option value="">Tất cả type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-created-from">Ngày tạo từ (timezone hồ sơ)</label><input id="document-created-from" type="date" value={libraryCreatedFrom} onChange={event => { invalidateList(); setLibraryCreatedFrom(event.target.value); }} disabled={busy !== null || pending !== null} /></div><div className="field-group"><label htmlFor="document-created-to">Ngày tạo đến (timezone hồ sơ)</label><input id="document-created-to" type="date" value={libraryCreatedTo} onChange={event => { invalidateList(); setLibraryCreatedTo(event.target.value); }} disabled={busy !== null || pending !== null} /></div></div><div className="form-actions"><button type="submit" className="secondary-button" disabled={busy !== null || pending !== null}>Tìm kiếm</button>{(libraryQuery || libraryType || libraryCreatedFrom || libraryCreatedTo) && <button type="button" className="link-button" disabled={busy !== null || pending !== null} onClick={() => { invalidateList(); setLibraryQuery(''); setLibraryType(''); setLibraryCreatedFrom(''); setLibraryCreatedTo(''); }}>Xóa bộ lọc</button>}</div></form><div className="module-tabs" role="tablist" aria-label="Document library scope"><button type="button" role="tab" aria-selected={libraryStatus === ''} className={libraryStatus === '' ? 'tab-button active' : 'tab-button'} disabled={loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { clearEditor(); setLibraryStatus(''); })}>Library</button><button type="button" role="tab" aria-selected={libraryStatus === 'Archived'} className={libraryStatus === 'Archived' ? 'tab-button active' : 'tab-button'} disabled={loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { clearEditor(); setLibraryStatus('Archived'); })}>Archived</button></div><div className="section-heading"><div><h2>Page của bạn</h2><span className="muted">{items.length} mục đã tải</span></div><div className="module-tabs" role="tablist" aria-label="Document views"><button className={documentView === 'grid' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'grid'} onClick={() => setDocumentView('grid')}>Grid</button><button className={documentView === 'table' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'table'} onClick={() => setDocumentView('table')}>Table</button></div></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : error && items.length === 0 ? <div className="empty-state"><h3>Không thể tải Documents</h3><p>Thử tải lại khi quyền hoặc kết nối được khôi phục.</p></div> : !hasLoadedList ? <div className="empty-state"><h3>Danh sách chưa được tải</h3><p>Dùng Tải lại để đọc danh sách với quyền hiện tại.</p></div> : items.length === 0 && (libraryQuery || libraryType || libraryCreatedFrom || libraryCreatedTo) ? <div className="empty-state"><h3>Không có page phù hợp</h3><p>Thử Title khác hoặc xóa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h3>{libraryStatus === 'Archived' ? 'Chưa có page Archived' : 'Chưa có page'}</h3><p>{libraryStatus === 'Archived' ? 'Trang đã Archive sẽ xuất hiện tại đây.' : 'Tạo Document, Note hoặc Knowledge page đầu tiên.'}</p></div> : documentView === 'grid' ? <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={loading || busy !== null || pending !== null}>Mở</button></article>)}</div> : <div className="table-wrapper"><table><caption>Document pages</caption><thead><tr><th>Title</th><th>Type / editor</th><th>Status</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.title}</strong><span className="muted">Version {item.versionNumber}</span></td><td>{item.documentType} · {item.editorMode}</td><td>{item.status}</td><td>{dateTime(item.updatedAt)}</td><td><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={loading || busy !== null || pending !== null}>Mở</button></td></tr>)}</tbody></table></div>}{nextCursor && <button type="button" className="secondary-button" disabled={loading || busy !== null || pending !== null} onClick={() => void load(true)}>Tải thêm Documents</button>}</div>
+        <div className="resource-list"><form className="form-panel" onSubmit={event => { event.preventDefault(); void load(); }}><div className="form-grid"><div className="field-group"><label htmlFor="document-library-query">Tìm Title hoặc Tag</label><input id="document-library-query" value={libraryQuery} maxLength={200} onChange={event => { invalidateList(); setLibraryQuery(event.target.value); }} disabled={busy !== null || pending !== null} /><p className="field-help">Tìm Title hoặc tên Tag hiện tại, không tìm nội dung body.</p></div><div className="field-group"><label htmlFor="document-library-type">Lọc Document type</label><select id="document-library-type" value={libraryType} onChange={event => { invalidateList(); setLibraryType(event.target.value); }} disabled={busy !== null || pending !== null}><option value="">Tất cả type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><DocumentTagSelector autoLoad={!readSuspended} controlId="document-library-tag" value={libraryTag} label={libraryTagLabel} onChange={(id, name) => { if (!flight.current && !pendingRef.current) { invalidateList(); setLibraryTag(id); setLibraryTagLabel(name); } }} disabled={busy !== null || pending !== null} onAuthLost={onAuthLost} emptyLabel="Tất cả Tag" /><div className="field-group"><label htmlFor="document-created-from">Ngày tạo từ (timezone hồ sơ)</label><input id="document-created-from" type="date" value={libraryCreatedFrom} onChange={event => { invalidateList(); setLibraryCreatedFrom(event.target.value); }} disabled={busy !== null || pending !== null} /></div><div className="field-group"><label htmlFor="document-created-to">Ngày tạo đến (timezone hồ sơ)</label><input id="document-created-to" type="date" value={libraryCreatedTo} onChange={event => { invalidateList(); setLibraryCreatedTo(event.target.value); }} disabled={busy !== null || pending !== null} /></div></div><div className="form-actions"><button type="submit" className="secondary-button" disabled={busy !== null || pending !== null}>Tìm kiếm</button>{(libraryQuery || libraryType || libraryCreatedFrom || libraryCreatedTo || libraryTag) && <button type="button" className="link-button" disabled={busy !== null || pending !== null} onClick={() => { invalidateList(); setLibraryQuery(''); setLibraryType(''); setLibraryCreatedFrom(''); setLibraryCreatedTo(''); setLibraryTag(''); setLibraryTagLabel(null); }}>Xóa bộ lọc</button>}</div></form><div className="module-tabs" role="tablist" aria-label="Document library scope"><button type="button" role="tab" aria-selected={libraryStatus === ''} className={libraryStatus === '' ? 'tab-button active' : 'tab-button'} disabled={loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { clearEditor(); setLibraryStatus(''); })}>Library</button><button type="button" role="tab" aria-selected={libraryStatus === 'Archived'} className={libraryStatus === 'Archived' ? 'tab-button active' : 'tab-button'} disabled={loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { clearEditor(); setLibraryStatus('Archived'); })}>Archived</button></div><div className="section-heading"><div><h2>Page của bạn</h2><span className="muted">{items.length} mục đã tải</span></div><div className="module-tabs" role="tablist" aria-label="Document views"><button className={documentView === 'grid' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'grid'} onClick={() => setDocumentView('grid')}>Grid</button><button className={documentView === 'table' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'table'} onClick={() => setDocumentView('table')}>Table</button></div></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : error && items.length === 0 ? <div className="empty-state"><h3>Không thể tải Documents</h3><p>Thử tải lại khi quyền hoặc kết nối được khôi phục.</p></div> : !hasLoadedList ? <div className="empty-state"><h3>Danh sách chưa được tải</h3><p>Dùng Tải lại để đọc danh sách với quyền hiện tại.</p></div> : items.length === 0 && (libraryQuery || libraryType || libraryCreatedFrom || libraryCreatedTo || libraryTag) ? <div className="empty-state"><h3>Không có page phù hợp</h3><p>Thử Title khác hoặc xóa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h3>{libraryStatus === 'Archived' ? 'Chưa có page Archived' : 'Chưa có page'}</h3><p>{libraryStatus === 'Archived' ? 'Trang đã Archive sẽ xuất hiện tại đây.' : 'Tạo Document, Note hoặc Knowledge page đầu tiên.'}</p></div> : documentView === 'grid' ? <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.tagName ?? 'Không có Tag'}</p><p>{item.documentType} · {item.editorMode} · version {item.versionNumber}</p><span className="muted">{item.status} · cập nhật {dateTime(item.updatedAt)}</span></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={loading || busy !== null || pending !== null}>Mở</button></article>)}</div> : <div className="table-wrapper"><table><caption>Document pages</caption><thead><tr><th>Title</th><th>Type / editor</th><th>Tag</th><th>Status</th><th>Updated</th><th aria-label="Actions"></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.title}</strong><span className="muted">Version {item.versionNumber}</span></td><td>{item.documentType} · {item.editorMode}</td><td>{item.tagName ?? 'Không có Tag'}</td><td>{item.status}</td><td>{dateTime(item.updatedAt)}</td><td><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={loading || busy !== null || pending !== null}>Mở</button></td></tr>)}</tbody></table></div>}{nextCursor && <button type="button" className="secondary-button" disabled={loading || busy !== null || pending !== null} onClick={() => void load(true)}>Tải thêm Documents</button>}</div>
       </div>
     </section>
   );

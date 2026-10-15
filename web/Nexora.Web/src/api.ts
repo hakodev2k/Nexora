@@ -312,6 +312,8 @@ export type DocumentSummary = {
   createdAt: string;
   updatedAt: string;
   etag: string;
+  tagId?: string | null;
+  tagName?: string | null;
 };
 
 export type DocumentRecord = DocumentSummary & {
@@ -1373,7 +1375,7 @@ export function transitionCalendarEvent(id: string, etag: string, status: string
   }, id);
 }
 
-export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal, createdFrom = '', createdTo = '') {
+export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal, createdFrom = '', createdTo = '', tagId = '') {
   const query = new URLSearchParams({ limit: String(limit) });
   if (status) query.set('status', status);
   if (cursor) query.set('cursor', cursor);
@@ -1381,6 +1383,7 @@ export function listDocuments(status?: string, limit = 25, cursor = '', titleQue
   if (documentType) query.set('documentType', documentType);
   if (createdFrom) query.set('createdFrom', createdFrom);
   if (createdTo) query.set('createdTo', createdTo);
+  if (tagId) query.set('tagId', tagId);
   return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`, { signal });
 }
 
@@ -1397,19 +1400,19 @@ function validateDocumentMutation(result: DocumentRecord | ProductivityCommitted
   return result;
 }
 
-export function createDocument(title: string, documentType: string, editorMode: string, body: string, idempotencyKey = createIdempotencyKey()) {
+export function createDocument(title: string, documentType: string, editorMode: string, body: string, idempotencyKey = createIdempotencyKey(), tagId?: string | null) {
   return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement | void>('/api/v1/documents', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
-    body: JSON.stringify({ title, documentType, editorMode, body })
+    body: JSON.stringify({ title, documentType, editorMode, body, tagId })
   }, [201, 204]).then(validateDocumentMutation);
 }
 
-export function saveDocument(id: string, etag: string, title: string, body: string, changeNote: string | null = null, idempotencyKey = createIdempotencyKey()) {
+export function saveDocument(id: string, etag: string, title: string, body: string, changeNote: string | null = null, idempotencyKey = createIdempotencyKey(), tag?: { id: string | null }) {
   return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement | void>(`/api/v1/documents/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
-    body: JSON.stringify({ title, body, changeNote })
+    body: JSON.stringify({ title, body, changeNote, tag })
   }, [200, 204]).then(result => validateDocumentMutation(result, id));
 }
 
@@ -1667,12 +1670,12 @@ export function updateReadingItem(id: string, etag: string, state: string, progr
   }, id);
 }
 
-export function listOrganizationTags(tagNamespace = '', query = '', limit = 25, cursor?: string) {
+export function listOrganizationTags(tagNamespace = '', query = '', limit = 25, cursor?: string, signal?: AbortSignal) {
   const params = new URLSearchParams({ limit: String(limit) });
   if (tagNamespace.trim()) params.set('namespace', tagNamespace.trim());
   if (query.trim()) params.set('query', query.trim());
   if (cursor) params.set('cursor', cursor);
-  return apiFetch<TagPage>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags?${params.toString()}`);
+  return apiFetch<TagPage>(`/api/v1/${tagNamespace === 'documents' ? 'documents' : 'organization'}/tags?${params.toString()}`, { signal });
 }
 
 export function getOrganizationTag(id: string, tagNamespace = '') {

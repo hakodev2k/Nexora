@@ -65,6 +65,7 @@ public static class M01MigrationManifest
         "20261011_0053_automation_purge_action.sql",
         "20261011_0054_integration_connection_configuration.sql",
         "20261012_0055_productivity_dedicated_actions.sql",
-        "20261015_0056_documents_tag_catalog.sql"
+        "20261015_0056_documents_tag_catalog.sql",
+        "20261015_0057_document_tag_version_snapshots.sql"
     ];
 }

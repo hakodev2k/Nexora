@@ -27,7 +27,7 @@ verification under `DEC-20260909-014`.
 
 ## Deliberately outside this slice
 
-Folders/hierarchy, tags, covers/files, version-history browsing/restore,
+Folders/hierarchy, inline Tag create, covers/files, version-history browsing/restore,
 sharing links, Trash cohorts and DOCX/Markdown import/export are not claimed.
 They require their own contracts and migrations before implementation.
 
@@ -40,6 +40,10 @@ the required tooling is unavailable.
 
 ## Bounded library query continuation
 
-GETdocuments also accepts cursor/query/documentType. Default page25 (maximum100), UpdatedAtDESC/IdDESC seek with encrypted authenticated owner/filter/limit-bound cursor and take+1. Query<=200 is a literal Title match, never Body; known typefilter only. UI uses25/page, LoadMore dedup, 300ms typingdebounce/Enter andabort/epoch invalidation, keeps editor draft acrosslistfilters andclearsdeniedprojections. Tag/location/folder semantics remain unimplemented requirements, not removed fromR1. Evidence: full-product-audit-20261012/documents-list-continuation-20261015.md.
+GETdocuments also accepts cursor/query/documentType. Default page25 (maximum100), UpdatedAtDESC/IdDESC seek with encrypted authenticated owner/filter/limit-bound cursor and take+1. Query<=200 is a literal Title match, never Body; known typefilter only. UI uses25/page, LoadMore dedup, 300ms typingdebounce/Enter andabort/epoch invalidation, keeps editor draft acrosslistfilters andclearsdeniedprojections. Location/folder semantics remain unimplemented requirements, not removed fromR1. Evidence: full-product-audit-20261012/documents-list-continuation-20261015.md.
 
 GETdocuments now also accepts optional createdFrom/createdTo, inclusive profile-IANA local dates against CreatedAt using half-open UTC boundaries. UpdatedAt ordering remains unchanged. Shared SqlOwnerLocalDateRange resolves current owner profile in the caller transaction; missing/invalid zone503 and unrepresentable boundary422, no UTC fallback. Cursor dl2 binds dates/timezone/TZDB/resolved boundaries; dl1 requires a fresh query. UI combines date inputs with Title/Type/Archive and preserves pending/draft guards. See full-product-audit-20261012/documents-created-date-continuation-20261015.md. Source/build evidence only; human runtime acceptance remains not run.
+
+## Single Tag Save and current library projection
+
+Create accepts optional tagId; Save accepts optional tag:{id:Guid|null}. Omitted/null object preserves assignment; id property is required when object exists, and explicit id:null clears. Owner-scoped Tag lookup and same-owner FK enforce maxoneTag. Save snapshots Id/name in PageVersion without live Tag FK; TagSnapshotCaptured distinguishes unknown legacy versions from captured untagged. Catalog rename/delete does not rewrite history. Library matches literal Title OR current Tag name (not Body) and optional tagId before seek. Cursor dl3 binds Tag/date/type/query/owner/scope/limit, retiring dl2. UI existing-Tag picker has search/paging/stale guards, tracks Tag dirty/conflict/immutable command state, displays label in Grid/Table and suspends automatic catalog reads after ACK/denial. Inline create and history restore/rebind remain required work; not module-complete. Evidence: full-product-audit-20261012/documents-tag-save-continuation-20261015.md; migration/runtime not run.
