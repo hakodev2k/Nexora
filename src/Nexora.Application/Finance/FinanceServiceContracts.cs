@@ -5,7 +5,7 @@ namespace Nexora.Application.Finance;
 public sealed record FinanceCategoryRecord(
     Guid Id,
     string Title,
-    int UsageCount,
+    int? UsageCount,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     string ETag);
@@ -42,7 +42,9 @@ public sealed record FinanceManualRecordCommand(
 
 public interface IFinanceService
 {
-    IdentityOperationResult<FinanceCategoryPage> ListCategories(IdentityPrincipal actor, string? query = null, int? limit = null);
+    IdentityOperationResult<FinanceCategoryPage> ListCategories(IdentityPrincipal actor, string? query = null, int? limit = null, string? cursor = null);
+    IdentityOperationResult<FinanceCategoryRecord> GetCategory(IdentityPrincipal actor, Guid categoryId);
+    IdentityOperationResult<FinanceManualRecord> GetRecord(IdentityPrincipal actor, Guid recordId);
     IdentityOperationResult<FinanceCategoryRecord> CreateCategory(IdentityPrincipal actor, FinanceCategoryCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<FinanceCategoryRecord> UpdateCategory(IdentityPrincipal actor, Guid categoryId, string? ifMatch,
@@ -50,7 +52,7 @@ public interface IFinanceService
     IdentityOperationResult<object?> RemoveCategory(IdentityPrincipal actor, Guid categoryId, string? ifMatch,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<FinanceManualRecordPage> ListRecords(IdentityPrincipal actor, Guid? categoryId = null,
-        string? currencyCode = null, DateOnly? from = null, DateOnly? to = null, string? query = null, int? limit = null);
+        string? currencyCode = null, DateOnly? from = null, DateOnly? to = null, string? query = null, int? limit = null, string? cursor = null);
     IdentityOperationResult<FinanceManualRecord> CreateRecord(IdentityPrincipal actor, FinanceManualRecordCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<FinanceManualRecord> UpdateRecord(IdentityPrincipal actor, Guid recordId, string? ifMatch,

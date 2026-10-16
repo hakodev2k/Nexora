@@ -68,8 +68,11 @@ public sealed class SqlBookmarkService : IBookmarkService
         command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit) [Id], [Url], [CanonicalUrl], [Title], [Description], [Health], [LastCheckedAt], [Status], [CreatedAt], [UpdatedAt], [RowVersion]
-            FROM [knowledge].[Bookmark]
+            FROM [knowledge].[Bookmark] b
             WHERE [OwnerId] = @OwnerId
+              AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
+                  WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id]
+                    AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
               AND [Status] IN ('Active', 'Archived')
               AND (@IncludeArchived = 1 OR [Status] = 'Active')
               AND (@AfterTime IS NULL OR [UpdatedAt] < @AfterTime OR ([UpdatedAt] = @AfterTime AND [Id] < @AfterId))
@@ -152,8 +155,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             var created = Read(connection, transaction, actor.OwnerId, id, forUpdate: false);
             if (created is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after creation."); }
             WriteAudit(connection, transaction, actor, id, "bookmarks.bookmark.create", traceId);
-            CompleteReceipt(connection, transaction, receipt, "BookmarkCreated", 201, JsonSerializer.Serialize(created));
-            return CommitResult(connection, transaction, actor, "bookmarks.bookmark.create", created, 201, "BookmarkCreated");
+            return CommitResult(connection, transaction, actor, "bookmarks.bookmark.create", created, 201, "BookmarkCreated", receipt);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -213,8 +215,7 @@ public sealed class SqlBookmarkService : IBookmarkService
             var updated = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after update."); }
             WriteAudit(connection, transaction, actor, bookmarkId, "bookmarks.bookmark.update", traceId);
-            CompleteReceipt(connection, transaction, receipt, "BookmarkUpdated", 200, JsonSerializer.Serialize(updated));
-            return CommitResult(connection, transaction, actor, "bookmarks.bookmark.update", updated, 200, "BookmarkUpdated");
+            return CommitResult(connection, transaction, actor, "bookmarks.bookmark.update", updated, 200, "BookmarkUpdated", receipt);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -269,9 +270,8 @@ public sealed class SqlBookmarkService : IBookmarkService
             var updated = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: false);
             if (updated is null) { transaction.Rollback(); return Failure<BookmarkRecord>("PersistenceFailure", 500, "Bookmark could not be loaded after transition."); }
             WriteAudit(connection, transaction, actor, bookmarkId, action, traceId);
-            CompleteReceipt(connection, transaction, receipt, normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived", 200, JsonSerializer.Serialize(updated));
             return CommitResult(connection, transaction, actor, action, updated, 200,
-                normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived");
+                normalizedStatus == "Archived" ? "BookmarkArchived" : "BookmarkUnarchived", receipt);
         }
         catch (SqlException exception)
         {
@@ -335,7 +335,7 @@ public sealed class SqlBookmarkService : IBookmarkService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Url], [CanonicalUrl], [Title], [Description], [Health], [LastCheckedAt], [Status], [CreatedAt], [UpdatedAt], [RowVersion] FROM [knowledge].[Bookmark] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE [Id] = @Id AND [OwnerId] = @OwnerId;";
+        command.CommandText = $"SELECT [Id], [Url], [CanonicalUrl], [Title], [Description], [Health], [LastCheckedAt], [Status], [CreatedAt], [UpdatedAt], [RowVersion] FROM [knowledge].[Bookmark] b {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, bookmarkId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -359,19 +359,30 @@ public sealed class SqlBookmarkService : IBookmarkService
         {
             try
             {
-                var value = JsonSerializer.Deserialize<T>(claim.ResultJson);
-                if (value is BookmarkRecord historical && historical.Id != Guid.Empty)
+                var status = claim.ResultStatusCode ?? 200;
+                var replayCode = claim.ResultCode ?? "IdempotencyReplay";
+                using var json = JsonDocument.Parse(claim.ResultJson);
+                if (json.RootElement.TryGetProperty("DetailAvailable", out _))
                 {
-                    var canRead = _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
-                    var current = canRead ? Read(connection, transaction, actor.OwnerId, historical.Id, false) : null;
-                    if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(operationKey)))
-                        return ModuleUnavailable<T>();
-                    var status = claim.ResultStatusCode ?? 200;
-                    var replayCode = claim.ResultCode ?? "IdempotencyReplay";
-                    return current is { Status: "Active" or "Archived" } && current.ETag == historical.ETag
-                        && _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read")
-                        ? IdentityOperationResult<T>.Success(value!, status, replayCode)
-                        : IdentityOperationResult<T>.Committed(historical.Id, status, replayCode);
+                    var result = JsonSerializer.Deserialize<BookmarkReceipt>(claim.ResultJson);
+                    if (result is not null && result.Id != Guid.Empty && TryETag(result.ETag, out _))
+                    {
+                        var canRead = result.DetailAvailable && _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
+                        var current = canRead ? Read(connection, transaction, actor.OwnerId, result.Id, false) : null;
+                        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(operationKey))) return ModuleUnavailable<T>();
+                        return current is { Status: "Active" or "Archived" } && current.ETag == result.ETag
+                            && _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read")
+                            ? IdentityOperationResult<T>.Success((T)(object)current, status, replayCode)
+                            : IdentityOperationResult<T>.Committed(result.Id, status, replayCode);
+                    }
+                }
+                else
+                {
+                    // Historical DTO receipts did not record their original response projection.
+                    // A current read grant cannot prove that the original response was detailed.
+                    var historical = JsonSerializer.Deserialize<BookmarkRecord>(claim.ResultJson);
+                    if (historical is not null && historical.Id != Guid.Empty)
+                        return IdentityOperationResult<T>.Committed(historical.Id, status, replayCode);
                 }
             }
             catch (JsonException) { }
@@ -381,16 +392,16 @@ public sealed class SqlBookmarkService : IBookmarkService
         return Failure<T>(code, 409, "The request was already completed or is in progress.");
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode,
-        int? resultStatusCode = null, string? resultJson = null) =>
-        _receipts.Complete(connection, transaction, claim, resultCode, resultStatusCode, resultJson);
+    private sealed record BookmarkReceipt(Guid Id, string ETag, bool DetailAvailable);
 
     private IdentityOperationResult<BookmarkRecord> CommitResult(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string action, BookmarkRecord value, int status, string code)
+        IdentityPrincipal actor, string action, BookmarkRecord value, int status, string code, ReceiptClaim receipt)
     {
         var canRead = _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", RequiredActions(action)))
         { transaction.Rollback(); return ModuleUnavailable<BookmarkRecord>(); }
+        _receipts.Complete(connection, transaction, receipt, code, status,
+            JsonSerializer.Serialize(new BookmarkReceipt(value.Id, value.ETag, canRead)));
         transaction.Commit();
         return canRead ? IdentityOperationResult<BookmarkRecord>.Success(value, status, code)
             : IdentityOperationResult<BookmarkRecord>.Committed(value.Id, status, code);
@@ -431,8 +442,10 @@ public sealed class SqlBookmarkService : IBookmarkService
         try
         {
             if (string.IsNullOrWhiteSpace(value) || value.Trim() == "*") return false;
-            bytes = DecodeETag(value);
-            return bytes.Length == 8;
+            var normalized = value.Trim();
+            if (normalized.Length < 2 || normalized[0] != '"' || normalized[^1] != '"') return false;
+            bytes = Convert.FromBase64String(normalized[1..^1]);
+            return bytes.Length == 8 && EncodeETag(bytes) == normalized;
         }
         catch (FormatException) { return false; }
     }

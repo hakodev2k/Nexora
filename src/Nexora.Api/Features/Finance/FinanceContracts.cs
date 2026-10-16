@@ -5,7 +5,7 @@ public sealed record FinanceCategoryRequest(string Title, string? IfMatch);
 public sealed record FinanceCategoryResponse(
     Guid Id,
     string Title,
-    int UsageCount,
+    int? UsageCount,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     string ETag);

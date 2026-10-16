@@ -12,12 +12,19 @@ public static class FinanceEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
-        api.MapGet("/finance/categories", (HttpContext context, string? query, int? limit,
+        api.MapGet("/finance/categories", (HttpContext context, string? query, int? limit, string? cursor,
             IFinanceService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.ListCategories(principal, query, limit),
+                principal => service.ListCategories(principal, query, limit, cursor),
                 value => new FinanceCategoryPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listFinanceCategories");
+
+        api.MapGet("/finance/categories/{categoryId:guid}", (HttpContext context, Guid categoryId,
+            IFinanceService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.GetCategory(principal, categoryId), ToResponse)).WithName("getFinanceCategory");
+        api.MapGet("/finance/records/{recordId:guid}", (HttpContext context, Guid recordId,
+            IFinanceService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.GetRecord(principal, recordId), ToResponse)).WithName("getFinanceRecord");
 
         api.MapPost("/finance/categories", (HttpContext context, FinanceCategoryRequest request,
             IFinanceService service, IIdentityService identity, SessionCookieService cookies) =>
@@ -43,10 +50,10 @@ public static class FinanceEndpoints
             .WithName("removeFinanceCategory");
 
         api.MapGet("/finance/records", (HttpContext context, Guid? categoryId, string? currencyCode,
-            DateOnly? from, DateOnly? to, string? query, int? limit, IFinanceService service,
+            DateOnly? from, DateOnly? to, string? query, int? limit, string? cursor, IFinanceService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.ListRecords(principal, categoryId, currencyCode, from, to, query, limit),
+                principal => service.ListRecords(principal, categoryId, currencyCode, from, to, query, limit, cursor),
                 value => new FinanceRecordPageResponse(value.Items.Select(ToResponse).ToArray(),
                     value.Summaries.Select(summary => new FinanceSummaryResponse(summary.CurrencyCode, summary.Amount)).ToArray(),
                     value.NextCursor)))
@@ -88,6 +95,8 @@ public static class FinanceEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         if (result.Succeeded && result.Value is FinanceCategoryRecord category)
             context.Response.Headers.ETag = category.ETag;
         else if (result.Succeeded && result.Value is FinanceManualRecord record)
