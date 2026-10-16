@@ -128,7 +128,7 @@ public sealed class SqlSharingService : ISharingService
                        sl.ProjectionVersion,sl.CreatedAt,sl.UpdatedAt,sl.RowVersion,
                        CASE WHEN sl.RevokedAt IS NULL AND (sl.ExpiresAt IS NULL OR sl.ExpiresAt>@Cutoff) THEN CONVERT(bit,1) ELSE CONVERT(bit,0) END
                 FROM [security].[ShareLink] sl JOIN [platform].[Module] m ON m.Code='FX04'
-                WHERE sl.OwnerId=@Owner AND sl.IsDeleted=0 AND sl.IssuedSharingEpoch=m.SharingEpoch
+                WHERE sl.OwnerId=@Owner AND (sl.IsDeleted=0 OR (sl.RevokedAt IS NOT NULL AND sl.InvalidationReason='OwnerRevoked')) AND sl.IssuedSharingEpoch=m.SharingEpoch
                   AND sl.Id IN({string.Join(',', parameters)}) AND {ListFilter}
                 ORDER BY sl.CreatedAt DESC,sl.Id DESC;
                 """;
@@ -158,7 +158,7 @@ public sealed class SqlSharingService : ISharingService
     private static List<ShareLinkAdvisory> ReadListAdvisories(SqlConnection connection, Guid owner, ShareLinkListQuery query,
         DateTime cutoff, DateTime? cursorAt, Guid? cursorId, out bool cursorValid)
     {
-        var selected = $"SELECT sl.Id,sl.ResourceType,sl.ResourceId,sl.CreatedAt FROM [security].[ShareLink] sl JOIN [platform].[Module] m ON m.Code='FX04' WHERE sl.OwnerId=@Owner AND sl.IsDeleted=0 AND sl.IssuedSharingEpoch=m.SharingEpoch AND {ListFilter}";
+        var selected = $"SELECT sl.Id,sl.ResourceType,sl.ResourceId,sl.CreatedAt FROM [security].[ShareLink] sl JOIN [platform].[Module] m ON m.Code='FX04' WHERE sl.OwnerId=@Owner AND (sl.IsDeleted=0 OR (sl.RevokedAt IS NOT NULL AND sl.InvalidationReason='OwnerRevoked')) AND sl.IssuedSharingEpoch=m.SharingEpoch AND {ListFilter}";
         cursorValid = true;
         if (cursorId is not null)
         {

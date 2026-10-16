@@ -905,7 +905,14 @@ public sealed class SqlApiIntegrationTests
             restoreKey, owner.RawSessionHandle, trashedResource.ETag);
         Assert.Equal(HttpStatusCode.OK, oldRestoreReplay.StatusCode);
         using var replayBody = JsonDocument.Parse(await oldRestoreReplay.Content.ReadAsStringAsync());
-        Assert.Equal("Trash", replayBody.RootElement.GetProperty("lifecycle").GetString());
+        Assert.Equal(file.Id, replayBody.RootElement.GetProperty("id").GetGuid());
+        Assert.True(replayBody.RootElement.GetProperty("committed").GetBoolean());
+        Assert.False(replayBody.RootElement.GetProperty("detailAvailable").GetBoolean());
+        Assert.Equal(new[] { "committed", "detailAvailable", "id" }, replayBody.RootElement.EnumerateObject().Select(p => p.Name).Order().ToArray());
+        using var currentTrash = await _fixture.SendAuthenticatedAsync(HttpMethod.Get, $"/api/v1/files/{file.Id}", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, currentTrash.StatusCode);
+        using var currentTrashBody = JsonDocument.Parse(await currentTrash.Content.ReadAsStringAsync());
+        Assert.Equal("Trash", currentTrashBody.RootElement.GetProperty("lifecycle").GetString());
         Assert.Equal(1, await _fixture.ScalarIntAsync(
             "SELECT COUNT(*) FROM [platform].[TrashItem] WHERE OwnerId=@ownerId AND ResourceType='File' AND ResourceId=@fileId AND RestoredAt IS NOT NULL;",
             Parameter("@ownerId", SqlDbType.UniqueIdentifier, owner.OwnerId), Parameter("@fileId", SqlDbType.UniqueIdentifier, file.Id)));

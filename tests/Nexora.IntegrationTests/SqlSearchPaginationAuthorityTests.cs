@@ -111,9 +111,9 @@ public sealed class SqlSearchPaginationAuthorityTests(SqlApiFixture fixture)
         fixture.RequireAvailable(); var session = await fixture.CreateActiveSessionAsync(); var actor = Actor(session); var bookmarks = Bookmarks();
         var bookmark = bookmarks.Create(actor, Bookmark("needle bookmark")).Value!;
         var documentService = new SqlDocumentService(Connections(), "synthetic-search-source-key");
-        var document = documentService.Create(actor, new("unrelated document title", "Document", "Markdown", "needle <script>inert</script>")).Value!;
+        var document = documentService.Create(actor, new("unrelated document title", "Document", "Markdown", "needle <b>inert</b>")).Value!;
         var service = Search(); var bodyMatch = service.Search(actor, "needle", "Document"); Assert.True(bodyMatch.Succeeded);
-        var hit = Assert.Single(bodyMatch.Value!.Items); Assert.Equal(document.Id, hit.Id); Assert.Contains("‹script›", hit.Snippet!); Assert.DoesNotContain("<script>", hit.Snippet!);
+        var hit = Assert.Single(bodyMatch.Value!.Items); Assert.Equal(document.Id, hit.Id); Assert.Contains("‹b›", hit.Snippet!); Assert.DoesNotContain("<b>", hit.Snippet!);
         await fixture.ExecuteAsync("""
             INSERT INTO [platform].[TrashItem] ([Id],[OwnerId],[ResourceType],[ResourceId],[DeletionBatchId],[PriorStatus])
             VALUES (NEWID(),@Owner,'Bookmark',@Bookmark,NEWID(),'Active');

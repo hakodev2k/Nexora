@@ -22,8 +22,11 @@ public sealed class SqlNewsMigrationTests(SqlApiFixture fixture)
         {
             using (var create = new SqlCommand("CREATE DATABASE [" + database + "]", server)) await create.ExecuteNonQueryAsync(); created = true; target.InitialCatalog = database;
             var runner = new SqlMigrationRunner(); var directory = Path.Combine(AppContext.BaseDirectory, "migrations");
-            Assert.Equal("20261005_0046_news_categories.sql", M01MigrationManifest.RequiredFileNames.Last());
-            await runner.ApplyAsync(target.ConnectionString, directory, M01MigrationManifest.RequiredFileNames.Take(M01MigrationManifest.RequiredFileNames.Count - 1).ToArray());
+            const string newsMigration = "20261005_0046_news_categories.sql";
+            var priorMigrations = M01MigrationManifest.RequiredFileNames.TakeWhile(name => name != newsMigration).ToArray();
+            Assert.Contains(newsMigration, M01MigrationManifest.RequiredFileNames);
+            var newsUpgrade = priorMigrations.Append(newsMigration).ToArray();
+            await runner.ApplyAsync(target.ConnectionString, directory, priorMigrations);
             var user = Guid.NewGuid(); var owner = Guid.NewGuid();
             await using var c = new SqlConnection(target.ConnectionString); await c.OpenAsync();
             using (var arrange = new SqlCommand("""
@@ -48,7 +51,7 @@ public sealed class SqlNewsMigrationTests(SqlApiFixture fixture)
             }
             var flags = await Flags();
             var policyRevision = await Count("SELECT CONVERT(int,PolicyRevision) FROM [platform].[Module] WHERE Code='FX29'");
-            await runner.ApplyAsync(target.ConnectionString, directory, M01MigrationManifest.RequiredFileNames);
+            await runner.ApplyAsync(target.ConnectionString, directory, newsUpgrade);
             Assert.Equal(flags, await Flags());
             Assert.Equal(policyRevision + 1, await Count("SELECT CONVERT(int,PolicyRevision) FROM [platform].[Module] WHERE Code='FX29' AND State='Ready'"));
             Assert.Equal(1, await Count("SELECT COUNT(*) FROM [identity].[User]"));
@@ -58,7 +61,7 @@ public sealed class SqlNewsMigrationTests(SqlApiFixture fixture)
             Assert.Equal(1, await Count("SELECT COUNT(*) FROM [news].[OwnerInitialization] WHERE DefaultCategoryVersion=1"));
             Assert.Equal(2, await Count("SELECT COUNT(*) FROM [platform].[Resource] r JOIN [news].[Category] n ON n.Id=r.Id AND n.OwnerId=r.OwnerId"));
             using (var rename = new SqlCommand("UPDATE [news].[Category] SET Name=N'Renamed migrated category' WHERE Name=N'AI News'", c)) await rename.ExecuteNonQueryAsync();
-            await runner.ApplyAsync(target.ConnectionString, directory, M01MigrationManifest.RequiredFileNames);
+            await runner.ApplyAsync(target.ConnectionString, directory, newsUpgrade);
             Assert.Equal(1, await Count("SELECT COUNT(*) FROM [news].[Category] WHERE Name=N'Renamed migrated category'"));
             Assert.Equal(0, await Count("SELECT COUNT(*) FROM [news].[Category] WHERE Name=N'AI News'"));
             Assert.Equal(2, await Count("SELECT COUNT(*) FROM [news].[Category]")); Assert.Equal(flags, await Flags());

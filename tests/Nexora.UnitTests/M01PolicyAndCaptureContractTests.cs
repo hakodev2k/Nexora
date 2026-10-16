@@ -117,6 +117,16 @@ public sealed class M01PolicyAndCaptureContractTests
         Assert.Equal("ActionNotGrantable", ActionGrantPolicy.CanGrantAllow("identity.account.register").Code);
         Assert.Equal("ActionNotGrantable", ActionGrantPolicy.CanGrantAllow("access.role.set").Code);
         Assert.False(ActionGrantPolicy.IsAdminGrantable("notifications.dispatch.deliver"));
+        foreach (var action in new[] { "finance.manual_category.create", "notifications.inbox.mark_read", "documents.page.history", "documents.tag.read", "organization.tag.rename", "discovery.search.query" })
+        {
+            Assert.True(ActionGrantPolicy.IsAdminGrantable(action), action);
+            Assert.True(ActionGrantPolicy.CanGrantAllow(action).Allowed, action);
+        }
+        foreach (var action in new[] { "documents.page.restore_version", "organization.tag.assign", "notifications.source.open", "notifications.dispatch.publish" })
+        {
+            Assert.False(ActionGrantPolicy.IsAdminGrantable(action), action);
+            Assert.False(ActionGrantPolicy.CanGrantAllow(action).Allowed, action);
+        }
     }
 
     [Fact]

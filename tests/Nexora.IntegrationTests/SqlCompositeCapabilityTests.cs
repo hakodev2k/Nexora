@@ -17,7 +17,7 @@ public sealed class SqlCompositeCapabilityTests(SqlApiFixture fixture)
     {
         fixture.RequireAvailable();
         var session = await fixture.CreateActiveSessionAsync(role);
-        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, role, DateTimeOffset.UtcNow);
+        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, role, DateTimeOffset.UtcNow, session.SessionId);
         var capabilities = new SqlSelfCapability(new SqlConnectionFactory(fixture.ConnectionString!));
 
         Assert.Equal(SqlCapabilityStatus.Allowed,
@@ -35,7 +35,7 @@ public sealed class SqlCompositeCapabilityTests(SqlApiFixture fixture)
     {
         fixture.RequireAvailable();
         var session = await fixture.CreateActiveSessionAsync("Admin");
-        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "Admin", DateTimeOffset.UtcNow);
+        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "Admin", DateTimeOffset.UtcNow, session.SessionId);
         var capabilities = new SqlSelfCapability(new SqlConnectionFactory(fixture.ConnectionString!));
         var actions = new[] { "settings.preference.read", "settings.preference.update" };
         Assert.Equal(SqlCapabilityStatus.PermissionDenied, capabilities.Evaluate(actor, "FX09", actions));

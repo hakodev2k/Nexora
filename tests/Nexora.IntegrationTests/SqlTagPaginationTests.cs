@@ -16,7 +16,7 @@ public sealed class SqlTagPaginationTests(SqlApiFixture fixture)
     {
         fixture.RequireAvailable();
         var session = await fixture.CreateActiveSessionAsync();
-        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "User", DateTimeOffset.UtcNow);
+        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "User", DateTimeOffset.UtcNow, session.SessionId);
         var service = new SqlTagService(new SqlConnectionFactory(fixture.ConnectionString!), "synthetic-tag-key");
         var createKey = Guid.NewGuid().ToString();
         var command = new TagCreateCommand("projects", "name|color:#FFFFFF", null);
@@ -50,7 +50,7 @@ public sealed class SqlTagPaginationTests(SqlApiFixture fixture)
         fixture.RequireAvailable();
         var session = await fixture.CreateActiveSessionAsync();
         var other = await fixture.CreateActiveSessionAsync();
-        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "User", DateTimeOffset.UtcNow);
+        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "User", DateTimeOffset.UtcNow, session.SessionId);
         var service = new SqlTagService(new SqlConnectionFactory(fixture.ConnectionString!), "synthetic-tag-key");
         var created = new List<Guid>();
         for (var index = 0; index < 27; index++)
@@ -98,7 +98,7 @@ public sealed class SqlTagPaginationTests(SqlApiFixture fixture)
     {
         fixture.RequireAvailable();
         var session = await fixture.CreateActiveSessionAsync();
-        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "User", DateTimeOffset.UtcNow);
+        var actor = new IdentityPrincipal(session.UserId, session.OwnerId, "User", DateTimeOffset.UtcNow, session.SessionId);
         var service = new SqlTagService(new SqlConnectionFactory(fixture.ConnectionString!), "synthetic-tag-key");
         Assert.True(service.Create(actor, new TagCreateCommand("projects", "ordinary", null)).Succeeded);
         var special = service.Create(actor, new TagCreateCommand("projects", "literal" + literal, null));

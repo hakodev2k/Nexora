@@ -108,7 +108,7 @@ public sealed class SqlCalendarImportTests(SqlApiFixture fixture)
         var key=Guid.NewGuid();var canceled=await Change(owner,batch,"cancel",key);Assert.Equal("Canceled",canceled.GetProperty("state").GetString());await Change(owner,batch,"cancel",key);
         Assert.Equal(0,await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [operations].[ImportRow] WHERE OwnerId=@Owner AND BatchId=@Id AND(CandidateJson IS NOT NULL OR ExternalKeyHash IS NOT NULL)",Id("@Owner",owner.OwnerId),Id("@Id",I(batch,"batchId"))));
         using(var locked=await Send(owner,HttpMethod.Post,$"{Root}/imports/{I(batch,"batchId")}/commit",new{confirmed=true},E(canceled)))Assert.Equal(HttpStatusCode.Conflict,locked.StatusCode);
-        using(var pin=await Send(owner,HttpMethod.Post,$"/api/v1/files/{I(file)}/trash",new{},E(file))) { var denied=await Json(pin,HttpStatusCode.Conflict);Assert.Equal("ModuleUnavailable",denied.GetProperty("code").GetString()); }
+        using(var pin=await Send(owner,HttpMethod.Post,$"/api/v1/files/{I(file)}/trash",new{},E(file))) { var denied=await Json(pin,HttpStatusCode.Conflict);Assert.Equal("DependencyUnavailable",denied.GetProperty("code").GetString()); }
         // Synthetic source revision change exercises report invalidation; rename is not installed.
         using(var rename=await Send(owner,HttpMethod.Patch,$"/api/v1/files/{I(file)}",new{originalName="renamed-synthetic.ics"},E(file)))Assert.Equal(HttpStatusCode.Conflict,rename.StatusCode);
         await fixture.ExecuteAsync("UPDATE [files].[FileObject] SET CurrentRevision=CurrentRevision+1,OriginalName=N'revised-synthetic.ics' WHERE OwnerId=@Owner AND Id=@Id",Id("@Owner",owner.OwnerId),Id("@Id",I(file)));

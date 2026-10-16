@@ -112,7 +112,7 @@ def main():
         'ASPNETCORE_Logging__LogLevel__Default': 'Warning',
     })
     for name in ('NEXORA_IDEMPOTENCY_SECRET', 'NEXORA_CSRF_SECRET', 'NEXORA_LOCAL_MESSAGE_KEY', 'NEXORA_MODULE_PREVIEW_SECRET'):
-        value = secrets.token_urlsafe(48); env[name] = value; print('::add-mask::' + value)
+        value = secrets.token_urlsafe(32 if name == 'NEXORA_LOCAL_MESSAGE_KEY' else 48); env[name] = value; print('::add-mask::' + value)
     dotnet = shutil_which('dotnet')
     local_dll = REPO / 'src/Nexora.Local/bin/Release/net10.0/Nexora.Local.dll'
     sql_dll = REPO / 'tests/Nexora.FunctionalTestOperator/bin/Release/net10.0/Nexora.FunctionalTestOperator.dll'
