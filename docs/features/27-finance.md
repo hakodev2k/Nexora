@@ -1,6 +1,6 @@
 # Finance — current basic manual records
 
-FX27 · Current specification · 2026-09-08 · Docs-only. [Historical ledger proposal](../history/20260908/snapshot/docs/features/27-finance.md). Approved: người dùng nhập danh mục và giá tiền. Typed data/API conventions là Resolved delegated; advanced financial policy không được tự suy từ phần này.
+FX27 · Current specification · 2026-09-08 · Contracted local slice implemented on PR #4 under DEC-20260909-014 (runtime verification remains owner work). [Historical ledger proposal](../history/20260908/snapshot/docs/features/27-finance.md). Approved: người dùng nhập danh mục và giá tiền. Typed data/API conventions là Resolved delegated; advanced financial policy không được tự suy từ phần này.
 
 ## Scope and behavior
 

@@ -1,8 +1,50 @@
 # Effective action implementation status — 2026-09-09
 
-Docs-only normalization layer. This file is the current implementation-status overlay for the action catalog after the Product Owner delegated the recommended action decisions on 2026-09-09.
+> **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
 
-It authorizes no application code, migration, runtime test, provider call, production deployment, production data access or secret access by itself.
+
+Current implementation-status overlay for the action catalog. `DEC-20260909-014` supersedes the old M01-only/future-slice approval for local code; it does not authorize production/provider execution.
+
+It authorizes no production/provider call, production deployment, production data access or secret access by itself. Local implementation still requires a sufficient API/DB/UX/acceptance/security/evidence contract. The current run is code-only and does not add test/mock/demo data.
+
+Current PR #4 slice overlay: FX16 numeric Goals is now implemented locally for
+`goals.goal.read`, `goals.goal.create`, `goals.goal.update`,
+`goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`,
+`goals.goal.reopen`, `goals.target.read`, `goals.target.create` and
+`goals.target.record_progress`. These rows remain owner/module/action gated and
+are not runtime-verified in this code-only environment. Boolean/Tasks targets,
+archive/trash/history, reminders, support and provider rows remain gated.
+
+The same PR also implements the bounded FX26-S01 read-only Dashboard attention
+projection for `dashboard.dashboard.read`. Four source widgets perform current
+module/action checks and return independent Ready/Empty/Unavailable/Degraded
+states; layout writes, widget refresh mutation and quick-create remain gated.
+
+The same PR implements the bounded FX25-S01 `discovery.search.query` source
+query. It covers current owner/module/action checks across the local Project,
+Task, Event, Document, Bookmark, Snippet and Goal sources with safe previews
+and per-source availability states. FX25-S03 Favorites now adds the
+owner-scoped typed-reference list/add/remove/reorder subset with the same
+source-availability boundary; saved searches, Recents, Command Palette and
+persisted search index/reindex rows remain gated.
+
+The current PR #4 overlay also enables the bounded local FX15 Planner action
+set: `planner.plan.read`, `planner.plan.pin`, `planner.plan.unpin`,
+`planner.plan.reorder`, `planner.plan.reschedule` and `planner.plan.notes`.
+These actions are owner-scoped Task-lens operations backed by SQL migration
+`20260911_0023_planner_habits.sql` plus owner-integrity migration
+`20260912_0024_planner_habits_owner_integrity.sql`; they remain labelled
+`SLICE_IMPLEMENTED`, not runtime-verified. No Task/Calendar mutation,
+auto-carryover, sharing or support projection is enabled.
+
+The same overlay enables the bounded local FX17 Habits action set:
+`habits.habit.read`, `habits.habit.create`, `habits.habit.update`,
+`habits.habit.schedule`, `habits.habit.pause`, `habits.habit.resume`,
+`habits.habit.set_reminder`, `habits.checkin.record`,
+`habits.checkin.correct`, `habits.streak.read`, `habits.habit.archive` and
+`habits.habit.unarchive`. These actions remain owner-scoped, timezone-aware
+and `SLICE_IMPLEMENTED` only; social/team tracking, reminder dispatch,
+Trash/purge and support projections remain unavailable.
 
 ## Authority
 
@@ -10,8 +52,7 @@ This file applies these current decisions:
 
 - `DEC-20260909-001`: M01 S00-S11 + backend scaffold + React frontend scaffold + local scripts are approved for implementation.
 - `DEC-20260909-002` through `DEC-20260909-010`: account deletion, TOTP recovery-code policy, Vault hybrid policy, sensitive projection policy, Finance initial scope, Task extension policy, outbound policy, paused modules and production sequencing.
-- `DEC-20260909-011`: after M01, implementation approval is by small vertical slice, not by full R1 or whole module batch.
-- `DEC-20260909-012`: a future slice is implementable only when PO approval plus API, DB, UX, acceptance, security/privacy and evidence contracts exist.
+- `DEC-20260909-011`/`012`: historical contract-first sequencing remains applicable; DEC-014 removes the need for repeated PO approval once the exact contract is sufficient.
 - `DEC-20260909-013`: do not use “Full R1 implementation-ready” as a Go state. Use exact `SLICE_READY_TO_IMPLEMENT`, `SLICE_APPROVED_TO_IMPLEMENT`, `SLICE_IMPLEMENTED`, `SLICE_VERIFIED_LOCALLY` and later production Go/No-Go states.
 
 If a module table row still says `Resolved delegated`, `Blocked Q-*`, `DEP-EXT-01`, `Paused`, or `Docs-only; no implementation approved`, the effective implementation status is determined by this file plus `docs/delivery/04-paused-blocked-gate-register.md`.
@@ -23,12 +64,12 @@ Every action row falls into exactly one effective implementation state:
 | State | How to apply |
 | --- | --- |
 | `APPROVED_FOR_M01` | Exact action is listed in the M01 approved set below. It may be implemented now only inside the M01 package and must still produce runtime evidence. |
-| `DESIGN_RESOLVED_NOT_APPROVED_NOW` | The action design exists, but current approval does not include implementation. This is the default for all non-M01 resolved rows not listed under another state. |
+| `DESIGN_RESOLVED_NOT_APPROVED_NOW` | The design exists but its exact contract is insufficient for local implementation. Complete API/DB/UX/acceptance/security/evidence inputs first; DEC-014 then permits local code without another slice approval. |
 | `POLICY_APPROVED_IMPLEMENTATION_GATED` | Product policy is decided, but implementation still needs a future slice/ADR/API/DB/UX/security/evidence contract. |
 | `SENSITIVE_PROJECTION_GATED` | Sensitive share/support policy is approved, but field-level projection allowlists and tests do not exist yet for that resource. |
 | `NETWORK_GUARD_GATED` | Named read-only outbound behavior is allowed only after a future slice defines network guards and evidence. |
 | `PRODUCTION_OPS_GATED` | The row depends on provider/capacity/backup/restore/RPO/RTO/SLA or production Go/No-Go. |
-| `PO_PAUSED` | Product Owner intentionally paused the capability. No UI, handler, worker, provider call or default enablement. |
+| `PO_PAUSED` | Product Owner paused real/provider execution. Local/simulated/integration-safe code may exist under DEC-014, but no real provider call or default enablement is allowed. |
 | `SUPERSEDED` | Historical key retained for traceability only. Do not create UI, handler, migration target or tests for the old key except denial/absence checks. |
 
 Rows not named in this file inherit `DESIGN_RESOLVED_NOT_APPROVED_NOW`, unless they are part of the exact M01 approved action set.
@@ -49,8 +90,80 @@ Notes:
 
 - M01 also includes operator/developer work that has no user action key: S00 toolchain/runbook, S01 bootstrap SuperAdmin, S10 audit/outbox/jobs foundation and S11 evidence/restore rehearsal.
 - M01 API operationIds `getCsrf` and `reauth` are approved M01 control endpoints even though catalog v1.1 has no standalone action keys for them. `getCsrf` grants no user authority; `reauth` refreshes recent-auth proof under the identity/session control boundary.
-- M01 does not approve full Notification Center UI, full module settings, Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations.
-- `identity.account.soft_delete`, `identity.profile.change_email`, `identity.profile.change_password`, `access.user.disable`, `access.user.enable`, `access.user.revoke_sessions`, `modules.policy.sharing`, `modules.policy.settings`, `modules.runtime.register`, `modules.runtime.migrate`, `modules.runtime.health`, `settings.module.read`, `settings.module.update`, and `notifications.inbox.*` remain `DESIGN_RESOLVED_NOT_APPROVED_NOW` unless a later slice approves them.
+- M01 did not approve full Notification Center UI, full module settings, Files, Sharing, Support/Emergency, Vault, Finance, Projects, Tasks, Calendar, Documents, News/GitHub/Monitoring ingestion, Price Tracking, Automation or Integrations. This is the historical M01 baseline; DEC-014 and the current PR #4 slice overlays below supersede it for local code when a concrete contract is present.
+- `identity.account.soft_delete`, `identity.profile.change_email`, `identity.profile.change_password`, `access.user.enable`, `access.user.revoke_sessions`, `modules.policy.sharing`, `modules.policy.settings`, `modules.runtime.register`, `modules.runtime.migrate`, `modules.runtime.health` and `settings.module.read`/`settings.module.update` remain contract-gated. `access.user.disable`, `notifications.inbox.*` and the implemented Projects/Tasks/Calendar/Documents/Finance-manual action subsets are permitted only within their documented local slices.
+
+Implementation amendment: DEC-20260909-014 now permits the local-safe
+`access.user.disable` operation and the initial owner-scoped Projects/Tasks/
+Calendar slice when their concrete contracts are present. The runtime status is
+still slice-scoped; this does not make the remaining advanced lifecycle,
+history, ICS, sharing or provider actions implemented.
+
+Current PR #4 implementation overlay: the same decision also permits the
+owner-scoped Notification inbox, Trash lifecycle, Settings preferences and the
+Documents/Notes/Knowledge page core when their contracts are present. The
+implemented document action subset is `documents.library.read`,
+`documents.page.read`, `documents.page.create`, `documents.page.save`,
+`documents.page.publish`, `documents.page.unpublish`,
+`documents.page.archive` and `documents.page.unarchive`. This overlay records
+implementation authority only; each slice remains separately labelled
+`SLICE_IMPLEMENTED` or `SLICE_VERIFIED_LOCALLY` by its evidence document.
+
+The current PR #4 Finance overlay permits only the contracted manual-record
+subset: `finance.manual_category.read`, `finance.manual_category.create`,
+`finance.manual_category.update`, `finance.manual_category.remove`,
+`finance.manual_record.read`, `finance.manual_record.create`,
+`finance.manual_record.update` and `finance.manual_summary.read`. The
+owner-scoped SQL schema, API and React flow are labelled `SLICE_IMPLEMENTED`
+in `docs/implementation/finance-manual-records-slice.md`; advanced ledger,
+account, transfer, bill, budget, report, CSV and sensitive share/support rows
+remain gated below.
+
+The current PR #4 Bookmarks overlay permits only the manual metadata subset:
+`bookmarks.bookmark.read`, `bookmarks.bookmark.create`,
+`bookmarks.bookmark.update`, `bookmarks.bookmark.archive` and
+`bookmarks.bookmark.unarchive`. The owner-scoped SQL schema, inert URL boundary,
+API and React flow are labelled `SLICE_IMPLEMENTED` in
+`docs/implementation/bookmarks-manual-slice.md`; refresh, external navigation,
+tags, collections, Trash, sharing/support and provider rows remain gated.
+
+The current PR #4 Snippets overlay permits the text/version subset:
+`snippets.snippet.read`, `snippets.snippet.create`, `snippets.snippet.save`,
+`snippets.snippet.archive` and `snippets.snippet.unarchive`. The owner-scoped
+SQL current/version tables, escaped source boundary, API and React flow are
+labelled `SLICE_IMPLEMENTED` in `docs/implementation/snippets-text-slice.md`;
+history/diff/restore, export, tags/templates, Trash and sharing/support rows
+remain gated. Explicit local Copy does not execute or persist source.
+
+The current PR #4 Read Later overlay permits the Bookmark-reference subset:
+`reading.queue.read`, `reading.item.save`, `reading.item.remove`,
+`reading.item.read`, `reading.item.unread` and `reading.item.position`. The
+owner-scoped SQL queue, safe snapshot/source-availability boundary, API and
+React flow are labelled `SLICE_IMPLEMENTED` in
+`docs/implementation/read-later-bookmark-slice.md`; News/body reader,
+cross-module News state, search/tags, sharing/support and advanced lifecycle
+rows remain gated. Position is explicit metadata only and never an inferred
+reading percentage.
+
+The current PR #4 FX24 overlay permits the owner-scoped Tag catalog subset:
+`organization.tag.read`, `organization.tag.create`, `organization.tag.rename`
+and `organization.tag.remove`. The SQL/API/React flow is labelled
+`SLICE_IMPLEMENTED (local)` in
+`docs/implementation/organization-tags-slice.md`. Only the local provider
+namespaces (`projects`, `documents`, `bookmarks`, `snippets`) are accepted.
+Assignment, Collections, Templates and sharing remain gated; a tag never
+grants access or ownership.
+
+The local implementation evaluates the current `platform.Module`,
+`platform.UserModuleGrant`, `platform.Permission` and `platform.AdminPermission`
+rows for each protected request. Users, Admins and SuperAdmins retain the
+approved own-resource SELF baseline when the module is enabled. AdminPermission
+is reserved for administrative/cross-user/support operations; matching `Deny`
+semantics remain enforced there. Canonical
+resource-qualified keys for the implemented Projects, Tasks, Calendar,
+Notifications and Trash operations are registered by migration `0007`.
+Legacy compact keys remain accepted only as a compatibility bridge for existing
+local grant rows and are not a new catalog authority.
 
 ## `PO_PAUSED` rows
 
@@ -77,6 +190,14 @@ Decision: keep in R1 catalog, but no OAuth, connection, credential, inbound/outb
 `toolbox.network.http`, `toolbox.network.dns`.
 
 Decision: keep inactive under the integration/network boundary. Local pure tools may remain designed, but arbitrary HTTP/DNS execution needs separate PO/network approval.
+
+The current PR #4 overlay implements the bounded local subset:
+`toolbox.catalog.read`, `toolbox.base64.run`, `toolbox.url_codec.run`,
+`toolbox.html_codec.run`, `toolbox.hash.run`, `toolbox.uuid.run`,
+`toolbox.password.run`, `toolbox.json.run` and `toolbox.regex.run`. These
+operations are memory-only, server-gated by FX32 and never execute input or
+contact a provider. XML/YAML/CSV conversion, advanced formatters, QR,
+certificates, history/favorites, Save-to-Snippet and network rows remain gated.
 
 ## `NETWORK_GUARD_GATED` rows
 
@@ -162,11 +283,11 @@ Decision: operational backup/restore depends on Local Stable first, then provide
 | FX28 Vault owner restore/purge/version restore | `vault.item.restore`, `vault.item.purge`, `vault.item.restore_version` | Replaced by SuperAdmin-authorized Vault recovery model; no owner purge/restore path. |
 | FX39 Standalone interview actions | `career.interview.read`, `career.interview.create`, `career.interview.update`, `career.interview.complete`, `career.interview.cancel`, `career.interview.link_calendar` | Replaced by `career.appointment.*` linked to internal Calendar Personal Event. |
 
-## Default for all remaining non-M01 action rows
+## Default for all remaining action rows
 
-All other action rows, including rows whose module table says `Resolved delegated`, are `DESIGN_RESOLVED_NOT_APPROVED_NOW` until a future vertical slice explicitly approves them.
+All other action rows, including rows whose module table says `Resolved delegated`, remain contract-gated until their exact API/DB/UX/acceptance/security/evidence package is complete. Once that package is sufficient, DEC-20260909-014 permits local implementation without another PO approval; production/provider execution remains separately gated.
 
-This includes but is not limited to Projects, Tasks, Calendar, Reminders, Planner, Goals, Habits, Time Tracking, Focus, Documents, Files, Sharing, Support/Emergency, Read Later, Snippets, Dashboard, Shopping manual records, Developer Toolbox local tools, Finance manual records, Career, Learning and other non-M01 actions.
+This includes but is not limited to advanced Goals targets/archive/trash/history, Time Tracking, Focus, Files, Sharing, Support/Emergency, Read Later News/body-reader/search/advanced rows, Snippet history/diff/restore/export/tags, Dashboard layout/widget mutation and quick-create, Search saved/recent/command/index rows, Shopping manual records, Developer Toolbox advanced/history/network rows, advanced Finance/Vault, Career, Learning and other non-M01 actions. Implemented Projects, Tasks, Calendar, Documents, Notifications, Trash, Settings, Finance-manual, Bookmarks-manual, Snippets-text, Read-Later Bookmark-reference, FX14 reminders, FX16 numeric Goals, FX25-S01 Search, FX25-S03 Favorites, FX26-S01 Dashboard attention, FX32 pure-toolbox subset, FX15 Planner and FX17 Habits are governed by their slice evidence documents rather than this default.
 
 ## Full R1 readiness rule
 
@@ -181,4 +302,4 @@ Valid states are slice-scoped:
 5. `SLICE_VERIFIED_LOCALLY` — runtime evidence actually passes for that slice.
 6. `PRODUCTION_GO_APPROVED` — later provider/capacity/security/ops Go/No-Go approves public release.
 
-A future slice may be approved only when it names exact modules/actions/stories and includes API, DB, UX, acceptance, security/privacy and evidence contracts. Agents must not self-select the next slice or infer approval from R1 catalog membership.
+A slice may be implemented only when it names exact modules/actions/stories and includes API, DB, UX, acceptance, security/privacy and evidence contracts. Agents must not invent missing business decisions or infer real provider permission from R1 catalog membership.

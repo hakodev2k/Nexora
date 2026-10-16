@@ -1,8 +1,16 @@
 # FX-16 — Goals và Targets
 
+> **Current slice:** Numeric Goal CRUD, explicit numeric progress and the
+> documented lifecycle are `SLICE_IMPLEMENTED (local)` on PR #4. See
+> [implementation evidence](../../implementation/goals-numeric-slice.md).
+> Boolean/Tasks targets, archive/trash/history, reminders and provider
+> behavior remain gated and are not implied by these goals.
+
 Product phase: **P02** · Delivery: **RM10** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-16 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** Specified; numeric subset is `SLICE_IMPLEMENTED (local)` under
+DEC-014, but runtime verification and the complete FX-16 module remain open.
+Goals có điều kiện không là quyền code. FX-16 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

@@ -1,0 +1,24 @@
+{
+  "basePrHead": "fccfd544522b563122beaab8b7bdec54a0c2a181",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "algorithm": "SHA256 of UTF-8 source, LF line endings, no BOM (published blob bytes)",
+  "files": {
+    "src/Nexora.Api/Program.cs": "276ecd446cbbe0b257dc1474214d58dce60e0db2b540294c3b32d64e11526c1e",
+    "src/Nexora.Domain/Access/ActionGrantPolicy.cs": "95f7e2e7c468567e5616cd618bbbd7d2f576ef6c2e25e33a20481a5912a4527b",
+    "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs": "f26c8c67f5c8328e60dce2aa27c2900d1d70f2e204c0423bdd7414da3aa575eb",
+    "tests/Nexora.FunctionalTestOperator/Program.cs": "6ff5c4b6ff0fee07c260ae933ce5c734247ad135d55d416c9ee989443ce53e50",
+    "tests/Nexora.IntegrationTests/SqlApiFixture.cs": "e3acebb6be444b06bc243a6f03a04113c77f3c0314764efc33c5363beef5e2a0",
+    "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs": "611d4b06e6463abca4183df62d19a723d6f6b24502ddaff135cee898e9b27bea",
+    "web/Nexora.Web/src/App.tsx": "712b7e2e33fd732b103359d69a356731bc79e9079167f9fda8c494204fcd7e75",
+    "web/Nexora.Web/src/styles.css": "0f74d0e59960a69671e48d3d2843f930071aafeb5a5bc77fd2395d6b64af5e20",
+    "database/migrations/20261003_0039_digital_assets_local.sql": "56e1c49718fb51260735854dd0950f9e87ba4ef315552d6ef6d1236b66b23c15",
+    "src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs": "1077b45ef6e8fb19e5963922f2d4592509ba60d5fd58fc9891889ba7bf5d1c5d",
+    "src/Nexora.Application/Assets/DigitalAssetContracts.cs": "d5e71cb085c1fc23f5640bb0c61e43ab3a0cdb9ff0d54284b549dc6dc544ef48",
+    "src/Nexora.Infrastructure/Assets/DigitalAssetInput.cs": "9e4a29f2dfb26eafaf4a703d61df374be7c9c63d725cd5d6ce1d4303ede769a5",
+    "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs": "446a748322778f29f5c60d4d498c14b2c7361db0a86fd66a161e921efc743ee4",
+    "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs": "d30918997d966da216b79ddc26534aa7b91e3ada94f29d4677d8c5631524e2c4",
+    "web/Nexora.Web/functional/digital-assets.spec.ts": "c250dd6536e8e6cc3150339fe0cd8ac2be995c99aff7ed95d4fabf97c54a7383",
+    "web/Nexora.Web/src/DigitalAssetScreen.tsx": "ff04472f8727eded023ab952dc4d93b9a5a902384d124fa2fd8b534642175937",
+    "web/Nexora.Web/src/digitalAssetApi.ts": "d0956ae5d207dce5112c360d6b1fa163faa794b5714c9fd1be48721e4b52f5e6"
+  }
+}

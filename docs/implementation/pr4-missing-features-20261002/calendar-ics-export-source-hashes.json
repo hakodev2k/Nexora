@@ -1,0 +1,171 @@
+{
+  "baseHead": "4da80f588962a8b906a91d3a5089a6cdf487f7d9",
+  "canonicalization": "UTF8 no BOM LF",
+  "files": [
+    {
+      "path": "database/migrations/20261004_0042_calendar_ics_export.sql",
+      "sha256": "ddd256a2b8899ae76c54d5e09c3f263e49a9efe0caacaf1c2959f40b7af36d82",
+      "gitBlobSha1": "aea37fa4dd13f54110db84622e54303313bd3572"
+    },
+    {
+      "path": "src/Nexora.Application/Transfer/CalendarExportContracts.cs",
+      "sha256": "f7bfbcdced4cf0c0f9cae680e1e11a02d366573951f85c4bfcd7bc226ce23d16",
+      "gitBlobSha1": "7ef5c23fb0632613ecd0bbb51178454e87327e5e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarIcsSerializer.cs",
+      "sha256": "5f183c48ff415119bfd21138444ca9a9887ed30e220952842a50e9c13e9016be",
+      "gitBlobSha1": "6786913060c92a347eb396d9581593321344802b"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarExportPreviewToken.cs",
+      "sha256": "7eb10c561749aa0031b42f75b1fedfc0ab9c866590c3a97b0e149e391fed95e1",
+      "gitBlobSha1": "6564ac38c5156fc3d67d7a34b62f9bb67d9dcf93"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarExportSelection.cs",
+      "sha256": "51307b38efb884e3b6b5e1deb11e915531ccc20f135eebe7d27ddbebd3152f8b",
+      "gitBlobSha1": "621564973f0df6947fd6a08a9a43190f341e0401"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlExportJobStore.cs",
+      "sha256": "bb3df65c433853c3251c5157a684b64673c6df59928ea2fbed2a26086d1aa262",
+      "gitBlobSha1": "20cd8209eb2a3e064fa451c170a0978ecab82e77"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlCalendarExportService.cs",
+      "sha256": "3d34bb6d1e3670b77bff9d34d424cda55ee9a1219fe446c017f899703d2ea701",
+      "gitBlobSha1": "6bcf775b7b77df2913aca4ab29ca9518e216ebf1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlCalendarExportParticipant.cs",
+      "sha256": "4c233f7fc41e5cf6f4b022faf0c13e3a52a55fe7ddf19e2dd7afb98ad5852a3e",
+      "gitBlobSha1": "0f93808b073b391890244aaddc57714b79996a00"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlImportAuthority.cs",
+      "sha256": "c32c6c36a2f2d2d6dc4373f1cdb3a956b926daf0cf607cb3e60fe278f40843cf",
+      "gitBlobSha1": "1b15ec05875563979c13f8c2eaa1e587f71ec695"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "af55bf4ace488901dc5f27a608d4c8f3d964a8bbd60441937cd87260b19a6388",
+      "gitBlobSha1": "3321110773a194f60c47f991efbd4e5dde815d1f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
+      "sha256": "b988ee1f3dec21237fc59b621fd750d5cdd29a9167c587448c8c52483f8cedb8",
+      "gitBlobSha1": "f7d347be054e06386d29da0ce618f994e4f0e499"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "326b948c46c002c91e3904ee95a4a316648fdbe77527ca4bd4aa43703535f1ed",
+      "gitBlobSha1": "4d022e17a8bab433978b13a9c7722d4e5fc5ff41"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Transfer/CalendarExportEndpoints.cs",
+      "sha256": "047f8eb2052f83d8aebe43144477035f148a11301c6be25bbeb0e9c972d77d20",
+      "gitBlobSha1": "79d059876d5aa62c06f7060a98f8f53aaf29dbc2"
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "e01cee78ee3de546c08504372b6129c1a05ea98d4971a51f8aec69ddefea05ce",
+      "gitBlobSha1": "668749a81e3e253f784948bcbcc3440a90eae3f6"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs",
+      "sha256": "f8ff5d90a28b2a1ff52b239d4623d46848e22257e97471d19074734451077317",
+      "gitBlobSha1": "dbce61b614ed79bd49ce2e9f2de600f5694700a4"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256": "da7175b7dae408313c115e4a47cb4b85839ccc4e64f78937f8b40c2ce098b819",
+      "gitBlobSha1": "82824aa589cca38eec1b5913f57e3c927f9ce019"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs",
+      "sha256": "3695e405a1f3d77286eb8292a694db53b7ca0acd8505e4b047ef4088ed6f7e5a",
+      "gitBlobSha1": "a9c3a1293f6474625e32dce15e5122d57b8bfed6"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs",
+      "sha256": "c82367fc82b994a2b0760636e67e2c1160052a037bcf3d6f4d3552af4d041b89",
+      "gitBlobSha1": "58b5982b2c94fbd172a2f50f8adc80e5491c5008"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/Program.cs",
+      "sha256": "df23d595f83292c0f07b418b6dd7ae0a48a960209f085debed9ffecb8fcd20b2",
+      "gitBlobSha1": "257ded4af22dc334d03056d6e32094b1f48a34b2"
+    },
+    {
+      "path": "web/Nexora.Web/src/calendarExportApi.ts",
+      "sha256": "eb52fcad2476b64914cb473c2b691d17f27a032f81859ce1571a6fa001085e7f",
+      "gitBlobSha1": "42040d28baab3cfa6a72212320fdbab375f86be6"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "cc33e28c98f522ca951d74d9e91a9a7202363470d3994c5c292400468f09e174",
+      "gitBlobSha1": "395556a35f8338974deba6bb103cbd2d7fca703a"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarTransferScreen.tsx",
+      "sha256": "3067bbdd3de363ffba317debbf199eff2dcb9ea0c85520a6364ff66a11a11504",
+      "gitBlobSha1": "e8fc12da3cdb74756df5fa97598b1d671f1f200c"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarExportScreen.tsx",
+      "sha256": "4c063001a050a2fc24bd1d093464d8057e7f6083a9b1958fcd6232fc46ad282c",
+      "gitBlobSha1": "e54ea6fbef22098e114be8cf74eb2fa096af9292"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarExportScreen.test.tsx",
+      "sha256": "7a29c17ac8e96d2651a9b94c55e126225e83f291813d05ffe572fd1b11cce548",
+      "gitBlobSha1": "1effe2cbba4897e084a6020f96a7bbfd8e626327"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "2a6e784a3973643336a1d5cc28f994cb8f0602fe926e9ace2d1ca6878ae11418",
+      "gitBlobSha1": "daf6b54ccc1e69121188a67d37f93ac898f640c2"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarImportScreen.tsx",
+      "sha256": "63363f9a23c57595233b799009817cb4c67fa46a65f90279e6b57e817f8762c9",
+      "gitBlobSha1": "e8b750c60e1504cd29b67ca7bb99dc8345da7b35"
+    },
+    {
+      "path": "web/Nexora.Web/src/styles.css",
+      "sha256": "3200d2536e107c1b9dbaeeb93a67a00bbdeec61e1910eaa6cc23b0c23fa00378",
+      "gitBlobSha1": "1299c4d6e1ed02b277177156092c185732b2974a"
+    },
+    {
+      "path": "web/Nexora.Web/functional/calendar-export.spec.ts",
+      "sha256": "0b4c27513ab3ea73fbeed85e844e08cb84a847d36ead4db49c739d701f938c5e",
+      "gitBlobSha1": "4c74f21ec57331a6fbcd9d36801a5431f19abb59"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/packages.lock.json",
+      "sha256": "41d1f6d3d152af5f501bba24d784cbb6f94beceb48cb8a1ef1bd8cfaeaba0f83",
+      "gitBlobSha1": "476ec859f90c1fc2e4e304bdd5712a9e9ccc8221"
+    },
+    {
+      "path": "src/Nexora.Api/packages.lock.json",
+      "sha256": "ba2b573669a02e061617a57e92203ccfa64b60d291163a8dda254ff39b1bf703",
+      "gitBlobSha1": "0c8ee956165ef15566a40e3e7706ac1c48b99f22"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/packages.lock.json",
+      "sha256": "46b8f54270705b2ff1fa9407bf898f9bdd819fa5563ba160b503e20b6e113aaf",
+      "gitBlobSha1": "d6e3f12c5b8abffc79dacee92af06c3f44aaba04"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/packages.lock.json",
+      "sha256": "607bf1556d34b7e926452487f8bdf5cbead84f2ec7d90bbfb5baa95c95610ff2",
+      "gitBlobSha1": "803f86204ce8f6e5bcdcdd0855097ae2b8e4bde6"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/packages.lock.json",
+      "sha256": "06248d9f75f5ae7f98dd9307a41aba2bac860f022bc3e977d75b70814d5497a6",
+      "gitBlobSha1": "4e19d2ed1725b42e946cd5f01ffb6aa2ac294437"
+    }
+  ]
+}

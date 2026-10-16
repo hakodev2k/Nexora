@@ -1,6 +1,9 @@
 # Current implementation slices and Release1 scope
 
-2026-09-09 · **M01 + backend/frontend scaffold + local scripts are approved for implementation by `DEC-20260909-001`.** Active outside that boundary still means eligible for refinement/implementation consideration after later approval, not live or guaranteed Ready. M01 is an internal foundation slice; Phase1 and R1 are larger.
+> **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
+
+
+2026-09-10 · **Full local Release 1 implementation is approved by `DEC-20260909-014` when the exact contract is sufficient.** M01 is an internal foundation slice and milestone labels are not runtime folders. Production/provider execution remains gated; current code-only testing and QA are owner responsibilities.
 
 ## Release rule
 
@@ -8,21 +11,18 @@ All modules with current requirements remain the committed R1 catalog, subject t
 
 ## Current approved implementation boundary
 
-Implementation is currently approved only for:
+Implementation is currently approved for:
 
-- M01 stories S00–S11.
-- Backend scaffold required for M01.
-- Frontend scaffold required for M01.
-- Local development scripts/runbook artifacts required for M01 evidence.
-- Synthetic local fixtures, local SQL Server, optional Redis cache and captured/simulated notification adapters.
+- Any documented Release 1 phase/module slice whose API/DB/UX/acceptance/security/evidence contract is sufficient.
+- Local SQL Server, optional Redis cache, local bootstrap and local-safe delivery/provider boundaries. No raw-token logging or real provider execution is enabled.
 
 Implementation is not currently approved for:
 
 - Production deployment, public launch, paid provider provisioning, domains, production secrets or production data.
-- Full Phase1/R1 outside the M01 slice.
-- Business modules not listed as part of M01.
-- FX30 Price Tracking, FX34 Automation/Scheduler/Workflows or FX35 Integrations/Webhooks/n8n.
+- Production deployment, public launch, paid provider provisioning, domains, production secrets or production data.
 - Real OAuth/write/provider mutation/payment/executable third-party integration.
+
+FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/Webhooks/n8n may have local/simulated/integration-safe code under DEC-014, but remain disabled by default and may not execute real providers.
 
 ## Forty feature groups
 
@@ -43,23 +43,23 @@ Implementation is not currently approved for:
 | FX-13 | [Calendar, Personal Events và ICS](../features/13-calendar.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-14 | [Reminders và Due Scheduling](../features/14-reminders-and-scheduling.md) | Single task/event reminder core; independent extensions remain gated | Not in M01 |
 | FX-15 | [Daily và Weekly Planner](../features/15-planner.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-16 | [Goals và Targets](../features/16-goals.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
+| FX-16 | [Goals và Targets](../features/16-goals.md) | Numeric Goal/target/progress local slice; advanced targets/lifecycle gates apply | Not in M01 |
 | FX-17 | [Habit Tracker](../features/17-habits.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-18 | [Time Tracking](../features/18-time-tracking.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-19 | [Pomodoro và Focus](../features/19-pomodoro.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-20 | [Documents, Note và Knowledge Pages](../features/20-documents.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-21 | [Bookmarks](../features/21-bookmarks.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-22 | [Code Snippets](../features/22-snippets.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-23 | [Read Later](../features/23-read-later.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-24 | [Tags, Collections và Templates](../features/24-organization-and-templates.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-25 | [Search, Saved Search, Favorites và Command Palette](../features/25-search-favorites-and-command-palette.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-26 | [Dashboard và Widgets](../features/26-dashboard.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
+| FX-21 | [Bookmarks](../features/21-bookmarks.md) | Manual URL/title/description slice implemented locally on PR #4; advanced lifecycle/organization/provider gates apply | Not in M01 |
+| FX-22 | [Code Snippets](../features/22-snippets.md) | Text/version slice implemented locally on PR #4; history/export/share/advanced lifecycle gates apply | Not in M01 |
+| FX-23 | [Read Later](../features/23-read-later.md) | Bookmark-reference queue slice implemented locally on PR #4; News/body reader, search, sharing and advanced lifecycle gates apply | Not in M01 |
+| FX-24 | [Tags, Collections và Templates](../features/24-organization-and-templates.md) | FX24-S01 owner-scoped Tag catalog implemented locally; assignment/Collections/Templates remain gated | Not in M01 |
+| FX-25 | [Search, Saved Search, Favorites và Command Palette](../features/25-search-favorites-and-command-palette.md) | FX25-S01 source-query Search and FX25-S03 typed Favorites implemented locally; Recents/Saved Search/Command Palette gates apply | Not in M01 |
+| FX-26 | [Dashboard và Widgets](../features/26-dashboard.md) | FX26-S01 owner-only attention projection implemented locally; layout/quick-create gates apply | Not in M01 |
 | FX-27 | [Finance — current basic manual records](../features/27-finance.md) | Initial Finance scope = manual category/amount/explicit currency/date/optional note; advanced ledger/budget/debt/interest/FX/transfers gated | Not in M01 |
 | FX-28 | [Vault](../features/28-vault.md) | Hybrid recoverable Vault policy approved; no operator plaintext; portability/key design/security evidence still required | Not in M01 |
 | FX-29 | [News, RSS và Topic Watch](../features/29-news-and-feeds.md) | Internal stored reader; read-only public outbound allowed only after slice contract and SSRF/provider guards | Not in M01 |
 | FX-30 | [Shopee Price Tracking](../features/30-shopee-price-tracking.md) | Paused by Product Owner; no worker/auto-enable; not moved to R2 | Not in M01 |
 | FX-31 | [Wishlist, Comparison, Orders, Sellers và Warranty](../features/31-shopping-records.md) | Current owner-only scope; sensitive projection allowlists required where applicable | Not in M01 |
-| FX-32 | [Developer Toolbox](../features/32-developer-toolbox.md) | Local tools active; network tools held under integration/outbound boundary | Not in M01 |
+| FX-32 | [Developer Toolbox](../features/32-developer-toolbox.md) | Pure local toolbox subset active; network/history/advanced tools held behind their contracts | Not in M01 |
 | FX-33 | [GitHub Discovery](../features/33-github-discovery.md) | Internal stored metadata; read-only public outbound allowed only after slice contract and network guards | Not in M01 |
 | FX-34 | [Automation, Scheduler và Workflows](../features/34-automation-and-scheduler.md) | Paused by Product Owner; core platform jobs unaffected; not moved to R2 | Not in M01 |
 | FX-35 | [Integrations, Webhooks và n8n](../features/35-integrations-webhooks-and-n8n.md) | Paused by Product Owner; foundation email/push distinct; not moved to R2 | Not in M01 |
@@ -71,7 +71,7 @@ Implementation is not currently approved for:
 
 ## Candidate delivery order — delegated sequencing, not business scope change
 
-M01 Identity/access/delivery foundation and scaffold → M02 remaining platform lifecycle/files/sharing/support/notifications → Productivity flat core → Knowledge/Documents/Search → Finance basic/Vault after scoped contracts → other domain slices. Price/Automation/Integrations have no scheduled execution while paused. Each later slice requires its own API/DB/UX/acceptance package and explicit implementation approval. M01 does not masquerade as a full Phase1 or a public release.
+Identity/access/delivery foundation → remaining platform lifecycle/files/sharing/support/notifications → Productivity flat core → Knowledge/Documents/Search → Finance basic/Vault → remaining domain slices. Paused modules use local-safe code only. Each slice still requires its API/DB/UX/acceptance/security/evidence contract; DEC-014 removes repeated PO approval, not contract or provider gates.
 
 ## Runtime availability algorithm
 

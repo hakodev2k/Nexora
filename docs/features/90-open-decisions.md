@@ -2,7 +2,9 @@
 
 > Current specification · reconciled 2026-09-09. [Previous version](../history/20260908/snapshot/docs/features/90-open-decisions.md) is historical evidence, not implementation input.
 
-[Biên bản lời PO 2026-09-07](../requirements/10-owner-decisions-20260907.md) và [PO implementation-readiness decisions 2026-09-09](../requirements/11-owner-decisions-20260909-implementation-readiness.md) là nguồn quyết định hiện hành. Các proposal trước đây không tự trở thành Approved; các mục dưới đây chỉ Approved đúng phạm vi được nêu. `DEC-20260909-001` approve implementation cho M01 + backend/frontend scaffold + local scripts, không approve full R1 hoặc production.
+[Biên bản lời PO 2026-09-07](../requirements/10-owner-decisions-20260907.md), [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) và [DEC-20260909-014](../requirements/12-owner-decisions-20260909-local-e2e-implementation.md) là nguồn quyết định hiện hành. DEC-014 supersedes M01-only/local-code pause restrictions for local implementation; production, real providers, secrets/data and paid services remain unapproved. Các proposal trước đây không tự trở thành Approved; business/security rules và retired actions vẫn giữ nguyên.
+
+> **Current implementation authority:** Full documented Release 1 local E2E may proceed slice-by-slice when API/DB/UX/acceptance/security/evidence contracts are sufficient. Formerly paused FX30/34/35 may use local/simulated/integration-safe adapters only; real provider execution remains disabled. The current run is code-only and does not add tests, fixtures or mock/demo records.
 
 <a id="q-01"></a>
 ## Q-01 — Resolved for account deletion/recovery policy
@@ -50,20 +52,20 @@ Nguồn: DEC-20260907-Q04, DEC-20260909-004.
 Nguồn: DEC-20260907-Q05, DEC-20260909-006.
 
 <a id="q-06"></a>
-## Q-06 — Paused by Product Owner
+## Q-06 — Local simulation approved; real provider remains paused
 
-**Đã xác nhận:** Price Tracking tạm dừng, chưa triển khai. Quyết định 2026-09-09 giữ paused trong M01/M02 và không chuyển sang R2.
+**Đã xác nhận:** DEC-20260909-014 cho phép Price Tracking local/simulated/integration-safe implementation sau khi đủ contract. Real provider fetch/refresh và external mutation vẫn bị chặn; không auto-enable.
 
-**Còn lại / giới hạn:** Giữ catalog/schema đề xuất để tiếp tục sau; không fetch, refresh, alert hoặc bật mặc định cho User. Resume cần PO cho phép rõ.
+**Còn lại / giới hạn:** Simulation phải gắn nhãn, owner-scoped, durable và idempotent; real provider execution cần approval riêng.
 
 Nguồn: DEC-20260907-Q06, DEC-20260909-009.
 
 <a id="q-07"></a>
-## Q-07 — Paused by Product Owner, except explicit read-only outbound boundary
+## Q-07 — Local Automation/Integrations simulation approved
 
-**Đã xác nhận:** Automation/Integrations tạm dừng, chưa triển khai. FX34 Automation/Scheduler/Workflows và FX35 Integrations/Webhooks/n8n giữ paused trong M01/M02 và không chuyển R2. Core jobs/reminders/email/push của chức năng đã chốt vẫn là nền tảng riêng.
+**Đã xác nhận:** DEC-20260909-014 cho phép FX34/FX35 local/simulated/integration-safe implementation với contract đầy đủ. Core jobs/reminders/email/push của chức năng đã chốt vẫn là nền tảng riêng.
 
-**Còn lại / giới hạn:** Không chạy user workflow, webhook/n8n, provider write, OAuth connector hoặc tự triển khai integration runtime. News/GitHub/Monitoring read-only public outbound được xử lý riêng tại Q-08/P-H07 dưới guard, không resume FX34/35.
+**Còn lại / giới hạn:** Không chạy external webhook/provider write/OAuth/n8n thật; worker cần lease, bounded retry và idempotency. News/GitHub/Monitoring read-only public outbound vẫn cần guard riêng.
 
 Nguồn: DEC-20260907-Q07, DEC-20260909-008, DEC-20260909-009.
 
@@ -114,7 +116,7 @@ Nguồn: DEC-20260907-Q12.
 
 ## Implementation approval status
 
-`DEC-20260909-001` approves only M01 + backend/frontend scaffold + local scripts. Agents may code that bounded slice after reading `docs/delivery/milestone-01/**`, `docs/delivery/01-current-scope.md`, goals and AGENTS instructions. Every change must trace to story/action/AC and actual test evidence.
+`DEC-20260909-014` approves full documented R1 local implementation in contract-complete slices. Agents must read `docs/requirements/12-owner-decisions-local-e2e-implementation.md`, current scope, goals and AGENTS instructions; every change must trace to goal/requirement/action/AC and actual evidence. Production/provider execution remains unapproved.
 
 ## Các việc còn cần PO quyết định tiếp
 
@@ -124,6 +126,6 @@ Nguồn: DEC-20260907-Q12.
 - Advanced Finance semantics nếu muốn vượt basic manual records.
 - Task/Reminder extensions nếu muốn vượt flat Task + one reminder.
 - Provider/cost/capacity/RPO/RTO/SLA sau Local Stable.
-- Resume FX30/34/35 nếu muốn Price Tracking, Automation hoặc Integrations hoạt động.
+- Real provider execution for FX30/34/35 requires later explicit approval; local simulation is already approved under DEC-014.
 
-Các chi tiết kỹ thuật còn lại do technical owner tự chốt thành ADR/acceptance có thể kiểm chứng trong phạm vi đã được PO approve. Paused modules chỉ quay lại khi PO yêu cầu resume; không tiếp tục hỏi thông số provider trong lúc paused.
+Các chi tiết kỹ thuật còn lại do technical owner tự chốt thành ADR/acceptance có thể kiểm chứng trong phạm vi đã được PO approve. Không được suy ra provider thật, OAuth, payment hoặc production capability từ local simulation.

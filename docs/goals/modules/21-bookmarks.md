@@ -22,7 +22,8 @@ Product phase: **P03** · Delivery: **RM09** · Phase 8/RM16–RM22 kiểm chứ
 ## Traceability và kiểm chứng
 
 - [Feature/BR/AC nguồn](../../features/21-bookmarks.md) — đọc toàn bộ field/state/validation và trace requirements tại đó.
-- [Action contracts](../../action-catalog/modules/21-bookmarks.md) — exact action keys, contexts, prerequisites, status/gate; catalog có 12 rows: Blocked: 1, Resolved delegated: 10, Superseded: 1. Đây là inventory, không phải coverage đã pass.
+- [Action contracts](../../action-catalog/modules/21-bookmarks.md) — exact action keys, contexts, prerequisites, status/gate; five manual metadata rows are `SLICE_IMPLEMENTED (local)`, one is Superseded and the remaining rows stay gated. This is implementation status, not runtime coverage.
+- [Manual slice evidence](../../implementation/bookmarks-manual-slice.md) — API/DB/security/UI boundary and verification ownership.
 - [UX/screens](../../ux-ui/modules/21-bookmarks.md) — luồng màn hình, disabled/loading/error và interaction contracts.
 - [DB binding](../../design-database/16-action-catalog-binding.md), [DB integrity tests](../../design-database/13-query-and-invariant-tests.md), [field classification](../../design-database/15-field-classification.md).
 - AC hiện hành cần kế thừa: `FX-21-AC-001`, `FX-21-AC-002`, `FX-21-AC-003`. Cộng source requirement AC, POAC liên quan và [cross-module journeys](../04-cross-module-verification.md); danh sách này không thay test plan đầy đủ.

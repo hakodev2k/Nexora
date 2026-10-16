@@ -2,7 +2,7 @@
 
 FX-22 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu nền tảng được giữ nguyên; text/version subset là `SLICE_IMPLEMENTED (local)` theo DEC-20260909-014. History/diff/restore, export, tags/templates, sharing và advanced lifecycle vẫn contract-gated.
 
 ## Phạm vi và tham chiếu
 
@@ -14,7 +14,7 @@ Code/text cá nhân có highlighting, copy, history và tìm kiếm.
 
 **Áp dụng cho Nexora:** Gist tham chiếu snippet/revision; không thực thi code, Git hosting hoặc sync Gist.
 
-**Màn hình:** `/snippets`. Routes là thiết kế đề xuất; không phải endpoint đã implement.
+**Màn hình:** `/snippets` (local text/version route implemented on PR #4); detail/history routes remain future contracts.
 
 ## Luồng sử dụng
 

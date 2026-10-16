@@ -1,8 +1,16 @@
 # Goals và Targets
 
+> **Current decision amendment — 2026-09-10:** FX16-S01/S02/S03/S04 numeric
+> Goal subset is implemented locally on PR #4 under `DEC-20260909-014`.
+> Goal/target/progress data is SQL-backed and owner-isolated; task-linked,
+> boolean, archive/trash/history, reminders and provider behavior remain gated.
+> See [numeric slice evidence](../implementation/goals-numeric-slice.md).
+
 FX-16 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; numeric Goal subset là
+`SLICE_IMPLEMENTED (local)` theo DEC-20260909-014. Các capability còn lại
+vẫn là contract-gated và không được suy ra từ subset này.
 
 ## Phạm vi và tham chiếu
 
@@ -12,7 +20,8 @@ Mục tiêu cá nhân với targets số, yes/no và linkedTasks.
 
 **Áp dụng cho Nexora:** ClickUp tham chiếu targettypes; không team ownership, automatic financial actions hoặc đổi Task state từ Goal.
 
-**Màn hình:** `/goals`. Routes là thiết kế đề xuất; không phải endpoint đã implement.
+**Màn hình:** `/goals` là route local đã nối cho numeric subset; các route
+detail/progress riêng trong UX inventory vẫn là logical surfaces của cùng flow.
 
 ## Luồng sử dụng
 

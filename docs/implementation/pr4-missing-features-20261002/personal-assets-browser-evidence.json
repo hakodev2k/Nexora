@@ -1,0 +1,72 @@
+{
+  "scope": "One Assets workflow across five real viewports, normal form login and SQL persistence; not full FX37 acceptance",
+  "stats": {
+    "expected": 5,
+    "unexpected": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "duration": 75868.91100000001
+  },
+  "tests": [
+    {
+      "title": "Assets: explicit states, SQL persistence, dirty conflict, paging, private history and lifecycle",
+      "project": "desktop-large",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13762,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Assets: explicit states, SQL persistence, dirty conflict, paging, private history and lifecycle",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13684,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Assets: explicit states, SQL persistence, dirty conflict, paging, private history and lifecycle",
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13681,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Assets: explicit states, SQL persistence, dirty conflict, paging, private history and lifecycle",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 14147,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Assets: explicit states, SQL persistence, dirty conflict, paging, private history and lifecycle",
+      "project": "mobile-small",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 14902,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

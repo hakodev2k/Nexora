@@ -1,6 +1,6 @@
 # FX-23 — Read Later: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-10 · Bookmark-reference local subset is `SLICE_IMPLEMENTED (local)` on PR #4; News/body extraction, reader and sensitive projections remain contract-gated. Source business decisions giữ nguyên; blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 
@@ -15,24 +15,24 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 
 | Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="reading-queue-read"></a>`reading.queue.read` — Xem reading queue | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX23-S01, FX23-S02, FX23-S03 |
-| <a id="reading-item-save"></a>`reading.item.save` — Lưu source vào Read Later | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX23-S01 |
-| <a id="reading-item-remove"></a>`reading.item.remove` — Gỡ khỏi queue | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX23-S01, FX23-S03 |
-| <a id="reading-item-read"></a>`reading.item.read` — Đánh dấu đã đọc | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX23-S01, FX23-S02 |
-| <a id="reading-item-unread"></a>`reading.item.unread` — Đánh dấu chưa đọc | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX23-S01, FX23-S02 |
-| <a id="reading-item-position"></a>`reading.item.position` — Lưu reading position | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX23-S02 |
+| <a id="reading-queue-read"></a>`reading.queue.read` — Xem reading queue | QUERY / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-scoped Bookmark-reference queue and safe source-availability projection | FX23-S01, FX23-S03 |
+| <a id="reading-item-save"></a>`reading.item.save` — Lưu source vào Read Later | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): Bookmark-only source, one owner/source entry and safe snapshots; no body copy | FX23-S01 |
+| <a id="reading-item-remove"></a>`reading.item.remove` — Gỡ khỏi queue | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): removes queue reference only, including unavailable source | FX23-S01, FX23-S03 |
+| <a id="reading-item-read"></a>`reading.item.read` — Đánh dấu đã đọc | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-scoped state update with source-read dependency, ETag and audit | FX23-S01 |
+| <a id="reading-item-unread"></a>`reading.item.unread` — Đánh dấu chưa đọc | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-scoped state update with source-read dependency, ETag and audit | FX23-S01 |
+| <a id="reading-item-position"></a>`reading.item.position` — Lưu reading position | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): explicit 0–1 metadata position; no inferred percentage or body | FX23-S01 |
 | <a id="reading-support-read"></a>`reading.support.read` — Xem safe support projection của module | QUERY / SUPPORT | Yes, gated | Sensitive (Sensitive) | Resolved delegated: diagnostic projection only; private body excluded unless source scope explicitly permits | FX05-S03, FX05-S05 |
 
 ## Điều kiện riêng theo operation
 
 | Action | Guard / validation / effects | Explicit dependencies bổ sung |
 | --- | --- | --- |
-| `reading.queue.read` | Source provider read từng item, không source disabled payload; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
-| `reading.item.save` | Own queue item; source read; News read/unread còn phải qua news.article.mark_read/mark_unread, không ghi vòng; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
-| `reading.item.remove` | Own queue item; source read; News read/unread còn phải qua news.article.mark_read/mark_unread, không ghi vòng; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
-| `reading.item.read` | Own queue item; source read; News read/unread còn phải qua news.article.mark_read/mark_unread, không ghi vòng; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
-| `reading.item.unread` | Own queue item; source read; News read/unread còn phải qua news.article.mark_read/mark_unread, không ghi vòng; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
-| `reading.item.position` | Own queue item; source read; News read/unread còn phải qua news.article.mark_read/mark_unread, không ghi vòng; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
+| `reading.queue.read` | Owner queue only; Bookmark source is projected as available only when current owner/module/read scope permits; no body copy | Common + current Bookmark read dependency |
+| `reading.item.save` | Owner Bookmark source read; unique owner/source; safe title/URL snapshot; no body copy or source deletion | Common + `bookmarks.bookmark.read` |
+| `reading.item.remove` | Own queue reference only; current reading module/action/session and queue ETag; permitted even when source is unavailable per FX23-S03 and UX section15. Never read/change/delete source or mutate News read-state. | No live source-read prerequisite; queue authority only |
+| `reading.item.read` | Own queue item; source read; sets state `Read` and server timestamp; no News state coupling in Bookmark-only slice | Common + `bookmarks.bookmark.read` |
+| `reading.item.unread` | Own queue item; source read; sets state `Unread`; no News state coupling in Bookmark-only slice | Common + `bookmarks.bookmark.read` |
+| `reading.item.position` | Own queue item; source read; stores explicit 0–1 metadata position and state `Reading`; no inferred percentage/body | Common + `bookmarks.bookmark.read` |
 | `reading.support.read` | Qualified Admin + support.session.open + current one-module consent OR authorized SuperAdmin Emergency; target enabled; approved redacted projection only; no owner history/export/reveal/linked-module expansion; Queue reference theo source; không copy body hay xóa source | Common + dynamic source/provider guards |
 
 ## Deny và UX contract
@@ -50,3 +50,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 3. LOCAL: keyboard/menu và tool entry cùng capability gate; không network/persist ngầm. SYSTEM: trusted caller, original authority và no UI grant.
 4. Row nhạy cảm: no secret in response preview, toast, logs, URL, search, browser persistent storage; current recent-auth gate nếu required.
 5. Nếu handler/source projection chưa có approved contract, action phải báo Blocked/Unavailable, không tự thực thi fallback rộng hơn.
+
+## Source reconciliation — 2026-10-14 (technical binding)
+
+The generic source-read/News-state sentence formerly copied onto Remove contradicted the existing `main` FX23-S03/UX section15 Source unavailable row. That exact row permits safe marker + remove queue reference. The corrected guard binds this existing behavior, not a new PO decision or source-access exception. Remove checks its own queue authority and ETag only, and never calls a source read/provider/write. Save/read/unread/position retain current source-read prerequisites. Source baseline main8782f46; see reading-response-replay-20261014 continuation evidence.

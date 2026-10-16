@@ -1,0 +1,24 @@
+{
+  "basePrHead": "0ce56b636441534382b6fbe3afa1fa5dc35189ea",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "algorithm": "SHA256 of UTF-8 source, LF line endings, no BOM (published blob bytes)",
+  "files": {
+    "src/Nexora.Api/Program.cs": "07f2bdaa2c660327752920c275472c30859662e7a6ce9d85a7130b3548d7a270",
+    "src/Nexora.Domain/Access/ActionGrantPolicy.cs": "c60671767b525e8816b65ae5757122318d5b3209644f315354578500c08e2539",
+    "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs": "c2e856a128bf280f696f971fb1192860ecdbfbd061b01bf509a930ebde5974d2",
+    "tests/Nexora.FunctionalTestOperator/Program.cs": "04d26462fbe710cc210d804ea441e1b56a59db9d5bff026e70b1700364584e54",
+    "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs": "a5e99c6e98918a1dea0d183bb5dc6358b78bf89aacebf8a44b49f563ba51b1d4",
+    "web/Nexora.Web/src/App.tsx": "530b7fed621aa3f38bbb23d8624e9c6f2d55fb02713885f7f41cca2a30b8db1a",
+    "web/Nexora.Web/src/styles.css": "125e07e187acebd663751a1b8b02900cb869644b4887584bb9389a4d277f6087",
+    "database/migrations/20261003_0040_career_manual.sql": "e0f45d7926ffa91a4d09df345acdfede30b00eb6362d95bb3131dddb3eb09c20",
+    "src/Nexora.Api/Features/Career/CareerEndpoints.cs": "2825a65304e60e17c7c826e7f9894551bf4d5951bb9063fd0e7ed3a3f7b50f2d",
+    "src/Nexora.Application/Career/CareerContracts.cs": "81a83492b4a6e4284f1e6d26a4b3a59e3eab282be756de512f80205de5273fe0",
+    "src/Nexora.Infrastructure/Career/CareerInput.cs": "ac52c5781a021539f6188ab8e4819834a3353f40efac10bf803b3ece8792edf7",
+    "src/Nexora.Infrastructure/Career/SqlCareerService.cs": "6d1aeff0f638880b16ed89dc6973cd617480ef60135a604a414ba2d10576efb0",
+    "tests/Nexora.IntegrationTests/SqlCareerTests.cs": "81a5353081411b6190922a018d8b776b6b7d159dfcc2f306fe43546b3a9235cf",
+    "web/Nexora.Web/functional/career.spec.ts": "00f6287c1efcfc70dc10f46c4ba1a06eeefc9c77198d68e3640617aae516b192",
+    "web/Nexora.Web/src/careerApi.ts": "9cb3d60c3d9bd293588d8f47b0531c0a085eb2aee3a1fa7893052942c9dd19ea",
+    "web/Nexora.Web/src/CareerScreen.tsx": "607b44bea1af6d80804f1342bab1bc04907e20af241d2af142691cc423f2853f",
+    "docs/implementation/pr4-missing-features-20261002/career-manual-contract.md": "8abc720271e4e1664887c550785363c2852720d49b0833ddb8d0db2049140f2c"
+  }
+}

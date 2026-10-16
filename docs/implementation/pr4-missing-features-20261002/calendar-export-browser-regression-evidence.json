@@ -1,0 +1,105 @@
+{
+  "sourceHead": "1a141f34c7414a2e05c09442b29773cc9d07066c",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "additionalTestOnlyChange": "selectTimeTrash awaits the exact requested initial filter response and enabled Reload before actual visible pagination",
+  "timeHelperSha256": "a91ecfa5b5c51728c01899811e00b692e07094c33c31006e2ad6f8ef648298e5",
+  "exportSourceHashes": "calendar-ics-export-source-hashes.json",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts --max-failures=1",
+  "stats": {
+    "expected": 255,
+    "unexpected": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "duration": 1555848.1369999999
+  },
+  "projects": {
+    "desktop": {
+      "expected": 51
+    },
+    "desktop-large": {
+      "expected": 51
+    },
+    "mobile": {
+      "expected": 51
+    },
+    "mobile-small": {
+      "expected": 51
+    },
+    "tablet": {
+      "expected": 51
+    }
+  },
+  "files": {
+    "calendar-export.spec.ts": {
+      "expected": 5
+    },
+    "calendar-import.spec.ts": {
+      "expected": 5
+    },
+    "career.spec.ts": {
+      "expected": 5
+    },
+    "content.spec.ts": {
+      "expected": 30
+    },
+    "courses.spec.ts": {
+      "expected": 5
+    },
+    "digital-assets.spec.ts": {
+      "expected": 5
+    },
+    "discovery.spec.ts": {
+      "expected": 10
+    },
+    "focus.spec.ts": {
+      "expected": 5
+    },
+    "personal-assets.spec.ts": {
+      "expected": 5
+    },
+    "platform.spec.ts": {
+      "expected": 25
+    },
+    "remaining.spec.ts": {
+      "expected": 10
+    },
+    "resources.spec.ts": {
+      "expected": 60
+    },
+    "security.spec.ts": {
+      "expected": 5
+    },
+    "settings.spec.ts": {
+      "expected": 15
+    },
+    "skills.spec.ts": {
+      "expected": 5
+    },
+    "time-access.spec.ts": {
+      "expected": 5
+    },
+    "time.spec.ts": {
+      "expected": 5
+    },
+    "toolbox.spec.ts": {
+      "expected": 45
+    },
+    "wishlist.spec.ts": {
+      "expected": 5
+    }
+  },
+  "assertion": "255 expected, zero unexpected/skipped/flaky, one attempt each, zero report errors",
+  "normalLoginPacingMs": 6500,
+  "workers": 1,
+  "viewports": [
+    "1920x1080",
+    "1366x768",
+    "768x1024",
+    "390x844",
+    "320x568"
+  ],
+  "dataPreserved": true,
+  "runtime": "isolated retained synthetic SQL, normal form login, actual visible pagination; no throttle/page-limit changes",
+  "review": "course_review independent test-helper source PASS; reviewer ran no tests",
+  "privacy": "Only aggregate statuses and canonical source hash retained. Raw traces, attachments, credentials, cookies, account manifests, SQL connection and screenshots excluded."
+}

@@ -1,0 +1,102 @@
+{
+  "sourceHead": "e85016c4aae27b8642cdf60e5c495872a68aa68f",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "additionalTestOnlyChange": "showPagedCard awaits initial visible target or actual pagination button before choosing next step",
+  "fixtureSha256": "951390049583ac6b39815cd3265e45b282ef2a56e728f8d5e65dd3ddd35da5e8",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts --max-failures=1",
+  "stats": {
+    "startTime": "2026-10-03T17:31:23.586Z",
+    "duration": 1474344.683,
+    "expected": 250,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "projects": {
+    "desktop": {
+      "expected": 50
+    },
+    "desktop-large": {
+      "expected": 50
+    },
+    "mobile": {
+      "expected": 50
+    },
+    "mobile-small": {
+      "expected": 50
+    },
+    "tablet": {
+      "expected": 50
+    }
+  },
+  "files": {
+    "calendar-import.spec.ts": {
+      "expected": 5
+    },
+    "career.spec.ts": {
+      "expected": 5
+    },
+    "content.spec.ts": {
+      "expected": 30
+    },
+    "courses.spec.ts": {
+      "expected": 5
+    },
+    "digital-assets.spec.ts": {
+      "expected": 5
+    },
+    "discovery.spec.ts": {
+      "expected": 10
+    },
+    "focus.spec.ts": {
+      "expected": 5
+    },
+    "personal-assets.spec.ts": {
+      "expected": 5
+    },
+    "platform.spec.ts": {
+      "expected": 25
+    },
+    "remaining.spec.ts": {
+      "expected": 10
+    },
+    "resources.spec.ts": {
+      "expected": 60
+    },
+    "security.spec.ts": {
+      "expected": 5
+    },
+    "settings.spec.ts": {
+      "expected": 15
+    },
+    "skills.spec.ts": {
+      "expected": 5
+    },
+    "time-access.spec.ts": {
+      "expected": 5
+    },
+    "time.spec.ts": {
+      "expected": 5
+    },
+    "toolbox.spec.ts": {
+      "expected": 45
+    },
+    "wishlist.spec.ts": {
+      "expected": 5
+    }
+  },
+  "assertion": "250 expected, zero unexpected/skipped/flaky, one attempt each, zero report errors",
+  "normalLoginPacingMs": 6500,
+  "workers": 1,
+  "viewports": [
+    "1920x1080",
+    "1366x768",
+    "768x1024",
+    "390x844",
+    "320x568"
+  ],
+  "dataPreserved": true,
+  "runtime": "isolated retained synthetic SQL, normal form login, actual visible pagination; no throttle/page-limit changes",
+  "review": "course_review independent test-helper source PASS; reviewer ran no tests",
+  "privacy": "Raw traces, attachments, credentials, cookies, account manifests, SQL connection and screenshots excluded."
+}

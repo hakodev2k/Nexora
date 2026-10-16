@@ -1,0 +1,10 @@
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="12.788810999999999">
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:18:33.133Z" hostname="ui-desktop" tests="1" failures="0" skipped="0" time="6.876" errors="0">
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="6.876">
+</testcase>
+</testsuite>
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:18:33.133Z" hostname="ui-mobile" tests="1" failures="0" skipped="0" time="4.459" errors="0">
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="4.459">
+</testcase>
+</testsuite>
+</testsuites>

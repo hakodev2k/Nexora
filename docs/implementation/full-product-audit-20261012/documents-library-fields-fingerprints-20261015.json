@@ -1,0 +1,10 @@
+{
+  "parent": "678e30b630fdcfc97c74d3cc43f8d435064b7da8",
+  "sources": [
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "c67cc2199a937b3737e727e5b5694d467dfdea981af38ab90a344e52b0ebd5f7",
+      "publishedLfSha256": "c67cc2199a937b3737e727e5b5694d467dfdea981af38ab90a344e52b0ebd5f7"
+    }
+  ]
+}

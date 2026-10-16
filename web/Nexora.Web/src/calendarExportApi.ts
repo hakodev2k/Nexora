@@ -1,0 +1,12 @@
+import { apiFetch, apiFetchBlob, jsonMutationHeaders } from './api';
+const root = '/api/v1/transfer/calendar/exports';
+export type ExportFilter = { schemaVersion: 1; sourceKinds: string[]; manualStatuses: string[]; taskStatuses: string[]; range: { start: string; end: string } | null; containmentMode: 'FullyContained' };
+export type ExportPreview = { count: number; timeZoneId: string; previewToken: string; expiresAt: string };
+export type ExportAck = { jobId: string; state: string; count: number; createdAt: string; expiresAt: string; etag: string };
+export type ExportJob = { id: string; state: string; count: number; filter: ExportFilter; timeZoneId: string; createdAt: string; expiresAt: string; etag: string };
+export const exportCapabilities = () => apiFetch<Record<string, boolean>>(root + '/capabilities');
+export const exportPreview = (filter: ExportFilter) => apiFetch<ExportPreview>(root + '/preview', { method: 'POST', headers: jsonMutationHeaders(crypto.randomUUID()), body: JSON.stringify(filter) });
+export const requestExport = (filter: ExportFilter, previewToken: string, key: string) => apiFetch<ExportAck>(root, { method: 'POST', headers: jsonMutationHeaders(key), body: JSON.stringify({ filter, previewToken, confirmed: true }) });
+export const exportJob = (id: string) => apiFetch<ExportJob>(root + '/' + id);
+export const exportJobs = (state = '', cursor?: string) => apiFetch<{ items: ExportJob[]; nextCursor: string | null }>(root + '?' + new URLSearchParams({ ...(state ? { state } : {}), ...(cursor ? { cursor } : {}) }));
+export const exportContent = (id: string) => apiFetchBlob(root + '/' + id + '/content');

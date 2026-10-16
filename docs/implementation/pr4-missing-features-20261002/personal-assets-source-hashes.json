@@ -1,0 +1,21 @@
+{
+  "basePrHead": "9097ff73f29b0d3c4030f71fea1b69c6e56859d9",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "algorithm": "SHA256 of UTF-8 source, LF line endings, no BOM (published blob bytes)",
+  "files": {
+    "src/Nexora.Application/Assets/PersonalAssetContracts.cs": "6d9e5d9b25eb54c03f01218b48123050c44e8e66a8add1cf8100125f45cdcae0",
+    "src/Nexora.Infrastructure/Assets/SqlPersonalAssetService.cs": "9244b6fe95b94bda2dd1462794020878b164dee2d584eb36f362c11dc2ebcab4",
+    "src/Nexora.Api/Features/Assets/PersonalAssetEndpoints.cs": "a3e870f997826a6c7cf9f16522021512f70ad848bcddedf40374626ffb161caa",
+    "database/migrations/20261003_0038_personal_assets_local.sql": "b0d7f507273cd5bb25390eb3a771f12a9220013464677059c4c4678716ac22e8",
+    "src/Nexora.Api/Program.cs": "138f6c1f3f066fa3d7a5e84cad23245211d0785b5fe588ce3db29717c6d97d66",
+    "src/Nexora.Domain/Access/ActionGrantPolicy.cs": "d67a03d0a54fe51756b50205e40726dc0c511bfa3e976f8b6ebd49763393f272",
+    "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs": "6bf9483a264ba069dac85630d35a71b7d9d449d55cc1656023d134b13fe13ed2",
+    "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs": "d125c9349b7388fae9aa03839c9543f56067d97305c3723aa99a6230dcdbd673",
+    "tests/Nexora.FunctionalTestOperator/Program.cs": "05a606995d3d317a1d43b40c6567e5d6170a44ecc81b5fd3c567011f399e3b1b",
+    "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs": "1c60e539a162a34e81684dbc0a82a0171a2dfaffcc10a21dc0eae30283e5cae1",
+    "web/Nexora.Web/src/App.tsx": "5d49be068f826f7c08e8f8b4725146d9a0309ae6f1f6592f3be37bf9cfcd806a",
+    "web/Nexora.Web/src/PersonalAssetScreen.tsx": "31586a01c600872549eab2d733174a20e25f150a7550da4b1c92f7545a242354",
+    "web/Nexora.Web/src/personalAssetApi.ts": "e5c1a7f1e060d9dd4a93bbe5bd54268c2a19254b9ea407e38803e2fefc423312",
+    "web/Nexora.Web/functional/personal-assets.spec.ts": "59a2c64beca7637c733c522db174c8390b48d812d174ef670c212c92bde934e5"
+  }
+}

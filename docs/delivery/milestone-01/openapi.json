@@ -3,7 +3,7 @@
   "info": {
     "title": "Nexora M01 — design contract, not a running API",
     "version": "1.0.0",
-    "description": "Resolved delegated documentation. Implementation remains unapproved. See adjacent Markdown for semantic guards."
+    "description": "Resolved delegated bounded-M01 documentation contract. This machine-readable file is historical M01 scope, not the complete Release 1 API catalog. Contract-complete post-M01 slices use their linked implementation contracts; FX25-S03 Favorites paths and operationIds are defined in docs/implementation/favorites-reference-slice.md. Current local implementation authority is DEC-20260909-014; runtime execution remains separately evidenced."
   },
   "servers": [
     {

@@ -1,0 +1,76 @@
+{
+  "basePrHead": "0ce56b636441534382b6fbe3afa1fa5dc35189ea",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "workflow": "Normal form login; retained synthetic SQL; actual API/persistence; unchanged throttle/page limits; no record deletion for pagination",
+  "sourceHashes": "career-source-hashes.json",
+  "stats": {
+    "startTime": "2026-10-03T12:38:47.467Z",
+    "duration": 91403.22200000001,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Career: manual Companies/Jobs, exact SQL salary, merge history, conflicts and paged lifecycle",
+      "project": "desktop-large",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 15239
+        }
+      ]
+    },
+    {
+      "title": "Career: manual Companies/Jobs, exact SQL salary, merge history, conflicts and paged lifecycle",
+      "project": "desktop",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 16505
+        }
+      ]
+    },
+    {
+      "title": "Career: manual Companies/Jobs, exact SQL salary, merge history, conflicts and paged lifecycle",
+      "project": "tablet",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 17346
+        }
+      ]
+    },
+    {
+      "title": "Career: manual Companies/Jobs, exact SQL salary, merge history, conflicts and paged lifecycle",
+      "project": "mobile",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 16741
+        }
+      ]
+    },
+    {
+      "title": "Career: manual Companies/Jobs, exact SQL salary, merge history, conflicts and paged lifecycle",
+      "project": "mobile-small",
+      "status": "expected",
+      "expectedStatus": "passed",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 16895
+        }
+      ]
+    }
+  ]
+}

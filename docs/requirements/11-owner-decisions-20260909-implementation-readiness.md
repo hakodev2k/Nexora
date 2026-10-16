@@ -1,5 +1,8 @@
 # Product Owner decisions — implementation readiness 2026-09-09
 
+> **Current local implementation approval:** [DEC-20260909-014](12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
+
+
 > Current specification amendment. This document records Product Owner choices made during the 2026-09-09 implementation-readiness interviews. It supersedes conflicting older proposal language only for the named capabilities below. Historical snapshots remain evidence, not implementation input.
 
 ## Source and authority
@@ -9,6 +12,8 @@ Product Owner response batch 1: agreed to the recommended options covering appro
 Product Owner response batch 2: selected `Q1:D`, `Q2:A`, `Q3:A`, `Q4:A`, `Q5:A`, `Q6:A`, then delegated the remaining block/pause decisions to the reviewer using the same recommended safe-default policy. This produced `DEC-20260909-011` through `DEC-20260909-013` and the effective action-status overlay.
 
 These decisions are Product Owner decisions or Product Owner-delegated implementation-readiness decisions. They do not prove implementation, tests, runtime readiness, production suitability or security certification.
+
+**Superseded boundary:** DEC-20260909-014 is the current implementation authority. The M01-only/future-slice approval text below is retained as historical traceability. Local Release 1 code may proceed slice-by-slice when contracts are sufficient; production/provider execution remains unapproved. The current code-only run adds no test/mock/demo fixtures; functional QA and runtime verification belong to the owner.
 
 ## Approved implementation boundary
 
