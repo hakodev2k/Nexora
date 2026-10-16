@@ -408,7 +408,7 @@ public sealed partial class SqlDocumentService : IDocumentService
     private static byte[] DecodeETag(string value) => Convert.FromBase64String(value.Trim().Trim('"'));
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 
-    private sealed record DocumentReceipt(Guid Id, string ETag, string Action);
+    private sealed record DocumentReceipt(Guid Id, string ETag, string Action, string? ResponseDigest = null);
 
     private bool CurrentAuthority(SqlConnection connection, SqlTransaction transaction,
         IdentityPrincipal actor, string action) => _capabilities.IsAllowed(connection, transaction, actor, "FX20", action);
@@ -416,11 +416,14 @@ public sealed partial class SqlDocumentService : IDocumentService
     private IdentityOperationResult<DocumentDetail> CommitResource(SqlConnection connection, SqlTransaction transaction,
         IdentityPrincipal actor, ReceiptClaim claim, DocumentDetail detail, string action, string code, int status)
     {
+        var canRead = CurrentAuthority(connection, transaction, actor, "documents.page.read");
+        // Persist proof of the original authorized projection, never its private body.
+        // A later read grant or derived Tag rename must not change a completed reply.
+        var responseDigest = canRead ? _receipts.DigestSensitive(JsonSerializer.Serialize(detail)) : null;
         _receipts.Complete(connection, transaction, claim, code, status,
-            JsonSerializer.Serialize(new DocumentReceipt(detail.Id, detail.ETag, action)));
+            JsonSerializer.Serialize(new DocumentReceipt(detail.Id, detail.ETag, action, responseDigest)));
         if (!CurrentAuthority(connection, transaction, actor, action))
         { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
-        var canRead = CurrentAuthority(connection, transaction, actor, "documents.page.read");
         // Time may expire without another transaction changing any locked row.
         if (!CurrentAuthority(connection, transaction, actor, action))
         { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
@@ -465,9 +468,10 @@ public sealed partial class SqlDocumentService : IDocumentService
                 return Failure<DocumentDetail>("ReceiptUnavailable", 503, "The committed document receipt is unavailable.");
             if (!CurrentAuthority(connection, transaction, actor, stored.Action)) return ModuleUnavailable<DocumentDetail>();
             DocumentDetail? current = null;
-            if (CurrentAuthority(connection, transaction, actor, "documents.page.read"))
+            if (stored.ResponseDigest is not null && CurrentAuthority(connection, transaction, actor, "documents.page.read"))
                 current = ReadDetail(connection, transaction, actor.OwnerId, stored.Id, forUpdate: false);
             var canRead = current is not null && current.ETag == stored.ETag &&
+                stored.ResponseDigest == _receipts.DigestSensitive(JsonSerializer.Serialize(current)) &&
                 CurrentAuthority(connection, transaction, actor, "documents.page.read");
             if (!CurrentAuthority(connection, transaction, actor, stored.Action)) return ModuleUnavailable<DocumentDetail>();
             return canRead ? IdentityOperationResult<DocumentDetail>.Success(current!, claim.ResultStatusCode.Value, claim.ResultCode)

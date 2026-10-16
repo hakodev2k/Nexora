@@ -3,28 +3,30 @@ import type { Page } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 const account = (role: string) => JSON.parse(readFileSync(process.env.NEXORA_E2E_ACCOUNTS!, 'utf8')).find((a: any) => a.role === role);
-const operator = (cmd: string, id?: string): any => JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, id ? [cmd, id] : [cmd], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
-async function publish(page: Page, recipientUserId: string, title: string) {
-  return page.evaluate(async ({recipientUserId,title}) => { const path='/src/api.ts',a=await import(path),csrf=await a.getCsrf(); const r=await fetch('/api/v1/admin/notifications',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrf.requestToken,'Idempotency-Key':crypto.randomUUID()},body:JSON.stringify({kind:'System',title,body:'Nội dung tổng hợp cho kiểm thử local.',sourceRef:null,logicalKey:crypto.randomUUID(),recipientUserId})}); if(r.status!==201)throw new Error('Notification prerequisite failed: '+r.status);return r.json(); },{recipientUserId,title});
+const operator = (cmd: string, ...args: string[]): any => JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR!, [cmd, ...args], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }));
+// Synthetic prerequisites are created out of band in the validated disposable QA database.
+// Browser roles never gain the production SYSTEM notification publication capability.
+function seedNotification(recipientUserId: string, title: string) {
+  return operator('seed-notification', recipientUserId, title);
 }
 async function selectTarget(page: Page, email: string) { await page.goto('/admin/access'); const row=page.getByRole('button').filter({has:page.getByText(email,{exact:true})}); await expect(row).toBeVisible();await row.click();await expect(page.locator('#admin-action')).toBeVisible(); }
 async function setGrant(page: Page,userId: string,key: string,effect: string){const current=await api(page,'getAdminUserAccess',[userId]);if((current.actionGrants.find((g:any)=>g.actionKey===key)?.effect??'Unset')===effect)return current;const p=await api(page,'previewAdminAccess',[userId,{kind:'permissions',changes:[{actionKey:key,effect}]}]);expect(p.blockers).toHaveLength(0);return api(page,'commitAdminActionGrant',[userId,p.etag,[{actionKey:key,effect}],p.previewToken]);}
 async function setModules(page: Page,userId: string,moduleId: string,enabled: boolean){const p=await api(page,'previewAdminAccess',[userId,{kind:'modules',changes:[{moduleId,enabled}]}]);expect(p.blockers).toHaveLength(0);return api(page,'commitAdminModuleGrant',[userId,p.etag,[{moduleId,enabled}],p.previewToken]);}
 
-test('FN-034 Notifications: UI read/unread, watermark, cancel/delete, SQL retention and foreign owner',async({page,browser},worker)=>{
- const admin=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL,viewport:worker.project.use.viewport}),foreign=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL});
- try{const p=await admin.newPage();await login(p,'SuperAdmin');await page.goto('/');const me=await api(page,'getMe');const title=unique('inbox');const n=await publish(p,me.id,title);const before=sql('Notification',n.id)[0];expect(before.OwnerUserId.toLowerCase()).toBe(me.id.toLowerCase());
+test('FN-034 Notifications: UI read/unread, watermark, cancel/delete, SQL retention and foreign owner',async({page,browser})=>{
+ const foreign=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL});
+ try{await page.goto('/');const me=await api(page,'getMe');const title=unique('inbox');const n=seedNotification(me.id,title);const before=sql('Notification',n.id)[0];expect(before.OwnerUserId.toLowerCase()).toBe(me.id.toLowerCase());
  await page.goto('/notifications');const row=page.locator('.notification-card').filter({has:page.getByRole('heading',{name:title,exact:true})});await expect(row).toBeVisible();
  const channels=(await api(page,'listNotifications')).items.find((i:any)=>i.id===n.id).deliveries;expect(channels.map((d:any)=>d.channel).sort()).toEqual(['BrowserPush','Email','InApp']);expect(channels.find((d:any)=>d.channel==='BrowserPush').state).toBe('PermissionUnavailable');
  await row.getByRole('button',{name:'Đánh dấu đã đọc',exact:true}).click();await expect.poll(()=>Boolean(sql('Notification',n.id)[0].ReadAt)).toBe(true);
  await row.getByRole('button',{name:'Đánh dấu chưa đọc',exact:true}).click();await expect.poll(()=>sql('Notification',n.id)[0].ReadAt).toBeNull();
  await page.getByRole('button',{name:'Đánh dấu tất cả đã đọc',exact:true}).click();await expect.poll(()=>Boolean(sql('Notification',n.id)[0].ReadAt)).toBe(true);
- const later=await publish(p,me.id,unique('after-watermark'));expect(sql('Notification',later.id)[0].ReadAt).toBeNull();await page.reload();
+ const later=seedNotification(me.id,unique('after-watermark'));expect(sql('Notification',later.id)[0].ReadAt).toBeNull();await page.reload();
  await page.getByLabel('Chọn '+title,{exact:true}).check();await page.getByRole('button',{name:'Xóa mục đã chọn',exact:true}).click();await page.getByRole('dialog').getByRole('button',{name:'Hủy',exact:true}).click();expect(sql('Notification',n.id)[0].DeletedAt).toBeNull();
  await page.getByRole('button',{name:'Xóa mục đã chọn',exact:true}).click();await confirm(page,'Xóa mục đã chọn');await expect.poll(()=>Boolean(sql('Notification',n.id)[0].DeletedAt)).toBe(true);expect(sql('Notification',later.id)[0].DeletedAt).toBeNull();await page.reload();await expect(row).toHaveCount(0);
  const b=await foreign.newPage();await login(b,'UserB');expect((await api(b,'listNotifications')).items.some((i:any)=>i.id===later.id)).toBe(false);
  const item=(await api(page,'listNotifications')).items.find((i:any)=>i.id===later.id);const denied=await b.evaluate(async({id,etag})=>{const path='/src/api.ts',a=await import(path);try{await a.markNotificationRead(id,etag,true);return 200;}catch(e:any){return e.status;}},{id:later.id,etag:item.etag});expect(denied).toBe(404);expect(sql('Notification',later.id)[0].ReadAt).toBeNull();
- }finally{await admin.close();await foreign.close();}
+ }finally{await foreign.close();}
 });
 
 test('FN-035 AdminReader: granted API metadata, denied admin screens, direct preview denied and SQL unchanged',async({browser},worker)=>{

@@ -12,6 +12,31 @@ var b=new SqlConnectionStringBuilder(cs);var db=b.InitialCatalog;
 if(!Regex.IsMatch(db,"^Nexora_Test_[0-9a-f]{32}$"))throw new Exception("Isolated database required");
 if(args is ["verify-sharing-backup"]) { await SharingBackupProof.RunAsync(cs); return; }
 
+// Explicit synthetic inbox fixture command. This executable has already validated a local,
+// disposable Nexora_Test_<UUID> database; it is not an application/SYSTEM publisher endpoint.
+if(args is ["seed-notification",var recipientText,var fixtureTitle]) {
+ if(!Guid.TryParse(recipientText,out var recipient)||string.IsNullOrWhiteSpace(fixtureTitle)||fixtureTitle.Length>200)
+  throw new ArgumentException("A synthetic recipient UUID and title up to200 characters are required");
+ var id=Guid.NewGuid();
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("""
+ SET XACT_ABORT ON;
+ BEGIN TRANSACTION;
+ IF NOT EXISTS (SELECT 1 FROM [identity].[User] WHERE [Id]=@user AND [NormalizedEmail] LIKE N'qa-%@example.invalid' AND [State]='Active' AND [IsDeleted]=0)
+  THROW 51000, 'A seeded active synthetic QA account is required.', 1;
+ INSERT INTO [notifications].[Notification] ([Id],[OwnerUserId],[LogicalKey],[Kind],[Title],[Body],[SourceRef])
+ VALUES (@id,@user,@key,N'System',@title,N'Synthetic functional inbox fixture.',NULL);
+ INSERT INTO [notifications].[Delivery] ([NotificationId],[Channel],[State],[LastErrorCode])
+ VALUES (@id,'InApp','Pending',NULL),(@id,'Email','Pending',NULL),
+        (@id,'BrowserPush','PermissionUnavailable',N'PushPermissionUnavailable');
+ COMMIT TRANSACTION;
+ """,c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=id;q.Parameters.Add("@user",SqlDbType.UniqueIdentifier).Value=recipient;
+ q.Parameters.Add("@key",SqlDbType.NVarChar,200).Value="functional-fixture:"+id.ToString("N");
+ q.Parameters.Add("@title",SqlDbType.NVarChar,200).Value=fixtureTitle;await q.ExecuteNonQueryAsync();
+ Console.WriteLine(JsonSerializer.Serialize(new{id}));return;
+}
+
 if(args is ["inventory"]){
  await using var inventory=new SqlConnection(cs);await inventory.OpenAsync();
  var counts=new Dictionary<string,long>();
@@ -112,7 +137,7 @@ if(args is ["migrate"]) {
  await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
  Console.WriteLine($"Applied {M01MigrationManifest.RequiredFileNames.Count} approved migrations.");return;
 }
-if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, catalog, read-access UUID, read-session UUID, read-profile UUID, or read-resource TYPE UUID");
+if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, catalog, seed-notification USER_UUID TITLE, read-access UUID, read-session UUID, read-profile UUID, or read-resource TYPE UUID");
 b.InitialCatalog="master";
 await using(var c=new SqlConnection(b.ConnectionString)){await c.OpenAsync();await using var q=new SqlCommand($"IF DB_ID(@db) IS NULL CREATE DATABASE [{db}]",c);q.Parameters.AddWithValue("@db",db);await q.ExecuteNonQueryAsync();}
 await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);

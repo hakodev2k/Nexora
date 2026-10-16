@@ -1,0 +1,5 @@
+import { defineConfig, devices } from '@playwright/test';
+const baseURL = process.env.NEXORA_UI_SMOKE_BASE_URL || 'http://127.0.0.1:5173';
+const target = new URL(baseURL);
+if (!['http:', 'https:'].includes(target.protocol) || !['127.0.0.1', 'localhost', '[::1]'].includes(target.hostname) || target.username || target.password || target.search || target.hash) throw new Error('UI smoke requires an isolated loopback target.');
+export default defineConfig({ testDir: './e2e', testMatch: 'ui-smoke.spec.ts', outputDir: 'artifacts/ui-smoke-output', timeout: 60000, expect: { timeout: 10000 }, workers: 1, retries: 0, reporter: [['line'], ['junit', { outputFile: 'artifacts/ui-smoke-junit.xml' }]], use: { baseURL, launchOptions: { executablePath: process.env.NEXORA_UI_SMOKE_CHROME || undefined, args: ['--no-sandbox', ...(process.env.NEXORA_UI_SMOKE_SINGLE_PROCESS === '1' ? ['--no-zygote', '--single-process'] : [])] }, trace: 'off', video: 'off', screenshot: 'off' }, projects: [{ name: 'ui-desktop', use: { ...devices['Desktop Chrome'] } }, { name: 'ui-mobile', use: { ...devices['Pixel 5'], viewport: { width: 320, height: 640 } } }] });

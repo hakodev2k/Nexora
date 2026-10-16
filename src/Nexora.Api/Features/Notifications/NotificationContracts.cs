@@ -9,7 +9,8 @@ public sealed record NotificationResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset? ReadAt,
     string ETag,
-    IReadOnlyList<NotificationDeliveryResponse> Deliveries);
+    IReadOnlyList<NotificationDeliveryResponse> Deliveries,
+    bool SourceUnavailable = false);
 
 public sealed record NotificationDeliveryResponse(
     string Channel,
@@ -26,11 +27,3 @@ public sealed record NotificationPageResponse(
 public sealed record NotificationReadRequest(bool Read);
 
 public sealed record NotificationDeleteRequest(IReadOnlyList<Guid> NotificationIds);
-
-public sealed record NotificationPublishRequest(
-    string Kind,
-    string Title,
-    string Body,
-    string? SourceRef,
-    string LogicalKey,
-    Guid? RecipientUserId = null);

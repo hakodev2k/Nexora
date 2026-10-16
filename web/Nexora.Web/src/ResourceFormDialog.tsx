@@ -1,3 +1,5 @@
+import { isolateModalLayer } from './modalIsolation';
+import { registerDirtyLeaveGuard, type DirtyLeaveContinuation } from './navigationGuard';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -31,15 +33,28 @@ function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, chi
   const state = useRef({ busy, dirty, closeBlocked, onClose });
   state.current = { busy, dirty, closeBlocked, onClose };
   const [discard, setDiscard] = useState(false);
+  const continuation = useRef<DirtyLeaveContinuation | null>(null);
   const resume = useRef<HTMLButtonElement>(null);
   function requestClose() {
     if (state.current.busy || state.current.closeBlocked) return;
     if (state.current.dirty) setDiscard(true); else state.current.onClose();
   }
+  useEffect(() => registerDirtyLeaveGuard(proceed => {
+    if (!state.current.dirty && !state.current.busy && !state.current.closeBlocked) return false;
+    if (!state.current.busy && !state.current.closeBlocked) { continuation.current = proceed; setDiscard(true); }
+    return true;
+  }, -100), []);
   useEffect(() => {
-    const backgrounds = Array.from(document.body.children).filter(el => el !== layer.current);
-    const previous = backgrounds.map(el => ({ el, hidden: el.getAttribute('aria-hidden'), inert: el.hasAttribute('inert') }));
-    for (const { el } of previous) { el.setAttribute('inert', ''); el.setAttribute('aria-hidden', 'true'); }
+    const preventUnload = (event: BeforeUnloadEvent) => {
+      if (!state.current.dirty && !state.current.busy && !state.current.closeBlocked) return;
+      event.preventDefault(); event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', preventUnload);
+    return () => window.removeEventListener('beforeunload', preventUnload);
+  }, []);
+  useEffect(() => {
+    if (!layer.current) return;
+    const releaseBackground = isolateModalLayer(layer.current);
     const focusable = () => Array.from(panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[href]') ?? []).filter(el => !el.closest('[hidden]'));
     (focusable()[0] ?? panel.current)?.focus();
     function keyDown(event: KeyboardEvent) {
@@ -54,10 +69,7 @@ function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, chi
     current?.addEventListener('keydown', keyDown);
     return () => {
       current?.removeEventListener('keydown', keyDown);
-      for (const { el, hidden, inert } of previous) {
-        if (hidden === null) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', hidden);
-        if (!inert) el.removeAttribute('inert');
-      }
+      releaseBackground();
       queueMicrotask(() => { if (trigger.current?.isConnected) trigger.current.focus(); });
     };
   }, []);
@@ -69,10 +81,11 @@ function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, chi
   return createPortal(<div ref={layer} className="dialog-backdrop" role="presentation">
     <div ref={panel} className="dialog-panel resource-form-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} tabIndex={-1}>
       <h2 id={titleId}>{title}</h2>
+      {busy && <p role="status">Đang xử lý. Hãy chờ kết quả trước khi rời biểu mẫu.</p>}
       <fieldset className="resource-dialog-fields" hidden={discard} disabled={busy}>{children}</fieldset>
       {discard ? <div role="alert"><p>Bỏ thay đổi chưa lưu?</p><div className="dialog-actions">
-        <button ref={resume} type="button" className="secondary-button" onClick={() => setDiscard(false)}>Tiếp tục sửa</button>
-        <button type="button" className="danger-button" disabled={busy || closeBlocked} onClick={onClose}>Bỏ bản nháp</button>
+        <button ref={resume} type="button" className="secondary-button" onClick={() => { continuation.current = null; setDiscard(false); }}>Tiếp tục sửa</button>
+        <button type="button" className="danger-button" disabled={busy || closeBlocked} onClick={() => { if (state.current.busy || state.current.closeBlocked) return; const proceed = continuation.current; continuation.current = null; onClose(); proceed?.(); }}>Bỏ bản nháp</button>
       </div></div> : <div className="dialog-actions"><button className="secondary-button" type="button" disabled={busy || closeBlocked} onClick={requestClose}>Hủy</button></div>}
     </div>
   </div>, document.body);

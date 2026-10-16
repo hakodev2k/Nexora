@@ -46,9 +46,9 @@ public sealed class SqlSearchPaginationAuthorityTests(SqlApiFixture fixture)
             """, P("@Owner", actor.OwnerId), new SqlParameter("@At", SqlDbType.DateTime2) { Value = fixedTime });
         var service = Search(); var first = service.Search(actor, "needle"); Assert.True(first.Succeeded, first.Code); Assert.Equal(25, first.Value!.Items.Count); Assert.NotNull(first.Value.NextCursor);
         Assert.DoesNotContain(first.Value.Providers, p => p.State == "Degraded");
-        Assert.Equal(14, Assert.Single(first.Value.Providers.Where(p => p.ResourceType == "Bookmark")).Count);
+        Assert.Equal(14, Assert.Single(first.Value.Providers, p => p.ResourceType == "Bookmark").Count);
         var next = service.Search(actor, "needle", cursor: first.Value.NextCursor); Assert.True(next.Succeeded, next.Code); Assert.Equal(3, next.Value!.Items.Count); Assert.Null(next.Value.NextCursor);
-        Assert.Equal(14, Assert.Single(next.Value.Providers.Where(p => p.ResourceType == "Bookmark")).Count); // A consumed provider still has14 full-query matches.
+        Assert.Equal(14, Assert.Single(next.Value.Providers, p => p.ResourceType == "Bookmark").Count); // A consumed provider still has14 full-query matches.
         var ordered = expected.OrderBy(item => new SqlGuid(item.Id)).ThenBy(item => item.Type, StringComparer.Ordinal);
         Assert.Equal(ordered, first.Value.Items.Concat(next.Value.Items).Select(item => (item.ResourceType, item.Id)));
         Assert.DoesNotContain(first.Value.Items.Concat(next.Value.Items), item => item.Snippet?.Contains("private source", StringComparison.Ordinal) == true);
@@ -88,7 +88,7 @@ public sealed class SqlSearchPaginationAuthorityTests(SqlApiFixture fixture)
             WHERE ap.[UserId] = @User AND p.[ActionKey] = 'bookmarks.bookmark.read';
             """, P("@User", actor.UserId));
         var next = service.Search(actor, "needle", limit: 1, cursor: first.NextCursor); Assert.True(next.Succeeded, next.Code); Assert.Empty(next.Value!.Items); Assert.Null(next.Value.NextCursor);
-        var provider = Assert.Single(next.Value.Providers.Where(p => p.ResourceType == "Bookmark")); Assert.Equal("Unavailable", provider.State); Assert.Equal(0, provider.Count);
+        var provider = Assert.Single(next.Value.Providers, p => p.ResourceType == "Bookmark"); Assert.Equal("Unavailable", provider.State); Assert.Equal(0, provider.Count);
         await fixture.SetModuleEnabledAsync(session.UserId, "FX25", false); Assert.False(service.Search(actor, "needle", limit: 1, cursor: first.NextCursor).Succeeded);
     }
 
@@ -120,8 +120,8 @@ public sealed class SqlSearchPaginationAuthorityTests(SqlApiFixture fixture)
             UPDATE [documents].[Page] SET [DeletedAt] = SYSUTCDATETIME() WHERE [OwnerId] = @Owner AND [Id] = @Document;
             """, P("@Owner", actor.OwnerId), P("@Bookmark", bookmark.Id), P("@Document", document.Id));
         var after = service.Search(actor, "needle", includeArchived: true); Assert.True(after.Succeeded, after.Code); Assert.Empty(after.Value!.Items);
-        Assert.Equal(0, Assert.Single(after.Value.Providers.Where(p => p.ResourceType == "Document")).Count);
-        Assert.Equal(0, Assert.Single(after.Value.Providers.Where(p => p.ResourceType == "Bookmark")).Count);
+        Assert.Equal(0, Assert.Single(after.Value.Providers, p => p.ResourceType == "Document").Count);
+        Assert.Equal(0, Assert.Single(after.Value.Providers, p => p.ResourceType == "Bookmark").Count);
     }
 
     [Fact]
@@ -148,8 +148,8 @@ public sealed class SqlSearchPaginationAuthorityTests(SqlApiFixture fixture)
         {
             var result = Search().Search(actor, "needle"); Assert.True(result.Succeeded, result.Code);
             Assert.Equal("Snippet", Assert.Single(result.Value!.Items).ResourceType);
-            Assert.Equal("Degraded", Assert.Single(result.Value.Providers.Where(p => p.ResourceType == "Bookmark")).State);
-            Assert.Equal("Ready", Assert.Single(result.Value.Providers.Where(p => p.ResourceType == "Snippet")).State);
+            Assert.Equal("Degraded", Assert.Single(result.Value.Providers, p => p.ResourceType == "Bookmark").State);
+            Assert.Equal("Ready", Assert.Single(result.Value.Providers, p => p.ResourceType == "Snippet").State);
         }
         finally { await fixture.ExecuteAsync("EXEC sp_rename N'knowledge.BookmarkUnavailableForSearchTest', N'Bookmark';"); }
     }

@@ -335,6 +335,7 @@ export type NotificationDeliveryRecord = {
 
 export type NotificationRecord = {
   id: string;
+  sourceUnavailable?: boolean;
   kind: string;
   title: string;
   body: string;
@@ -385,7 +386,7 @@ export type PreferencePage = {
 export type FinanceCategoryRecord = {
   id: string;
   title: string;
-  usageCount: number;
+  usageCount: number | null;
   createdAt: string;
   updatedAt: string;
   etag: string;
@@ -1453,21 +1454,22 @@ export function transitionDocument(id: string, etag: string, status: string, ide
   }, [200, 204]).then(result => validateDocumentMutation(result, id));
 }
 
-export function listNotifications(unreadOnly = false, limit = 50) {
+export function listNotifications(unreadOnly = false, limit = 25, cursor = '') {
   const query = new URLSearchParams({ unreadOnly: String(unreadOnly), limit: String(limit) });
+  if (cursor) query.set('cursor', cursor);
   return apiFetch<NotificationPage>(`/api/v1/notifications?${query.toString()}`);
 }
 
 export function markNotificationRead(id: string, etag: string, read: boolean, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<NotificationRecord>(`/api/v1/notifications/${encodeURIComponent(id)}`, {
+  return productivityMutation<NotificationRecord>(`/api/v1/notifications/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ read })
-  });
+  }, id);
 }
 
 export function markAllNotificationsRead(idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<{ watermark: string; updatedCount: number }>('/api/v1/notifications/mark-all-read', {
+  return apiFetch<{ watermark: string; updatedCount: number } | ProductivityCommittedAcknowledgement>('/api/v1/notifications/mark-all-read', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey)
   });
@@ -1512,14 +1514,23 @@ export function updatePreference(key: string, etag: string | '*', value: unknown
   });
 }
 
-export function listFinanceCategories(query = '', limit = 100) {
+export function listFinanceCategories(query = '', limit = 25, cursor = '') {
   const params = new URLSearchParams({ limit: String(limit) });
   if (query.trim()) params.set('query', query.trim());
+  if (cursor) params.set('cursor', cursor);
   return apiFetch<FinanceCategoryPage>(`/api/v1/finance/categories?${params.toString()}`);
 }
 
+export function getFinanceCategory(id: string) {
+  return apiFetch<FinanceCategoryRecord>(`/api/v1/finance/categories/${encodeURIComponent(id)}`);
+}
+
+export function getFinanceRecord(id: string) {
+  return apiFetch<FinanceManualRecord>(`/api/v1/finance/records/${encodeURIComponent(id)}`);
+}
+
 export function createFinanceCategory(title: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<FinanceCategoryRecord>('/api/v1/finance/categories', {
+  return productivityMutation<FinanceCategoryRecord>('/api/v1/finance/categories', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ title, ifMatch: '*' })
@@ -1527,11 +1538,11 @@ export function createFinanceCategory(title: string, idempotencyKey = createIdem
 }
 
 export function updateFinanceCategory(id: string, etag: string, title: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<FinanceCategoryRecord>(`/api/v1/finance/categories/${encodeURIComponent(id)}`, {
+  return productivityMutation<FinanceCategoryRecord>(`/api/v1/finance/categories/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ title, ifMatch: etag })
-  });
+  }, id);
 }
 
 export function removeFinanceCategory(id: string, etag: string, idempotencyKey = createIdempotencyKey()) {
@@ -1548,18 +1559,20 @@ export function listFinanceRecords(filters: {
   to?: string;
   query?: string;
   limit?: number;
+  cursor?: string;
 } = {}) {
-  const params = new URLSearchParams({ limit: String(filters.limit ?? 100) });
+  const params = new URLSearchParams({ limit: String(filters.limit ?? 25) });
   if (filters.categoryId) params.set('categoryId', filters.categoryId);
   if (filters.currencyCode?.trim()) params.set('currencyCode', filters.currencyCode.trim());
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
   if (filters.query?.trim()) params.set('query', filters.query.trim());
+  if (filters.cursor) params.set('cursor', filters.cursor);
   return apiFetch<FinanceRecordPage>(`/api/v1/finance/records?${params.toString()}`);
 }
 
 export function createFinanceRecord(input: FinanceRecordInput, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<FinanceManualRecord>('/api/v1/finance/records', {
+  return productivityMutation<FinanceManualRecord>('/api/v1/finance/records', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify(input)
@@ -1567,11 +1580,11 @@ export function createFinanceRecord(input: FinanceRecordInput, idempotencyKey = 
 }
 
 export function updateFinanceRecord(id: string, etag: string, input: FinanceRecordInput, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<FinanceManualRecord>(`/api/v1/finance/records/${encodeURIComponent(id)}`, {
+  return productivityMutation<FinanceManualRecord>(`/api/v1/finance/records/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify(input)
-  });
+  }, id);
 }
 
 export function listBookmarks(includeArchived = false, query = '', limit = 25, cursor = '') {

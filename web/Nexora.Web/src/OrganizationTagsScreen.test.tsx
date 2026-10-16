@@ -24,7 +24,7 @@ function showTags() {
 
 test('Tag pagination requests 25 rows, appends without duplicates and resets filters to a fresh page', async () => {
   const requests: URL[] = [];
-  server.use(http.get('*/api/v1/organization/tags', ({ request }) => {
+  server.use(http.get('*/api/v1/documents/tags', ({ request }) => { const url = new URL(request.url); requests.push(url); return HttpResponse.json({ items: [{ ...tag('document-tag', 'Document label'), namespace: 'documents' }], nextCursor: null }); }), http.get('*/api/v1/organization/tags', ({ request }) => {
     const url = new URL(request.url); requests.push(url);
     if (url.searchParams.get('namespace') === 'documents')
       return HttpResponse.json({ items: [{ ...tag('document-tag', 'Document label'), namespace: 'documents' }], nextCursor: null });

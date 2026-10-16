@@ -18,20 +18,13 @@ public sealed record NotificationRecord(
     DateTimeOffset CreatedAt,
     DateTimeOffset? ReadAt,
     string ETag,
-    IReadOnlyList<NotificationDeliveryRecord> Deliveries);
+    IReadOnlyList<NotificationDeliveryRecord> Deliveries,
+    bool SourceUnavailable = false);
 
 public sealed record NotificationPage(
     IReadOnlyList<NotificationRecord> Items,
     string? NextCursor,
     int UnreadCount);
-
-public sealed record NotificationPublishCommand(
-    string Kind,
-    string Title,
-    string Body,
-    string? SourceRef,
-    string LogicalKey,
-    Guid? RecipientUserId = null);
 
 public sealed record NotificationMarkReadCommand(bool Read, string? IfMatch);
 
@@ -47,7 +40,5 @@ public interface INotificationService
     IdentityOperationResult<NotificationMarkAllReadResult> MarkAllRead(IdentityPrincipal actor,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<object?> Delete(IdentityPrincipal actor, NotificationDeleteCommand command,
-        string? idempotencyKey = null, string? traceId = null);
-    IdentityOperationResult<NotificationRecord> Publish(IdentityPrincipal actor, NotificationPublishCommand command,
         string? idempotencyKey = null, string? traceId = null);
 }

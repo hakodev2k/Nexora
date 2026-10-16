@@ -1107,78 +1107,19 @@ public sealed class SqlApiIntegrationTests
         var otherUser = await _fixture.CreateActiveSessionAsync();
         var csrf = await _fixture.GetCsrfAsync();
 
-        using (var ordinaryPublish = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            "/api/v1/admin/notifications",
-            new
-            {
-                kind = "System",
-                title = "Synthetic denied notification",
-                body = "Only a super administrator may publish this local fixture.",
-                sourceRef = (string?)null,
-                logicalKey = "synthetic-denied-" + Guid.NewGuid().ToString("N"),
-                recipientUserId = owner.UserId
-            },
-            csrf,
-            Guid.NewGuid(),
-            owner.RawSessionHandle))
+        // Notification publication is a registered SYSTEM capability, not ambient SuperAdmin HTTP authority.
+        foreach (var session in new[] { owner, superAdmin })
         {
-            Assert.Equal(HttpStatusCode.Forbidden, ordinaryPublish.StatusCode);
-            await AssertProblemCodeAsync(ordinaryPublish, "PermissionDenied");
+            using var deniedPublish = await _fixture.SendJsonAsync(HttpMethod.Post, "/api/v1/admin/notifications",
+                new { kind = "System", title = "Synthetic denied notification", body = "No browser actor may publish arbitrary SYSTEM notifications.",
+                    sourceRef = (string?)null, logicalKey = "synthetic-denied-" + Guid.NewGuid().ToString("N"), recipientUserId = owner.UserId },
+                csrf, Guid.NewGuid(), session.RawSessionHandle);
+            Assert.True(deniedPublish.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.NotFound or HttpStatusCode.MethodNotAllowed,
+                "An ordinary or SuperAdmin browser must not acquire SYSTEM notification publication authority.");
         }
-
-        using (var sensitivePublish = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            "/api/v1/admin/notifications",
-            new
-            {
-                kind = "System",
-                title = "Synthetic rejected notification",
-                body = "A reset token must never be sent through the general inbox.",
-                sourceRef = (string?)null,
-                logicalKey = "synthetic-sensitive-" + Guid.NewGuid().ToString("N"),
-                recipientUserId = owner.UserId
-            },
-            csrf,
-            Guid.NewGuid(),
-            superAdmin.RawSessionHandle))
-        {
-            Assert.Equal(HttpStatusCode.UnprocessableEntity, sensitivePublish.StatusCode);
-            await AssertProblemCodeAsync(sensitivePublish, "SensitivePayloadRejected");
-        }
-
-        var firstLogicalKey = "synthetic-inbox-first-" + Guid.NewGuid().ToString("N");
-        var firstPublishRequest = new
-        {
-            kind = "System",
-            title = "Synthetic inbox item",
-            body = "This contains a safe local summary only.",
-            sourceRef = "local://synthetic",
-            logicalKey = firstLogicalKey,
-            recipientUserId = owner.UserId
-        };
-        var firstPublishKey = Guid.NewGuid();
-        using var firstPublished = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            "/api/v1/admin/notifications",
-            firstPublishRequest,
-            csrf,
-            firstPublishKey,
-            superAdmin.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.Created, firstPublished.StatusCode);
-        var first = await ReadResourceAsync(firstPublished);
-
-        using (var replayedPublish = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            "/api/v1/admin/notifications",
-            firstPublishRequest,
-            csrf,
-            firstPublishKey,
-            superAdmin.RawSessionHandle))
-        {
-            Assert.Equal(HttpStatusCode.Created, replayedPublish.StatusCode);
-            Assert.Equal(first.Id, await ReadIdAsync(replayedPublish));
-        }
+        Assert.Equal(0, await _fixture.ScalarIntAsync("SELECT COUNT(*) FROM [notifications].[Notification] WHERE [OwnerUserId] = @Owner;",
+            new SqlParameter("@Owner", SqlDbType.UniqueIdentifier) { Value = owner.UserId }));
+        var first = await SeedInboxFixture(owner.UserId, "Synthetic inbox item");
 
         string firstListEtag;
         using (var ownerInbox = await _fixture.SendAuthenticatedAsync(HttpMethod.Get, "/api/v1/notifications", owner.RawSessionHandle))
@@ -1237,23 +1178,7 @@ public sealed class SqlApiIntegrationTests
             await AssertIntegerPropertyAsync(markAll, "updatedCount", 0);
         }
 
-        using var secondPublished = await _fixture.SendJsonAsync(
-            HttpMethod.Post,
-            "/api/v1/admin/notifications",
-            new
-            {
-                kind = "System",
-                title = "Synthetic post-watermark item",
-                body = "This notification was created after mark-all completed.",
-                sourceRef = (string?)null,
-                logicalKey = "synthetic-inbox-second-" + Guid.NewGuid().ToString("N"),
-                recipientUserId = owner.UserId
-            },
-            csrf,
-            Guid.NewGuid(),
-            superAdmin.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.Created, secondPublished.StatusCode);
-        var second = await ReadResourceAsync(secondPublished);
+        var second = await SeedInboxFixture(owner.UserId, "Synthetic post-watermark item");
 
         using (var unreadOnly = await _fixture.SendAuthenticatedAsync(HttpMethod.Get, "/api/v1/notifications?unreadOnly=true", owner.RawSessionHandle))
         {
@@ -1278,6 +1203,31 @@ public sealed class SqlApiIntegrationTests
         await AssertCollectionExcludesIdAsync(afterDelete, "items", first.Id, "id");
         await AssertCollectionContainsIdAsync(afterDelete, "items", second.Id, "id");
         Assert.NotEqual(first.ETag, markedFirst.ETag);
+
+        async Task<(Guid Id, string ETag)> SeedInboxFixture(Guid recipient, string title)
+        {
+            // Explicit synthetic data exists only in SqlApiFixture's disposable integration database.
+            // It exercises the real inbox/query/mutation contract without adding a production publisher route.
+            var id = Guid.NewGuid();
+            await _fixture.ExecuteAsync("""
+                SET XACT_ABORT ON;
+                BEGIN TRANSACTION;
+                INSERT INTO [notifications].[Notification] ([Id],[OwnerUserId],[LogicalKey],[Kind],[Title],[Body],[SourceRef])
+                VALUES (@Id,@Owner,@LogicalKey,N'System',@Title,N'Synthetic local inbox summary.',NULL);
+                INSERT INTO [notifications].[Delivery] ([NotificationId],[Channel],[State],[LastErrorCode])
+                VALUES (@Id,'InApp','Pending',NULL),(@Id,'Email','Pending',NULL),
+                       (@Id,'BrowserPush','PermissionUnavailable',N'PushPermissionUnavailable');
+                COMMIT TRANSACTION;
+                """, new SqlParameter("@Id", SqlDbType.UniqueIdentifier) { Value = id },
+                new SqlParameter("@Owner", SqlDbType.UniqueIdentifier) { Value = recipient },
+                new SqlParameter("@LogicalKey", SqlDbType.NVarChar, 200) { Value = "synthetic-inbox-" + id.ToString("N") },
+                new SqlParameter("@Title", SqlDbType.NVarChar, 200) { Value = title });
+            Assert.Equal(3, await _fixture.ScalarIntAsync("SELECT COUNT(*) FROM [notifications].[Delivery] WHERE [NotificationId] = @Id;",
+                new SqlParameter("@Id", SqlDbType.UniqueIdentifier) { Value = id }));
+            var version = await _fixture.ScalarBytesAsync("SELECT [RowVersion] FROM [notifications].[Notification] WHERE [Id] = @Id AND [OwnerUserId] = @Owner;",
+                new SqlParameter("@Id", SqlDbType.UniqueIdentifier) { Value = id }, new SqlParameter("@Owner", SqlDbType.UniqueIdentifier) { Value = recipient });
+            return (id, "\"" + Convert.ToBase64String(version) + "\"");
+        }
     }
 
     [Fact]

@@ -29,12 +29,9 @@ public static class NotificationEndpoints
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.Delete(principal, new NotificationDeleteCommand(request.NotificationIds), IdempotencyKey(context), context.TraceIdentifier), _ => (object?)null))
             .WithName("deleteNotifications");
 
-        // This is a local-safe operator path for exercising the durable
-        // notification/outbox boundary. It never calls Email or Browser Push.
-        api.MapPost("/admin/notifications", (HttpContext context, NotificationPublishRequest request, INotificationService service, IIdentityService identity, SessionCookieService cookies) =>
-            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.Publish(principal,
-                new NotificationPublishCommand(request.Kind, request.Title, request.Body, request.SourceRef, request.LogicalKey, request.RecipientUserId), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
-            .WithName("publishNotification");
+        // Dispatch publication belongs to registered trusted SYSTEM intents.
+        // An HTTP session, including SuperAdmin, cannot publish arbitrary
+        // recipient/content. Domain-owned transactional writers remain intact.
 
         return app;
     }
@@ -44,6 +41,8 @@ public static class NotificationEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, new IdentityOperationResult<TOut>(false, default, auth.Code, auth.StatusCode, auth.Title));
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         return result.Succeeded && result.Value is not null
             ? ToHttp(context, IdentityOperationResult<TOut>.Success(map(result.Value), result.StatusCode, result.Code))
             : ToHttp(context, new IdentityOperationResult<TOut>(result.Succeeded, default, result.Code, result.StatusCode, result.Title));
@@ -54,6 +53,8 @@ public static class NotificationEndpoints
     {
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, auth);
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, acknowledgement, result.Code, result.StatusCode, result.Title).ToHttp(context);
         if (result.Succeeded && result.Value is NotificationRecord notification) context.Response.Headers.ETag = notification.ETag;
         return result.Succeeded && result.Value is not null
             ? ToHttp(context, IdentityOperationResult<TOut>.Success(map(result.Value), result.StatusCode, result.Code))
@@ -65,7 +66,7 @@ public static class NotificationEndpoints
 
     private static NotificationPageResponse ToPage(NotificationPage value) => new(value.Items.Select(ToResponse).ToArray(), value.NextCursor, value.UnreadCount);
     private static NotificationResponse ToResponse(NotificationRecord value) => new(value.Id, value.Kind, value.Title, value.Body, value.SourceRef, value.CreatedAt, value.ReadAt, value.ETag,
-        value.Deliveries.Select(delivery => new NotificationDeliveryResponse(delivery.Channel, delivery.State, delivery.Attempts, delivery.LastErrorCode, delivery.UpdatedAt)).ToArray());
+        value.Deliveries.Select(delivery => new NotificationDeliveryResponse(delivery.Channel, delivery.State, delivery.Attempts, delivery.LastErrorCode, delivery.UpdatedAt)).ToArray(), value.SourceUnavailable);
 }
 
 public sealed record NotificationMarkAllReadResponse(DateTimeOffset Watermark, int UpdatedCount);

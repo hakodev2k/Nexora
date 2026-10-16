@@ -2014,3 +2014,6 @@ progress::-moz-progress-bar {
 .monitoring-screen h2, .monitoring-screen dd { overflow-wrap: anywhere; }
 .monitoring-screen dd { margin-inline-start: 0; }
 .monitoring-form-fields { min-width: 0; max-width: 100%; box-sizing: border-box; }
+
+.skip-link { position: fixed; top: -10000px; left: .5rem; z-index: 200; border-radius: .5rem; background: #182338; color: #fff; padding: .65rem 1rem; }
+.skip-link:focus { top: .5rem; }

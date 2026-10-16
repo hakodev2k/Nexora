@@ -1,3 +1,6 @@
+import { isolateModalLayer } from './modalIsolation';
+import { attemptDirtyLeave, registerDirtyLeaveGuard, type DirtyLeaveContinuation, type DirtyLeaveGuard } from './navigationGuard';
+export { registerDirtyLeaveGuard, requestDirtyLeave } from './navigationGuard';
 import { DocumentHistory } from './DocumentHistory';
 import { isProductivityAcknowledgement } from './api';
 import { IntegrationConnectionsScreen } from './IntegrationConnectionsScreen';
@@ -96,6 +99,8 @@ import {
   getTask,
   getCalendarEvent,
   getBookmark,
+  getFinanceCategory,
+  getFinanceRecord,
   getSnippet,
   getGoal,
   getAdminUserAccess,
@@ -208,19 +213,8 @@ type ThemeMode = 'System' | 'Light' | 'Dark';
 export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
-type DirtyLeaveContinuation = () => void;
-type DirtyLeaveGuard = (continueAction: DirtyLeaveContinuation) => boolean;
-
 const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
 const DEFAULT_TIME_ZONE = 'UTC';
-const dirtyLeaveGuard: { current: DirtyLeaveGuard | null } = { current: null };
-export function registerDirtyLeaveGuard(guard: DirtyLeaveGuard) {
-  dirtyLeaveGuard.current = guard;
-  return () => { if (dirtyLeaveGuard.current === guard) dirtyLeaveGuard.current = null; };
-}
-export function requestDirtyLeave(proceed: DirtyLeaveContinuation) {
-  if (!dirtyLeaveGuard.current?.(proceed)) proceed();
-}
 const RESOURCE_TYPES = new Set<ResourceType>(['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal']);
 
 function safeReturnPath(value: string | null | undefined): string | undefined {
@@ -500,7 +494,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
 
 const moduleScreenCodes = new Set([
   'FX04', 'FX05', 'FX07', 'FX11', 'FX12', 'FX13', 'FX14', 'FX15', 'FX16',
-  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX29', 'FX34', 'FX31', 'FX32', 'FX36', 'FX40'
+  'FX17', 'FX18', 'FX19', 'FX20', 'FX21', 'FX22', 'FX23', 'FX24', 'FX27', 'FX29', 'FX34', 'FX31', 'FX32', 'FX36', 'FX40', 'FX10', 'FX35', 'FX37', 'FX38', 'FX39'
 ]);
 
 function moduleDisplayName(code: string, locale: string): string {
@@ -584,24 +578,7 @@ function ModalLayer({ children, className = 'dialog-backdrop' }: { children: Rea
   useEffect(() => {
     const layer = layerRef.current;
     if (!layer) return;
-    const backgrounds = Array.from(document.body.children).filter((element) => element !== layer);
-    const previousStates = backgrounds.map((element) => ({
-      element,
-      ariaHidden: element.getAttribute('aria-hidden'),
-      inert: element.hasAttribute('inert')
-    }));
-
-    for (const { element } of previousStates) {
-      element.setAttribute('aria-hidden', 'true');
-      element.setAttribute('inert', '');
-    }
-
-    return () => {
-      for (const { element, ariaHidden, inert } of previousStates) {
-        if (ariaHidden === null) element.removeAttribute('aria-hidden'); else element.setAttribute('aria-hidden', ariaHidden);
-        if (inert) element.setAttribute('inert', ''); else element.removeAttribute('inert');
-      }
-    };
+    return isolateModalLayer(layer);
   }, []);
 
   return createPortal(<div ref={layerRef} className={className} role="presentation" data-modal-layer>{children}</div>, document.body);
@@ -812,6 +789,7 @@ function PublicFrame({
   const { t } = useI18n();
   return (
     <div className="public-layout">
+      <a className="skip-link" href="#nexora-main-content" onClick={event => { event.preventDefault(); document.getElementById('nexora-main-content')?.focus(); }}>{t('skipToContent', 'Bỏ qua điều hướng, tới nội dung')}</a>
       <header className="public-header">
         <button className="brand" type="button" onClick={() => navigate('login')} aria-label={`Nexora — ${t('signIn').toLowerCase()}`}>
           <span className="brand-mark" aria-hidden="true">N</span>
@@ -819,7 +797,7 @@ function PublicFrame({
         </button>
         <span className="environment-label">{t('localApplication')}</span>
       </header>
-      <main className="public-main">
+      <main className="public-main" id="nexora-main-content" tabIndex={-1}>
         {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
         {children}
       </main>
@@ -1290,6 +1268,15 @@ export function Shell({
   const { t } = useI18n();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  const routeKey = `${location.screen}:${location.moduleCode ?? ''}:${location.resourceType ?? ''}:${location.resourceId ?? ''}`;
+  const previousRoute = useRef(routeKey);
+  useEffect(() => {
+    if (previousRoute.current === routeKey) return;
+    previousRoute.current = routeKey;
+    setMobileNavigationOpen(false);
+    mainRef.current?.focus();
+  }, [routeKey]);
   const selectedModule = profile.modules.find((module) => module.code.toUpperCase() === location.moduleCode);
   const canFinance = profile.modules.some((module) => module.code.toUpperCase() === 'FX27' && module.enabled);
   const canBookmarks = profile.modules.some((module) => module.code.toUpperCase() === 'FX21' && module.enabled);
@@ -1321,6 +1308,7 @@ export function Shell({
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#nexora-main-content" onClick={event => { event.preventDefault(); document.getElementById('nexora-main-content')?.focus(); }}>{t('skipToContent', 'Bỏ qua điều hướng, tới nội dung')}</a>
       <aside className="sidebar" aria-label="Nexora navigation">
         <div className="sidebar-heading">
           <div className="sidebar-brand"><span className="brand-mark" aria-hidden="true">N</span><span>Nexora</span></div>
@@ -1385,7 +1373,7 @@ export function Shell({
           </div>
           <button className="mobile-logout" type="button" onClick={signOut} disabled={logoutBusy}>{logoutBusy ? t('loggingOut') : t('logout')}</button>
         </header>
-        <main className="shell-main">
+        <main ref={mainRef} className="shell-main" id="nexora-main-content" tabIndex={-1}>
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
           {location.screen === 'resource' && <ResourceScreen resourceType={location.resourceType} resourceId={location.resourceId} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
@@ -1725,20 +1713,28 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
+  const [committed, setCommitted] = useState(false);
+  const readRequests = useRef(new Map<string, string>());
+  const epoch = useRef(0);
+  function clearPrivate() { epoch.current++; setItems([]); setUnreadCount(0); setSelected(new Set()); }
+  const denied = (failure: NexoraApiError) => [401,403,404].includes(failure.status) || ['ModuleUnavailable','DependencyUnavailable'].includes(failure.code ?? '');
   const markAllRequestRef = useRef<{ signature: string; key: string } | null>(null);
   const deleteRequestRef = useRef<{ signature: string; key: string } | null>(null);
 
   async function load() {
+    const currentEpoch = ++epoch.current;
     setLoading(true);
     setError(null);
     try {
       const page = await listNotifications(unreadOnly, 100);
+      if (currentEpoch !== epoch.current) return;
       setItems(page.items);
       setUnreadCount(page.unreadCount);
       setSelected(new Set());
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if (denied(apiError)) clearPrivate();
       if (apiError.status === 401) await onAuthLost();
     } finally {
       setLoading(false);
@@ -1751,12 +1747,19 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
     setBusy(item.id);
     setError(null);
     try {
-      const updated = await markNotificationRead(item.id, item.etag, item.readAt === null);
+      const signature = `${item.id}:${item.etag}:${item.readAt === null}`;
+      if (!readRequests.current.has(signature)) readRequests.current.set(signature, createIdempotencyKey());
+      const currentEpoch = epoch.current;
+      const updated = await markNotificationRead(item.id, item.etag, item.readAt === null, readRequests.current.get(signature)!);
+      readRequests.current.delete(signature);
+      if (currentEpoch !== epoch.current) return;
+      if (isProductivityAcknowledgement(updated)) { clearPrivate(); setCommitted(true); return; }
       setItems((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
       setUnreadCount((current) => Math.max(0, current + (item.readAt === null ? -1 : 1)));
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if (denied(apiError)) clearPrivate();
       if (apiError.status === 401) await onAuthLost();
       if (apiError.status === 412) await load();
     } finally {
@@ -1765,19 +1768,21 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
   }
 
   async function markAll() {
-    const signature = `mark-all:${unreadOnly}`;
+    const signature = 'mark-all';
     if (markAllRequestRef.current?.signature !== signature) {
       markAllRequestRef.current = { signature, key: createIdempotencyKey() };
     }
     setBusy('all');
     setError(null);
     try {
-      await markAllNotificationsRead(markAllRequestRef.current.key);
+      const result = await markAllNotificationsRead(markAllRequestRef.current.key);
       markAllRequestRef.current = null;
+      if (isProductivityAcknowledgement(result)) { clearPrivate(); setCommitted(true); return; }
       await load();
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if (denied(apiError)) clearPrivate();
       if (apiError.status === 401) await onAuthLost();
     } finally {
       setBusy(null);
@@ -1800,6 +1805,7 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
     } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
+      if (denied(apiError)) clearPrivate();
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
     } finally {
@@ -1821,6 +1827,7 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
     <section className="content-section" aria-labelledby="notifications-title">
       <div className="content-heading"><div><p className="eyebrow">FX06 / INBOX</p><h1 id="notifications-title">Notifications</h1><p className="lead">Thông báo thuộc PersonalSpace hiện tại; delivery state được hiển thị đúng theo SQL projection.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
       <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={busy !== null || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><ConfirmActionButton confirmationTitle={`Xóa ${selectedItems.length} mục khỏi Inbox?`} confirmationDescription={`Các mục đã chọn (${selectedItems.map((item) => item.title).join(', ') || 'không có mục'}) sẽ bị xóa khỏi Inbox. Thao tác này không xóa audit log hoặc resource nguồn.`} confirmLabel="Xóa mục đã chọn" disabled={busy !== null || selectedItems.length === 0} onConfirm={removeSelected}>Xóa mục đã chọn</ConfirmActionButton></div>
+      {committed && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {loading ? <div className="loading-state" role="status">Đang tải thông báo…</div> : items.length === 0 ? <div className="empty-state"><h2>Inbox trống</h2><p>Không có thông báo phù hợp trong projection hiện tại.</p></div> : <div className="notification-list">{items.map((item) => <article className={item.readAt ? 'notification-card read' : 'notification-card'} key={item.id}><label className="notification-select"><input type="checkbox" checked={selected.has(item.id)} onChange={(event) => select(item.id, event.target.checked)} aria-label={`Chọn ${item.title}`} /></label><div className="notification-content"><div className="notification-heading"><h2>{item.title}</h2><span className="state-pill">{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span></div><p>{item.body}</p><span className="muted">{item.kind} · {dateTime(item.createdAt)}</span><div className="delivery-summary">{item.deliveries.map((delivery) => <span key={delivery.channel} title={delivery.lastErrorCode ?? undefined}>{delivery.channel}: {delivery.state}</span>)}</div></div><button className="secondary-button" type="button" onClick={() => void toggleRead(item)} disabled={busy !== null}>{item.readAt ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></article>)}</div>}
     </section>
@@ -2095,16 +2102,11 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     ? title !== selected.title || body !== selected.body || tagId !== (selected.tagId ?? '')
     : Boolean(title || body || documentType || editorMode || tagId));
 
-  useEffect(() => {
-    dirtyLeaveGuard.current = (continueAction) => {
-      if (!isDirty && !tagPendingRef.current) return false;
-      setLeavePrompt({ continueAction });
-      return true;
-    };
-    return () => {
-      dirtyLeaveGuard.current = null;
-    };
-  }, [isDirty]);
+  useEffect(() => registerDirtyLeaveGuard((continueAction) => {
+    if (!isDirty && !tagPendingRef.current) return false;
+    setLeavePrompt({ continueAction });
+    return true;
+  }), [isDirty]);
 
   useEffect(() => {
     if (!leavePrompt) return;
@@ -5935,60 +5937,114 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [error, setError] = useState<NexoraApiError | null>(null);
   const categoryRequestKey = useRef<string | null>(null);
   const recordRequestKey = useRef<string | null>(null);
+  const removeKeys = useRef(new Map<string, string>());
+  const [pendingOutcome, setPendingOutcome] = useState<'category' | 'record' | null>(null);
+  const uncertain = (failure: NexoraApiError) => failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress';
+  function abandonOutcome() {
+    clearAuthorizedData(); setError(new NexoraApiError('Đã dừng đối chiếu. Kết quả server vẫn chưa rõ; bỏ bản nháp không hoàn tác thao tác đã gửi. Kiểm tra dữ liệu hiện tại trước khi tạo ý định mới.', 409, 'OutcomeUnknown'));
+    return true as const;
+  }
+
+  const generation = useRef(0), listFlight = useRef(false);
+  const [categoryCursor, setCategoryCursor] = useState<string | null>(null), [recordCursor, setRecordCursor] = useState<string | null>(null);
+  const [committedNotice, setCommittedNotice] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState<FinanceCategoryRecord | null>(null), [currentRecord, setCurrentRecord] = useState<FinanceManualRecord | null>(null);
+  const [categoryConflict, setCategoryConflict] = useState(false), [recordConflict, setRecordConflict] = useState(false);
+  function clearAuthorizedData() {
+    generation.current++; setCategories([]); setRecords([]); setSummaries([]); setCategoryCursor(null); setRecordCursor(null);
+    setEditingCategory(null); setEditingRecord(null); setCurrentCategory(null); setCurrentRecord(null); setCategoryConflict(false); setRecordConflict(false);
+    setCategoryTitle(''); setRecordDraft({ categoryId: '', amount: '', currencyCode: '', occurredOn: '', note: '' });
+    categoryRequestKey.current = null; recordRequestKey.current = null; removeKeys.current.clear(); setPendingOutcome(null); setLoading(false); listFlight.current = false; categoryForm.finish(); recordForm.finish();
+  }
+  function acknowledge() { clearAuthorizedData(); setError(null); setCommittedNotice(true); }
+
 
   const categoryForm = useResourceDialog(categoryTitle);
   const recordForm = useResourceDialog(recordDraft, setRecordDraft);
 
-  async function load(nextFilters: FinanceFilters = filters) {
-    setLoading(true);
-    setError(null);
+  async function load(nextFilters: FinanceFilters = filters, reconciled = false) {
+    if (pendingOutcome !== null && !reconciled) return;
+    const stamp = ++generation.current; setLoading(true); setError(null); setCommittedNotice(false); listFlight.current = true;
+    setCategories([]); setRecords([]); setSummaries([]); setCategoryCursor(null); setRecordCursor(null);
     try {
-      const [categoryPage, recordPage] = await Promise.all([
-        listFinanceCategories('', 100),
-        listFinanceRecords({ ...nextFilters, limit: 100 })
-      ]);
-      const nextCategories = Array.isArray(categoryPage.items) ? categoryPage.items : [];
-      setCategories(nextCategories);
-      setRecords(Array.isArray(recordPage.items) ? recordPage.items : []);
-      setSummaries(Array.isArray(recordPage.summaries) ? recordPage.summaries : []);
-      setRecordDraft((current) => current.categoryId || nextCategories.length === 0
-        ? current
-        : { ...current, categoryId: nextCategories[0].id });
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setLoading(false);
-    }
+      const [categories, records] = await Promise.allSettled([listFinanceCategories('', 25), listFinanceRecords({ ...nextFilters, limit: 25 })]);
+      if (stamp !== generation.current) return;
+      const failures = [categories, records].filter(result => result.status === 'rejected').map(result => asApiError((result as PromiseRejectedResult).reason));
+      if (failures.some(error => error.status === 401 || ['ModuleUnavailable', 'DependencyUnavailable'].includes(error.code ?? ''))) {
+        showError(failures.find(error => error.status === 401) ?? failures[0]); return;
+      }
+      if (categories.status === 'fulfilled') { setCategories(categories.value.items); setCategoryCursor(categories.value.nextCursor ?? null); }
+      else { categoryForm.finish(); setEditingCategory(null); setCurrentCategory(null); setCategoryTitle(''); categoryRequestKey.current = null; }
+      if (records.status === 'fulfilled') { setRecords(records.value.items); setRecordCursor(records.value.nextCursor ?? null); setSummaries(records.value.summaries); }
+      else { recordForm.finish(); setEditingRecord(null); setCurrentRecord(null); setRecordDraft({ categoryId: '', amount: '', currencyCode: '', occurredOn: '', note: '' }); recordRequestKey.current = null; }
+      if (failures.length) setError(failures[0]);
+    } catch (failure) { if (stamp === generation.current) showError(failure); }
+    finally { if (stamp === generation.current) { setLoading(false); listFlight.current = false; } }
   }
-
-  useEffect(() => { void load(); }, []);
-
-  function showError(requestError: unknown) {
-    const apiError = asApiError(requestError);
-    setError(apiError);
-    if (apiError.status === 401) void onAuthLost();
-    return apiError;
+  async function loadMore(kind: 'categories' | 'records') {
+    const cursor = kind === 'categories' ? categoryCursor : recordCursor;
+    if (!cursor || listFlight.current) return;
+    const stamp = generation.current; listFlight.current = true; setLoading(true); setError(null);
+    try {
+      if (kind === 'categories') {
+        const page = await listFinanceCategories('', 25, cursor); if (stamp !== generation.current) return;
+        setCategories(current => [...new Map([...current, ...page.items].map(item => [item.id, item])).values()]); setCategoryCursor(page.nextCursor ?? null);
+      } else {
+        const page = await listFinanceRecords({ ...filters, limit: 25, cursor }); if (stamp !== generation.current) return;
+        setRecords(current => [...new Map([...current, ...page.items].map(item => [item.id, item])).values()]); setRecordCursor(page.nextCursor ?? null); setSummaries(page.summaries);
+      }
+    } catch (failure) { if (stamp === generation.current) showError(failure); }
+    finally { if (stamp === generation.current) { setLoading(false); listFlight.current = false; } }
+  }
+  useEffect(() => { void load(); return () => { generation.current++; }; }, []);
+  function financeAccessLost(error: NexoraApiError) {
+    return [401, 403].includes(error.status) || ['moduleunavailable', 'dependencyunavailable', 'resourceunavailable', 'permissiondenied', 'actiondenied', 'accountunavailable'].includes((error.code ?? '').replace(/[_-]/g, '').toLowerCase());
+  }
+  function showError(failure: unknown) {
+    const error = asApiError(failure); setError(error);
+    if (financeAccessLost(error)) clearAuthorizedData();
+    if (error.status === 401) void onAuthLost(); return error;
+  }
+  async function refreshRevision(kind: 'category' | 'record', reapply = false) {
+    if (busy !== null) return; const stamp = generation.current; setBusy('revision');
+    try {
+      if (kind === 'category' && editingCategory) {
+        const current = await getFinanceCategory(editingCategory.id); if (stamp !== generation.current) return;
+        setCurrentCategory(current);
+        if (reapply && currentCategory?.etag === current.etag) { setEditingCategory(current); categoryRequestKey.current = null; setCategoryConflict(false); setError(null); }
+        else if (reapply) setError(new NexoraApiError('Revision lại thay đổi; so sánh bản hiện tại trước khi áp dụng.', 412, 'ConcurrencyConflict'));
+      } else if (kind === 'record' && editingRecord) {
+        const current = await getFinanceRecord(editingRecord.id); if (stamp !== generation.current) return;
+        setCurrentRecord(current);
+        if (reapply && currentRecord?.etag === current.etag) { setEditingRecord(current); recordRequestKey.current = null; setRecordConflict(false); setError(null); }
+        else if (reapply) setError(new NexoraApiError('Revision lại thay đổi; so sánh bản hiện tại trước khi áp dụng.', 412, 'ConcurrencyConflict'));
+      }
+    } catch (failure) {
+      if (stamp !== generation.current) return; const error = showError(failure);
+      if (financeAccessLost(error)) return;
+      if (error.status === 404) { if (kind === 'category') { resetCategory(); categoryForm.finish(); } else { resetRecord(); recordForm.finish(); } setError(error); }
+    } finally { setBusy(null); }
   }
 
   function resetCategory() {
     setEditingCategory(null);
-    setCategoryTitle('');
+    setCategoryTitle(''); setCategoryConflict(false); setCurrentCategory(null);
     categoryRequestKey.current = null;
     setError(null);
   }
 
   function beginCategoryEdit(category: FinanceCategoryRecord) {
     categoryForm.begin(category.title);
-    setEditingCategory(category);
+    setEditingCategory(category); setCategoryConflict(false); setCurrentCategory(null);
     setCategoryTitle(category.title);
     categoryRequestKey.current = null;
     setError(null);
   }
 
-  async function saveCategory(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveCategory(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    if (busy !== null || (pendingOutcome !== null && pendingOutcome !== 'category')) return;
+    if (categoryConflict) return;
     const title = categoryTitle.trim();
     if (!title) {
       setError(new NexoraApiError('Tên category là bắt buộc.', 422, 'ValidationFailed', null, { title: ['Tên category là bắt buộc.'] }));
@@ -5998,30 +6054,34 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     setBusy('category');
     setError(null);
     try {
+      let result;
       if (editingCategory) {
-        await updateFinanceCategory(editingCategory.id, editingCategory.etag, title, categoryRequestKey.current);
+        result = await updateFinanceCategory(editingCategory.id, editingCategory.etag, title, categoryRequestKey.current);
       } else {
-        await createFinanceCategory(title, categoryRequestKey.current);
+        result = await createFinanceCategory(title, categoryRequestKey.current);
       }
-      categoryRequestKey.current = null;
+      categoryRequestKey.current = null; setPendingOutcome(null);
+      if (isProductivityAcknowledgement(result)) { acknowledge(); return; }
       resetCategory();
       categoryForm.finish();
-      await load();
+      await load(filters, true);
     } catch (requestError) {
-      showError(requestError);
+      const error = showError(requestError); if (uncertain(error)) setPendingOutcome('category'); else setPendingOutcome(null); if (error.status === 412) { setCategoryConflict(true); setCurrentCategory(null); }
     } finally {
       setBusy(null);
     }
   }
 
   async function removeCategory(category: FinanceCategoryRecord) {
-    if (category.usageCount > 0) return { error: 'Category này đang được record sử dụng và không thể xóa.' };
+    if ((category.usageCount ?? 0) > 0) return { error: 'Category này đang được record sử dụng và không thể xóa.' };
     setBusy(`category:${category.id}`);
     setError(null);
     try {
-      await removeFinanceCategory(category.id, category.etag);
+      const signature = JSON.stringify([category.id, category.etag]);
+      const key = removeKeys.current.get(signature) ?? createIdempotencyKey(); removeKeys.current.set(signature, key);
+      await removeFinanceCategory(category.id, category.etag, key); removeKeys.current.delete(signature);
       if (editingCategory?.id === category.id) resetCategory();
-      await load();
+      await load(filters, true);
       return true;
     } catch (requestError) {
       const apiError = showError(requestError);
@@ -6032,7 +6092,7 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
 
   function resetRecord() {
-    setEditingRecord(null);
+    setEditingRecord(null); setRecordConflict(false); setCurrentRecord(null);
     setRecordDraft((current) => ({ categoryId: categories[0]?.id ?? '', amount: '', currencyCode: current.currencyCode || 'VND', occurredOn: todayDateInput(), note: '' }));
     recordRequestKey.current = null;
     setError(null);
@@ -6040,14 +6100,16 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function beginRecordEdit(record: FinanceManualRecord) {
     recordForm.begin({ categoryId: record.categoryId, amount: record.amount, currencyCode: record.currencyCode, occurredOn: record.occurredOn, note: record.note ?? '' });
-    setEditingRecord(record);
+    setEditingRecord(record); setRecordConflict(false); setCurrentRecord(null);
     setRecordDraft({ categoryId: record.categoryId, amount: record.amount, currencyCode: record.currencyCode, occurredOn: record.occurredOn, note: record.note ?? '' });
     recordRequestKey.current = null;
     setError(null);
   }
 
-  async function saveRecord(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveRecord(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    if (busy !== null || (pendingOutcome !== null && pendingOutcome !== 'record')) return;
+    if (recordConflict) return;
     if (!recordDraft.categoryId || !recordDraft.amount.trim() || !recordDraft.currencyCode.trim() || !recordDraft.occurredOn) {
       setError(new NexoraApiError('Category, amount, currency và ngày phát sinh là bắt buộc.', 422, 'ValidationFailed'));
       return;
@@ -6063,18 +6125,21 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       note: recordDraft.note.trim() || null
     };
     try {
+      let result;
       if (editingRecord) {
-        await updateFinanceRecord(editingRecord.id, editingRecord.etag, input, recordRequestKey.current);
+        result = await updateFinanceRecord(editingRecord.id, editingRecord.etag, input, recordRequestKey.current);
       } else {
-        await createFinanceRecord(input, recordRequestKey.current);
+        result = await createFinanceRecord(input, recordRequestKey.current);
       }
-      recordRequestKey.current = null;
+      recordRequestKey.current = null; setPendingOutcome(null);
+      if (isProductivityAcknowledgement(result)) { acknowledge(); return; }
       resetRecord();
       recordForm.finish();
-      await load();
+      await load(filters, true);
     } catch (requestError) {
       const apiError = showError(requestError);
-      if (apiError.status === 412) await load();
+      if (uncertain(apiError)) setPendingOutcome('record'); else setPendingOutcome(null);
+      if (apiError.status === 412) { setRecordConflict(true); setCurrentRecord(null); }
     } finally {
       setBusy(null);
     }
@@ -6109,26 +6174,28 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         </div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>Tải lại</button>
       </div>
+      {committedNotice && <Notice kind="info">Thao tác đã được lưu. Quyền đọc hiện tại không cho phép hiển thị chi tiết; không gửi lại thao tác.</Notice>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {summaries.length > 0 && <div className="info-grid" aria-label="Tổng theo currency">{summaries.map((summary) => <article className="info-card" key={summary.currencyCode}><p className="card-label">Tổng {summary.currencyCode}</p><strong>{summary.amount}</strong><span>theo bộ lọc hiện tại</span></article>)}</div>}
       {loading && <div className="loading-state" role="status">Đang tải dữ liệu Finance…</div>}<div className="resource-layout">
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetCategory(); categoryForm.begin(''); }}>Thêm category</button><ResourceFormDialog open={categoryForm.open} title={editingCategory ? 'Sửa category' : 'Category mới'} busy={busy !== null} dirty={categoryForm.dirty} onClose={() => { resetCategory(); categoryForm.finish(); }}>{error && <Notice kind="error">{error.message}</Notice>}{error?.status === 412 && <button type="button" className="secondary-button" disabled={busy !== null} onClick={async () => { try { if (editingCategory) { const page = await listFinanceCategories('', 100); const latest = page.items.find(item => item.id === editingCategory.id); if (latest) setEditingCategory(latest); categoryRequestKey.current = null; } if (editingRecord) { const page = await listFinanceRecords({ limit: 100 }); const latest = page.items.find(item => item.id === editingRecord.id); if (latest) setEditingRecord(latest); recordRequestKey.current = null; } setError(null); } catch (failure) { showError(failure); } }}>Dùng revision mới</button>}<form className="form-panel" onSubmit={saveCategory} noValidate>
+          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { resetCategory(); categoryForm.begin(''); }}>Thêm category</button><ResourceFormDialog open={categoryForm.open} title={editingCategory ? 'Sửa category' : 'Category mới'} busy={busy !== null} closeBlocked={pendingOutcome !== null} dirty={categoryForm.dirty} onClose={() => { resetCategory(); categoryForm.finish(); }}>{error && <Notice kind="error">{error.message}</Notice>}{categoryConflict && <section className="conflict-panel" aria-label="Finance category conflict"><p>Revision đã thay đổi. Draft được giữ nguyên; so sánh bản hiện tại trước khi áp dụng.</p><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('category')}>Tải bản hiện tại</button>{currentCategory && <><div className="conflict-preview"><strong>{currentCategory.title}</strong><p>{currentCategory.usageCount == null ? "Usage không khả dụng" : `${currentCategory.usageCount} record`}</p></div><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('category', true)}>Áp dụng draft trên revision mới</button></>}</section>}{pendingOutcome === 'category' && <Notice kind="error"><p>Kết quả chưa rõ. Giữ nguyên nội dung và mã yêu cầu để gửi lại đúng thao tác; không tạo lệnh thay thế.</p><button className="secondary-button" type="button" disabled={busy !== null} onClick={() => void saveCategory()}>Thử lại thao tác đang chờ</button><ConfirmActionButton confirmationTitle="Dừng đối chiếu thao tác Finance?" confirmationDescription="Server có thể đã ghi nhận thao tác. Dừng đối chiếu không hủy hoặc hoàn tác kết quả; kiểm tra dữ liệu hiện tại trước khi tạo ý định mới." confirmLabel="Dừng đối chiếu" disabled={busy !== null} onConfirm={abandonOutcome}>Dừng đối chiếu</ConfirmActionButton></Notice>}<form className="form-panel" onSubmit={saveCategory} noValidate><fieldset className="resource-dialog-fields" disabled={pendingOutcome !== null}>
             <div className="section-heading"><h2>{editingCategory ? 'Sửa category' : 'Category mới'}</h2>{editingCategory && <button className="link-button" type="button" onClick={resetCategory}>Hủy sửa</button>}</div>
             <div className="field-group"><label htmlFor="finance-category-title">Tên category</label><input id="finance-category-title" value={categoryTitle} maxLength={100} onChange={(event) => { categoryRequestKey.current = null; setCategoryTitle(event.target.value); setError(null); }} required /><FieldError id="finance-category-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
-            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetCategory} disabled={busy === 'category'}>Làm mới</button><SubmitButton busy={busy === 'category'}>{editingCategory ? 'Lưu category' : 'Tạo category'}</SubmitButton></div>
-          </form></ResourceFormDialog>
-          <div className="resource-list"><div className="section-heading"><h2>Categories</h2><span className="muted">{categories.length} bản ghi</span></div>{categories.length === 0 ? <div className="empty-state"><h3>Chưa có category</h3><p>Tạo category trước khi ghi nhận một khoản thủ công.</p></div> : <div className="resource-cards">{categories.map((category) => <article className="resource-card" key={category.id}><div><h3>{category.title}</h3><span className="muted">{category.usageCount} record · cập nhật {dateTime(category.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginCategoryEdit(category)} disabled={busy !== null}>Sửa</button><ConfirmActionButton confirmationTitle={`Xóa category “${category.title}”?`} confirmationDescription="Category sẽ bị xóa nếu chưa được record nào sử dụng. Các record hiện có không bị thay đổi." confirmLabel="Xóa category" disabled={busy !== null || category.usageCount > 0} onConfirm={() => removeCategory(category)}>{category.usageCount > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div>}</div>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetCategory} disabled={busy === 'category'}>Làm mới</button><button className="primary-button" type="submit" disabled={busy !== null || categoryConflict}>{busy === 'category' ? 'Đang lưu…' : editingCategory ? 'Lưu category' : 'Tạo category'}</button></div>
+          </fieldset></form></ResourceFormDialog>
+          <div className="resource-list"><div className="section-heading"><h2>Categories</h2><span className="muted">{categories.length} bản ghi</span></div>{!loading && !error && !committedNotice && categories.length === 0 ? <div className="empty-state"><h3>Chưa có category</h3><p>Tạo category trước khi ghi nhận một khoản thủ công.</p></div> : <div className="resource-cards">{categories.map((category) => <article className="resource-card" key={category.id}><div><h3>{category.title}</h3><span className="muted">{category.usageCount == null ? 'Usage không khả dụng' : `${category.usageCount} record`} · cập nhật {dateTime(category.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginCategoryEdit(category)} disabled={busy !== null}>Sửa</button><ConfirmActionButton confirmationTitle={`Xóa category “${category.title}”?`} confirmationDescription="Category sẽ bị xóa nếu chưa được record nào sử dụng. Các record hiện có không bị thay đổi." confirmLabel="Xóa category" disabled={busy !== null || (category.usageCount ?? 0) > 0} onConfirm={() => removeCategory(category)}>{(category.usageCount ?? 0) > 0 ? 'Đang dùng' : 'Xóa'}</ConfirmActionButton></div></article>)}</div>}</div>
+          {categoryCursor && <button className="secondary-button" disabled={loading || busy !== null} onClick={() => void loadMore('categories')}>Load more Finance categories</button>}
         </div>
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { const next = { categoryId: categories[0]?.id ?? '', amount: '', currencyCode: recordDraft.currencyCode || 'VND', occurredOn: todayDateInput(), note: '' }; setEditingRecord(null); setRecordDraft(next); recordRequestKey.current = null; setError(null); recordForm.begin(next); }}>Thêm record</button><ResourceFormDialog open={recordForm.open} title={editingRecord ? 'Sửa record' : 'Record mới'} busy={busy !== null} dirty={recordForm.dirty} onClose={() => { recordForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}{error?.status === 412 && <button type="button" className="secondary-button" disabled={busy !== null} onClick={async () => { try { if (editingCategory) { const page = await listFinanceCategories('', 100); const latest = page.items.find(item => item.id === editingCategory.id); if (latest) setEditingCategory(latest); categoryRequestKey.current = null; } if (editingRecord) { const page = await listFinanceRecords({ limit: 100 }); const latest = page.items.find(item => item.id === editingRecord.id); if (latest) setEditingRecord(latest); recordRequestKey.current = null; } setError(null); } catch (failure) { showError(failure); } }}>Dùng revision mới</button>}<form className="form-panel" onSubmit={saveRecord} noValidate>
+          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { const next = { categoryId: categories[0]?.id ?? '', amount: '', currencyCode: recordDraft.currencyCode || 'VND', occurredOn: todayDateInput(), note: '' }; setEditingRecord(null); setRecordDraft(next); recordRequestKey.current = null; setError(null); recordForm.begin(next); }}>Thêm record</button><ResourceFormDialog open={recordForm.open} title={editingRecord ? 'Sửa record' : 'Record mới'} busy={busy !== null} closeBlocked={pendingOutcome !== null} dirty={recordForm.dirty} onClose={() => { recordForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}{recordConflict && <section className="conflict-panel" aria-label="Finance record conflict"><p>Revision đã thay đổi. Draft được giữ nguyên; so sánh bản hiện tại trước khi áp dụng.</p><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('record')}>Tải bản hiện tại</button>{currentRecord && <><div className="conflict-preview"><strong>{currentRecord.amount} {currentRecord.currencyCode}</strong><p>{currentRecord.categoryTitle} · {currentRecord.occurredOn}</p><p>{currentRecord.note || "Không có ghi chú."}</p></div><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('record', true)}>Áp dụng draft trên revision mới</button></>}</section>}{pendingOutcome === 'record' && <Notice kind="error"><p>Kết quả chưa rõ. Giữ nguyên nội dung và mã yêu cầu để gửi lại đúng thao tác; không tạo lệnh thay thế.</p><button className="secondary-button" type="button" disabled={busy !== null} onClick={() => void saveRecord()}>Thử lại thao tác đang chờ</button><ConfirmActionButton confirmationTitle="Dừng đối chiếu thao tác Finance?" confirmationDescription="Server có thể đã ghi nhận thao tác. Dừng đối chiếu không hủy hoặc hoàn tác kết quả; kiểm tra dữ liệu hiện tại trước khi tạo ý định mới." confirmLabel="Dừng đối chiếu" disabled={busy !== null} onConfirm={abandonOutcome}>Dừng đối chiếu</ConfirmActionButton></Notice>}<form className="form-panel" onSubmit={saveRecord} noValidate><fieldset className="resource-dialog-fields" disabled={pendingOutcome !== null}>
             <div className="section-heading"><h2>{editingRecord ? 'Sửa record' : 'Record mới'}</h2>{editingRecord && <button className="link-button" type="button" onClick={resetRecord}>Hủy sửa</button>}</div>
             <div className="field-group"><label htmlFor="finance-record-category">Category</label><select id="finance-record-category" value={recordDraft.categoryId} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, categoryId: event.target.value }); setError(null); }} disabled={categories.length === 0} required><option value="">{categories.length === 0 ? 'Tạo category trước' : 'Chọn category'}</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.title}</option>)}</select></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="finance-record-amount">Amount</label><input id="finance-record-amount" inputMode="decimal" value={recordDraft.amount} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, amount: event.target.value }); setError(null); }} placeholder="0.00" maxLength={29} required /></div><div className="field-group"><label htmlFor="finance-record-currency">Currency</label><input id="finance-record-currency" value={recordDraft.currencyCode} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, currencyCode: event.target.value.toUpperCase() }); setError(null); }} maxLength={3} required /></div></div>
             <div className="field-group"><label htmlFor="finance-record-date">Ngày phát sinh</label><input id="finance-record-date" type="date" value={recordDraft.occurredOn} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, occurredOn: event.target.value }); }} required /></div>
             <div className="field-group"><label htmlFor="finance-record-note">Ghi chú <span className="optional">(tùy chọn)</span></label><textarea id="finance-record-note" value={recordDraft.note} maxLength={2000} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, note: event.target.value }); }} rows={3} /></div>
-            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetRecord} disabled={busy === 'record'}>Làm mới</button><SubmitButton busy={busy === 'record'}>{editingRecord ? 'Lưu record' : 'Tạo record'}</SubmitButton></div>
-          </form></ResourceFormDialog>
+            <div className="form-actions"><button className="secondary-button" type="button" onClick={resetRecord} disabled={busy === 'record'}>Làm mới</button><button className="primary-button" type="submit" disabled={busy !== null || recordConflict}>{busy === 'record' ? 'Đang lưu…' : editingRecord ? 'Lưu record' : 'Tạo record'}</button></div>
+          </fieldset></form></ResourceFormDialog>
           <form className="form-panel" onSubmit={applyFilters} noValidate>
             <div className="section-heading"><h2>Lọc records</h2><button className="link-button" type="button" onClick={clearFilters} disabled={loading}>Xóa lọc</button></div>
             <div className="field-group"><label htmlFor="finance-filter-query">Tìm theo category hoặc ghi chú</label><input id="finance-filter-query" value={filterDraft.query ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, query: event.target.value })} /></div>
@@ -6136,7 +6203,8 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             <div className="form-grid"><div className="field-group"><label htmlFor="finance-filter-from">Từ ngày</label><input id="finance-filter-from" type="date" value={filterDraft.from ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, from: event.target.value })} /></div><div className="field-group"><label htmlFor="finance-filter-to">Đến ngày</label><input id="finance-filter-to" type="date" value={filterDraft.to ?? ''} onChange={(event) => setFilterDraft({ ...filterDraft, to: event.target.value })} /></div></div>
             <button className="secondary-button" type="submit" disabled={loading}>Áp dụng bộ lọc</button>
           </form>
-          <div className="resource-list"><div className="section-heading"><h2>Records của bạn</h2><span className="muted">{records.length} bản ghi</span></div>{records.length === 0 ? <div className="empty-state"><h3>Chưa có record</h3><p>Không có khoản nào phù hợp với bộ lọc hiện tại.</p></div> : <div className="resource-cards">{records.map((record) => <article className="resource-card" key={record.id}><div><h3>{record.amount} {record.currencyCode}</h3><p>{record.categoryTitle} · {record.occurredOn}</p>{record.note && <p>{record.note}</p>}<span className="muted">Cập nhật {dateTime(record.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginRecordEdit(record)} disabled={busy !== null}>Sửa</button></div></article>)}</div>}</div>
+          <div className="resource-list"><div className="section-heading"><h2>Records của bạn</h2><span className="muted">{records.length} bản ghi</span></div>{!loading && !error && !committedNotice && records.length === 0 ? <div className="empty-state"><h3>Chưa có record</h3><p>Không có khoản nào phù hợp với bộ lọc hiện tại.</p></div> : <div className="resource-cards">{records.map((record) => <article className="resource-card" key={record.id}><div><h3>{record.amount} {record.currencyCode}</h3><p>{record.categoryTitle} · {record.occurredOn}</p>{record.note && <p>{record.note}</p>}<span className="muted">Cập nhật {dateTime(record.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginRecordEdit(record)} disabled={busy !== null}>Sửa</button></div></article>)}</div>}</div>
+          {recordCursor && <button className="secondary-button" disabled={loading || busy !== null} onClick={() => void loadMore('records')}>Load more Finance records</button>}
         </div>
       </div>
     </section>
@@ -6433,12 +6501,7 @@ function ProfileScreen({
       setLeaveContinuation(() => continuation);
       return true;
     };
-    dirtyLeaveGuard.current = guard;
-    return () => {
-      if (dirtyLeaveGuard.current === guard) {
-        dirtyLeaveGuard.current = null;
-      }
-    };
+    return registerDirtyLeaveGuard(guard);
   }, [changed]);
 
   return (
@@ -6662,6 +6725,13 @@ export function App() {
   const [verificationEmail, setVerificationEmail] = useState('');
   const [sharedTokenAfterLogin, setSharedTokenAfterLogin] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: NoticeKind; text: string }>();
+  const publicRoute = `${sessionState}:${location.screen}`;
+  const previousPublicRoute = useRef(publicRoute);
+  useEffect(() => {
+    const changed = previousPublicRoute.current !== publicRoute;
+    previousPublicRoute.current = publicRoute;
+    if (changed && sessionState === 'anonymous') document.getElementById('nexora-main-content')?.focus();
+  }, [publicRoute, sessionState]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -6703,7 +6773,7 @@ export function App() {
         : { screen, moduleCode };
     const nextPath = pathForLocation(next);
     if (!replace && window.location.pathname !== nextPath) {
-      const handled = dirtyLeaveGuard.current?.(() => commitNavigation(next, nextPath, false)) ?? false;
+      const handled = attemptDirtyLeave(() => commitNavigation(next, nextPath, false));
       if (handled) return;
     }
     commitNavigation(next, nextPath, replace);
@@ -6718,11 +6788,11 @@ export function App() {
     const onPopState = () => {
       const next = routeFromPath(window.location.pathname, window.location.search);
       const currentPath = pathForLocation(locationRef.current);
-      const handled = dirtyLeaveGuard.current?.(() => {
+      const handled = attemptDirtyLeave(() => {
         window.history.pushState({}, '', pathForLocation(next));
         setLocation(next);
         setNotice(undefined);
-      }) ?? false;
+      });
       if (handled) {
         window.history.pushState({}, '', currentPath);
         return;

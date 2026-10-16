@@ -68,8 +68,6 @@ jobs:
   sql-api-integration:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      NEXORA_TEST_SQL_CONNECTION: ${{ secrets.NEXORA_TEST_SQL_CONNECTION }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -77,8 +75,13 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+      - name: Start job-owned disposable loopback SQL Server
+        run: bash scripts/dev/start-ci-sql.sh
       - name: Run isolated real SQL Server and API middleware tests
         run: bash scripts/dev/test-sql.sh
+      - name: Stop only this job-owned SQL Server
+        if: always()
+        run: bash scripts/dev/stop-ci-sql.sh
       - name: Upload SQL/API test evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -118,10 +121,6 @@ jobs:
   browser-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    env:
-      NEXORA_E2E_BASE_URL: ${{ vars.NEXORA_E2E_BASE_URL }}
-      NEXORA_E2E_OPERATOR_CLI: ${{ vars.NEXORA_E2E_OPERATOR_CLI }}
-      NEXORA_E2E_RUN_ID: nexora-e2e-${{ github.run_id }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -129,21 +128,46 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
       - name: Install pinned frontend dependencies
         run: npm ci --prefix web/Nexora.Web
-      - name: Require configured isolated local E2E target
-        run: |
-          test -n "${NEXORA_E2E_BASE_URL}" || { echo "BLOCKED: NEXORA_E2E_BASE_URL is required." >&2; exit 2; }
-          test -n "${NEXORA_E2E_OPERATOR_CLI}" || { echo "BLOCKED: NEXORA_E2E_OPERATOR_CLI is required." >&2; exit 2; }
       - name: Install the Playwright browser matching the locked package
         run: npm run test:e2e:install --prefix web/Nexora.Web
-      - name: Run browser journeys without sensitive capture artifacts
-        run: npm run test:e2e --prefix web/Nexora.Web
-      - name: Upload browser JUnit evidence only
+      - name: Build local API and approved synthetic test operators
+        run: |
+          dotnet restore src/Nexora.Api/Nexora.Api.csproj --locked-mode
+          dotnet restore src/Nexora.Local/Nexora.Local.csproj --locked-mode
+          dotnet restore tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj --locked-mode
+          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release --no-restore
+          dotnet build src/Nexora.Local/Nexora.Local.csproj --configuration Release --no-restore
+          dotnet build tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj --configuration Release --no-restore
+      - name: Start job-owned disposable loopback SQL Server
+        run: bash scripts/dev/start-ci-sql.sh
+      - name: Seed and start private synthetic loopback browser target
+        run: python3 scripts/dev/start-e2e-target.py
+      - name: Run browser journeys with private logs and sanitized evidence
+        run: python3 scripts/dev/start-e2e-target.py run-browser
+      - name: Sanitize browser evidence before upload
+        if: always()
+        run: python3 scripts/dev/start-e2e-target.py sanitize-evidence
+      - name: Stop only this run-owned browser target
+        if: always()
+        run: python3 scripts/dev/stop-e2e-target.py
+      - name: Stop only this job-owned SQL Server
+        if: always()
+        run: bash scripts/dev/stop-ci-sql.sh
+      - name: Upload sanitized browser outcomes and explicit synthetic UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-e2e-${{ github.sha }}
-          path: web/Nexora.Web/artifacts/playwright-junit.xml
+          path: |
+            web/Nexora.Web/artifacts/playwright-junit.xml
+            web/Nexora.Web/artifacts/ui-smoke/*.png
+            web/Nexora.Web/artifacts/playwright-output/**/home.png
+            web/Nexora.Web/artifacts/playwright-output/**/public-validation.png
+            web/Nexora.Web/artifacts/playwright-output/**/committed-ack.png
           if-no-files-found: warn
           retention-days: 7
