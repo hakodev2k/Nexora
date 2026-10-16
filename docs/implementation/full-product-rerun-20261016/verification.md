@@ -57,3 +57,13 @@ Run38911747578 at2f76ed3 executed **219 real SQL/API tests:200 passed,19 failed,
 - Revoked owner ShareLink management was incorrectly filtered out by IsDeleted even though Revoke sets that bit. Only owner-management list/advisory reads now retain OwnerRevoked metadata under unchanged current owner/source/action/epoch gates. Viewer resolution remains unchanged and revoked links stay unusable. Existing real-SQL test checks the exact revoked row and stale/foreign cursors.
 
 Repairs are not certified until the subsequent real SQL run passes. Overall product remains INCOMPLETE; Windows A/B/C real-principal test and independent review remain pending.
+
+## Latest local verification
+
+At29a3f97, .NET unit49passed/0failed/0skipped; Release integration-test project0warnings/0errors. Frontend141passed/0failed/1skipped across14files; skipped test is the existing R2-10 post-M01 DST disambiguation case, not a newly disabled test. Final frontend TypeScript/Vite build passed. Current production-build public smoke2passed in4.8s; expanded authenticated desktop/mobile smoke2passed in9.7s, now additionally verifying Notifications single committed ACK clears private content, does not auto-read and does not claim empty Inbox. These remain controlled HTTP fixture checks, not backend acceptance.
+
+## Real CI at29a3f97
+
+Implementation38913206603: browser job **PASS**,10tests/0failures/0errors/0skips in61.28s. This includes four real SQL-backed registration/verification/reset journeys across desktop/mobile, two controlled bootstrap failures and four controlled UI smokes. SQL/API readiness and owned process cleanup passed; exact sanitized JUnit is retained in evidence/ci-browser-29a3f97-junit.xml. No claim that all ten tests are real backend business acceptance.
+
+SQL/API: **216passed/3failed/0skipped of219**. The16 previously failing cases passed after bounded repairs. Remaining test expectations were traced against installed contracts: retained clean File rename is installed and succeeds (trash retention remains denied); owner-revoked ShareLink metadata remains visible but inactive/token-null while viewer remains404; completed removed-Tag create replay returns original committed ACK without a second write. Tests now assert those exact outcomes and retained privacy/lifecycle checks; no test skipped or production behavior weakened. The next SQL run must confirm all219. Windows actual-principal gate remains failed.

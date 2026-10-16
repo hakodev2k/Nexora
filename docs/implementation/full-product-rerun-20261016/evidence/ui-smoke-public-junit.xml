@@ -1,10 +1,10 @@
-<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="4.615275">
-<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T13:52:09.163Z" hostname="ui-desktop" tests="1" failures="0" skipped="0" time="1.433" errors="0">
-<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="1.433">
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="4.812072">
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:08:12.906Z" hostname="ui-desktop" tests="1" failures="0" skipped="0" time="1.745" errors="0">
+<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="1.745">
 </testcase>
 </testsuite>
-<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T13:52:09.163Z" hostname="ui-mobile" tests="1" failures="0" skipped="0" time="1.581" errors="0">
-<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="1.581">
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:08:12.906Z" hostname="ui-mobile" tests="1" failures="0" skipped="0" time="1.639" errors="0">
+<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="1.639">
 </testcase>
 </testsuite>
 </testsuites>

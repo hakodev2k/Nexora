@@ -140,7 +140,11 @@ public sealed class SqlSharingRepairTests
         await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Archived',PreArchiveStatus='Published' WHERE Id=@Id",Id("@Id",I(doc)));using(var archived=await Resolve(link))Assert.Equal(HttpStatusCode.OK,archived.StatusCode);
         await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Draft',PreArchiveStatus=NULL WHERE Id=@Id",Id("@Id",I(doc)));using(var revoke=await Send(owner,HttpMethod.Delete,$"{Links}/{I(link)}",new{},E(updated)))Assert.Equal(HttpStatusCode.NoContent,revoke.StatusCode);
         await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Published' WHERE Id=@Id",Id("@Id",I(doc)));using(var permanent=await Resolve(link))Assert.Equal(HttpStatusCode.NotFound,permanent.StatusCode);
-        Assert.Empty((await Get(owner,Links)).GetProperty("items").EnumerateArray());
+        var ownerHistory = (await Get(owner,Links)).GetProperty("items");
+        var revokedMetadata = Assert.Single(ownerHistory.EnumerateArray());
+        Assert.Equal(I(link),I(revokedMetadata)); Assert.False(revokedMetadata.GetProperty("isActive").GetBoolean());
+        Assert.NotEqual(JsonValueKind.Null,revokedMetadata.GetProperty("revokedAt").ValueKind);
+        Assert.Equal(JsonValueKind.Null,revokedMetadata.GetProperty("token").ValueKind);
     }
 
     [Fact] public async Task All_audiences_expiry_and_foreign_owner_commands_are_enforced_without_title_disclosure()

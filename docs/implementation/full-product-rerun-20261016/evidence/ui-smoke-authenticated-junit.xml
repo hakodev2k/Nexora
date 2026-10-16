@@ -1,10 +1,10 @@
-<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="6.029004">
-<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T13:52:14.308Z" hostname="ui-desktop" tests="1" failures="0" skipped="0" time="2.336" errors="0">
-<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="2.336">
+<testsuites id="" name="" tests="2" failures="0" skipped="0" errors="0" time="9.742868">
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:08:56.582Z" hostname="ui-desktop" tests="1" failures="0" skipped="0" time="3.927" errors="0">
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="3.927">
 </testcase>
 </testsuite>
-<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T13:52:14.308Z" hostname="ui-mobile" tests="1" failures="0" skipped="0" time="2.36" errors="0">
-<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="2.36">
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:08:56.582Z" hostname="ui-mobile" tests="1" failures="0" skipped="0" time="3.046" errors="0">
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="3.046">
 </testcase>
 </testsuite>
 </testsuites>

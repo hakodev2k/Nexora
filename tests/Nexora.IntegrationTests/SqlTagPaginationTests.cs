@@ -39,7 +39,11 @@ public sealed class SqlTagPaginationTests(SqlApiFixture fixture)
         Assert.True(removed.Succeeded, removed.Code); Assert.Equal(204, removed.StatusCode);
         Assert.Equal(removed, service.Remove(actor, changed.Value.Id, changed.Value.ETag, removeKey));
         Assert.Empty(service.List(actor, "projects").Value!.Items);
-        Assert.Equal("ResourceUnavailable", service.Create(actor, command, createKey).Code);
+        var completedCreate = service.Create(actor, command, createKey);
+        Assert.True(completedCreate.Succeeded, completedCreate.Code); Assert.Null(completedCreate.Value);
+        Assert.Equal(created.Value.Id, completedCreate.Acknowledgement!.Id); Assert.False(completedCreate.Acknowledgement.DetailAvailable);
+        Assert.Equal(completedCreate, service.Create(actor, command, createKey));
+        Assert.Empty(service.List(actor, "projects").Value!.Items);
         await fixture.SetModuleEnabledAsync(actor.UserId, "FX24", false);
         Assert.False(service.Remove(actor, changed.Value.Id, changed.Value.ETag, removeKey).Succeeded);
     }
