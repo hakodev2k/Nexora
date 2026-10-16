@@ -9,9 +9,9 @@ const bookmarkId = '57e37922-1633-425b-b819-3f20266ce0e2', categoryId = 'b204891
 const bookmark = { id: bookmarkId, url: 'https://example.invalid/private', canonicalUrl: 'https://example.invalid/private', title: 'Private Bookmark', description: 'Private description', health: 'Unknown', status: 'Active', createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: '"old"' };
 const category = { id: categoryId, title: 'Private Category', usageCount: 1, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: '"category"' };
 const record = { id: recordId, categoryId, categoryTitle: category.title, amount: '10.00', currencyCode: 'USD', occurredOn: '2026-10-01', note: 'Private Note', createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: '"old"' };
-function mount(screenName: Screen) {
+function mount(screenName: Screen, timeZoneId = 'UTC') {
   server.use(http.get('*/api/v1/bookmarks/capabilities', () => HttpResponse.json(Object.fromEntries(['read', 'create', 'update', 'archive', 'unarchive'].map(action => ['bookmarks.bookmark.' + action, true])))), http.get('*/api/v1/auth/csrf', () => HttpResponse.json({ requestToken: 'synthetic-csrf', tokenType: 'csrf', expiresInSeconds: 1800 })));
-  return render(<LocaleContext.Provider value="en"><Shell profile={{ id: 'synthetic-user', email: 'test@example.invalid', displayName: 'Test', personalSpaceId: 'synthetic-owner', role: 'User', state: 'Active', locale: 'en', timeZoneId: 'UTC', modules: ['FX21', 'FX23', 'FX27'].map(code => ({ code, enabled: true, unavailableReason: null })) }} location={{ screen: screenName }} navigate={vi.fn()} onLogout={async () => undefined} onProfileUpdated={vi.fn()} onThemeChanged={vi.fn()} onAuthLost={async () => undefined} /></LocaleContext.Provider>);
+  return render(<LocaleContext.Provider value="en"><Shell profile={{ id: 'synthetic-user', email: 'test@example.invalid', displayName: 'Test', personalSpaceId: 'synthetic-owner', role: 'User', state: 'Active', locale: 'en', timeZoneId, modules: ['FX21', 'FX23', 'FX27'].map(code => ({ code, enabled: true, unavailableReason: null })) }} location={{ screen: screenName }} navigate={vi.fn()} onLogout={async () => undefined} onProfileUpdated={vi.fn()} onThemeChanged={vi.fn()} onAuthLost={async () => undefined} /></LocaleContext.Provider>);
 }
 it('Bookmarks seeks, deduplicates and resets the cursor when changing query', async () => {
   const requests: URL[] = [];
@@ -93,4 +93,17 @@ it('Finance exact-ID resource revocation clears the conflicting draft and prior 
   await user.click(within(screen.getByRole('heading', { name: '10.00 USD' }).closest('article')!).getByRole('button', { name: 'Sửa' }));
   await user.click(screen.getByRole('button', { name: 'Lưu record' })); await user.click(await screen.findByRole('button', { name: 'Tải bản hiện tại' }));
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull()); expect(screen.queryByText(record.note)).toBeNull(); expect(screen.queryByRole('heading', { name: '10.00 USD' })).toBeNull(); expect(screen.queryByRole('region', { name: 'Finance record conflict' })).toBeNull(); expect(screen.getByRole('alert')).toHaveTextContent('Resource no longer available');
+});
+
+it.each([['America/Los_Angeles', '2026-10-16'], ['Pacific/Kiritimati', '2026-10-17']])('Finance defaults to owner date in %s and requires explicit currency', async (zone, date) => {
+  vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-17T00:30:00Z'));
+  try {
+    let writes = 0;
+    server.use(http.get('*/api/v1/finance/categories', () => HttpResponse.json({ items: [category], nextCursor: null })), http.get('*/api/v1/finance/records', () => HttpResponse.json({ items: [], summaries: [], nextCursor: null })), http.post('*/api/v1/finance/records', () => { writes++; return HttpResponse.json(record, { status: 201 }); }));
+    mount('finance', zone); const user = userEvent.setup(); await screen.findByRole('heading', { name: category.title });
+    await user.click(screen.getByRole('button', { name: 'Thêm record' })); const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByLabelText('Ngày phát sinh')).toHaveValue(date); expect(within(dialog).getByLabelText('Currency')).toHaveValue('');
+    await user.type(within(dialog).getByLabelText('Amount'), '12.5'); await user.click(within(dialog).getByRole('button', { name: 'Tạo record' }));
+    await waitFor(() => expect(within(dialog).getByRole('alert')).toBeVisible()); expect(writes).toBe(0); expect(within(dialog).getByLabelText('Currency')).toHaveValue('');
+  } finally { vi.useRealTimers(); }
 });

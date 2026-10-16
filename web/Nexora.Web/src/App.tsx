@@ -1387,7 +1387,7 @@ export function Shell({
           {location.screen === 'files' && (canFiles ? <FilesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX07" />)}
           {location.screen === 'admin' && (canViewAdminAccess ? <AdminAccessScreen onAuthLost={onAuthLost} readOnly={profile.role !== 'SuperAdmin'} /> : <AdminAccessUnavailableScreen />)}
           {location.screen === 'adminModules' && (canViewModuleCatalog ? <ModulePolicyScreen onAuthLost={onAuthLost} readOnly={!canManageModulePolicy} /> : <AdminAccessUnavailableScreen />)}
-          {location.screen === 'finance' && (canFinance ? <FinanceScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
+          {location.screen === 'finance' && (canFinance ? <FinanceScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
           {location.screen === 'bookmarks' && (canBookmarks ? <BookmarksScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX21" />)}
           {location.screen === 'snippets' && (canSnippets ? <SnippetsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX22" />)}
           {location.screen === 'readLater' && (canReadLater ? <ReadLaterScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX23" />)}
@@ -5920,7 +5920,7 @@ function WeekdayPicker({ value, onToggle }: { value: number; onToggle: (bit: num
   return <fieldset className="field-group"><legend>Scheduled weekdays</legend><div className="check-grid">{WEEKDAYS.map((day) => <label className="check-row" key={day.bit}><input type="checkbox" checked={(value & day.bit) !== 0} onChange={() => onToggle(day.bit)} /><span>{day.label}</span></label>)}</div></fieldset>;
 }
 
-function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function FinanceScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
   const [summaries, setSummaries] = useState<FinanceSummary[]>([]);
@@ -5930,7 +5930,7 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [editingCategory, setEditingCategory] = useState<FinanceCategoryRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<FinanceManualRecord | null>(null);
   const [recordDraft, setRecordDraft] = useState<FinanceRecordDraft>({
-    categoryId: '', amount: '', currencyCode: 'VND', occurredOn: todayDateInput(), note: ''
+    categoryId: '', amount: '', currencyCode: '', occurredOn: todayDateInput(timeZoneId), note: ''
   });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -6093,7 +6093,7 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   function resetRecord() {
     setEditingRecord(null); setRecordConflict(false); setCurrentRecord(null);
-    setRecordDraft((current) => ({ categoryId: categories[0]?.id ?? '', amount: '', currencyCode: current.currencyCode || 'VND', occurredOn: todayDateInput(), note: '' }));
+    setRecordDraft(() => ({ categoryId: categories[0]?.id ?? '', amount: '', currencyCode: '', occurredOn: todayDateInput(timeZoneId), note: '' }));
     recordRequestKey.current = null;
     setError(null);
   }
@@ -6188,7 +6188,7 @@ function FinanceScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           {categoryCursor && <button className="secondary-button" disabled={loading || busy !== null} onClick={() => void loadMore('categories')}>Load more Finance categories</button>}
         </div>
         <div className="content-section">
-          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { const next = { categoryId: categories[0]?.id ?? '', amount: '', currencyCode: recordDraft.currencyCode || 'VND', occurredOn: todayDateInput(), note: '' }; setEditingRecord(null); setRecordDraft(next); recordRequestKey.current = null; setError(null); recordForm.begin(next); }}>Thêm record</button><ResourceFormDialog open={recordForm.open} title={editingRecord ? 'Sửa record' : 'Record mới'} busy={busy !== null} closeBlocked={pendingOutcome !== null} dirty={recordForm.dirty} onClose={() => { recordForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}{recordConflict && <section className="conflict-panel" aria-label="Finance record conflict"><p>Revision đã thay đổi. Draft được giữ nguyên; so sánh bản hiện tại trước khi áp dụng.</p><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('record')}>Tải bản hiện tại</button>{currentRecord && <><div className="conflict-preview"><strong>{currentRecord.amount} {currentRecord.currencyCode}</strong><p>{currentRecord.categoryTitle} · {currentRecord.occurredOn}</p><p>{currentRecord.note || "Không có ghi chú."}</p></div><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('record', true)}>Áp dụng draft trên revision mới</button></>}</section>}{pendingOutcome === 'record' && <Notice kind="error"><p>Kết quả chưa rõ. Giữ nguyên nội dung và mã yêu cầu để gửi lại đúng thao tác; không tạo lệnh thay thế.</p><button className="secondary-button" type="button" disabled={busy !== null} onClick={() => void saveRecord()}>Thử lại thao tác đang chờ</button><ConfirmActionButton confirmationTitle="Dừng đối chiếu thao tác Finance?" confirmationDescription="Server có thể đã ghi nhận thao tác. Dừng đối chiếu không hủy hoặc hoàn tác kết quả; kiểm tra dữ liệu hiện tại trước khi tạo ý định mới." confirmLabel="Dừng đối chiếu" disabled={busy !== null} onConfirm={abandonOutcome}>Dừng đối chiếu</ConfirmActionButton></Notice>}<form className="form-panel" onSubmit={saveRecord} noValidate><fieldset className="resource-dialog-fields" disabled={pendingOutcome !== null}>
+          <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { const next = { categoryId: categories[0]?.id ?? '', amount: '', currencyCode: '', occurredOn: todayDateInput(timeZoneId), note: '' }; setEditingRecord(null); setRecordDraft(next); recordRequestKey.current = null; setError(null); recordForm.begin(next); }}>Thêm record</button><ResourceFormDialog open={recordForm.open} title={editingRecord ? 'Sửa record' : 'Record mới'} busy={busy !== null} closeBlocked={pendingOutcome !== null} dirty={recordForm.dirty} onClose={() => { recordForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}{recordConflict && <section className="conflict-panel" aria-label="Finance record conflict"><p>Revision đã thay đổi. Draft được giữ nguyên; so sánh bản hiện tại trước khi áp dụng.</p><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('record')}>Tải bản hiện tại</button>{currentRecord && <><div className="conflict-preview"><strong>{currentRecord.amount} {currentRecord.currencyCode}</strong><p>{currentRecord.categoryTitle} · {currentRecord.occurredOn}</p><p>{currentRecord.note || "Không có ghi chú."}</p></div><button type="button" disabled={busy !== null} onClick={() => void refreshRevision('record', true)}>Áp dụng draft trên revision mới</button></>}</section>}{pendingOutcome === 'record' && <Notice kind="error"><p>Kết quả chưa rõ. Giữ nguyên nội dung và mã yêu cầu để gửi lại đúng thao tác; không tạo lệnh thay thế.</p><button className="secondary-button" type="button" disabled={busy !== null} onClick={() => void saveRecord()}>Thử lại thao tác đang chờ</button><ConfirmActionButton confirmationTitle="Dừng đối chiếu thao tác Finance?" confirmationDescription="Server có thể đã ghi nhận thao tác. Dừng đối chiếu không hủy hoặc hoàn tác kết quả; kiểm tra dữ liệu hiện tại trước khi tạo ý định mới." confirmLabel="Dừng đối chiếu" disabled={busy !== null} onConfirm={abandonOutcome}>Dừng đối chiếu</ConfirmActionButton></Notice>}<form className="form-panel" onSubmit={saveRecord} noValidate><fieldset className="resource-dialog-fields" disabled={pendingOutcome !== null}>
             <div className="section-heading"><h2>{editingRecord ? 'Sửa record' : 'Record mới'}</h2>{editingRecord && <button className="link-button" type="button" onClick={resetRecord}>Hủy sửa</button>}</div>
             <div className="field-group"><label htmlFor="finance-record-category">Category</label><select id="finance-record-category" value={recordDraft.categoryId} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, categoryId: event.target.value }); setError(null); }} disabled={categories.length === 0} required><option value="">{categories.length === 0 ? 'Tạo category trước' : 'Chọn category'}</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.title}</option>)}</select></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="finance-record-amount">Amount</label><input id="finance-record-amount" inputMode="decimal" value={recordDraft.amount} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, amount: event.target.value }); setError(null); }} placeholder="0.00" maxLength={29} required /></div><div className="field-group"><label htmlFor="finance-record-currency">Currency</label><input id="finance-record-currency" value={recordDraft.currencyCode} onChange={(event) => { recordRequestKey.current = null; setRecordDraft({ ...recordDraft, currencyCode: event.target.value.toUpperCase() }); setError(null); }} maxLength={3} required /></div></div>
@@ -6257,7 +6257,7 @@ function ModuleScreen({
     return <DocumentsScreen onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX27') {
-    return <FinanceScreen onAuthLost={onAuthLost} />;
+    return <FinanceScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX21') {
     return <BookmarksScreen onAuthLost={onAuthLost} />;

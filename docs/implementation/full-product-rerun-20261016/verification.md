@@ -1,6 +1,6 @@
 # Rerun evidence and remaining gates — 2026-10-16
 
-Overall product: **INCOMPLETE**. Implemented changes below are bounded repairs; neither the action inventory nor successful smoke tests prove all business requirements complete. User's updated prompt explicitly authorizes tests and supersedes the older code-only amendment for this run.
+Overall product: **INCOMPLETE**. Latest real SQL/API run at a6e1ea1: **219 passed,0 failed,0 skipped** (run38913985317). Implemented changes below are bounded repairs; neither the action inventory nor successful smoke tests prove all business requirements complete. User's updated prompt explicitly authorizes tests and supersedes the older code-only amendment for this run.
 
 ## Implemented changes
 
@@ -31,7 +31,7 @@ First checkpoint `27b6290ea3e8b7da296c2d729d30912c6f6fdfa1` is published on PR4;
 ## Remaining work and truthful disposition
 
 - High source-confirmed authority/projection/replay gaps remain in Goals/Habits/Planner; see independent audit findings. No broad all-handler security claim.
-- Finance still needs explicit default currency behavior and owner-IANA date default reconciliation; current UI's VND/browser-date defaults are not accepted completion.
+- Finance explicit currency/owner-IANA date defaults are repaired in the final follow-up below; final independent review remains pending.
 - Documents hierarchy/editor/compare/restore and other current requirements; FX24 Collections/Templates/assignments; full Search providers/facets/saved queries/palette; Dashboard persisted layout; remaining News/Career/Learning/provider capabilities remain in `missing-capabilities.md`.
 - Semantic per-action input/output/postcondition/AC tracing is incomplete. CSV declarations, source extraction and action rows are distinct inventories, not a certified requirement denominator. Unread and selected-only sources are labelled in the ledger. No percentage is claimed.
 - Real SQL runtime, complete API E2E, Windows ACL evidence and full-product re-audit remain pending. The local environment has no usable SQL Server/Docker. Headless browser fixtures cannot substitute for those gates.
@@ -67,3 +67,13 @@ At29a3f97, .NET unit49passed/0failed/0skipped; Release integration-test project0
 Implementation38913206603: browser job **PASS**,10tests/0failures/0errors/0skips in61.28s. This includes four real SQL-backed registration/verification/reset journeys across desktop/mobile, two controlled bootstrap failures and four controlled UI smokes. SQL/API readiness and owned process cleanup passed; exact sanitized JUnit is retained in evidence/ci-browser-29a3f97-junit.xml. No claim that all ten tests are real backend business acceptance.
 
 SQL/API: **216passed/3failed/0skipped of219**. The16 previously failing cases passed after bounded repairs. Remaining test expectations were traced against installed contracts: retained clean File rename is installed and succeeds (trash retention remains denied); owner-revoked ShareLink metadata remains visible but inactive/token-null while viewer remains404; completed removed-Tag create replay returns original committed ACK without a second write. Tests now assert those exact outcomes and retained privacy/lifecycle checks; no test skipped or production behavior weakened. The next SQL run must confirm all219. Windows actual-principal gate remains failed.
+
+## Final SQL result at a6e1ea1
+
+Real isolated SQL/API CI38913985317: **219passed,0failed,0skipped**,2m19s. Backend/frontend/Linux gates passed. Browser target startup/readiness/cleanup succeeded; expanded Notification smoke failed only its fixture-request count assertion on both dev-mode projects (8pass/2fail of10), not a product privacy assertion. Reproduced with Vite development locally: React StrictMode makes two initial reads; production build makes one. Correct test captures the actual settled initial read count before mutation and requires no increment after ACK, preserving the no-automatic-read assertion. Production logic is unchanged by that test correction. A fresh browser rerun is required; earlier29a3f97 browser10/10 pass remains separately labelled. Windows actual-principal gate remains failed.
+
+## Finance default and StrictMode follow-up
+
+Finance feature contract FX27 CurrencyCode/OccurredOn and UX62 require explicit currency plus current owner-local date. Both direct Finance and FX27 module entry now pass the current profile IANA timezone; New/Reset clears currency instead of inferring VND or carrying an edited record currency. Existing record dates are not reinterpreted. Two deterministic form tests at2026-10-17T00:30Z verify Los_Angeles2026-10-16 and Kiritimati2026-10-17, blank currency and no POST until currency is entered. Full frontend suite143passed/0failed/1existing skipped across14files; TypeScript/Vite build passed with the existing chunk warning. No backend currency/date rule changed.
+
+The corrected expanded authenticated smoke passed on desktop/mobile against Vite development (2passed,12.79s), proving no additional read after ACK while retaining the two StrictMode initialization reads. Final production bundle smoke also passed4/4 (public/authenticated across desktop/mobile, expanded Notification ACK path); current CI must still be inspected. Source/security independent review and Windows actual-principal gate remain pending; no full-product completion is claimed.

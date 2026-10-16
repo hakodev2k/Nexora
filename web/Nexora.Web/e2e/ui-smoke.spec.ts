@@ -48,7 +48,8 @@ test('authenticated modules, mobile reflow, dirty Back, dialog focus and committ
   await page.route('**/api/v1/notifications?**', route => { inboxReads++; return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [{ id: bookmarkId, kind: 'System', title: 'Synthetic private notification', body: 'Synthetic private notification body', sourceRef: null, createdAt: '2026-10-01T00:00:00Z', readAt: null, etag: '\"AQIDBAUGBwg=\"', deliveries: [] }], unreadCount: 1, nextCursor: null }) }); });
   await page.route(`**/api/v1/notifications/${bookmarkId}`, route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: bookmarkId, committed: true, detailAvailable: false }) }));
   await page.goto('/notifications'); await expect(page.getByRole('heading', { name: 'Synthetic private notification', exact: true })).toBeVisible();
+  const initialInboxReads = inboxReads; expect(initialInboxReads).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Đánh dấu đã đọc', exact: true }).click(); await expect(page.getByText(/Thao tác đã được lưu/)).toBeVisible();
-  await expect(page.getByText('Synthetic private notification', { exact: true })).toHaveCount(0); await expect(page.getByRole('heading', { name: 'Inbox trống' })).toHaveCount(0); expect(inboxReads).toBe(1); await reflow(page);
+  await expect(page.getByText('Synthetic private notification', { exact: true })).toHaveCount(0); await expect(page.getByRole('heading', { name: 'Inbox trống' })).toHaveCount(0); expect(inboxReads).toBe(initialInboxReads); await reflow(page);
   expect(errors).toEqual([]);
 });
