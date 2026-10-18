@@ -11,6 +11,10 @@
   box-sizing: border-box;
 }
 
+.palette-option { cursor: pointer; overflow-wrap: anywhere; }
+.palette-option[aria-selected="true"] { outline: 3px solid #4078e8; outline-offset: -3px; }
+.palette-option[aria-disabled="true"] { cursor: default; }
+
 body {
   margin: 0;
   min-width: 320px;
@@ -2017,3 +2021,5 @@ progress::-moz-progress-bar {
 
 .skip-link { position: fixed; top: -10000px; left: .5rem; z-index: 200; border-radius: .5rem; background: #182338; color: #fff; padding: .65rem 1rem; }
 .skip-link:focus { top: .5rem; }
+.dashboard-widget-wide { grid-column: span 2; }
+@media (max-width: 640px) { .dashboard-widget-wide { grid-column: span 1; } }

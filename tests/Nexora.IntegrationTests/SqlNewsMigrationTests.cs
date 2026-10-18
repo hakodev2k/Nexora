@@ -23,10 +23,11 @@ public sealed class SqlNewsMigrationTests(SqlApiFixture fixture)
             using (var create = new SqlCommand("CREATE DATABASE [" + database + "]", server)) await create.ExecuteNonQueryAsync(); created = true; target.InitialCatalog = database;
             var runner = new SqlMigrationRunner(); var directory = Path.Combine(AppContext.BaseDirectory, "migrations");
             const string newsMigration = "20261005_0046_news_categories.sql";
-            var priorMigrations = M01MigrationManifest.RequiredFileNames.TakeWhile(name => name != newsMigration).ToArray();
-            Assert.Contains(newsMigration, M01MigrationManifest.RequiredFileNames);
-            var newsUpgrade = priorMigrations.Append(newsMigration).ToArray();
-            await runner.ApplyAsync(target.ConnectionString, directory, priorMigrations);
+            var targetIndex = M01MigrationManifest.RequiredFileNames.ToList().IndexOf(newsMigration);
+            Assert.True(targetIndex > 0, "The exact reviewed News migration must remain installed with its prerequisites.");
+            var newsUpgrade = M01MigrationManifest.RequiredFileNames.Take(targetIndex + 1).ToArray();
+            Assert.Equal(newsMigration, newsUpgrade.Last());
+            await runner.ApplyAsync(target.ConnectionString, directory, newsUpgrade.Take(targetIndex).ToArray());
             var user = Guid.NewGuid(); var owner = Guid.NewGuid();
             await using var c = new SqlConnection(target.ConnectionString); await c.OpenAsync();
             using (var arrange = new SqlCommand("""

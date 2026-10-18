@@ -17,7 +17,7 @@ namespace Nexora.Infrastructure.Snippets;
 /// service never compiles, evaluates, sends or publishes snippet contents.
 /// Versions are append-only and the current row is protected by rowversion.
 /// </summary>
-public sealed class SqlSnippetService : ISnippetService
+public sealed partial class SqlSnippetService : ISnippetService
 {
     private const int MaxSourceBytes = 1024 * 1024;
     private static readonly Regex LanguagePattern = new("^[A-Za-z0-9][A-Za-z0-9+.#_-]{0,49}$", RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -117,6 +117,9 @@ public sealed class SqlSnippetService : ISnippetService
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read"))
             return ModuleUnavailable<SnippetRecord>();
         var snippet = Read(connection, transaction, actor.OwnerId, snippetId, forUpdate: false);
+        if (snippet is not null && snippet.Status is "Active" or "Archived")
+            Nexora.Infrastructure.Discovery.SqlRecentActivity.RecordWithin(connection, transaction, _capabilities, actor,
+                ReadRecentSourceWithin(connection, transaction, actor, snippetId));
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX22", "snippets.snippet.read"))
             return ModuleUnavailable<SnippetRecord>();
         transaction.Commit();

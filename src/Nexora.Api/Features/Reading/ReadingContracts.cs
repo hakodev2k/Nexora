@@ -16,6 +16,7 @@ public sealed record ReadingResponse(
     string SafeUrlSnapshot,
     bool SourceAvailable,
     DateTimeOffset UpdatedAt,
-    string ETag);
+    string ETag,
+    string? SourceETag = null);
 
 public sealed record ReadingPageResponse(IReadOnlyList<ReadingResponse> Items, string? NextCursor);

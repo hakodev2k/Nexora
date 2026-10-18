@@ -1,0 +1,578 @@
+[
+  {
+    "route": "/",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "violations": []
+  },
+  {
+    "route": "/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "violations": []
+  }
+]

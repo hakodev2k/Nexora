@@ -43,7 +43,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-13 | [Calendar, Personal Events và ICS](../features/13-calendar.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-14 | [Reminders và Due Scheduling](../features/14-reminders-and-scheduling.md) | Single task/event reminder core; independent extensions remain gated | Not in M01 |
 | FX-15 | [Daily và Weekly Planner](../features/15-planner.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
-| FX-16 | [Goals và Targets](../features/16-goals.md) | Numeric Goal/target/progress local slice; advanced targets/lifecycle gates apply | Not in M01 |
+| FX-16 | [Goals và Targets](../features/16-goals.md) | Numeric/Boolean target create/update/progress/remove with impact preview, retained progress history, exact-prior-state Archive/Unarchive, state/metadata/target-definition versions local code; Task targets, Trash, runtime/review remain open | Not in M01 |
 | FX-17 | [Habit Tracker](../features/17-habits.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-18 | [Time Tracking](../features/18-time-tracking.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
 | FX-19 | [Pomodoro và Focus](../features/19-pomodoro.md) | Current owner-only scope; per-action lifecycle/permission gates apply | Not in M01 |
@@ -52,7 +52,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-22 | [Code Snippets](../features/22-snippets.md) | Text/version slice implemented locally on PR #4; history/export/share/advanced lifecycle gates apply | Not in M01 |
 | FX-23 | [Read Later](../features/23-read-later.md) | Bookmark-reference queue slice implemented locally on PR #4; News/body reader, search, sharing and advanced lifecycle gates apply | Not in M01 |
 | FX-24 | [Tags, Collections và Templates](../features/24-organization-and-templates.md) | FX24-S01 owner-scoped Tag catalog implemented locally; assignment/Collections/Templates remain gated | Not in M01 |
-| FX-25 | [Search, Saved Search, Favorites và Command Palette](../features/25-search-favorites-and-command-palette.md) | FX25-S01 source-query Search and FX25-S03 typed Favorites implemented locally; Recents/Saved Search/Command Palette gates apply | Not in M01 |
+| FX-25 | [Search, Saved Search, Favorites và Command Palette](../features/25-search-favorites-and-command-palette.md) | Local code: bounded source-query Search/Favorites, Saved Search, seven-source Recents and finite Command Palette handoffs; additional providers/facets, runtime acceptance and independent review remain pending | Not in M01 |
 | FX-26 | [Dashboard và Widgets](../features/26-dashboard.md) | FX26-S01 owner-only attention projection implemented locally; layout/quick-create gates apply | Not in M01 |
 | FX-27 | [Finance — current basic manual records](../features/27-finance.md) | Initial Finance scope = manual category/amount/explicit currency/date/optional note; advanced ledger/budget/debt/interest/FX/transfers gated | Not in M01 |
 | FX-28 | [Vault](../features/28-vault.md) | Hybrid recoverable Vault policy approved; no operator plaintext; portability/key design/security evidence still required | Not in M01 |
@@ -67,7 +67,7 @@ FX30 Price Tracking, FX34 Automation/Scheduler/Workflows and FX35 Integrations/W
 | FX-37 | [Personal Assets, Inventory và Devices](../features/37-personal-assets.md) | Current owner-only scope; sensitive projection allowlists required where applicable | Not in M01 |
 | FX-38 | [Domains, Hosting, VPS, Certificates, Licenses và Services](../features/38-digital-assets.md) | Metadata management; provider inspection held under outbound/provider gates | Not in M01 |
 | FX-39 | [Career, Companies, Calendar links và Resumes](../features/39-career-and-resumes.md) | Jobs/resume DOCX/MD/internal Calendar links; sensitive projection allowlists required where applicable | Not in M01 |
-| FX-40 | [Skills, Courses, Certifications, Learning Plan và Work Log](../features/40-learning-and-work-log.md) | Owner learning core; sensitive projection allowlists required where applicable | Not in M01 |
+| FX-40 | [Skills, Courses, Certifications, Learning Plan và Work Log](../features/40-learning-and-work-log.md) | Skill/Course core and manual Work Log metadata/history, Archive/Unarchive, native Trash/Restore/Purge and category-filtered gross reporting local code; linked TimeEntry/other sources, global Trash provider, merge/Plans/Certifications/runtime/review remain open | Not in M01 |
 
 ## Candidate delivery order — delegated sequencing, not business scope change
 

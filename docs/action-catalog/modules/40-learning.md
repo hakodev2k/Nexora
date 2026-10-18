@@ -1,5 +1,18 @@
 # FX-40 — Learning / Work Log: actions
 
+> **Local continuation 2026-10-18:** worklog.read/create/update/archive/unarchive
+> and report.read have a bounded manual Work Log implementation. Reports require
+> worklog.read, sum gross manual minutes and do not deduplicate overlap. Existing
+> key metadata only, no Allow grants. link_time, global Trash provider registration and other
+> source bindings remain open. [Contract](../../implementation/remediation-plan-20261016/worklog-manual-contract-20261018.md).
+> Category-filtered list/report and private Work Log history under worklog.read
+> are additionally code-present: [contract](../../implementation/remediation-plan-20261016/worklog-filter-history-contract-20261018.md).
+> Compile-only evidence; runtime and independent review Pending.
+> `learning.worklog.trash/restore/purge` also have native local code with current
+> worklog.read prerequisite, signed exact-revision/cohort/dependency preview,
+> explicit confirmation and typed opaque replay; no Allow grants or execution.
+> [Lifecycle contract](../../implementation/remediation-plan-20261016/worklog-trash-contract-20261018.md).
+
 Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi

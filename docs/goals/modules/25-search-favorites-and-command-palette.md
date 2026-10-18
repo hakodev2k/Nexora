@@ -2,15 +2,16 @@
 
 Product phase: **P03** · Delivery: **RM11** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** FX25-S01 bounded source-query search and FX25-S03 owner-scoped Favorites slices are implemented locally on PR #4; Recents, Saved Search and Command Palette remain gated and runtime is not run. Goals có điều kiện không là quyền code. FX-25 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** bounded Search/Favorites, Saved Search, seven-source Recents and a finite Command Palette registry have local code on the PR4 branch. Continuation remains uncommitted; runtime NOT RUN and independent review Pending. Additional providers/facets/full source coverage remain incomplete. Goals có điều kiện không là quyền code. FX-25 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Current implementation overlay
 
-The local slices implement `NXG-FX25-G01` and the access/failure boundary in
-`NXG-FX25-G02` through source-query Search and typed Favorites. Favorites do
-not create source authority, copy source payloads or bypass current lifecycle;
-Recents, Saved Search, Command Palette and persisted index behavior remain
-gated.
+Local code addresses NXG-FX25-G01/G02/G03 through source-query Search, typed
+Favorites/Saved Search, metadata-only current-authorized Recents and the installed
+Palette workflow registry. These are code bindings, not passing goal acceptance.
+No persisted search index or arbitrary source/action is installed. See
+[current feature overlay](../../features/25-search-favorites-and-command-palette.md)
+and the linked DISC3/DISC4 source/acceptance contracts.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

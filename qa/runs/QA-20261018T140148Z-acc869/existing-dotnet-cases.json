@@ -1,0 +1,2207 @@
+[
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"stamp\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"stamp\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"stamp\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSkillTests.Sql_constraints_and_frozen_cohort_reject_invalid_owner_and_state",
+    "TestName": "Nexora.IntegrationTests.SqlSkillTests.Sql_constraints_and_frozen_cohort_reject_invalid_owner_and_state",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSkillTests.cs::Sql_constraints_and_frozen_cohort_reject_invalid_owner_and_state",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Project_projection_is_live_nullable_and_exactly_excludes_legacy_due_and_private_fields",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Project_projection_is_live_nullable_and_exactly_excludes_legacy_due_and_private_fields",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Project_projection_is_live_nullable_and_exactly_excludes_legacy_due_and_private_fields",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Mixed_import_preview_partial_commit_replay_and_terminal_uid_dedupe_are_atomic",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Mixed_import_preview_partial_commit_replay_and_terminal_uid_dedupe_are_atomic",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Mixed_import_preview_partial_commit_replay_and_terminal_uid_dedupe_are_atomic",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.User_content_libraries_finance_and_organization_workflows_are_owner_scoped_and_revision_safe",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.User_content_libraries_finance_and_organization_workflows_are_owner_scoped_and_revision_safe",
+    "Status": "FAIL",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::User_content_libraries_finance_and_organization_workflows_are_owner_scoped_and_revision_safe",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": "Assert.Equal() Failure: Values differ\r\nExpected: UnprocessableEntity\r\nActual:   Created"
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Source_disable_affects_its_own_links_and_rollback_preserves_links_policy_epoch_and_audit",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Source_disable_affects_its_own_links_and_rollback_preserves_links_policy_epoch_and_audit",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Source_disable_affects_its_own_links_and_rollback_preserves_links_policy_epoch_and_audit",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://host.local/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://host.local/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://host.cs::local/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlDigitalAssetTests.Typed_metadata_IDNA_strict_values_and_current_owner_boundaries_hold",
+    "TestName": "Nexora.IntegrationTests.SqlDigitalAssetTests.Typed_metadata_IDNA_strict_values_and_current_owner_boundaries_hold",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs::Typed_metadata_IDNA_strict_values_and_current_owner_boundaries_hold",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Metadata_receipt_replays_original_ack_after_later_writes_and_checks_new_versions_only",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Metadata_receipt_replays_original_ack_after_later_writes_and_checks_new_versions_only",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Metadata_receipt_replays_original_ack_after_later_writes_and_checks_new_versions_only",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Manual_stage_history_and_Trash_receipts_replay_without_repeating_lifecycle",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Manual_stage_history_and_Trash_receipts_replay_without_repeating_lifecycle",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Manual_stage_history_and_Trash_receipts_replay_without_repeating_lifecycle",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Filtering_and_real_cursor_paging_never_include_foreign_or_inactive_records",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Filtering_and_real_cursor_paging_never_include_foreign_or_inactive_records",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Filtering_and_real_cursor_paging_never_include_foreign_or_inactive_records",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"deleted\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"deleted\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"deleted\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"_\")",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"_\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Search_is_literal_and_overlong_query_is_rejected(query: \"_\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"read\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"read\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"read\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://[::1]/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://[::1]/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://[::1]/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com/?token=hidden\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com/?token=hidden\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.cs::com/?token=hidden\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCourseTests.Admin_exact_actions_current_receipt_dependencies_and_disabled_module_fail_closed",
+    "TestName": "Nexora.IntegrationTests.SqlCourseTests.Admin_exact_actions_current_receipt_dependencies_and_disabled_module_fail_closed",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCourseTests.cs::Admin_exact_actions_current_receipt_dependencies_and_disabled_module_fail_closed",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Dedicated_criteria_and_rank_replay_preserve_task_topology_and_history",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Dedicated_criteria_and_rank_replay_preserve_task_topology_and_history",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Dedicated_criteria_and_rank_replay_preserve_task_topology_and_history",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Owner_item_read_and_exact_update_retry_return_current_metadata_without_repeating_audit",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Owner_item_read_and_exact_update_retry_return_current_metadata_without_repeating_audit",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Owner_item_read_and_exact_update_retry_return_current_metadata_without_repeating_audit",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Delimiter_payloads_do_not_share_task_receipt_digest",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Delimiter_payloads_do_not_share_task_receipt_digest",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Delimiter_payloads_do_not_share_task_receipt_digest",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Task_domain_creation_can_run_while_worker_holds_owner_update_lock",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Task_domain_creation_can_run_while_worker_holds_owner_update_lock",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Task_domain_creation_can_run_while_worker_holds_owner_update_lock",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsMigrationTests.Normal_upgrade_backfills_inactive_existing_owner_preserves_flags_and_grants_and_replay_does_not_revive_names",
+    "TestName": "Nexora.IntegrationTests.SqlNewsMigrationTests.Normal_upgrade_backfills_inactive_existing_owner_preserves_flags_and_grants_and_replay_does_not_revive_names",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsMigrationTests.cs::Normal_upgrade_backfills_inactive_existing_owner_preserves_flags_and_grants_and_replay_does_not_revive_names",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Policy_preview_discloses_exact_invalidation_cohort_and_rejects_unreviewed_new_links",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Policy_preview_discloses_exact_invalidation_cohort_and_rejects_unreviewed_new_links",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Policy_preview_discloses_exact_invalidation_cohort_and_rejects_unreviewed_new_links",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"create\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"create\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"create\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Actual_row_and_operation_paging_and_audit_failure_rollback_do_not_delete_earlier_data",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Actual_row_and_operation_paging_and_audit_failure_rollback_do_not_delete_earlier_data",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Actual_row_and_operation_paging_and_audit_failure_rollback_do_not_delete_earlier_data",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Concurrent_new_updates_have_one_winner_and_same_key_retry_has_one_effect",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Concurrent_new_updates_have_one_winner_and_same_key_retry_has_one_effect",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Concurrent_new_updates_have_one_winner_and_same_key_retry_has_one_effect",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Save_and_transition_replay_have_one_effect_and_archived_source_is_readonly",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Save_and_transition_replay_have_one_effect_and_archived_source_is_readonly",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Save_and_transition_replay_have_one_effect_and_archived_source_is_readonly",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"SuperAdmin\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"SuperAdmin\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"SuperAdmin\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"moduleGrant\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"moduleGrant\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"moduleGrant\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"missing\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"missing\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"missing\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTimeQueryTests.Range_report_keeps_gross_overlap_and_uses_half_open_UTC_boundaries",
+    "TestName": "Nexora.IntegrationTests.SqlTimeQueryTests.Range_report_keeps_gross_overlap_and_uses_half_open_UTC_boundaries",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTimeQueryTests.cs::Range_report_keeps_gross_overlap_and_uses_half_open_UTC_boundaries",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://user:password@example.com/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://user:password@example.com/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://user:password@example.cs::com/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: False, sharing: True)",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: False, sharing: True)",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: False, sharing: True)",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"\\\\\")",
+    "TestName": "Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"\\\\\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs::Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"\\\\\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Pause_resume_noop_and_audit_failure_keep_preferences_registry_and_receipts_atomic",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Pause_resume_noop_and_audit_failure_keep_preferences_registry_and_receipts_atomic",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Pause_resume_noop_and_audit_failure_keep_preferences_registry_and_receipts_atomic",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSkillTests.Skill_metadata_assessment_and_archive_cohort_are_real_and_owner_scoped",
+    "TestName": "Nexora.IntegrationTests.SqlSkillTests.Skill_metadata_assessment_and_archive_cohort_are_real_and_owner_scoped",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSkillTests.cs::Skill_metadata_assessment_and_archive_cohort_are_real_and_owner_scoped",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlPersonalAssetTests.Independent_permissions_current_receipt_replay_and_disabled_module_fail_closed",
+    "TestName": "Nexora.IntegrationTests.SqlPersonalAssetTests.Independent_permissions_current_receipt_replay_and_disabled_module_fail_closed",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs::Independent_permissions_current_receipt_replay_and_disabled_module_fail_closed",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTagPaginationTests.Tag_catalog_can_reach_every_page_and_refresh_an_exact_ID_without_cross_owner_reads",
+    "TestName": "Nexora.IntegrationTests.SqlTagPaginationTests.Tag_catalog_can_reach_every_page_and_refresh_an_exact_ID_without_cross_owner_reads",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs::Tag_catalog_can_reach_every_page_and_refresh_an_exact_ID_without_cross_owner_reads",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSkillTests.Purge_reference_guards_audit_rollback_and_idempotency_are_atomic",
+    "TestName": "Nexora.IntegrationTests.SqlSkillTests.Purge_reference_guards_audit_rollback_and_idempotency_are_atomic",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSkillTests.cs::Purge_reference_guards_audit_rollback_and_idempotency_are_atomic",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"update\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"update\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"update\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Private_query_rechecks_session_after_waiting_for_resource_lock",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Private_query_rechecks_session_after_waiting_for_resource_lock",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Private_query_rechecks_session_after_waiting_for_resource_lock",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlDigitalAssetTests.Renewal_type_replacement_history_and_exact_lifecycle_keep_manual_provenance",
+    "TestName": "Nexora.IntegrationTests.SqlDigitalAssetTests.Renewal_type_replacement_history_and_exact_lifecycle_keep_manual_provenance",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs::Renewal_type_replacement_history_and_exact_lifecycle_keep_manual_provenance",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"pause\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"pause\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"pause\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"User\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"User\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"User\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"absolute\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"absolute\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"absolute\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Binding_requires_explicit_choices_and_rejects_privileged_extra_fields",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Binding_requires_explicit_choices_and_rejects_privileged_extra_fields",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Binding_requires_explicit_choices_and_rejects_privileged_extra_fields",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"absolute\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"absolute\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"absolute\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"update\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"update\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"update\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Fresh_keyless_and_keyed_mutations_hold_current_grant_until_commit(keyed: True)",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Fresh_keyless_and_keyed_mutations_hold_current_grant_until_commit(keyed: True)",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Fresh_keyless_and_keyed_mutations_hold_current_grant_until_commit(keyed: True)",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"create\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"create\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Admin_requires_each_exact_action_and_update_requires_read_independently(name: \"create\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlIntegrationConnectionTests.Configuration_persists_pages_and_same_key_replay_rechecks_current_owner_and_authority",
+    "TestName": "Nexora.IntegrationTests.SqlIntegrationConnectionTests.Configuration_persists_pages_and_same_key_replay_rechecks_current_owner_and_authority",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlIntegrationConnectionTests.cs::Configuration_persists_pages_and_same_key_replay_rechecks_current_owner_and_authority",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCompositeCapabilityTests.Owner_baseline_requires_every_requested_action_to_be_resolved(role: \"SuperAdmin\")",
+    "TestName": "Nexora.IntegrationTests.SqlCompositeCapabilityTests.Owner_baseline_requires_every_requested_action_to_be_resolved(role: \"SuperAdmin\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCompositeCapabilityTests.cs::Owner_baseline_requires_every_requested_action_to_be_resolved(role: \"SuperAdmin\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"read\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"read\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"read\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Resolve\")",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Resolve\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Resolve\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Date_only_skipped_civil_day_survives_timezone_change_midday_query_update_and_cancel",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Date_only_skipped_civil_day_survives_timezone_change_midday_query_update_and_cancel",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Date_only_skipped_civil_day_survives_timezone_change_midday_query_update_and_cancel",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Category_audit_failure_rolls_back_business_registry_and_receipt_then_same_key_retries_once",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Category_audit_failure_rolls_back_business_registry_and_receipt_then_same_key_retries_once",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Category_audit_failure_rolls_back_business_registry_and_receipt_then_same_key_retries_once",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlWishlistTests.Cohort_integrity_rejects_other_owner_links_and_inconsistent_frozen_membership",
+    "TestName": "Nexora.IntegrationTests.SqlWishlistTests.Cohort_integrity_rejects_other_owner_links_and_inconsistent_frozen_membership",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs::Cohort_integrity_rejects_other_owner_links_and_inconsistent_frozen_membership",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Admin_cannot_read_or_change_SUPER_only_access_even_after_an_explicit_self_grant",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Admin_cannot_read_or_change_SUPER_only_access_even_after_an_explicit_self_grant",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Admin_cannot_read_or_change_SUPER_only_access_even_after_an_explicit_self_grant",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Current_source_authority_admin_AND_dependencies_wrong_owner_and_live_session_fail_closed",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Current_source_authority_admin_AND_dependencies_wrong_owner_and_live_session_fail_closed",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Current_source_authority_admin_AND_dependencies_wrong_owner_and_live_session_fail_closed",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Reminder_cannot_use_update_permission_or_whitespace_to_bypass_remove_and_has_safe_ack",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Reminder_cannot_use_update_permission_or_whitespace_to_bypass_remove_and_has_safe_ack",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Reminder_cannot_use_update_permission_or_whitespace_to_bypass_remove_and_has_safe_ack",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://0x7f000001/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://0x7f000001/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://0x7f000001/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"stamp\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"stamp\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"stamp\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Read_only_sharing_hides_invalid_links_and_never_revives_revoked_capabilities",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Read_only_sharing_hides_invalid_links_and_never_revives_revoked_capabilities",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Read_only_sharing_hides_invalid_links_and_never_revives_revoked_capabilities",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: True, sharing: True)",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: True, sharing: True)",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: True, sharing: True)",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlDigitalAssetTests.Expiry_days_DST_instants_extremes_and_selected_cursor_filters_are_exact",
+    "TestName": "Nexora.IntegrationTests.SqlDigitalAssetTests.Expiry_days_DST_instants_extremes_and_selected_cursor_filters_are_exact",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs::Expiry_days_DST_instants_extremes_and_selected_cursor_filters_are_exact",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"wrong-user\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"wrong-user\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"wrong-user\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlIntegrationConnectionTests.Audit_failure_rolls_back_connection_resource_and_receipt",
+    "TestName": "Nexora.IntegrationTests.SqlIntegrationConnectionTests.Audit_failure_rolls_back_connection_resource_and_receipt",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlIntegrationConnectionTests.cs::Audit_failure_rolls_back_connection_resource_and_receipt",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTimeQueryTests.Filtered_pages_traverse_all_entries_and_fail_closed_for_foreign_or_filtered_cursors",
+    "TestName": "Nexora.IntegrationTests.SqlTimeQueryTests.Filtered_pages_traverse_all_entries_and_fail_closed_for_foreign_or_filtered_cursors",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTimeQueryTests.cs::Filtered_pages_traverse_all_entries_and_fail_closed_for_foreign_or_filtered_cursors",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Literal_categories_allow_equal_names_return_opaque_ack_and_register_only_private_container_capabilities",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Literal_categories_allow_equal_names_return_opaque_ack_and_register_only_private_container_capabilities",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Literal_categories_allow_equal_names_return_opaque_ack_and_register_only_private_container_capabilities",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://%65xample.com/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://%65xample.com/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://%65xample.cs::com/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Receipt_replay_preserves_changed_association_prerequisites_but_not_unchanged_ones",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Receipt_replay_preserves_changed_association_prerequisites_but_not_unchanged_ones",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Receipt_replay_preserves_changed_association_prerequisites_but_not_unchanged_ones",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTimeQueryTests.Filters_do_not_bypass_authentication_admin_grants_or_validation",
+    "TestName": "Nexora.IntegrationTests.SqlTimeQueryTests.Filters_do_not_bypass_authentication_admin_grants_or_validation",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTimeQueryTests.cs::Filters_do_not_bypass_authentication_admin_grants_or_validation",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"idle\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"idle\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"idle\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Real_verification_rolls_back_on_marker_failure_and_reuses_the_same_anonymous_receipt_on_retry",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Real_verification_rolls_back_on_marker_failure_and_reuses_the_same_anonymous_receipt_on_retry",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Real_verification_rolls_back_on_marker_failure_and_reuses_the_same_anonymous_receipt_on_retry",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Task_api_rejects_generic_semantic_fields_and_uses_dedicated_commands",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Task_api_rejects_generic_semantic_fields_and_uses_dedicated_commands",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Task_api_rejects_generic_semantic_fields_and_uses_dedicated_commands",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCourseTests.Purge_pins_and_audit_failure_preserve_owned_children_and_do_not_delete_external_sources",
+    "TestName": "Nexora.IntegrationTests.SqlCourseTests.Purge_pins_and_audit_failure_preserve_owned_children_and_do_not_delete_external_sources",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCourseTests.cs::Purge_pins_and_audit_failure_preserve_owned_children_and_do_not_delete_external_sources",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"moduleGrant\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"moduleGrant\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"moduleGrant\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://127.0.0.1/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://127.0.0.1/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/0.cs::1/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://localhost/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://localhost/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://localhost/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"deleted\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"deleted\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"deleted\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.All_pages_are_reachable_and_cursor_is_owner_filter_limit_and_integrity_bound",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.All_pages_are_reachable_and_cursor_is_owner_filter_limit_and_integrity_bound",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::All_pages_are_reachable_and_cursor_is_owner_filter_limit_and_integrity_bound",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"Admin\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"Admin\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"Admin\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Task_only_admin_AND_reads_nullable_priority_current_status_and_missing_projection_fail_closed",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Task_only_admin_AND_reads_nullable_priority_current_status_and_missing_projection_fail_closed",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Task_only_admin_AND_reads_nullable_priority_current_status_and_missing_projection_fail_closed",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Owner_links_page_25_with_confidential_scoped_cursor_and_exact_state_filters",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Owner_links_page_25_with_confidential_scoped_cursor_and_exact_state_filters",
+    "Status": "FAIL",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Owner_links_page_25_with_confidential_scoped_cursor_and_exact_state_filters",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": "Assert.Empty() Failure: Collection was not empty\r\nCollection: [{\"id\":\"20245433-eb3e-40eb-8c94-603e29e3e16d\",\"resourceType\":\"Project\",\"resourceId\":\"c9af02cd-fb11-4320-a991-6da229dbe5eb\",\"mode\":\"PublicLink\",\"expiresAt\":null,\"revokedAt\":\"2026-10-18T14:04:59.028879+00:00\",\"projectionVersion\":\"v1\",\"isActive\":false,\"createdAt\":\"2026-10-18T14:04:58.7311115+00:00\",\"updatedAt\":\"2026-10-18T14:04:59.028879+00:00\",\"etag\":\"\\\"AAAAAAAASZU=\\\"\",\"allowedUserIds\":[],\"token\":null}]"
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Normal_upgrade_carries_all_three_modes_preserves_hashes_invalidations_and_replays",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Normal_upgrade_carries_all_three_modes_preserves_hashes_invalidations_and_replays",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Normal_upgrade_carries_all_three_modes_preserves_hashes_invalidations_and_replays",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlPersonalAssetTests.Name_keyset_and_history_paging_filter_before_cursor",
+    "TestName": "Nexora.IntegrationTests.SqlPersonalAssetTests.Name_keyset_and_history_paging_filter_before_cursor",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs::Name_keyset_and_history_paging_filter_before_cursor",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Local_background_workers_claim_an_empty_synthetic_queue_without_error",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Local_background_workers_claim_an_empty_synthetic_queue_without_error",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Local_background_workers_claim_an_empty_synthetic_queue_without_error",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com\\\\@localhost/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com\\\\@localhost/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.cs::com\\\\@localhost/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Copy\")",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Copy\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Copy\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Copy_created_checks_current_document_projection_lifecycle_and_version",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Copy_created_checks_current_document_projection_lifecycle_and_version",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Copy_created_checks_current_document_projection_lifecycle_and_version",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Create_only_Admin_receives_opaque_ack_without_acquiring_read_authority",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Create_only_Admin_receives_opaque_ack_without_acquiring_read_authority",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Create_only_Admin_receives_opaque_ack_without_acquiring_read_authority",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Atomic_audit_failure_concurrent_receipt_and_real_twenty_five_row_report_pages",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Atomic_audit_failure_concurrent_receipt_and_real_twenty_five_row_report_pages",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Atomic_audit_failure_concurrent_receipt_and_real_twenty_five_row_report_pages",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Notification_inbox_keeps_three_delivery_states_owner_scope_and_selection_safe",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Notification_inbox_keeps_three_delivery_states_owner_scope_and_selection_safe",
+    "Status": "FAIL",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Notification_inbox_keeps_three_delivery_states_owner_scope_and_selection_safe",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": "Assert.Equal() Failure: Values differ\r\nExpected: Forbidden\r\nActual:   NotFound"
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"[\")",
+    "TestName": "Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"[\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs::Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"[\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSkillTests.Admin_action_composition_replay_and_disabled_module_fail_closed",
+    "TestName": "Nexora.IntegrationTests.SqlSkillTests.Admin_action_composition_replay_and_disabled_module_fail_closed",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSkillTests.cs::Admin_action_composition_replay_and_disabled_module_fail_closed",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCourseTests.Manual_progress_is_exact_explicit_and_preserves_completion_history_through_lifecycle",
+    "TestName": "Nexora.IntegrationTests.SqlCourseTests.Manual_progress_is_exact_explicit_and_preserves_completion_history_through_lifecycle",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCourseTests.cs::Manual_progress_is_exact_explicit_and_preserves_completion_history_through_lifecycle",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Normal_upgrade_preserves_Windows_IANA_dates_replays_and_rejects_unrepresentable_legacy_boundaries",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Normal_upgrade_preserves_Windows_IANA_dates_replays_and_rejects_unrepresentable_legacy_boundaries",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Normal_upgrade_preserves_Windows_IANA_dates_replays_and_rejects_unrepresentable_legacy_boundaries",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Real_SQL_migration_upgrade_and_readiness_gate_are_available",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Real_SQL_migration_upgrade_and_readiness_gate_are_available",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCompositeCapabilityTests.Owner_baseline_requires_every_requested_action_to_be_resolved(role: \"User\")",
+    "TestName": "Nexora.IntegrationTests.SqlCompositeCapabilityTests.Owner_baseline_requires_every_requested_action_to_be_resolved(role: \"User\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCompositeCapabilityTests.cs::Owner_baseline_requires_every_requested_action_to_be_resolved(role: \"User\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Unknown_IANA_profile_timezone_is_rejected_without_a_SQL_write",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Unknown_IANA_profile_timezone_is_rejected_without_a_SQL_write",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Unknown_IANA_profile_timezone_is_rejected_without_a_SQL_write",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Explicit_snapshot_selection_containment_business_projection_and_private_output_are_real",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Explicit_snapshot_selection_containment_business_projection_and_private_output_are_real",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Explicit_snapshot_selection_containment_business_projection_and_private_output_are_real",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Terminal_task_revert_requires_revert_not_start_and_replay_retains_that_authority",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Terminal_task_revert_requires_revert_not_start_and_replay_retains_that_authority",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Terminal_task_revert_requires_revert_not_start_and_replay_retains_that_authority",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"expired\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"expired\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"expired\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"stamp\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"stamp\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"stamp\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.SuperAdmin_access_preview_binds_the_exact_change_before_role_and_permission_commit",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.SuperAdmin_access_preview_binds_the_exact_change_before_role_and_permission_commit",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::SuperAdmin_access_preview_binds_the_exact_change_before_role_and_permission_commit",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"unverified\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"unverified\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"unverified\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Cohort_token_session_and_source_precision_changes_require_safe_fresh_preview",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Cohort_token_session_and_source_precision_changes_require_safe_fresh_preview",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Cohort_token_session_and_source_precision_changes_require_safe_fresh_preview",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"idle\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"idle\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"idle\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Event_generic_status_is_denied_and_terminal_transition_replays",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Event_generic_status_is_denied_and_terminal_transition_replays",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Event_generic_status_is_denied_and_terminal_transition_replays",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlWishlistTests.Updated_pagination_search_and_cursor_boundaries_remain_owner_and_state_scoped",
+    "TestName": "Nexora.IntegrationTests.SqlWishlistTests.Updated_pagination_search_and_cursor_boundaries_remain_owner_and_state_scoped",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs::Updated_pagination_search_and_cursor_boundaries_remain_owner_and_state_scoped",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTimeFocusCompletionTests.New_actions_fail_closed_for_anonymous_and_admin_unset",
+    "TestName": "Nexora.IntegrationTests.SqlTimeFocusCompletionTests.New_actions_fail_closed_for_anonymous_and_admin_unset",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTimeFocusCompletionTests.cs::New_actions_fail_closed_for_anonymous_and_admin_unset",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"[\")",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"[\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Search_is_literal_and_overlong_query_is_rejected(query: \"[\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Trusted_focus_completion_does_not_borrow_a_request_session",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Trusted_focus_completion_does_not_borrow_a_request_session",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Trusted_focus_completion_does_not_borrow_a_request_session",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"criteria\")",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"criteria\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Generic_task_update_cannot_mutate_dedicated_fields(field: \"criteria\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCourseTests.Actual_course_and_milestone_pages_are_owner_scoped_and_use_selected_boundaries",
+    "TestName": "Nexora.IntegrationTests.SqlCourseTests.Actual_course_and_milestone_pages_are_owner_scoped_and_use_selected_boundaries",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCourseTests.cs::Actual_course_and_milestone_pages_are_owner_scoped_and_use_selected_boundaries",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Task_transition_replay_uses_trusted_action_not_title_or_description_delimiters",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Task_transition_replay_uses_trusted_action_not_title_or_description_delimiters",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Task_transition_replay_uses_trusted_action_not_title_or_description_delimiters",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Initialization_marker_serializes_defaults_and_survives_renaming_without_GET_side_effects",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Initialization_marker_serializes_defaults_and_survives_renaming_without_GET_side_effects",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Initialization_marker_serializes_defaults_and_survives_renaming_without_GET_side_effects",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: True, sharing: False)",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: True, sharing: False)",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: True, sharing: False)",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"%\")",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"%\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Search_is_literal_and_overlong_query_is_rejected(query: \"%\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"unverified\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"unverified\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"unverified\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Anonymous_CSRF_registration_replay_has_one_effect_and_changed_body_conflicts",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Typed_metadata_owner_validation_dates_and_exact_salary_are_persisted",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Typed_metadata_owner_validation_dates_and_exact_salary_are_persisted",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Typed_metadata_owner_validation_dates_and_exact_salary_are_persisted",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTimeFocusCompletionTests.Completed_focus_conversion_uses_real_clock_is_atomic_and_deduplicates_across_keys",
+    "TestName": "Nexora.IntegrationTests.SqlTimeFocusCompletionTests.Completed_focus_conversion_uses_real_clock_is_atomic_and_deduplicates_across_keys",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTimeFocusCompletionTests.cs::Completed_focus_conversion_uses_real_clock_is_atomic_and_deduplicates_across_keys",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"User\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"User\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"User\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlDigitalAssetTests.Current_permissions_receipt_replay_and_renewal_reads_are_independent",
+    "TestName": "Nexora.IntegrationTests.SqlDigitalAssetTests.Current_permissions_receipt_replay_and_renewal_reads_are_independent",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs::Current_permissions_receipt_replay_and_renewal_reads_are_independent",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Atomic_audit_failure_concurrency_and_frozen_payload_reject_partial_writes",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Atomic_audit_failure_concurrency_and_frozen_payload_reject_partial_writes",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Atomic_audit_failure_concurrency_and_frozen_payload_reject_partial_writes",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCompositeCapabilityTests.Admin_composition_requires_each_allow_and_rechecks_removed_and_denied_grants",
+    "TestName": "Nexora.IntegrationTests.SqlCompositeCapabilityTests.Admin_composition_requires_each_allow_and_rechecks_removed_and_denied_grants",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCompositeCapabilityTests.cs::Admin_composition_requires_each_allow_and_rechecks_removed_and_denied_grants",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSkillTests.Pagination_uniqueness_and_normalized_length_do_not_hide_or_round_owner_records",
+    "TestName": "Nexora.IntegrationTests.SqlSkillTests.Pagination_uniqueness_and_normalized_length_do_not_hide_or_round_owner_records",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSkillTests.cs::Pagination_uniqueness_and_normalized_length_do_not_hide_or_round_owner_records",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"_\")",
+    "TestName": "Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"_\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs::Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"_\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"unverified\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"unverified\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"unverified\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Global_policy_disable_and_resolve_finish_without_a_policy_link_deadlock",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Global_policy_disable_and_resolve_finish_without_a_policy_link_deadlock",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Global_policy_disable_and_resolve_finish_without_a_policy_link_deadlock",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Session_expiry_during_execution_rolls_back_mutation_and_receipt",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Session_expiry_during_execution_rolls_back_mutation_and_receipt",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Session_expiry_during_execution_rolls_back_mutation_and_receipt",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Configuration_is_typed_private_and_never_fabricates_an_observation",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Configuration_is_typed_private_and_never_fabricates_an_observation",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Configuration_is_typed_private_and_never_fabricates_an_observation",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"Admin\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"Admin\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"Admin\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Exact_committed_update_replay_after_expiry_does_not_extend_or_reactivate_the_link",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Exact_committed_update_replay_after_expiry_does_not_extend_or_reactivate_the_link",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Exact_committed_update_replay_after_expiry_does_not_extend_or_reactivate_the_link",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Detail_API_exposes_current_ETag_only_to_the_authorized_owner",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Detail_API_exposes_current_ETag_only_to_the_authorized_owner",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Detail_API_exposes_current_ETag_only_to_the_authorized_owner",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.User_planning_goals_habits_and_reminders_keep_time_and_lifecycle_state_explicit",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.User_planning_goals_habits_and_reminders_keep_time_and_lifecycle_state_explicit",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::User_planning_goals_habits_and_reminders_keep_time_and_lifecycle_state_explicit",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"absolute\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"absolute\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"absolute\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Registration_is_independent_and_global_sharing_disable_is_permanent_with_one_epoch_step",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Registration_is_independent_and_global_sharing_disable_is_permanent_with_one_epoch_step",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Registration_is_independent_and_global_sharing_disable_is_permanent_with_one_epoch_step",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.All_audiences_expiry_and_foreign_owner_commands_are_enforced_without_title_disclosure",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.All_audiences_expiry_and_foreign_owner_commands_are_enforced_without_title_disclosure",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::All_audiences_expiry_and_foreign_owner_commands_are_enforced_without_title_disclosure",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Update\")",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Update\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Update\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"SuperAdmin\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"SuperAdmin\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Unsupported_actions_fail_closed_even_with_stale_resolved_permission_and_allow(role: \"SuperAdmin\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com:8443/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com:8443/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.cs::com:8443/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCourseTests.Milestone_counts_reorder_versions_and_frozen_owned_cohort_are_enforced",
+    "TestName": "Nexora.IntegrationTests.SqlCourseTests.Milestone_counts_reorder_versions_and_frozen_owned_cohort_are_enforced",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCourseTests.cs::Milestone_counts_reorder_versions_and_frozen_owned_cohort_are_enforced",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Original_receipt_after_later_rename_and_noop_never_expose_name_or_change_audit_revision",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Original_receipt_after_later_rename_and_noop_never_expose_name_or_change_audit_revision",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Original_receipt_after_later_rename_and_noop_never_expose_name_or_change_audit_revision",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Fresh_keyless_and_keyed_mutations_hold_current_grant_until_commit(keyed: False)",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Fresh_keyless_and_keyed_mutations_hold_current_grant_until_commit(keyed: False)",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Fresh_keyless_and_keyed_mutations_hold_current_grant_until_commit(keyed: False)",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"resume\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"resume\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Admin_requires_each_exact_action_and_update_independently_requires_read(name: \"resume\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Concurrent_same_UID_commits_deduplicate_without_hidden_calendar_reads_and_replay_rechecks_module",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Concurrent_same_UID_commits_deduplicate_without_hidden_calendar_reads_and_replay_rechecks_module",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Concurrent_same_UID_commits_deduplicate_without_hidden_calendar_reads_and_replay_rechecks_module",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Copy_created_authority_is_owner_scoped_current_and_never_returns_token",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Copy_created_authority_is_owner_scoped_current_and_never_returns_token",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Copy_created_authority_is_owner_scoped_current_and_never_returns_token",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Selected_paging_company_and_job_filters_and_history_are_real",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Selected_paging_company_and_job_filters_and_history_are_real",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Selected_paging_company_and_job_filters_and_history_are_real",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Create_and_historical_replay_never_disclose_source_without_current_read",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Create_and_historical_replay_never_disclose_source_without_current_read",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Create_and_historical_replay_never_disclose_source_without_current_read",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Each_Admin_source_AND_prerequisite_blocks_create_update_revoke_and_public_resolution",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Each_Admin_source_AND_prerequisite_blocks_create_update_revoke_and_public_resolution",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Each_Admin_source_AND_prerequisite_blocks_create_update_revoke_and_public_resolution",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_SQL_role_owner_dependency_and_revoked_session_override_stale_principals",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_SQL_role_owner_dependency_and_revoked_session_override_stale_principals",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_SQL_role_owner_dependency_and_revoked_session_override_stale_principals",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"%\")",
+    "TestName": "Nexora.IntegrationTests.SqlTagPaginationTests.Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"%\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs::Tag_name_search_treats_SQL_wildcards_as_literal_text(literal: \"%\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Private_upload_rechecks_expired_session_after_stream_and_rolls_back_owned_bytes",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Private_upload_rechecks_expired_session_after_stream_and_rolls_back_owned_bytes",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Private_upload_rechecks_expired_session_after_stream_and_rolls_back_owned_bytes",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarImportTests.Preview_revision_zone_overlap_file_and_cancellation_conflicts_preserve_rows_and_retention",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarImportTests.Preview_revision_zone_overlap_file_and_cancellation_conflicts_preserve_rows_and_retention",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs::Preview_revision_zone_overlap_file_and_cancellation_conflicts_preserve_rows_and_retention",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Artifact_expiry_original_replay_and_owner_source_revocation_cannot_bypass_download",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Artifact_expiry_original_replay_and_owner_source_revocation_cannot_bypass_download",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Artifact_expiry_original_replay_and_owner_source_revocation_cannot_bypass_download",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Binding_and_semantic_validation_fail_without_category_effects",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Binding_and_semantic_validation_fail_without_category_effects",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Binding_and_semantic_validation_fail_without_category_effects",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Create_and_replay_without_read_return_only_committed_identity",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Create_and_replay_without_read_return_only_committed_identity",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Create_and_replay_without_read_return_only_committed_identity",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlWishlistTests.Lifecycle_preserves_decimals_and_archive_state_in_real_deletion_cohorts",
+    "TestName": "Nexora.IntegrationTests.SqlWishlistTests.Lifecycle_preserves_decimals_and_archive_state_in_real_deletion_cohorts",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs::Lifecycle_preserves_decimals_and_archive_state_in_real_deletion_cohorts",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlIntegrationConnectionTests.API_commands_require_CSRF_owner_revision_and_reject_unapproved_fields",
+    "TestName": "Nexora.IntegrationTests.SqlIntegrationConnectionTests.API_commands_require_CSRF_owner_revision_and_reject_unapproved_fields",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlIntegrationConnectionTests.cs::API_commands_require_CSRF_owner_revision_and_reject_unapproved_fields",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Unrepresentable_midnight_and_invalid_choices_are_rejected_without_jobs",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Unrepresentable_midnight_and_invalid_choices_are_rejected_without_jobs",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Unrepresentable_midnight_and_invalid_choices_are_rejected_without_jobs",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: False, sharing: False)",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: False, sharing: False)",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Installed_readiness_preserves_flags_replays_and_rejects_automatic_activation(system: False, sharing: False)",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"status\")",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"status\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Generic_task_update_cannot_mutate_dedicated_fields(field: \"status\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"reminder\")",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"reminder\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Generic_task_update_cannot_mutate_dedicated_fields(field: \"reminder\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlDigitalAssetTests.Audit_failure_concurrency_immutable_rows_and_frozen_children_are_SQL_atomic",
+    "TestName": "Nexora.IntegrationTests.SqlDigitalAssetTests.Audit_failure_concurrency_immutable_rows_and_frozen_children_are_SQL_atomic",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs::Audit_failure_concurrency_immutable_rows_and_frozen_children_are_SQL_atomic",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"List\")",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"List\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"List\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com/#fragment\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.com/#fragment\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"https://example.cs::com/#fragment\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://2130706433/\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://2130706433/\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Lexical_only_target_boundaries_reject_unsafe_representations_without_persisting(target: \"http://2130706433/\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Current_namespace_receipt_replays_original_safe_result_and_rechecks_authority",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTimeFocusCompletionTests.Time_purge_revalidates_owner_revision_confirmation_and_rolls_back_failed_audit",
+    "TestName": "Nexora.IntegrationTests.SqlTimeFocusCompletionTests.Time_purge_revalidates_owner_revision_confirmation_and_rolls_back_failed_audit",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTimeFocusCompletionTests.cs::Time_purge_revalidates_owner_revision_confirmation_and_rolls_back_failed_audit",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"space\")",
+    "TestName": "Nexora.IntegrationTests.SqlMonitoringTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"space\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"space\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Access_commit_rejects_a_preview_token_when_the_change_body_differs",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Access_commit_rejects_a_preview_token_when_the_change_body_differs",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Access_commit_rejects_a_preview_token_when_the_change_body_differs",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Authoritative_all_day_custom_skipped_civil_date_and_strict_explicit_range_are_preserved",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Authoritative_all_day_custom_skipped_civil_date_and_strict_explicit_range_are_preserved",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Authoritative_all_day_custom_skipped_civil_date_and_strict_explicit_range_are_preserved",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Document_Draft_suspends_but_metadata_and_revoke_work_without_reviving_invalidated_tokens",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Document_Draft_suspends_but_metadata_and_revoke_work_without_reviving_invalidated_tokens",
+    "Status": "FAIL",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Document_Draft_suspends_but_metadata_and_revoke_work_without_reviving_invalidated_tokens",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": "Assert.Empty() Failure: Collection was not empty\r\nCollection: [{\"id\":\"66af14c2-1dae-43f0-88aa-4615300793be\",\"resourceType\":\"Document\",\"resourceId\":\"9c3e77ce-6129-4ae9-a65d-e96f251643ff\",\"mode\":\"PublicLink\",\"expiresAt\":null,\"revokedAt\":\"2026-10-18T14:04:49.4992256+00:00\",\"projectionVersion\":\"v1\",\"isActive\":false,\"createdAt\":\"2026-10-18T14:04:49.3428985+00:00\",\"updatedAt\":\"2026-10-18T14:04:49.4992256+00:00\",\"etag\":\"\\\"AAAAAAAARC0=\\\"\",\"allowedUserIds\":[],\"token\":null}]"
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.User_productivity_workflow_is_idempotent_projected_and_owner_scoped",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.User_productivity_workflow_is_idempotent_projected_and_owner_scoped",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::User_productivity_workflow_is_idempotent_projected_and_owner_scoped",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlPersonalAssetTests.Sql_history_immutability_owner_and_null_safe_cohort_constraints_hold",
+    "TestName": "Nexora.IntegrationTests.SqlPersonalAssetTests.Sql_history_immutability_owner_and_null_safe_cohort_constraints_hold",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs::Sql_history_immutability_owner_and_null_safe_cohort_constraints_hold",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"space\")",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"space\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Current_account_and_session_boundaries_deny_reads_and_receipt_replay(boundary: \"space\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"rank\")",
+    "TestName": "Nexora.IntegrationTests.SqlProductivityAuthorityTests.Generic_task_update_cannot_mutate_dedicated_fields(field: \"rank\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs::Generic_task_update_cannot_mutate_dedicated_fields(field: \"rank\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlPersonalAssetTests.Idempotency_audit_failure_and_pinned_purge_keep_history_atomic",
+    "TestName": "Nexora.IntegrationTests.SqlPersonalAssetTests.Idempotency_audit_failure_and_pinned_purge_keep_history_atomic",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs::Idempotency_audit_failure_and_pinned_purge_keep_history_atomic",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsLegacyBootstrapTests.Actual_legacy_bootstrap_rolls_back_initialization_failure_then_creates_exact_defaults_in_its_own_database",
+    "TestName": "Nexora.IntegrationTests.SqlNewsLegacyBootstrapTests.Actual_legacy_bootstrap_rolls_back_initialization_failure_then_creates_exact_defaults_in_its_own_database",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsLegacyBootstrapTests.cs::Actual_legacy_bootstrap_rolls_back_initialization_failure_then_creates_exact_defaults_in_its_own_database",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlTagPaginationTests.Completed_Tag_mutations_replay_without_a_second_write_and_reject_changed_payload",
+    "TestName": "Nexora.IntegrationTests.SqlTagPaginationTests.Completed_Tag_mutations_replay_without_a_second_write_and_reject_changed_payload",
+    "Status": "FAIL",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs::Completed_Tag_mutations_replay_without_a_second_write_and_reject_changed_payload",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": "Assert.Equal() Failure: Strings differ\r\n           ↓ (pos 0)\r\nExpected: \"ResourceUnavailable\"\r\nActual:   \"TagCommitted\"\r\n           ↑ (pos 0)"
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"revoked\")",
+    "TestName": "Nexora.IntegrationTests.SqlSessionAuthorityTests.Self_requests_require_current_session_across_modules(invalidation: \"revoked\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs::Self_requests_require_current_session_across_modules(invalidation: \"revoked\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlPersonalAssetTests.Explicit_state_metadata_private_history_and_lifecycle_are_owner_scoped",
+    "TestName": "Nexora.IntegrationTests.SqlPersonalAssetTests.Explicit_state_metadata_private_history_and_lifecycle_are_owner_scoped",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs::Explicit_state_metadata_private_history_and_lifecycle_are_owner_scoped",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlWishlistTests.Exact_grants_validation_and_current_enablement_cannot_be_bypassed_by_receipt_replay",
+    "TestName": "Nexora.IntegrationTests.SqlWishlistTests.Exact_grants_validation_and_current_enablement_cannot_be_bypassed_by_receipt_replay",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs::Exact_grants_validation_and_current_enablement_cannot_be_bypassed_by_receipt_replay",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Stale_principals_policy_preview_and_unsupported_policy_activation_fail_closed_in_SQL",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Stale_principals_policy_preview_and_unsupported_policy_activation_fail_closed_in_SQL",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Stale_principals_policy_preview_and_unsupported_policy_activation_fail_closed_in_SQL",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Revoke\")",
+    "TestName": "Nexora.IntegrationTests.SqlSharingRepairTests.Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Revoke\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs::Source_delete_and_sharing_source_first_reads_finish_without_a_link_source_deadlock(operation: \"Revoke\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlWishlistTests.Purge_rejects_pins_and_rolls_back_payload_cohort_registry_and_receipt_on_audit_failure",
+    "TestName": "Nexora.IntegrationTests.SqlWishlistTests.Purge_rejects_pins_and_rolls_back_payload_cohort_registry_and_receipt_on_audit_failure",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs::Purge_rejects_pins_and_rolls_back_payload_cohort_registry_and_receipt_on_audit_failure",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Default_marker_failure_rolls_back_both_categories_and_registry_then_exact_retry_initializes_once",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Default_marker_failure_rolls_back_both_categories_and_registry_then_exact_retry_initializes_once",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Default_marker_failure_rolls_back_both_categories_and_registry_then_exact_retry_initializes_once",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Independent_Admin_actions_redact_sources_recheck_replay_and_module_policy",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Independent_Admin_actions_redact_sources_recheck_replay_and_module_policy",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Independent_Admin_actions_redact_sources_recheck_replay_and_module_policy",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.New_merge_rejects_expired_preview_changed_references_and_foreign_targets",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.New_merge_rejects_expired_preview_changed_references_and_foreign_targets",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::New_merge_rejects_expired_preview_changed_references_and_foreign_targets",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCareerTests.Merge_binds_exact_cohort_preserves_labels_and_replays_after_success",
+    "TestName": "Nexora.IntegrationTests.SqlCareerTests.Merge_binds_exact_cohort_preserves_labels_and_replays_after_success",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCareerTests.cs::Merge_binds_exact_cohort_preserves_labels_and_replays_after_success",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlCalendarExportTests.Every_selected_source_action_is_AND_gated_and_source_loss_hides_reports_before_paging",
+    "TestName": "Nexora.IntegrationTests.SqlCalendarExportTests.Every_selected_source_action_is_AND_gated_and_source_loss_hides_reports_before_paging",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs::Every_selected_source_action_is_AND_gated_and_source_loss_hides_reports_before_paging",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Concurrent_new_updates_have_one_winner_and_same_key_retry_has_one_effect",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Concurrent_new_updates_have_one_winner_and_same_key_retry_has_one_effect",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Concurrent_new_updates_have_one_winner_and_same_key_retry_has_one_effect",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.Release_endpoint_groups_materialize_before_authentication",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.Release_endpoint_groups_materialize_before_authentication",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::Release_endpoint_groups_materialize_before_authentication",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlNewsCategoryTests.Literal_BIN2_owner_filtered_paging_and_uniform_unavailable_cursors_use_actual_twenty_five_rows",
+    "TestName": "Nexora.IntegrationTests.SqlNewsCategoryTests.Literal_BIN2_owner_filtered_paging_and_uniform_unavailable_cursors_use_actual_twenty_five_rows",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs::Literal_BIN2_owner_filtered_paging_and_uniform_unavailable_cursors_use_actual_twenty_five_rows",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlApiIntegrationTests.User_private_file_subset_keeps_upload_read_download_isolated_and_lifecycle_unavailable",
+    "TestName": "Nexora.IntegrationTests.SqlApiIntegrationTests.User_private_file_subset_keeps_upload_read_download_isolated_and_lifecycle_unavailable",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs::User_private_file_subset_keeps_upload_read_download_isolated_and_lifecycle_unavailable",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "REAL_SQL_API:Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"~\")",
+    "TestName": "Nexora.IntegrationTests.SqlSnippetAuthorityTests.Search_is_literal_and_overlong_query_is_rejected(query: \"~\")",
+    "Status": "PASS",
+    "Layer": "REAL_SQL_API",
+    "SourceRef": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs::Search_is_literal_and_overlong_query_is_rejected(query: \"~\")",
+    "EvidenceRef": "results/sql-integration.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Utf8_folding_text_and_utc_dates_round_trip_without_sensitive_metadata",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Utf8_folding_text_and_utc_dates_round_trip_without_sensitive_metadata",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Utf8_folding_text_and_utc_dates_round_trip_without_sensitive_metadata",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: PendingVerification, emailConfirmed: False, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: \"EmailVerificationRequired\")",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: PendingVerification, emailConfirmed: False, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: \"EmailVerificationRequired\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: PendingVerification, emailConfirmed: False, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: \"EmailVerificationRequired\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Disabled, emailConfirmed: True, isDeleted: False, isDisabled: True, hasEnabledMfa: False, expectedCode: \"AccountUnavailable\")",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Disabled, emailConfirmed: True, isDeleted: False, isDisabled: True, hasEnabledMfa: False, expectedCode: \"AccountUnavailable\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Disabled, emailConfirmed: True, isDeleted: False, isDisabled: True, hasEnabledMfa: False, expectedCode: \"AccountUnavailable\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Unicode_titles_and_idn_hosts_preserve_literal_content_without_network_resolution",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Unicode_titles_and_idn_hosts_preserve_literal_content_without_network_resolution",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/MonitorInputTests.cs::Unicode_titles_and_idn_hosts_preserve_literal_content_without_network_resolution",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Duplicate_singletons_bad_escapes_and_oversized_uid_are_not_silent_loss",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Duplicate_singletons_bad_escapes_and_oversized_uid_are_not_silent_loss",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Duplicate_singletons_bad_escapes_and_oversized_uid_are_not_silent_loss",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Unsafe_controls_or_unpaired_unicode_never_become_content(text: \"unsafe\\0text\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Unsafe_controls_or_unpaired_unicode_never_become_content(text: \"unsafe\\0text\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Unsafe_controls_or_unpaired_unicode_never_become_content(text: \"unsafe\\0text\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"Skipped\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"Skipped\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Task_business_status_and_safe_metadata_are_preserved(status: \"Skipped\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"20111230\", last: \"20111231\", zone: \"Pacific/Apia\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"20111230\", last: \"20111231\", zone: \"Pacific/Apia\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"20111230\", last: \"20111231\", zone: \"Pacific/Apia\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Unsafe_controls_or_unpaired_unicode_never_become_content(text: \"unsafe\\x1btext\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Unsafe_controls_or_unpaired_unicode_never_become_content(text: \"unsafe\\x1btext\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Unsafe_controls_or_unpaired_unicode_never_become_content(text: \"unsafe\\x1btext\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;VALUE=DATE:20261003\\r\\nDTEND:20261004T0000\"···, reason: \"MixedTimeRepresentation\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;VALUE=DATE:20261003\\r\\nDTEND:20261004T0000\"···, reason: \"MixedTimeRepresentation\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;VALUE=DATE:20261003\\r\\nDTEND:20261004T0000\"···, reason: \"MixedTimeRepresentation\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=America/New_York:20260308T023000\\r\\nD\"···, reason: \"UnsafeLocalTime\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=America/New_York:20260308T023000\\r\\nD\"···, reason: \"UnsafeLocalTime\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=America/New_York:20260308T023000\\r\\nD\"···, reason: \"UnsafeLocalTime\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Existing_partial_temporary_file_is_not_deleted_by_a_failed_new_create",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Existing_partial_temporary_file_is_not_deleted_by_a_failed_new_create",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Existing_partial_temporary_file_is_not_deleted_by_a_failed_new_create",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"NotStarted\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"NotStarted\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Task_business_status_and_safe_metadata_are_preserved(status: \"NotStarted\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Unfolding_handles_utf8_sequence_split_between_physical_lines",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Unfolding_handles_utf8_sequence_split_between_physical_lines",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Unfolding_handles_utf8_sequence_split_between_physical_lines",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=America/New_York:20261101T013000\\r\\nD\"···, reason: \"UnsafeLocalTime\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=America/New_York:20261101T013000\\r\\nD\"···, reason: \"UnsafeLocalTime\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=America/New_York:20261101T013000\\r\\nD\"···, reason: \"UnsafeLocalTime\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: True, expectedCode: \"MfaUnavailable\")",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: True, expectedCode: \"MfaUnavailable\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: True, expectedCode: \"MfaUnavailable\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Deleted, emailConfirmed: True, isDeleted: True, isDisabled: False, hasEnabledMfa: False, expectedCode: \"AccountUnavailable\")",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Deleted, emailConfirmed: True, isDeleted: True, isDisabled: False, hasEnabledMfa: False, expectedCode: \"AccountUnavailable\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Deleted, emailConfirmed: True, isDeleted: True, isDisabled: False, hasEnabledMfa: False, expectedCode: \"AccountUnavailable\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.An_old_private_partial_temporary_capture_does_not_block_a_later_delivery",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.An_old_private_partial_temporary_capture_does_not_block_a_later_delivery",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::An_old_private_partial_temporary_capture_does_not_block_a_later_delivery",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"Completed\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"Completed\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Task_business_status_and_safe_metadata_are_preserved(status: \"Completed\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Saved_subsecond_instants_are_rejected_not_rounded",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Saved_subsecond_instants_are_rejected_not_rounded",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Saved_subsecond_instants_are_rejected_not_rounded",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Runtime_unpaired_surrogate_is_rejected_before_unicode_enumeration",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Runtime_unpaired_surrogate_is_rejected_before_unicode_enumeration",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Runtime_unpaired_surrogate_is_rejected_before_unicode_enumeration",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Local_release_migration_manifest_contains_all_reviewed_release_files",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Local_release_migration_manifest_contains_all_reviewed_release_files",
+    "Status": "FAIL",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Local_release_migration_manifest_contains_all_reviewed_release_files",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": "Assert.Equal() Failure: Collections differ\r\nExpected: <generated> [···, \"20261011_0054_integration_connection_configuration\"···, \"20261012_0055_productivity_dedicated_actions.sql\"]\r\nActual:   <generated> [···, \"20261011_0054_integration_connection_configuration\"···, \"20261012_0055_productivity_dedicated_actions.sql\", \"20261015_0056_documents_tag_catalog.sql\", \"20261015_0057_document_tag_version_snapshots.sql\", \"20261015_0058_document_history_read.sql\", ···]\r\n                                                                                                                                         ↑ (pos 56)"
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Duplicate_uid_and_final_byte_bounds_fail_without_partial_calendar",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Duplicate_uid_and_final_byte_bounds_fail_without_partial_calendar",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Duplicate_uid_and_final_byte_bounds_fail_without_partial_calendar",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Mixed_rows_keep_stable_order_and_report_recurrence_duplicate_alarms_and_status",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Mixed_rows_keep_stable_order_and_report_recurrence_duplicate_alarms_and_status",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Mixed_rows_keep_stable_order_and_report_recurrence_duplicate_alarms_and_status",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Admin_grant_mutation_uses_the_explicit_admin_grantable_manifest",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Admin_grant_mutation_uses_the_explicit_admin_grantable_manifest",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Admin_grant_mutation_uses_the_explicit_admin_grantable_manifest",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.internal/health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.internal/health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.cs::internal/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Only_an_old_owned_malformed_final_capture_is_cleaned_after_grace",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Only_an_old_owned_malformed_final_capture_is_cleaned_after_grace",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Only_an_old_owned_malformed_final_capture_is_cleaned_after_grace",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Envelope_encoding_depth_and_bounds_fail_closed_without_partial_rows",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Envelope_encoding_depth_and_bounds_fail_closed_without_partial_rows",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Envelope_encoding_depth_and_bounds_fail_closed_without_partial_rows",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://-a.example/health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://-a.example/health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/Malformed_or_private_target_spelling_is_rejected(target: \"https://-a.cs::example/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"99991230\", last: \"99991231\", zone: \"UTC\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"99991230\", last: \"99991231\", zone: \"UTC\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"99991230\", last: \"99991231\", zone: \"UTC\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://a..example/health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://a..example/health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/.cs::example/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.local/health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.local/health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.cs::local/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Cross_zone_instants_and_floating_account_interpretation_are_exact",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Cross_zone_instants_and_floating_account_interpretation_are_exact",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Cross_zone_instants_and_floating_account_interpretation_are_exact",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Foreign_and_mismatched_final_JSON_are_neither_read_nor_deleted",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Foreign_and_mismatched_final_JSON_are_neither_read_nor_deleted",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Foreign_and_mismatched_final_JSON_are_neither_read_nor_deleted",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://user:secret@monitor.example/health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://user:secret@monitor.example/health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/Malformed_or_private_target_spelling_is_rejected(target: \"https://user:secret@monitor.cs::example/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"00010101\", last: \"00010102\", zone: \"UTC\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"00010101\", last: \"00010102\", zone: \"UTC\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Date_only_ranges_never_resolve_midnight_or_shift_days(first: \"00010101\", last: \"00010102\", zone: \"UTC\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.example/health\\nmore\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.example/health\\nmore\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.cs::example/health\\nmore\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: \"LoginAllowed\")",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: \"LoginAllowed\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Login_policy_preserves_account_lifecycle_and_MFA_boundaries(state: Active, emailConfirmed: True, isDeleted: False, isDisabled: False, hasEnabledMfa: False, expectedCode: \"LoginAllowed\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.M01PolicyAndCaptureContractTests.Profile_and_registration_policy_reject_privileged_fields_and_invalid_preferences",
+    "TestName": "Nexora.UnitTests.M01PolicyAndCaptureContractTests.Profile_and_registration_policy_reject_privileged_fields_and_invalid_preferences",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs::Profile_and_registration_policy_reject_privileged_fields_and_invalid_preferences",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Optional_task_priority_is_omitted_without_fabricating_a_value",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Optional_task_priority_is_omitted_without_fabricating_a_value",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Optional_task_priority_is_omitted_without_fabricating_a_value",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Invalid_unicode_and_utf16_length_limits_fail_closed",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Invalid_unicode_and_utf16_length_limits_fail_closed",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/MonitorInputTests.cs::Invalid_unicode_and_utf16_length_limits_fail_closed",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"InProgress\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.Task_business_status_and_safe_metadata_are_preserved(status: \"InProgress\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::Task_business_status_and_safe_metadata_are_preserved(status: \"InProgress\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsSerializerTests.All_day_skipped_civil_day_keeps_exclusive_dates_and_stable_uid",
+    "TestName": "Nexora.UnitTests.CalendarIcsSerializerTests.All_day_skipped_civil_day_keeps_exclusive_dates_and_stable_uid",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs::All_day_skipped_civil_day_keeps_exclusive_dates_and_stable_uid",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=Unknown/Zone:20261003T100000\\r\\nDTEND\"···, reason: \"UnknownTimeZone\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=Unknown/Zone:20261003T100000\\r\\nDTEND\"···, reason: \"UnknownTimeZone\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART;TZID=Unknown/Zone:20261003T100000\\r\\nDTEND\"···, reason: \"UnknownTimeZone\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://a_.example/health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://a_.example/health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/Malformed_or_private_target_spelling_is_rejected(target: \"https://a_.cs::example/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART:20261003T100000+0700\\r\\nDTEND:20261003T110\"···, reason: \"InvalidTime\")",
+    "TestName": "Nexora.UnitTests.CalendarIcsParserTests.Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART:20261003T100000+0700\\r\\nDTEND:20261003T110\"···, reason: \"InvalidTime\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs::Unsafe_or_malformed_times_are_row_errors(time: \"DTSTART:20261003T100000+0700\\r\\nDTEND:20261003T110\"···, reason: \"InvalidTime\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  },
+  {
+    "CaseId": "UNIT_PARTIAL_HARNESS:Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.example./health\")",
+    "TestName": "Nexora.UnitTests.MonitorInputTests.Malformed_or_private_target_spelling_is_rejected(target: \"https://monitor.example./health\")",
+    "Status": "PASS",
+    "Layer": "UNIT_PARTIAL_HARNESS",
+    "SourceRef": "tests/Nexora.UnitTests/example.cs::/health\")",
+    "EvidenceRef": "results/unit-independent.trx",
+    "Error": ""
+  }
+]

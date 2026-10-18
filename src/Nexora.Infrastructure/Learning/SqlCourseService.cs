@@ -13,7 +13,7 @@ using Nexora.Infrastructure.Persistence;
 namespace Nexora.Infrastructure.Learning;
 
 /// <summary>Personal manual Course tracking. Milestones are owned child rows; no external delivery.</summary>
-public sealed class SqlCourseService : ICourseService
+public sealed partial class SqlCourseService : ICourseService
 {
     public static readonly string[] Actions = ["learning.course.read", "learning.course.create", "learning.course.update",
         "learning.course.progress", "learning.course.milestone", "learning.course.complete", "learning.course.abandon",
@@ -41,21 +41,28 @@ public sealed class SqlCourseService : ICourseService
         status ??= "Planned";
         if (status is not ("Planned" or "InProgress" or "Completed" or "Abandoned" or "Archived" or "Trash") || query is { Length: > 200 })
             return Fail<CoursePage>("ValidationFailed", 422, "Choose a valid course state and a query up to 200 characters.");
-        using var c = connections.Create(); c.Open();
-        using var cmd = Command(c, null, $"""
+        using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
+        if (!Allowed(c, tx, a, "learning.course.read")) return Denied<CoursePage>();
+        using var cmd = Command(c, tx, $"""
             WITH selected AS (SELECT {Columns} FROM [learning].[Course] WHERE OwnerId=@Owner AND Status=@Status AND (@Query IS NULL OR CHARINDEX(@Query,Title)>0))
             SELECT TOP(26) {Columns} FROM selected WHERE @Cursor IS NULL OR EXISTS(SELECT 1 FROM selected b WHERE b.Id=@Cursor
                 AND (selected.UpdatedAt<b.UpdatedAt OR (selected.UpdatedAt=b.UpdatedAt AND selected.Id<b.Id))) ORDER BY UpdatedAt DESC,Id DESC;
             """, a.OwnerId);
         Add(cmd, "@Status", SqlDbType.VarChar, status, 64); Add(cmd, "@Cursor", SqlDbType.UniqueIdentifier, cursor);
         Add(cmd, "@Query", SqlDbType.NVarChar, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), 200);
-        var items = Rows(cmd); items = Counts(c, null, a.OwnerId, items);
+        var items = Rows(cmd); items = Counts(c, tx, a.OwnerId, items);
+        if (!Allowed(c, tx, a, "learning.course.read")) return Denied<CoursePage>();
+        tx.Commit();
         return IdentityOperationResult<CoursePage>.Success(new(items.Take(25).ToArray(), items.Count > 25 ? items[24].Id : null));
     }
     public IdentityOperationResult<Course> Get(IdentityPrincipal a, Guid id)
     {
         if (!Allowed(a, "learning.course.read")) return Denied<Course>();
-        using var c = connections.Create(); c.Open(); var item = Read(c, null, a.OwnerId, id);
+        using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
+        if (!Allowed(c, tx, a, "learning.course.read")) return Denied<Course>();
+        var item = Read(c, tx, a.OwnerId, id);
+        if (!Allowed(c, tx, a, "learning.course.read")) return Denied<Course>();
+        tx.Commit();
         return item is null ? Missing<Course>() : IdentityOperationResult<Course>.Success(item);
     }
     public IdentityOperationResult<CourseAcknowledgement> Create(IdentityPrincipal a, CourseMetadata body, string key, string? trace) =>
@@ -285,7 +292,9 @@ public sealed class SqlCourseService : ICourseService
         if (!TransactionAllowed()) return Denied<CourseAcknowledgement>();
         using var audit = Command(c, tx, "INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result,TraceId) VALUES(@User,@User,@Action,'learning.Course',@Id,'Succeeded',@Trace);", a.OwnerId);
         Add(audit, "@User", SqlDbType.UniqueIdentifier, a.UserId); Add(audit, "@Action", SqlDbType.NVarChar, action, 160); Add(audit, "@Id", SqlDbType.UniqueIdentifier, result.Value.ItemId); Add(audit, "@Trace", SqlDbType.NVarChar, trace, 100); audit.ExecuteNonQuery();
-        receipts.Complete(c, tx, claim, result.Code, result.StatusCode, JsonSerializer.Serialize(new CommandReceipt(result.Value, requiredExtra))); tx.Commit(); return result;
+        receipts.Complete(c, tx, claim, result.Code, result.StatusCode, JsonSerializer.Serialize(new CommandReceipt(result.Value, requiredExtra)));
+        if (!TransactionAllowed()) return Denied<CourseAcknowledgement>();
+        tx.Commit(); return result;
     }
     private sealed record CommandReceipt(CourseAcknowledgement Acknowledgement, string? ExtraAction);
     private static IdentityOperationResult<CourseAcknowledgement> Invalid() => Fail<CourseAcknowledgement>("ValidationFailed", 422, "Check course fields, progress mode, exact progress and dates.");

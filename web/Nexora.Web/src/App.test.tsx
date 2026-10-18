@@ -39,6 +39,106 @@ test('shared Project renders approved nullable Task details and literal ordered 
 });
 import { server } from './test/server';
 
+test('Snippet create-only capability never requests private list and clears a committed draft without retry', async () => {
+  const user=userEvent.setup(); let reads=0; let writes=0;
+  server.use(
+    http.get('*/api/v1/snippets/capabilities',()=>HttpResponse.json({'snippets.snippet.read':false,'snippets.snippet.create':true,'snippets.snippet.save':false,'snippets.snippet.archive':false,'snippets.snippet.unarchive':false})),
+    http.get('*/api/v1/snippets',()=>{reads++;return HttpResponse.json({items:[],nextCursor:null});}),
+    http.get('*/api/v1/auth/csrf',()=>syntheticCsrfResponse()),
+    http.post('*/api/v1/snippets',()=>{writes++;return HttpResponse.json({id:'b3d2b6f3-9d9c-4e86-a78f-58f7f0b822d6',committed:true,detailAvailable:false},{status:201});})
+  );
+  renderShell(syntheticProfile({role:'Admin',modules:[{code:'FX22',enabled:true,unavailableReason:null}]}),{screen:'snippets'});
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Tạo snippet'})).toBeEnabled());
+  await user.type(screen.getByLabelText('Tiêu đề',{exact:true}),'Synthetic own draft');
+  await user.type(screen.getByLabelText('Source code / text'),'api_key = synthetic-credential-pattern');
+  expect(screen.getByText(/Nội dung có mẫu giống credential/)).toBeInTheDocument();
+  await user.click(screen.getByRole('button',{name:'Tạo snippet'}));
+  expect(await screen.findByText(/Thao tác đã được lưu/)).toBeInTheDocument();
+  expect(screen.getByLabelText('Source code / text')).toHaveValue('');expect(reads).toBe(0);expect(writes).toBe(1);
+});
+
+test('Snippet capability revocation clears private editor and disables unauthorized commands', async () => {
+  const user=userEvent.setup();let denied=false;let reads=0;
+  const item={id:'865a7a7e-9381-49df-a17b-2bec43dcc31f',title:'Private snippet',language:'plaintext',body:'Private synthetic source',description:null,versionNumber:1,status:'Active',createdAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-01T00:00:00Z',etag:'"AQIDBAUGBwg="'};
+  server.use(
+    http.get('*/api/v1/snippets/capabilities',()=>HttpResponse.json(Object.fromEntries(['read','create','save','archive','unarchive'].map(x=>['snippets.snippet.'+x,!denied])))),
+    http.get('*/api/v1/snippets',()=>{reads++;return HttpResponse.json({items:[item],nextCursor:null});})
+  );
+  renderShell(syntheticProfile({modules:[{code:'FX22',enabled:true,unavailableReason:null}]}),{screen:'snippets'});
+  await user.click(await screen.findByRole('button',{name:/^Sửa$/}));expect(screen.getByLabelText('Source code / text')).toHaveValue(item.body);
+  denied=true;await user.click(screen.getByRole('button',{name:/^Tải lại$/}));
+  await waitFor(()=>expect(screen.getByLabelText('Source code / text')).toHaveValue(''));
+  expect(screen.queryByText(item.title)).toBeNull();expect(screen.queryByText(item.body)).toBeNull();expect(screen.getByRole('button',{name:'Tạo snippet'})).toBeDisabled();expect(reads).toBe(1);
+});
+
+test('Snippet unknown save freezes input and retains the exact key through discard cancellation and reconciliation', async () => {
+  const user=userEvent.setup();const commands:Array<{key:string|null;body:string}>=[];
+  server.use(
+    http.get('*/api/v1/snippets/capabilities',()=>HttpResponse.json(Object.fromEntries(['read','create','save','archive','unarchive'].map(x=>['snippets.snippet.'+x,true])))),
+    http.get('*/api/v1/snippets',()=>HttpResponse.json({items:[],nextCursor:null})),
+    http.get('*/api/v1/auth/csrf',()=>syntheticCsrfResponse()),
+    http.post('*/api/v1/snippets',async({request})=>{commands.push({key:request.headers.get('Idempotency-Key'),body:await request.text()});return commands.length===1 ? HttpResponse.json({code:'StorageUnavailable',title:'Unknown save outcome'},{status:503}) : HttpResponse.json({id:'bdc05919-47b4-4b6e-9b3c-dab007ba75ee',committed:true,detailAvailable:false},{status:201});})
+  );
+  renderShell(syntheticProfile({modules:[{code:'FX22',enabled:true,unavailableReason:null}]}),{screen:'snippets'});
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Tạo snippet'})).toBeEnabled());
+  await user.type(screen.getByLabelText('Tiêu đề',{exact:true}),'Uncertain synthetic snippet');await user.type(screen.getByLabelText('Source code / text'),'Synthetic retained source');await user.click(screen.getByRole('button',{name:'Tạo snippet'}));
+  expect(await screen.findByText(/Chưa xác nhận được kết quả lệnh/)).toBeInTheDocument();expect(screen.getByLabelText('Source code / text')).toBeDisabled();expect(screen.getByRole('button',{name:/^Tải lại$/})).toBeDisabled();
+  await user.click(screen.getByRole('button',{name:'Làm mới'}));expect(screen.getByRole('dialog')).toBeVisible();await user.click(screen.getByRole('button',{name:'Giữ chỉnh sửa'}));
+  expect(screen.getByLabelText('Source code / text')).toHaveValue('Synthetic retained source');expect(commands).toHaveLength(1);
+  await user.click(screen.getByRole('button',{name:'Đối chiếu lệnh đã gửi'}));expect(await screen.findByText(/Thao tác đã được lưu/)).toBeInTheDocument();expect(commands).toHaveLength(2);expect(commands[0]).toEqual(commands[1]);expect(screen.getByLabelText('Source code / text')).toHaveValue('');
+});
+
+test('Snippet readonly edit retains a safe Cancel path and returns to independently allowed Create', async () => {
+  const user=userEvent.setup();let readonly=false;
+  const item={id:'20cc3aaa-e25f-4a69-a640-f301ec8cbce3',title:'Readonly source',language:'plaintext',body:'Synthetic unchanged source',description:null,versionNumber:1,status:'Active',createdAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-01T00:00:00Z',etag:'"AQIDBAUGBwg="'};
+  server.use(http.get('*/api/v1/snippets/capabilities',()=>HttpResponse.json({'snippets.snippet.read':true,'snippets.snippet.create':true,'snippets.snippet.save':!readonly,'snippets.snippet.archive':false,'snippets.snippet.unarchive':false})),http.get('*/api/v1/snippets',()=>HttpResponse.json({items:[item],nextCursor:null})));
+  renderShell(syntheticProfile({modules:[{code:'FX22',enabled:true,unavailableReason:null}]}),{screen:'snippets'});
+  await user.click(await screen.findByRole('button',{name:/^Sửa$/}));readonly=true;await user.click(screen.getByRole('button',{name:/^Tải lại$/}));
+  await waitFor(()=>expect(screen.getByRole('button',{name:'Lưu version'})).toBeDisabled());expect(screen.getByRole('button',{name:'Hủy sửa'})).toBeEnabled();
+  await user.click(screen.getByRole('button',{name:'Hủy sửa'}));expect(screen.getByRole('button',{name:'Tạo snippet'})).toBeEnabled();expect(screen.getByLabelText('Source code / text')).toHaveValue('');
+});
+
+test('Snippet unknown transition exposes metadata-only reconciliation and reuses the original command after 502', async () => {
+  const user=userEvent.setup();const commands:Array<{key:string|null;body:string}>=[];
+  const item={id:'06196086-c14a-42a0-85b1-e02a8ee6260d',title:'Transition source',language:'plaintext',body:'Synthetic source',description:null,versionNumber:1,status:'Active',createdAt:'2026-10-01T00:00:00Z',updatedAt:'2026-10-01T00:00:00Z',etag:'"AQIDBAUGBwg="'};
+  server.use(http.get('*/api/v1/snippets/capabilities',()=>HttpResponse.json(Object.fromEntries(['read','create','save','archive','unarchive'].map(x=>['snippets.snippet.'+x,true])))),http.get('*/api/v1/snippets',()=>HttpResponse.json({items:[item],nextCursor:null})),http.get('*/api/v1/auth/csrf',()=>syntheticCsrfResponse()),http.post(`*/api/v1/snippets/${item.id}/transition`,async({request})=>{commands.push({key:request.headers.get('Idempotency-Key'),body:await request.text()});return commands.length===1 ? HttpResponse.json({code:'GatewayUnavailable',title:'Unknown transition'},{status:502}) : HttpResponse.json({id:item.id,committed:true,detailAvailable:false});}));
+  renderShell(syntheticProfile({modules:[{code:'FX22',enabled:true,unavailableReason:null}]}),{screen:'snippets'});
+  await user.click(await screen.findByRole('button',{name:/^Archive$/}));await user.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Archive snippet'}));
+  await screen.findByText(/Chưa xác nhận được kết quả lệnh/);await user.click(within(screen.getByRole('dialog')).getByRole('button',{name:/^(Cancel|Hủy)$/}));
+  await user.click(screen.getByRole('button',{name:'Đối chiếu lệnh chuyển trạng thái'}));expect(await screen.findByText(/Thao tác đã được lưu/)).toBeInTheDocument();expect(commands).toHaveLength(2);expect(commands[0]).toEqual(commands[1]);
+});
+
+test.each(['acknowledgement', 'denied'] as const)('Task edit uses generic fields and clears protected state on %s without resubmitting', async outcome => {
+  const user = userEvent.setup();
+  const projectId = '6126718c-7a13-4f5d-aa68-c13cbd9252cb';
+  const taskId = 'fae3e89c-83a1-46e9-9c08-6798ff929d23';
+  const project = { id: projectId, name: 'Owned project', description: 'Private project', status: 'InProgress', createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: 'project-version', startAt: '2026-10-01T00:00:00Z', endAt: '2026-10-02T00:00:00Z', priority: 'P3', tagsJson: '[]', notes: null };
+  const task = { id: taskId, projectId, title: 'Private task title', description: 'Private task body', status: 'InProgress', dueAt: null, createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: 'task-version', startAt: '2026-10-01T01:00:00Z', endAt: '2026-10-01T02:00:00Z', priority: null, tagsJson: '[]', acceptanceCriteriaJson: '["Private criterion"]', rank: 47, reminderAt: null, isOverdue: false };
+  let writes = 0;
+  let sent: Record<string, unknown> | undefined;
+  server.use(
+    http.get('*/api/v1/auth/csrf', () => syntheticCsrfResponse()),
+    http.get('*/api/v1/projects', () => HttpResponse.json({ items: [project], nextCursor: null })),
+    http.get('*/api/v1/tasks', () => HttpResponse.json({ items: [task], nextCursor: null })),
+    http.put(`*/api/v1/tasks/${taskId}`, async ({ request }) => {
+      writes++; sent = await request.json() as Record<string, unknown>;
+      return outcome === 'acknowledgement'
+        ? HttpResponse.json({ id: taskId, committed: true, detailAvailable: false })
+        : HttpResponse.json({ code: 'PermissionDenied', title: 'Denied' }, { status: 403 });
+    })
+  );
+  renderShell(syntheticProfile({ modules: [{ code: 'FX11', enabled: true, unavailableReason: null }, { code: 'FX12', enabled: true, unavailableReason: null }] }), { screen: 'module', moduleCode: 'FX12' });
+  await user.click(await screen.findByRole('button', { name: 'Sửa' }));
+  expect(screen.getByLabelText('Mô tả', { exact: false })).toHaveValue(task.description);
+  await user.click(screen.getByRole('button', { name: 'Lưu Task' }));
+  await waitFor(() => expect(screen.getByLabelText('Tiêu đề Task')).toHaveValue(''));
+  expect(screen.queryByText(task.title)).toBeNull();
+  expect(screen.getByLabelText('Mô tả', { exact: false })).toHaveValue('');
+  expect(writes).toBe(1);
+  for (const field of ['projectId', 'status', 'rank', 'acceptanceCriteriaJson', 'reminderAt', 'manageReminder']) expect(sent).not.toHaveProperty(field);
+  if (outcome === 'acknowledgement') expect(screen.getByText(/Đã lưu thay đổi/)).toBeInTheDocument();
+});
+
 test('a denied Productivity reload clears the previously authorized Project editor and private draft', async () => {
   const user = userEvent.setup(); let denied = false;
   const project = { id: 'synthetic-owned-project', name: 'Previously authorized project', description: 'Private source description', status: 'NotStarted', createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-01T00:00:00Z', etag: 'synthetic-etag', startAt: '2026-10-01T00:00:00Z', endAt: '2026-10-02T00:00:00Z', priority: 'P3', tagsJson: '[]', notes: null };

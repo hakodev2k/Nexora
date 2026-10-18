@@ -150,8 +150,13 @@ public static class ActionGrantPolicy
         "goals.goal.complete",
         "goals.goal.abandon",
         "goals.goal.reopen",
+        "goals.goal.history",
+        "goals.goal.archive",
+        "goals.goal.unarchive",
         "goals.target.read",
         "goals.target.create",
+        "goals.target.update",
+        "goals.target.remove",
         "goals.target.record_progress",
         "dashboard.dashboard.read",
         "discovery.search.query",
@@ -227,6 +232,9 @@ public static class ActionGrantPolicy
     // Exact shipped SELF catalog eligibility; no grant, SYSTEM, provider or uninstalled action.
     private static readonly HashSet<string> ApprovedShippedSelfActions = new(StringComparer.Ordinal)
     {
+        "documents.format.export",
+        "documents.format.import",
+        "notifications.source.open",
         "finance.manual_category.read",
         "finance.manual_category.create",
         "finance.manual_category.update",
@@ -240,6 +248,8 @@ public static class ActionGrantPolicy
         "notifications.inbox.mark_unread",
         "notifications.inbox.mark_all_read",
         "notifications.inbox.delete",
+        "documents.folder.read", "documents.folder.create", "documents.folder.rename", "documents.folder.trash", "documents.folder.restore", "documents.folder.purge",
+        "documents.page.trash", "documents.page.restore", "documents.page.purge",
         "documents.library.read",
         "documents.page.read",
         "documents.page.create",
@@ -249,6 +259,7 @@ public static class ActionGrantPolicy
         "documents.page.archive",
         "documents.page.unarchive",
         "documents.page.history",
+        "documents.page.restore_version",
         "documents.tag.read",
         "documents.tag.create",
         "documents.tag.rename",
@@ -289,12 +300,12 @@ public static class ActionGrantPolicy
             return PolicyDecision.Deny("DecisionBlocked", "Network toolbox action is inactive until a future PO/network decision.");
         }
 
-        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey) && !ApprovedNewsCategoryActions.Contains(actionKey) && !ApprovedFilesActions.Contains(actionKey) && !ApprovedAutomationDefinitionActions.Contains(actionKey) && !ApprovedIntegrationConnectionActions.Contains(actionKey) && !ApprovedProductivityActions.Contains(actionKey) && !ApprovedSnippetActions.Contains(actionKey) && !ApprovedBookmarkActions.Contains(actionKey) && !ApprovedReadingActions.Contains(actionKey) && !ApprovedShippedSelfActions.Contains(actionKey))
+        if (!ApprovedM01Actions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey) && !ApprovedNewsCategoryActions.Contains(actionKey) && !ApprovedFilesActions.Contains(actionKey) && !ApprovedAutomationDefinitionActions.Contains(actionKey) && !ApprovedIntegrationConnectionActions.Contains(actionKey) && !ApprovedProductivityActions.Contains(actionKey) && !ApprovedSnippetActions.Contains(actionKey) && !ApprovedBookmarkActions.Contains(actionKey) && !ApprovedReadingActions.Contains(actionKey) && !ApprovedShippedSelfActions.Contains(actionKey) && !ApprovedProductivityLensActions.Contains(actionKey) && !ApprovedSavedSearchActions.Contains(actionKey) && !ApprovedDashboardLayoutActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("DecisionBlocked", "Action is not approved for implementation or grant in the current M01 scope.");
         }
 
-        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey) && !ApprovedNewsCategoryActions.Contains(actionKey) && !ApprovedFilesActions.Contains(actionKey) && !ApprovedAutomationDefinitionActions.Contains(actionKey) && !ApprovedIntegrationConnectionActions.Contains(actionKey) && !ApprovedProductivityActions.Contains(actionKey) && !ApprovedSnippetActions.Contains(actionKey) && !ApprovedBookmarkActions.Contains(actionKey) && !ApprovedReadingActions.Contains(actionKey) && !ApprovedShippedSelfActions.Contains(actionKey))
+        if (!AdminGrantableActions.Contains(actionKey) && !ApprovedTimeAndFocusActions.Contains(actionKey) && !ApprovedWishlistActions.Contains(actionKey) && !ApprovedSkillActions.Contains(actionKey) && !ApprovedCourseActions.Contains(actionKey) && !ApprovedPersonalAssetActions.Contains(actionKey) && !ApprovedDigitalAssetActions.Contains(actionKey) && !ApprovedCareerActions.Contains(actionKey) && !ApprovedCalendarImportActions.Contains(actionKey) && !ApprovedCalendarExportActions.Contains(actionKey) && !ApprovedSharingActions.Contains(actionKey) && !ApprovedMonitoringActions.Contains(actionKey) && !ApprovedNewsCategoryActions.Contains(actionKey) && !ApprovedFilesActions.Contains(actionKey) && !ApprovedAutomationDefinitionActions.Contains(actionKey) && !ApprovedIntegrationConnectionActions.Contains(actionKey) && !ApprovedProductivityActions.Contains(actionKey) && !ApprovedSnippetActions.Contains(actionKey) && !ApprovedBookmarkActions.Contains(actionKey) && !ApprovedReadingActions.Contains(actionKey) && !ApprovedShippedSelfActions.Contains(actionKey) && !ApprovedProductivityLensActions.Contains(actionKey) && !ApprovedSavedSearchActions.Contains(actionKey) && !ApprovedDashboardLayoutActions.Contains(actionKey))
         {
             return PolicyDecision.Deny("ActionNotGrantable", "Action is not assignable as an Admin grant in the current action manifest.");
         }
@@ -362,7 +373,8 @@ public static class ActionGrantPolicy
     private static readonly HashSet<string> ApprovedCareerActions = new(StringComparer.Ordinal)
     {
         "career.company.read", "career.company.create", "career.company.update", "career.company.merge",
-        "career.job.read", "career.job.create", "career.job.update", "career.job.transition", "career.job.history", "career.job.trash", "career.job.restore", "career.job.purge"
+        "career.job.read", "career.job.create", "career.job.update", "career.job.transition", "career.job.history", "career.job.trash", "career.job.restore", "career.job.purge",
+        "career.appointment.read", "career.appointment.create_event", "career.appointment.link_event", "career.appointment.unlink_event"
     };
     private static readonly HashSet<string> ApprovedDigitalAssetActions = new(StringComparer.Ordinal)
     {
@@ -382,12 +394,18 @@ public static class ActionGrantPolicy
     };
     private static readonly HashSet<string> ApprovedSkillActions = new(StringComparer.Ordinal)
     {
-        "learning.skill.read", "learning.skill.create", "learning.skill.update", "learning.skill.proficiency",
-        "learning.skill.archive", "learning.skill.unarchive", "learning.skill.trash", "learning.skill.restore", "learning.skill.purge"
+        "learning.skill.read", "learning.skill.create", "learning.skill.update", "learning.skill.proficiency", "learning.skill.evidence",
+        "learning.skill.archive", "learning.skill.unarchive", "learning.skill.trash", "learning.skill.restore", "learning.skill.purge",
+        "learning.worklog.read", "learning.worklog.create", "learning.worklog.update", "learning.worklog.archive", "learning.worklog.unarchive", "learning.report.read",
+        "learning.worklog.trash", "learning.worklog.restore", "learning.worklog.purge"
     };
 
     private static readonly HashSet<string> ApprovedNewsCategoryActions = new(StringComparer.Ordinal)
-    { "news.category.read", "news.category.create", "news.category.update" };
+    {
+        "news.category.read", "news.category.create", "news.category.update",
+        "news.source.read", "news.source.follow", "news.source.update", "news.source.pause", "news.source.resume", "news.source.unfollow",
+        "news.article.read", "news.article.mark_read", "news.article.mark_unread", "news.article.mark_all_read", "news.article.save", "news.history.read", "news.history.clear"
+    };
 
     // Exact reviewed local configuration SELF subset; no checks/jobs/observations/support.
     private static readonly HashSet<string> ApprovedMonitoringActions = new(StringComparer.Ordinal)
@@ -406,7 +424,33 @@ public static class ActionGrantPolicy
         "shopping.wishlist.trash", "shopping.wishlist.restore", "shopping.wishlist.purge"
     };
 
-    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey) || ApprovedNewsCategoryActions.Contains(actionKey) || ApprovedFilesActions.Contains(actionKey) || ApprovedAutomationDefinitionActions.Contains(actionKey) || ApprovedIntegrationConnectionActions.Contains(actionKey) || ApprovedProductivityActions.Contains(actionKey) || ApprovedSnippetActions.Contains(actionKey) || ApprovedBookmarkActions.Contains(actionKey) || ApprovedReadingActions.Contains(actionKey) || ApprovedShippedSelfActions.Contains(actionKey);
+    public static bool IsApprovedForLocalAction(string actionKey) => ApprovedM01Actions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey) || ApprovedNewsCategoryActions.Contains(actionKey) || ApprovedFilesActions.Contains(actionKey) || ApprovedAutomationDefinitionActions.Contains(actionKey) || ApprovedIntegrationConnectionActions.Contains(actionKey) || ApprovedProductivityActions.Contains(actionKey) || ApprovedSnippetActions.Contains(actionKey) || ApprovedBookmarkActions.Contains(actionKey) || ApprovedReadingActions.Contains(actionKey) || ApprovedShippedSelfActions.Contains(actionKey) || ApprovedProductivityLensActions.Contains(actionKey) || ApprovedSavedSearchActions.Contains(actionKey) || ApprovedDashboardLayoutActions.Contains(actionKey);
 
-    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey) || ApprovedNewsCategoryActions.Contains(actionKey) || ApprovedFilesActions.Contains(actionKey) || ApprovedAutomationDefinitionActions.Contains(actionKey) || ApprovedIntegrationConnectionActions.Contains(actionKey) || ApprovedProductivityActions.Contains(actionKey) || ApprovedSnippetActions.Contains(actionKey) || ApprovedBookmarkActions.Contains(actionKey) || ApprovedReadingActions.Contains(actionKey) || ApprovedShippedSelfActions.Contains(actionKey);
+    // Installed owner-only Planner/Goals/Habits handlers. Eligibility for an
+    // explicit grant is not an Allow row or module enablement. Support, trash,
+    // reminder dispatch and unshipped target operations are deliberately absent.
+    private static readonly HashSet<string> ApprovedProductivityLensActions = new(StringComparer.Ordinal)
+    {
+        "planner.plan.read", "planner.plan.pin", "planner.plan.unpin", "planner.plan.reorder", "planner.plan.reschedule", "planner.plan.notes",
+        "goals.goal.read", "goals.goal.create", "goals.goal.update", "goals.goal.start", "goals.goal.complete", "goals.goal.abandon", "goals.goal.reopen",
+        "goals.target.read", "goals.target.create", "goals.target.record_progress",
+        "habits.habit.read", "habits.streak.read", "habits.habit.create", "habits.habit.update", "habits.habit.schedule",
+        "habits.habit.set_reminder", "habits.habit.pause", "habits.habit.resume", "habits.habit.archive", "habits.habit.unarchive",
+        "habits.checkin.record", "habits.checkin.correct"
+    };
+
+    private static readonly HashSet<string> ApprovedSavedSearchActions = new(StringComparer.Ordinal)
+    {
+        "discovery.saved_search.read", "discovery.saved_search.create", "discovery.saved_search.update",
+        "discovery.saved_search.delete", "discovery.saved_search.run",
+        "discovery.recent.read", "discovery.recent.clear", "discovery.command.read", "discovery.command.execute"
+    };
+
+    private static readonly HashSet<string> ApprovedDashboardLayoutActions = new(StringComparer.Ordinal)
+    {
+        "dashboard.layout.update", "dashboard.layout.add_widget", "dashboard.layout.configure_widget",
+        "dashboard.layout.remove_widget", "dashboard.layout.reorder_widget", "dashboard.widget.refresh", "dashboard.quick_create.open"
+    };
+
+    public static bool IsAdminGrantable(string actionKey) => AdminGrantableActions.Contains(actionKey) || ApprovedTimeAndFocusActions.Contains(actionKey) || ApprovedWishlistActions.Contains(actionKey) || ApprovedSkillActions.Contains(actionKey) || ApprovedCourseActions.Contains(actionKey) || ApprovedPersonalAssetActions.Contains(actionKey) || ApprovedDigitalAssetActions.Contains(actionKey) || ApprovedCareerActions.Contains(actionKey) || ApprovedCalendarImportActions.Contains(actionKey) || ApprovedCalendarExportActions.Contains(actionKey) || ApprovedSharingActions.Contains(actionKey) || ApprovedMonitoringActions.Contains(actionKey) || ApprovedNewsCategoryActions.Contains(actionKey) || ApprovedFilesActions.Contains(actionKey) || ApprovedAutomationDefinitionActions.Contains(actionKey) || ApprovedIntegrationConnectionActions.Contains(actionKey) || ApprovedProductivityActions.Contains(actionKey) || ApprovedSnippetActions.Contains(actionKey) || ApprovedBookmarkActions.Contains(actionKey) || ApprovedReadingActions.Contains(actionKey) || ApprovedShippedSelfActions.Contains(actionKey) || ApprovedProductivityLensActions.Contains(actionKey) || ApprovedSavedSearchActions.Contains(actionKey) || ApprovedDashboardLayoutActions.Contains(actionKey);
 }

@@ -16,7 +16,7 @@ namespace Nexora.Infrastructure.Documents;
 /// keeps folder, file, sharing and import/export concerns out of this slice;
 /// every body write is versioned in SQL and guarded by the current rowversion.
 /// </summary>
-public sealed partial class SqlDocumentService : IDocumentService
+public sealed partial class SqlDocumentService : IDocumentService, IDocumentVersionService
 {
     private const int MaxBodyBytes = 1_048_576;
     private readonly SqlConnectionFactory _connections;
@@ -24,6 +24,7 @@ public sealed partial class SqlDocumentService : IDocumentService
     private readonly SqlSelfCapability _capabilities;
     private readonly DocumentListCursor _cursor;
     private readonly DocumentHistoryCursor _historyCursor;
+    private readonly SqlDocumentTreeService _tree;
 
     public SqlDocumentService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
@@ -32,14 +33,19 @@ public sealed partial class SqlDocumentService : IDocumentService
         _receipts = new SqlRequestReceiptStore(secret);
         _cursor = new DocumentListCursor(secret);
         _historyCursor = new DocumentHistoryCursor(secret);
+        _tree = new SqlDocumentTreeService(connections, secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
     public IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null,
         string? cursor = null, string? query = null, string? documentType = null,
-        DateOnly? createdFrom = null, DateOnly? createdTo = null, Guid? tagId = null)
+        DateOnly? createdFrom = null, DateOnly? createdTo = null, Guid? tagId = null, Guid? folderId = null, Guid? parentPageId = null)
     {
-        if (!ModuleAvailable(actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
+        if (folderId == Guid.Empty || parentPageId == Guid.Empty || (folderId.HasValue && parentPageId.HasValue)
+            || (status == "Archived" && (folderId.HasValue || parentPageId.HasValue))) return Failure<DocumentPage>("ValidationFailed",422,"Choose one current Documents location.");
+        string[] locationActions = parentPageId.HasValue ? ["documents.page.read"] : folderId.HasValue
+            ? ["documents.library.read", "documents.folder.read"] : ["documents.library.read"];
+        if (!ModuleAvailable(actor, "FX20", locationActions)) return ModuleUnavailable<DocumentPage>();
         var normalizedStatus = NormalizeStatus(status);
         if (status is not null && normalizedStatus is null)
             return Failure<DocumentPage>("ValidationFailed", 422, "Document status is invalid.");
@@ -55,28 +61,39 @@ public sealed partial class SqlDocumentService : IDocumentService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", locationActions)) return ModuleUnavailable<DocumentPage>();
+        if (parentPageId is { } parentId)
+        {
+            var parent = ReadDetail(connection, transaction, actor.OwnerId, parentId, false);
+            if (parent is null) return Failure<DocumentPage>("ResourceUnavailable",404,"The parent page is unavailable.");
+            if (parent.Depth != 1) return Failure<DocumentPage>("DepthLimit",422,"A child page has no further page level.");
+        }
+        if (folderId is { } selectedFolder && SqlDocumentFolderService.ReadWithin(connection,transaction,actor.OwnerId,selectedFolder) is null)
+            return Failure<DocumentPage>("ResourceUnavailable",404,"The Folder is unavailable.");
         var dateRange = SqlOwnerLocalDateRange.Read(connection, transaction, actor, createdFrom, createdTo);
         if (!dateRange.Succeeded) return Failure<DocumentPage>(dateRange.Code, dateRange.StatusCode, dateRange.Title);
         var range = dateRange.Value!;
         var cursorContext = new DocumentListCursor.Context(actor.OwnerId, normalizedStatus, normalizedQuery, normalizedType, take,
-            createdFrom, createdTo, range.TimeZoneId, range.TimeZoneVersion, range.FromUtc, range.ToUtc, tagId);
+            createdFrom, createdTo, range.TimeZoneId, range.TimeZoneVersion, range.FromUtc, range.ToUtc, tagId, folderId, parentPageId);
         DocumentListCursor.Position? after = null;
         if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, cursorContext, out after))
             return Failure<DocumentPage>("InvalidCursor", 422, "Document cursor does not match this query.");
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = """
+        command.CommandText = $"""
             SELECT TOP (@Limit) [Id], [Title], [DocumentType], [EditorMode], [Status],
                    [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion], p.[TagId],
-                   (SELECT t.[Name] FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId])
+                   (SELECT t.[Name] FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId]),p.[FolderId],p.[ParentPageId],p.[Depth]
             FROM [documents].[Page] p
             WHERE p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL
+              AND {ContainersVisible}
               AND p.[Status] IN ('Draft', 'Published', 'Archived')
               AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
                   WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document'
                     AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
-              AND ((@Status IS NULL AND p.[Status] <> 'Archived') OR p.[Status] = @Status)
+              AND ((@Status IS NULL AND (@ParentPage IS NOT NULL OR p.[Status] <> 'Archived')) OR p.[Status] = @Status)
+              AND (@Status='Archived' OR (@ParentPage IS NOT NULL AND p.[ParentPageId]=@ParentPage)
+                OR (@ParentPage IS NULL AND p.[ParentPageId] IS NULL AND ((@Folder IS NULL AND p.[FolderId] IS NULL) OR p.[FolderId]=@Folder)))
               AND (@Type IS NULL OR p.[DocumentType] = @Type)
               AND (@TagId IS NULL OR p.[TagId]=@TagId)
               AND (@TitleQuery = N'' OR p.[Title] LIKE @TitleLike ESCAPE N'\' OR EXISTS
@@ -88,6 +105,8 @@ public sealed partial class SqlDocumentService : IDocumentService
             ORDER BY [UpdatedAt] DESC, [Id] DESC;
             """;
         Add(command, "@Limit", SqlDbType.Int, take + 1);
+        Add(command, "@Folder", SqlDbType.UniqueIdentifier, (object?)folderId ?? DBNull.Value);
+        Add(command, "@ParentPage", SqlDbType.UniqueIdentifier, (object?)parentPageId ?? DBNull.Value);
         Add(command, "@TagId", SqlDbType.UniqueIdentifier, (object?)tagId ?? DBNull.Value);
         Add(command, "@Type", SqlDbType.VarChar, (object?)normalizedType ?? DBNull.Value, 32);
         Add(command, "@TitleQuery", SqlDbType.NVarChar, normalizedQuery, 200);
@@ -105,7 +124,7 @@ public sealed partial class SqlDocumentService : IDocumentService
         var hasMore = items.Count > take;
         if (hasMore) items.RemoveAt(items.Count - 1);
         var nextCursor = hasMore ? _cursor.Encode(cursorContext, items[^1].UpdatedAt, items[^1].Id) : null;
-        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.library.read")) return ModuleUnavailable<DocumentPage>();
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", locationActions)) return ModuleUnavailable<DocumentPage>();
         transaction.Commit();
         return IdentityOperationResult<DocumentPage>.Success(new DocumentPage(items, nextCursor));
     }
@@ -118,6 +137,9 @@ public sealed partial class SqlDocumentService : IDocumentService
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.page.read")) return ModuleUnavailable<DocumentDetail>();
         var document = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
+        if (document is not null)
+            Nexora.Infrastructure.Discovery.SqlRecentActivity.RecordWithin(connection, transaction, _capabilities, actor,
+                ReadRecentSourceWithin(connection, transaction, actor, documentId));
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX20", "documents.page.read")) return ModuleUnavailable<DocumentDetail>();
         transaction.Commit();
         return document is null ? Missing() : IdentityOperationResult<DocumentDetail>.Success(document);
@@ -133,17 +155,47 @@ public sealed partial class SqlDocumentService : IDocumentService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!CreateScopeAllowed(connection, transaction, actor, command)) return ModuleUnavailable<DocumentDetail>();
         var receiptFailure = CheckReceipt(connection, transaction, actor, "documents.page.create", idempotencyKey,
+            command.FolderId.HasValue || command.ParentPageId.HasValue ? JsonSerializer.Serialize(new { Version = 4, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body), command.TagId, command.FolderId, command.ParentPageId }) :
             command.TagId is null ? JsonSerializer.Serialize(new { Version = 2, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body) }) :
             JsonSerializer.Serialize(new { Version = 3, OwnerId = actor.OwnerId, Title = command.Title.Trim(), command.DocumentType, command.EditorMode, Body = NormalizeBody(command.Body), command.TagId }), out var receipt);
-        if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
+        if (receiptFailure is not null) { var allowed = !receiptFailure.Succeeded || CreateScopeAllowed(connection,transaction,actor,command); transaction.Rollback(); return allowed ? receiptFailure : ModuleUnavailable<DocumentDetail>(); }
         try
         {
+            var result = CreatePageWithin(connection,transaction,actor,command,traceId);
+            if (!result.Succeeded || result.Value is null) return result;
+            var created = result.Value;
+            return CommitResource(connection, transaction, actor, receipt, created, "documents.page.create", "DocumentCreated", 201,
+                command.ParentPageId.HasValue ? ["documents.page.read"] : command.FolderId.HasValue ? ["documents.folder.read"] : []);
+        }
+        catch (SqlException exception)
+        {
+            try { transaction.Rollback(); } catch (InvalidOperationException) { }
+            return PersistenceFailure<DocumentDetail>(exception);
+        }
+    }
+
+    private IdentityOperationResult<DocumentDetail> CreatePageWithin(SqlConnection connection,SqlTransaction transaction,IdentityPrincipal actor,DocumentCreateCommand command,string? traceId)
+    {
+        var validation=ValidateCreate(command);if(validation is not null)return validation;
+        if(!CreateScopeAllowed(connection,transaction,actor,command))return ModuleUnavailable<DocumentDetail>();
+        SqlDocumentScopeLock.Acquire(connection,transaction,actor.OwnerId);
+            var resolved = ResolveCreateScope(connection,transaction,actor,command);
+            if (command.EditorMode == "Block" && !DocumentBlockSchema.IsValid(command.Body))
+                return Failure<DocumentDetail>("UnsupportedBlockSchema",422,"The block document must use a supported versioned schema.");
+            if (!resolved.Succeeded || resolved.Value is null) return Failure<DocumentDetail>(resolved.Code,resolved.StatusCode,resolved.Title);
+            var scope = resolved.Value;
             var tagName = command.TagId is { } selectedTag ? ReadTagName(connection, transaction, actor.OwnerId, selectedTag) : null;
             if (command.TagId is not null && tagName is null) return Failure<DocumentDetail>("ResourceUnavailable", 404, "Tag unavailable.");
             var id = Guid.NewGuid();
+            if (!RegisterPageWithin(connection, transaction, actor, id)) return Failure<DocumentDetail>("DependencyUnavailable",409,"The Documents registry contract is unavailable.");
             Execute(connection, transaction,
-                "INSERT INTO [documents].[Page] ([Id], [OwnerId], [CreatedByUserId], [UpdatedByUserId], [Title], [DocumentType], [EditorMode], [Body], [Status], [VersionNumber], [TagId]) VALUES (@Id, @OwnerId, @UserId, @UserId, @Title, @DocumentType, @EditorMode, @Body, 'Draft', 1, @TagId);",
+                "INSERT INTO [documents].[Page] ([Id], [OwnerId], [CreatedByUserId], [UpdatedByUserId], [Title], [DocumentType], [EditorMode], [Body], [Status], [VersionNumber], [TagId],[FolderId],[ParentPageId],[Depth],[ParentDepth],[FolderScope]) VALUES (@Id, @OwnerId, @UserId, @UserId, @Title, @DocumentType, @EditorMode, @Body, 'Draft', 1, @TagId,@Folder,@Parent,@Depth,CASE WHEN @Parent IS NULL THEN NULL ELSE 1 END,@FolderScope);",
+                ("@Folder",SqlDbType.UniqueIdentifier,(object?)scope.FolderId??DBNull.Value),
+                ("@Parent",SqlDbType.UniqueIdentifier,(object?)scope.ParentPageId??DBNull.Value),
+                ("@Depth",SqlDbType.TinyInt,scope.Depth),
+                ("@FolderScope",SqlDbType.UniqueIdentifier,scope.FolderId??Guid.Empty),
                 ("@TagId", SqlDbType.UniqueIdentifier, (object?)command.TagId ?? DBNull.Value),
                 ("@Id", SqlDbType.UniqueIdentifier, id),
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
@@ -166,14 +218,8 @@ public sealed partial class SqlDocumentService : IDocumentService
                 ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId));
             WriteAudit(connection, transaction, actor, id, "documents.page.create", traceId);
             var created = ReadDetail(connection, transaction, actor.OwnerId, id, forUpdate: false);
-            if (created is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after creation."); }
-            return CommitResource(connection, transaction, actor, receipt, created, "documents.page.create", "DocumentCreated", 201);
-        }
-        catch (SqlException exception)
-        {
-            try { transaction.Rollback(); } catch (InvalidOperationException) { }
-            return PersistenceFailure<DocumentDetail>(exception);
-        }
+            if (created is null) return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after creation.");
+        return IdentityOperationResult<DocumentDetail>.Success(created);
     }
 
     public IdentityOperationResult<DocumentDetail> Save(IdentityPrincipal actor, Guid documentId, string? ifMatch,
@@ -195,6 +241,9 @@ public sealed partial class SqlDocumentService : IDocumentService
         {
             var current = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: true);
             if (current is null) { transaction.Rollback(); return Missing(); }
+            if (current.EditorMode == "Block" && !DocumentBlockSchema.IsValid(command.Body)
+                && !(command.Body == current.Body && DocumentBlockSchema.IsLegacyText(current.Body)))
+                return Failure<DocumentDetail>("UnsupportedBlockSchema",422,"The block document must use a supported versioned schema. Legacy text is retained until explicit upgrade.");
             if (!CryptographicOperations.FixedTimeEquals(expectedVersion, DecodeETag(current.ETag)))
             {
                 transaction.Rollback();
@@ -205,6 +254,7 @@ public sealed partial class SqlDocumentService : IDocumentService
                 transaction.Rollback();
                 return Failure<DocumentDetail>("LifecycleLocked", 409, "Archived documents are read-only.");
             }
+            if (!_tree.CanWritePageWithin(connection,transaction,actor,documentId)) return Failure<DocumentDetail>("LifecycleLocked",409,"The page container is readonly or unavailable.");
             var nextTagId = command.Tag is null ? current.TagId : command.Tag.Id;
             var tagName = nextTagId is { } selectedTag ? ReadTagName(connection, transaction, actor.OwnerId, selectedTag) : null;
             if (nextTagId is not null && tagName is null) return Failure<DocumentDetail>("ResourceUnavailable", 404, "Tag unavailable.");
@@ -234,6 +284,7 @@ public sealed partial class SqlDocumentService : IDocumentService
                 ("@ChangeNote", SqlDbType.NVarChar, (object?)TrimOrNull(command.ChangeNote, 500) ?? DBNull.Value),
                 ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId));
             WriteAudit(connection, transaction, actor, documentId, "documents.page.save", traceId);
+            TouchPageRegistryWithin(connection, transaction, actor, documentId, "Active");
             var saved = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
             if (saved is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after save."); }
             return CommitResource(connection, transaction, actor, receipt, saved, "documents.page.save", "DocumentSaved", 200);
@@ -276,7 +327,10 @@ public sealed partial class SqlDocumentService : IDocumentService
                 ? "documents.page.unarchive" : DocumentTransitionAction(command.Status);
             if (!CurrentAuthority(connection, transaction, actor, action))
             { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
-            if (current.Status != command.Status) Execute(connection, transaction,
+            var transition = _tree.TransitionWithin(connection,transaction,actor,documentId,command.Status);
+            if (transition is not null) return Failure<DocumentDetail>(transition.Code,transition.StatusCode,transition.Title);
+            var cohortTransition = current.Status == "Archived" || command.Status == "Archived";
+            if (!cohortTransition && current.Status != command.Status) Execute(connection, transaction,
                 "UPDATE [documents].[Page] SET [Status] = @Status, [PreArchiveStatus] = CASE WHEN @Status = 'Archived' THEN [Status] ELSE NULL END, [UpdatedAt] = SYSUTCDATETIME(), [UpdatedByUserId] = @UserId WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion AND [DeletedAt] IS NULL;",
                 ("@Status", SqlDbType.VarChar, command.Status),
                 ("@UserId", SqlDbType.UniqueIdentifier, actor.UserId),
@@ -284,6 +338,7 @@ public sealed partial class SqlDocumentService : IDocumentService
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion));
             WriteAudit(connection, transaction, actor, documentId, action, traceId);
+            if (!cohortTransition) TouchPageRegistryWithin(connection, transaction, actor, documentId, "Active");
             var transitioned = ReadDetail(connection, transaction, actor.OwnerId, documentId, forUpdate: false);
             if (transitioned is null) { transaction.Rollback(); return Failure<DocumentDetail>("PersistenceFailure", 500, "Document could not be loaded after transition."); }
             return CommitResource(connection, transaction, actor, receipt, transitioned, action, "DocumentTransitioned", 200);
@@ -320,10 +375,11 @@ public sealed partial class SqlDocumentService : IDocumentService
     private static IdentityOperationResult<DocumentDetail>? ValidateBody(string? body)
     {
         if (body is null) return null;
-        if (Encoding.UTF8.GetByteCount(body) > MaxBodyBytes || body.Contains('\0'))
+        int byteCount;
+        try { byteCount = new UTF8Encoding(false, true).GetByteCount(body); }
+        catch (EncoderFallbackException) { return Failure<DocumentDetail>("ValidationFailed",422,"Document body contains invalid Unicode."); }
+        if (byteCount > MaxBodyBytes || body.Contains('\0'))
             return Failure<DocumentDetail>("ValidationFailed", 422, "Document body exceeds the 1 MiB limit or contains an invalid character.");
-        if (body.Contains("<script", StringComparison.OrdinalIgnoreCase) || body.Contains("<iframe", StringComparison.OrdinalIgnoreCase) || body.Contains("javascript:", StringComparison.OrdinalIgnoreCase))
-            return Failure<DocumentDetail>("UnsafeMarkup", 422, "Executable markup is not accepted in document content.");
         return null;
     }
 
@@ -342,7 +398,7 @@ public sealed partial class SqlDocumentService : IDocumentService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion], p.[TagId], (SELECT t.[Name] FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId]) FROM [documents].[Page] p {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE p.[Id] = @Id AND p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL AND p.[Status] IN ('Draft', 'Published', 'Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document' AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);";
+        command.CommandText = $"SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [PreArchiveStatus], [VersionNumber], [CreatedAt], [UpdatedAt], [RowVersion], p.[TagId], (SELECT t.[Name] FROM [documents].[Tag] t WHERE t.[OwnerId]=p.[OwnerId] AND t.[Id]=p.[TagId]),p.[FolderId],p.[ParentPageId],p.[Depth] FROM [documents].[Page] p {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} WHERE p.[Id] = @Id AND p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL AND {ContainersVisible} AND p.[Status] IN ('Draft', 'Published', 'Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document' AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);";
         Add(command, "@Id", SqlDbType.UniqueIdentifier, documentId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         using var reader = command.ExecuteReader();
@@ -360,11 +416,11 @@ public sealed partial class SqlDocumentService : IDocumentService
 
     private static DocumentSummary ReadSummary(SqlDataReader reader) => new(
         reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
-        reader.IsDBNull(5) ? null : reader.GetString(5), reader.GetInt64(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.IsDBNull(10) ? null : reader.GetGuid(10), reader.IsDBNull(11) ? null : reader.GetString(11));
+        reader.IsDBNull(5) ? null : reader.GetString(5), reader.GetInt64(6), ToOffset(reader.GetDateTime(7)), ToOffset(reader.GetDateTime(8)), EncodeETag((byte[])reader[9]), reader.IsDBNull(10) ? null : reader.GetGuid(10), reader.IsDBNull(11) ? null : reader.GetString(11),reader.IsDBNull(12)?null:reader.GetGuid(12),reader.IsDBNull(13)?null:reader.GetGuid(13),reader.GetByte(14));
 
     private static DocumentDetail ReadDetail(SqlDataReader reader) => new(
         reader.GetGuid(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetString(4), reader.GetString(5),
-        reader.IsDBNull(6) ? null : reader.GetString(6), reader.GetInt64(7), ToOffset(reader.GetDateTime(8)), ToOffset(reader.GetDateTime(9)), EncodeETag((byte[])reader[10]), reader.IsDBNull(11) ? null : reader.GetGuid(11), reader.IsDBNull(12) ? null : reader.GetString(12));
+        reader.IsDBNull(6) ? null : reader.GetString(6), reader.GetInt64(7), ToOffset(reader.GetDateTime(8)), ToOffset(reader.GetDateTime(9)), EncodeETag((byte[])reader[10]), reader.IsDBNull(11) ? null : reader.GetGuid(11), reader.IsDBNull(12) ? null : reader.GetString(12),reader.IsDBNull(13)?null:reader.GetGuid(13),reader.IsDBNull(14)?null:reader.GetGuid(14),reader.GetByte(15));
 
     private static IdentityOperationResult<DocumentDetail> Missing() => Failure<DocumentDetail>("ResourceUnavailable", 404, "Document unavailable.");
     private static IdentityOperationResult<T> ModuleUnavailable<T>() => Failure<T>("ModuleUnavailable", 409, "The requested module is disabled or unavailable for this user.");
@@ -397,9 +453,9 @@ public sealed partial class SqlDocumentService : IDocumentService
         bytes = Array.Empty<byte>();
         try
         {
-            if (string.IsNullOrWhiteSpace(value)) return false;
-            bytes = DecodeETag(value);
-            return bytes.Length == 8;
+            if (value is null || value.Length != 14 || value[0] != '"' || value[^1] != '"') return false;
+            bytes = Convert.FromBase64String(value[1..^1]);
+            return bytes.Length == 8 && string.Equals(EncodeETag(bytes), value, StringComparison.Ordinal);
         }
         catch (FormatException) { return false; }
     }
@@ -414,7 +470,7 @@ public sealed partial class SqlDocumentService : IDocumentService
         IdentityPrincipal actor, string action) => _capabilities.IsAllowed(connection, transaction, actor, "FX20", action);
 
     private IdentityOperationResult<DocumentDetail> CommitResource(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, ReceiptClaim claim, DocumentDetail detail, string action, string code, int status)
+        IdentityPrincipal actor, ReceiptClaim claim, DocumentDetail detail, string action, string code, int status, params string[] additionalActions)
     {
         var canRead = CurrentAuthority(connection, transaction, actor, "documents.page.read");
         // Persist proof of the original authorized projection, never its private body.
@@ -422,11 +478,14 @@ public sealed partial class SqlDocumentService : IDocumentService
         var responseDigest = canRead ? _receipts.DigestSensitive(JsonSerializer.Serialize(detail)) : null;
         _receipts.Complete(connection, transaction, claim, code, status,
             JsonSerializer.Serialize(new DocumentReceipt(detail.Id, detail.ETag, action, responseDigest)));
-        if (!CurrentAuthority(connection, transaction, actor, action))
+        if (!CurrentAuthority(connection, transaction, actor, action) || additionalActions.Any(required=>!CurrentAuthority(connection,transaction,actor,required)))
         { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
-        // Time may expire without another transaction changing any locked row.
-        if (!CurrentAuthority(connection, transaction, actor, action))
-        { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
+        if (canRead && !CurrentAuthority(connection, transaction, actor, "documents.page.read"))
+        {
+            canRead = false;
+            _receipts.Complete(connection, transaction, claim, code, status, JsonSerializer.Serialize(new DocumentReceipt(detail.Id, detail.ETag, action)));
+        }
+        if (!CurrentAuthority(connection, transaction, actor, action) || additionalActions.Any(required=>!CurrentAuthority(connection,transaction,actor,required))) { transaction.Rollback(); return ModuleUnavailable<DocumentDetail>(); }
         transaction.Commit();
         return canRead ? IdentityOperationResult<DocumentDetail>.Success(detail, status, code)
             : IdentityOperationResult<DocumentDetail>.Committed(detail.Id, status, "DocumentCommitted");
@@ -444,6 +503,7 @@ public sealed partial class SqlDocumentService : IDocumentService
             _ => []
         };
         if (!actions.Any(action => CurrentAuthority(connection, transaction, actor, action))) return ModuleUnavailable<DocumentDetail>();
+        SqlDocumentScopeLock.Acquire(connection, transaction, actor.OwnerId);
         if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
         claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
         if (claim.IsClaimed) return null;

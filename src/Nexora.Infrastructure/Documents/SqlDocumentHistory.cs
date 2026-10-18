@@ -70,8 +70,9 @@ public sealed partial class SqlDocumentService
     private static bool HistoryPageExists(SqlConnection connection, SqlTransaction transaction, Guid owner, Guid page)
     {
         using var command = connection.CreateCommand(); command.Transaction = transaction;
-        command.CommandText = """
+        command.CommandText = $"""
             SELECT 1 FROM [documents].[Page] p WHERE p.[OwnerId]=@Owner AND p.[Id]=@Page
+              AND {ContainersVisible}
               AND p.[DeletedAt] IS NULL AND p.[Status] IN ('Draft','Published','Archived')
               AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId]=p.[OwnerId]
                   AND tr.[ResourceType]='Document' AND tr.[ResourceId]=p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL);

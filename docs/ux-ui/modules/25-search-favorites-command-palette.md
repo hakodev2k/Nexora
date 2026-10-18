@@ -1,6 +1,6 @@
 # FX-25 — Search / Favorites / Command Palette — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · FX25-S01 bounded source-query search and FX25-S03 typed Favorites are implemented locally on PR #4; Recents/Saved Search/Command surfaces remain documentation-only.
+Review baseline2026-09-07 `b85f0f314da8ca7dcee8dad156e7b538ba52c287`; local continuation2026-10-18 adds code for Saved Search within Search, Recents and a finite Command Palette registry on the existing PR4 branch. Runtime/independent review NOT RUN/Pending; uncommitted continuation is not a synchronized PR or full-UX acceptance claim.
 
 ## Current PR #4 UX overlay
 
@@ -9,10 +9,16 @@ filters, safe result cards and per-source status. Results are owner-scoped and
 opening a hit navigates only to its internal source route. The `/favorites`
 screen is the implemented typed-reference subset: it rechecks source access
 and lifecycle, supports safe unavailable references and owner-scoped reorder /
-remove. Recents, Saved Search, Command Palette and destructive command
-execution remain gated.
+remove. `/recent` has current-source metadata, type filtering,25/page and
+explicit watermark-bound metadata Clear with original-intent recovery.
+Saved Search uses the canonical definition form at `/search` and `/search/saved`. The header/Ctrl-Cmd-K/direct
+`/command-palette` modal has grouped current commands, authorized source results,
+combobox keyboard/IME handling and current action checks on selection. The
+registered destructive handoff only opens native Recents preview/confirmation;
+it never executes Clear from palette highlight/selection. Other arbitrary
+commands/providers remain outside this code subset.
 
-Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. The `/search` and `/favorites` routes are implemented by the current local slices; other route strings remain navigation proposals, not existing endpoints.
+Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. `/search`, `/search/saved`, `/favorites`, `/recent` and `/command-palette` have local routes; other route strings remain navigation proposals until their exact contracts are implemented.
 
 ## 1. Scope
 

@@ -3,7 +3,19 @@
 > **Current slice:** Numeric Goal CRUD, explicit numeric progress and the
 > documented lifecycle are `SLICE_IMPLEMENTED (local)` on PR #4. See
 > [implementation evidence](../../implementation/goals-numeric-slice.md).
-> Boolean/Tasks targets, archive/trash/history, reminders and provider
+> Boolean target create/read/progress is additionally code-present under the
+> [2026-10-18 contract](../../implementation/remediation-plan-20261016/goals-boolean-contract-20261018.md),
+> with runtime acceptance and independent review pending.
+> The [progress-history subset](../../implementation/remediation-plan-20261016/goals-progress-history-contract-20261018.md)
+> is also code-present. State lifecycle history and Goal metadata versions are additionally code-present; Numeric/Boolean target-definition versions are additionally code-present.
+> [Metadata version contract](../../implementation/remediation-plan-20261016/goals-metadata-history-contract-20261018.md):
+> own history/read, current nonTrash source, exact original date-only metadata and
+> honest baseline. Build only, runtime and independent review Pending.
+> [Target management](../../implementation/remediation-plan-20261016/goals-target-management-contract-20261018.md)
+> and [Archive/Unarchive](../../implementation/remediation-plan-20261016/goals-archive-contract-20261018.md)
+> are additionally code-present with runtime/review Pending. Removed target evidence
+> is retained; exact prior status is restored on Unarchive.
+> Tasks targets, Trash, reminders and provider
 > behavior remain gated and are not implied by these goals.
 
 Product phase: **P02** · Delivery: **RM10** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.

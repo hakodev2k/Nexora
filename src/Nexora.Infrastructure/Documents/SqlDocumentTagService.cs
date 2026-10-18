@@ -460,6 +460,7 @@ public sealed class SqlDocumentTagService : IDocumentTagService
     {
         claim = default;
         if (!CurrentAuthority(connection, transaction, actor, operationKey)) return ModuleUnavailable<T>();
+        SqlDocumentScopeLock.Acquire(connection, transaction, actor.OwnerId);
         var currentNamespace = targetId is { } id ? ReadNamespace(connection, transaction, actor.OwnerId, id) : requestedNamespace;
         if (currentNamespace is not null && !NamespaceAllowed(connection, transaction, actor, currentNamespace, operationKey))
             return ModuleUnavailable<T>();

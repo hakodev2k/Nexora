@@ -1,0 +1,9 @@
+{
+  "domainIdRows": 1067,
+  "database": "Nexora_Test_85b9ce58db3445e7897dfaa7385d32d4",
+  "ownershipMarkerVerified": true,
+  "disabledOrUntrustedChecks": 0,
+  "dbccConstraintViolations": 0,
+  "capturedUtc": "2026-10-18T14:39:17.5273733Z",
+  "migrationCount": 86
+}

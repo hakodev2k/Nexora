@@ -31,10 +31,13 @@ public sealed record NotificationMarkReadCommand(bool Read, string? IfMatch);
 public sealed record NotificationDeleteCommand(IReadOnlyList<Guid> NotificationIds);
 
 public sealed record NotificationMarkAllReadResult(DateTimeOffset Watermark, int UpdatedCount);
+public sealed record NotificationSource(string ResourceType, Guid ResourceId, string Title, string Route);
 
 public interface INotificationService
 {
-    IdentityOperationResult<NotificationPage> List(IdentityPrincipal actor, bool unreadOnly = false, int? limit = null);
+    IdentityOperationResult<NotificationSource> OpenSource(IdentityPrincipal actor, Guid notificationId);
+    IdentityOperationResult<NotificationPage> List(IdentityPrincipal actor, bool unreadOnly = false, int? limit = null,
+        string? cursor = null, string? category = null, DateTimeOffset? from = null, DateTimeOffset? to = null);
     IdentityOperationResult<NotificationRecord> MarkRead(IdentityPrincipal actor, Guid notificationId, NotificationMarkReadCommand command,
         string? idempotencyKey = null, string? traceId = null);
     IdentityOperationResult<NotificationMarkAllReadResult> MarkAllRead(IdentityPrincipal actor,

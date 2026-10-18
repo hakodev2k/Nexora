@@ -1,0 +1,17 @@
+{
+  "CaseId": "QA-WRK-MOBILE-LIFECYCLE",
+  "Status": "FAIL",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "resources": [
+    {
+      "id": "1cae8067-8dff-4cfa-bea9-c5292227217e",
+      "type": "WorkLog",
+      "expected": "Purged",
+      "creation": "Mobile UI"
+    }
+  ],
+  "Actual": "Unexpected token 'N', \"NULL\" is not valid JSON"
+}

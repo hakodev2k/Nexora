@@ -55,9 +55,19 @@ public sealed class SqlSearchService : ISearchService
     private IdentityOperationResult<SearchPage> SearchCurrent(IdentityPrincipal actor, string normalizedQuery,
         string? normalizedType, DateOnly? from, DateOnly? to, bool includeArchived, int? limit, string? cursor)
     {
-        using var connection = _connections.Create();
-        connection.Open();
+        using var connection = _connections.Create(); connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var result = SearchWithin(connection, transaction, actor, normalizedQuery, normalizedType, from, to, includeArchived, limit, cursor);
+        if (result.Succeeded) transaction.Commit();
+        return result;
+    }
+
+    // Discovery-owned participant for running a stored definition under the same
+    // current-query/source authority and SQL transaction. The caller commits.
+    internal IdentityOperationResult<SearchPage> SearchWithin(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string normalizedQuery, string? normalizedType, DateOnly? from, DateOnly? to,
+        bool includeArchived, int? limit, string? cursor)
+    {
         if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
             return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
         var take = Math.Clamp(limit ?? MaxLimit, 1, MaxLimit);
@@ -73,7 +83,7 @@ public sealed class SqlSearchService : ISearchService
             return Failure<SearchPage>("InvalidCursor", 422, "Search cursor does not match this query.");
         if (normalizedQuery.Length == 0)
         {
-            transaction.Commit();
+
             return IdentityOperationResult<SearchPage>.Success(new SearchPage(
                 normalizedQuery, normalizedType, includeArchived,
                 Array.Empty<SearchResult>(), Array.Empty<SearchProviderStatus>(), null));
@@ -144,6 +154,7 @@ public sealed class SqlSearchService : ISearchService
                    COUNT_BIG(1) OVER() AS [TotalCount]
             FROM [documents].[Page] p
             WHERE p.[OwnerId] = @OwnerId
+              AND EXISTS(SELECT 1 FROM [documents].[VisiblePageV1] visible WHERE visible.OwnerId=p.OwnerId AND visible.Id=p.Id)
               AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
                   WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document'
                     AND tr.[ResourceId] = p.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL)
@@ -222,7 +233,7 @@ public sealed class SqlSearchService : ISearchService
                 last.Result.Id, last.Result.ResourceType)) : null;
         if (!ModuleAvailable(connection, transaction, actor, "FX25", "discovery.search.query"))
             return Failure<SearchPage>("ModuleUnavailable", 409, "Search is disabled or unavailable for this user.");
-        transaction.Commit();
+
         return IdentityOperationResult<SearchPage>.Success(new SearchPage(
             normalizedQuery, normalizedType, includeArchived, items, providers, nextCursor));
     }

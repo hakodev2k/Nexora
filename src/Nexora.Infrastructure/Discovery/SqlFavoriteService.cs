@@ -421,6 +421,7 @@ public sealed class SqlFavoriteService : IFavoriteService
                 SELECT p.[Title], p.[Status], p.[UpdatedAt]
                 FROM [documents].[Page] p
                 WHERE p.[OwnerId] = @OwnerId AND p.[Id] = @ResourceId
+                  AND EXISTS(SELECT 1 FROM [documents].[VisiblePageV1] visible WHERE visible.OwnerId=p.OwnerId AND visible.Id=p.Id)
                   AND p.[DeletedAt] IS NULL AND p.[Status] <> 'Archived'
                   AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr
                       WHERE tr.[OwnerId] = p.[OwnerId] AND tr.[ResourceType] = 'Document'

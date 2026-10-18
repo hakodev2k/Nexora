@@ -17,7 +17,7 @@ namespace Nexora.Infrastructure.Files;
 /// session id, checked against an allow-list and a conservative local scanner,
 /// and become readable only after a clean FileObject is committed in SQL.
 /// </summary>
-public sealed class SqlFileService : IFileService, IFileCleanupService
+public sealed partial class SqlFileService : IFileService, IFileCleanupService
 {
     private const long MaxBytes = 25 * 1024 * 1024;
     private static readonly IReadOnlyDictionary<string, string[]> AllowedTypes = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
@@ -446,6 +446,9 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<FileReferenceRecord>(connection, transaction, actor, "files.reference.attach", idempotencyKey,
             $"file:{fileId:N}|resource:{command.ResourceType}|id:{command.ResourceId:N}|version:{command.VersionNumber}|purpose:{command.Purpose}|key:{command.ReferenceKey}", out var receipt);
+        var sourceAction = sourceModule == "FX20" ? "documents.page.read" : sourceModule == "FX12" ? "tasks.task.read" : "projects.project.read";
+        if (!_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceAction))
+        { transaction.Rollback(); return ModuleUnavailable<FileReferenceRecord>(); }
         if (receiptFailure is not null) { transaction.Rollback(); return receiptFailure; }
         var file = ReadFile(connection, transaction, actor.OwnerId, fileId, forUpdate: true);
         if (file is null || file.Lifecycle != "Active" || file.ScanState != "Clean")
@@ -476,6 +479,11 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         var reference = ReadReference(connection, transaction, actor.OwnerId, referenceId, forUpdate: false);
         if (reference is null) { transaction.Rollback(); return PersistenceFailure<FileReferenceRecord>(); }
         CompleteReceipt(connection, transaction, receipt, "FileAttached");
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX07", "files.reference.attach")
+            || !_capabilities.IsAllowed(connection, transaction, actor, sourceModule, sourceAction))
+        { transaction.Rollback(); return ModuleUnavailable<FileReferenceRecord>(); }
+        if (!SourceAvailable(connection, transaction, command, actor.OwnerId))
+        { transaction.Rollback(); return Failure<FileReferenceRecord>("ResourceUnavailable",404,"The attachment target is unavailable."); }
         transaction.Commit();
         return IdentityOperationResult<FileReferenceRecord>.Success(reference, 201, "FileAttached");
     }
@@ -1005,7 +1013,7 @@ public sealed class SqlFileService : IFileService, IFileCleanupService
         {
             "Project" => "SELECT CASE WHEN [Status] NOT IN ('Completed','Skipped','Deleted') THEN 1 ELSE 0 END FROM [productivity].[Project] WHERE [Id] = @Id AND [OwnerId] = @OwnerId",
             "Task" => "SELECT CASE WHEN t.[Status] NOT IN ('Completed','Skipped','Deleted') AND p.[Status] NOT IN ('Completed','Skipped','Deleted') THEN 1 ELSE 0 END FROM [productivity].[Task] t INNER JOIN [productivity].[Project] p ON p.[Id] = t.[ProjectId] AND p.[OwnerId] = t.[OwnerId] WHERE t.[Id] = @Id AND t.[OwnerId] = @OwnerId",
-            _ => "SELECT CASE WHEN [DeletedAt] IS NULL THEN 1 ELSE 0 END FROM [documents].[Page] WHERE [Id] = @Id AND [OwnerId] = @OwnerId"
+            _ => "SELECT 1 FROM [documents].[VisiblePageV1] WHERE [Id] = @Id AND [OwnerId] = @OwnerId"
         };
         Add(query, "@Id", SqlDbType.UniqueIdentifier, command.ResourceId);
         Add(query, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);

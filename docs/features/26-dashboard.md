@@ -2,17 +2,24 @@
 
 FX-26 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Current PR #4 implements the bounded local read-only attention slice; layout/configuration and quick-create remain gated.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Local continuation on the existing PR #4 branch has code for four registered attention providers, owner layout, refresh, drilldown and five native create handoffs; runtime and independent review remain pending. Uncommitted code is not evidence that PR #4 has been synchronized.
 
 ## Current PR #4 implementation overlay
 
-`FX26-S01` is implemented locally as `GET /api/v1/dashboard` with the
-`getDashboard` operation. The SQL-backed projection returns owner-scoped
-Tasks due/overdue, Calendar Events for the owner's local day, recent
-Draft/Published Documents and unread Notifications. Each widget has an
-independent `Ready`, `Empty`, `Unavailable` or `Degraded` state and source
-capability checks. `FX26-S02` layout persistence, widget configuration,
-refresh mutation and quick-create remain contract-gated.
+`FX26-S01` has local SQL-backed owner Tasks due/overdue, owner-local-day Calendar,
+recent Draft/Published Documents and unread Notifications, with independent
+`Ready`/`Empty`/`Unavailable`/`Degraded` states and current source checks.
+`FX26-S02` has persisted owner layout, stable widget IDs and registered versioned
+configuration for these four fixed providers. Refresh is a read-only operation
+requiring its exact refresh action. Expanded lists use the same provider queries,
+25/page and a five-minute owner/timezone/window-bound cursor; data stays live,
+not a retained historical SQL snapshot. Quick Create checks current Dashboard
+and target permissions before opening canonical Project/Task/Event/Document
+forms or the Finance manual-record dialog. Source Save keeps all original guards.
+No arbitrary providers, sensitive Finance/Vault summary, provider execution or
+complete module acceptance is claimed. Contracts and not-run acceptance:
+[quick create](../implementation/remediation-plan-20261016/dashboard-quick-create-contract-20261018.md),
+[drilldown](../implementation/remediation-plan-20261016/dashboard-drilldown-contract-20261018.md).
 
 ## Phạm vi và tham chiếu
 

@@ -14,7 +14,10 @@ public sealed record DocumentSummary(
     DateTimeOffset UpdatedAt,
     string ETag,
     Guid? TagId = null,
-    string? TagName = null);
+    string? TagName = null,
+    Guid? FolderId = null,
+    Guid? ParentPageId = null,
+    int Depth = 1);
 
 public sealed record DocumentDetail(
     Guid Id,
@@ -29,7 +32,10 @@ public sealed record DocumentDetail(
     DateTimeOffset UpdatedAt,
     string ETag,
     Guid? TagId = null,
-    string? TagName = null);
+    string? TagName = null,
+    Guid? FolderId = null,
+    Guid? ParentPageId = null,
+    int Depth = 1);
 
 public sealed record DocumentPage(IReadOnlyList<DocumentSummary> Items, string? NextCursor);
 
@@ -38,7 +44,9 @@ public sealed record DocumentCreateCommand(
     string DocumentType,
     string EditorMode,
     string? Body,
-    Guid? TagId = null);
+    Guid? TagId = null,
+    Guid? FolderId = null,
+    Guid? ParentPageId = null);
 
 public sealed record DocumentSaveCommand(
     string Title,
@@ -62,7 +70,8 @@ public interface IDocumentService
 {
     IdentityOperationResult<DocumentPage> List(IdentityPrincipal actor, string? status = null, int? limit = null,
         string? cursor = null, string? query = null, string? documentType = null,
-        DateOnly? createdFrom = null, DateOnly? createdTo = null, Guid? tagId = null);
+        DateOnly? createdFrom = null, DateOnly? createdTo = null, Guid? tagId = null,
+        Guid? folderId = null, Guid? parentPageId = null);
     IdentityOperationResult<DocumentVersionPage> History(IdentityPrincipal actor, Guid documentId, string? cursor = null);
     IdentityOperationResult<DocumentVersionPreview> Version(IdentityPrincipal actor, Guid documentId, long versionNumber);
     IdentityOperationResult<DocumentDetail> Get(IdentityPrincipal actor, Guid documentId);

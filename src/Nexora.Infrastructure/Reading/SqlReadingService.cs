@@ -7,6 +7,7 @@ using Nexora.Application.Reading;
 using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
+using Nexora.Infrastructure.News;
 
 namespace Nexora.Infrastructure.Reading;
 
@@ -15,12 +16,13 @@ namespace Nexora.Infrastructure.Reading;
 /// safe title/URL snapshot and never copies source bodies or follows URLs.
 /// News providers and cross-module read-state coordination remain deferred.
 /// </summary>
-public sealed class SqlReadingService : IReadingService
+public sealed partial class SqlReadingService : IReadingService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
     private readonly ReadingListCursor _cursor;
+    private readonly SqlNewsReaderService _news;
 
     public SqlReadingService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
@@ -28,6 +30,7 @@ public sealed class SqlReadingService : IReadingService
         var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
         _receipts = new SqlRequestReceiptStore(secret);
         _cursor = new ReadingListCursor(secret);
+        _news = new SqlNewsReaderService(connections, secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
@@ -40,23 +43,24 @@ public sealed class SqlReadingService : IReadingService
         string[] actions = ["reading.queue.read", "reading.item.save", "reading.item.remove", "reading.item.read", "reading.item.unread", "reading.item.position"];
         var result = actions.ToDictionary(action => action, action => action == "reading.queue.read"
             ? _capabilities.IsAllowed(connection, transaction, actor, "FX23", action)
-            : CurrentMutationAuthority(connection, transaction, actor, action), StringComparer.Ordinal);
+            : CurrentMutationAuthority(connection, transaction, actor, action) || NewsCapability(connection, transaction, actor, action), StringComparer.Ordinal);
         if (!SqlCurrentActor.IsLive(connection, transaction, actor))
             return Failure<IReadOnlyDictionary<string, bool>>("PermissionDenied", 403, "Reading capabilities are unavailable.");
         transaction.Commit();
         return IdentityOperationResult<IReadOnlyDictionary<string, bool>>.Success(result);
     }
 
-    public IdentityOperationResult<ReadingPage> List(IdentityPrincipal actor, string? state = null, int? limit = null, string? cursor = null)
+    public IdentityOperationResult<ReadingPage> List(IdentityPrincipal actor, string? state = null, int? limit = null, string? cursor = null, string? sourceType = null)
     {
         if (!ModuleAvailable(actor, "FX23", "reading.queue.read")) return ModuleUnavailable<ReadingPage>();
+        if (sourceType is not (null or "Bookmark" or "NewsArticle")) return Failure<ReadingPage>("ValidationFailed",422,"Unknown Reading source type.");
         var take = Math.Clamp(limit ?? 25, 1, 100);
         var normalizedState = string.IsNullOrWhiteSpace(state) ? null : state.Trim();
         if (normalizedState is not null && normalizedState is not ("Unread" or "Reading" or "Read" or "Archived"))
             return Failure<ReadingPage>("ValidationFailed", 422, "Reading state must be Unread, Reading, Read or Archived.");
 
         DateTime? afterTime = null; Guid? afterId = null;
-        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, actor.OwnerId, normalizedState, take, out afterTime, out afterId))
+        if (!string.IsNullOrEmpty(cursor) && !_cursor.TryDecode(cursor, actor.OwnerId, normalizedState, take, out afterTime, out afterId, sourceType))
             return Failure<ReadingPage>("InvalidCursor", 422, "Reading cursor does not match this query.");
         using var connection = _connections.Create();
         connection.Open();
@@ -64,22 +68,32 @@ public sealed class SqlReadingService : IReadingService
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX23", "reading.queue.read"))
             return ModuleUnavailable<ReadingPage>();
         var sourceReadable = _capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read");
+        var newsReadable = _capabilities.IsAllowed(connection, transaction, actor, "FX29", "news.article.read");
+        if (sourceType == "NewsArticle" && !newsReadable) return SourceUnavailable<ReadingPage>();
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
             SELECT TOP (@Limit)
-                r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt],
-                r.[SafeTitleSnapshot], r.[SafeUrlSnapshot],
+                r.[Id], r.[SourceType], r.[SourceId], currentState.[State], r.[Progress], r.[SavedAt], currentState.[ReadAt],
+                COALESCE(b.[Title],N''), COALESCE(b.[Url],N''),
                 CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) THEN 1 ELSE 0 END),
                 r.[UpdatedAt], r.[RowVersion]
             FROM [knowledge].[ReadingItem] r
             LEFT JOIN [knowledge].[Bookmark] b
               ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] AND r.[SourceType] = 'Bookmark'
-            WHERE r.[OwnerId] = @OwnerId AND (@State IS NULL OR r.[State] = @State)
+            LEFT JOIN [news].[ReadingSourceProjectionV1] n
+              ON n.[OwnerId]=r.[OwnerId] AND n.[ArticleId]=r.[SourceId] AND r.[SourceType]='NewsArticle' AND @NewsReadable=1
+            CROSS APPLY(SELECT CASE WHEN n.[ArticleId] IS NOT NULL AND r.[State]<>'Archived'
+              THEN CASE WHEN n.[ReadAt] IS NOT NULL THEN 'Read' WHEN r.[State]='Reading' THEN 'Reading' ELSE 'Unread' END ELSE r.[State] END [State],
+              CASE WHEN n.[ArticleId] IS NOT NULL THEN n.[ReadAt] ELSE r.[ReadAt] END [ReadAt]) currentState
+            WHERE r.[OwnerId] = @OwnerId AND (@State IS NULL OR currentState.[State] = @State)
+              AND (@SourceType IS NULL OR r.[SourceType]=@SourceType)
               AND (@AfterTime IS NULL OR r.[SavedAt] < @AfterTime OR (r.[SavedAt] = @AfterTime AND r.[Id] < @AfterId))
             ORDER BY r.[SavedAt] DESC, r.[Id] DESC;
             """;
         Add(command, "@Limit", SqlDbType.Int, take + 1);
+        Add(command, "@NewsReadable", SqlDbType.Bit, newsReadable);
+        Add(command, "@SourceType", SqlDbType.VarChar, (object?)sourceType ?? DBNull.Value, 32);
         Add(command, "@AfterTime", SqlDbType.DateTime2, (object?)afterTime ?? DBNull.Value);
         Add(command, "@AfterId", SqlDbType.UniqueIdentifier, (object?)afterId ?? DBNull.Value);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
@@ -87,6 +101,8 @@ public sealed class SqlReadingService : IReadingService
         var items = new List<ReadingItemRecord>();
         using (var reader = command.ExecuteReader())
             while (reader.Read()) items.Add(Read(reader, sourceReadable));
+        items = items.Select(item => ProjectNews(connection, transaction, actor, item)).ToList();
+        if (sourceType == "NewsArticle" && !_capabilities.IsAllowed(connection, transaction, actor, "FX29", "news.article.read")) return SourceUnavailable<ReadingPage>();
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX23", "reading.queue.read"))
             return ModuleUnavailable<ReadingPage>();
         transaction.Commit();
@@ -94,7 +110,7 @@ public sealed class SqlReadingService : IReadingService
         if (items.Count > take)
         {
             items.RemoveAt(take); var last = items[^1];
-            nextCursor = _cursor.Encode(actor.OwnerId, normalizedState, take, last.SavedAt, last.Id);
+            nextCursor = _cursor.Encode(actor.OwnerId, normalizedState, take, last.SavedAt, last.Id, sourceType);
         }
         return IdentityOperationResult<ReadingPage>.Success(new ReadingPage(items, nextCursor));
     }
@@ -102,6 +118,7 @@ public sealed class SqlReadingService : IReadingService
     public IdentityOperationResult<ReadingItemRecord> Save(IdentityPrincipal actor, SaveReadingCommand command,
         string? idempotencyKey = null, string? traceId = null)
     {
+        if (command.SourceType?.Trim() == "NewsArticle") return SaveNews(actor, command.SourceId, idempotencyKey, traceId);
         if (!ModuleAvailable(actor, "FX23", "reading.item.save")) return ModuleUnavailable<ReadingItemRecord>();
         if (!string.Equals(command.SourceType?.Trim(), "Bookmark", StringComparison.Ordinal))
             return Failure<ReadingItemRecord>("ValidationFailed", 422, "This local Read Later slice accepts Bookmark sources only.");
@@ -160,7 +177,7 @@ public sealed class SqlReadingService : IReadingService
                 return Revision<object?>();
             }
             Execute(connection, transaction,
-                "DELETE FROM [knowledge].[ReadingItem] WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion;",
+                "DELETE FROM [knowledge].[NewsReadingReference] WHERE [ReadingItemId]=@Id AND [OwnerId]=@OwnerId; DELETE FROM [knowledge].[ReadingItem] WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [RowVersion] = @RowVersion;",
                 ("@Id", SqlDbType.UniqueIdentifier, itemId), ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion));
             WriteAudit(connection, transaction, actor, itemId, "reading.item.remove", traceId);
@@ -193,6 +210,8 @@ public sealed class SqlReadingService : IReadingService
         if (command.Progress is < 0 or > 1) return Failure<ReadingItemRecord>("ValidationFailed", 422, "Reading progress must be between 0 and 1.");
         if (command.Progress is { } inputProgress && decimal.Round(inputProgress, 8) != inputProgress)
             return Failure<ReadingItemRecord>("ValidationFailed", 422, "Reading progress supports at most 8 decimal places.");
+        var news = TryUpdateNews(actor, itemId, ifMatch, command with { State = state }, action, idempotencyKey, traceId);
+        if (news is not null) return news;
         if (!ModuleAvailable(actor, "FX21", "bookmarks.bookmark.read")) return SourceUnavailable<ReadingItemRecord>();
         if (!TryETag(ifMatch, out var expectedVersion)) return Precondition<ReadingItemRecord>();
         using var connection = _connections.Create();
@@ -266,7 +285,7 @@ public sealed class SqlReadingService : IReadingService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], r.[SafeTitleSnapshot], r.[SafeUrlSnapshot], CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r LEFT JOIN [knowledge].[Bookmark] b ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[SourceType] = 'Bookmark' AND r.[SourceId] = @SourceId;";
+        command.CommandText = "SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], COALESCE(b.[Title],N''), COALESCE(b.[Url],N''), CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r LEFT JOIN [knowledge].[Bookmark] b ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[SourceType] = 'Bookmark' AND r.[SourceId] = @SourceId;";
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@SourceId", SqlDbType.UniqueIdentifier, sourceId);
         using var reader = command.ExecuteReader();
@@ -277,7 +296,7 @@ public sealed class SqlReadingService : IReadingService
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], r.[SafeTitleSnapshot], r.[SafeUrlSnapshot], CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} LEFT JOIN [knowledge].[Bookmark] b ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[Id] = @Id;";
+        command.CommandText = $"SELECT r.[Id], r.[SourceType], r.[SourceId], r.[State], r.[Progress], r.[SavedAt], r.[ReadAt], COALESCE(b.[Title],N''), COALESCE(b.[Url],N''), CONVERT(bit, CASE WHEN b.[Id] IS NOT NULL AND b.[Status] IN ('Active','Archived') AND NOT EXISTS (SELECT 1 FROM [platform].[TrashItem] tr WHERE tr.[OwnerId] = b.[OwnerId] AND tr.[ResourceType] = 'Bookmark' AND tr.[ResourceId] = b.[Id] AND tr.[RestoredAt] IS NULL AND tr.[PurgedAt] IS NULL) THEN 1 ELSE 0 END), r.[UpdatedAt], r.[RowVersion] FROM [knowledge].[ReadingItem] r {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)} LEFT JOIN [knowledge].[Bookmark] b ON b.[OwnerId] = r.[OwnerId] AND b.[Id] = r.[SourceId] WHERE r.[OwnerId] = @OwnerId AND r.[Id] = @Id;";
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
         Add(command, "@Id", SqlDbType.UniqueIdentifier, itemId);
         using var reader = command.ExecuteReader();
@@ -286,8 +305,10 @@ public sealed class SqlReadingService : IReadingService
 
     private static ReadingItemRecord Read(SqlDataReader reader, bool sourceReadable) => new(
         reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2), reader.GetString(3), reader.GetDecimal(4),
-        ToOffset(reader.GetDateTime(5)), reader.IsDBNull(6) ? null : ToOffset(reader.GetDateTime(6)), reader.GetString(7),
-        reader.GetString(8), sourceReadable && reader.GetBoolean(9), ToOffset(reader.GetDateTime(10)), EncodeETag(reader.GetFieldValue<byte[]>(11)));
+        ToOffset(reader.GetDateTime(5)), reader.IsDBNull(6) ? null : ToOffset(reader.GetDateTime(6)),
+        sourceReadable && reader.GetBoolean(9) ? reader.GetString(7) : "Source unavailable",
+        sourceReadable && reader.GetBoolean(9) ? reader.GetString(8) : string.Empty,
+        sourceReadable && reader.GetBoolean(9), ToOffset(reader.GetDateTime(10)), EncodeETag(reader.GetFieldValue<byte[]>(11)));
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
         string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim, bool requestedPosition = false)
@@ -349,6 +370,9 @@ public sealed class SqlReadingService : IReadingService
         { transaction.Rollback(); return ModuleUnavailable<ReadingItemRecord>(); }
         _receipts.Complete(connection, transaction, receipt, code, status,
             JsonSerializer.Serialize(new ReadingReceipt(item.Id, item.ETag, requiresPosition, canRead)));
+        if (!CurrentMutationAuthority(connection, transaction, actor, action, additionalActions))
+        { transaction.Rollback(); return ModuleUnavailable<ReadingItemRecord>(); }
+        canRead = canRead && _capabilities.IsAllowed(connection, transaction, actor, "FX23", "reading.queue.read");
         transaction.Commit();
         return canRead ? IdentityOperationResult<ReadingItemRecord>.Success(item, status, code)
             : IdentityOperationResult<ReadingItemRecord>.Committed(item.Id, status, code);

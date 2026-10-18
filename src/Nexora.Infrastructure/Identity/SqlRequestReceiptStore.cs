@@ -36,7 +36,9 @@ internal sealed class SqlRequestReceiptStore
         string idempotencyKey,
         string canonicalRequest,
         DateTime now,
-        string? anonymousSessionBinding = null)
+        string? anonymousSessionBinding = null,
+        bool claimIfMissing = true,
+        string? legacyCanonicalRequest = null)
     {
         if (!Guid.TryParse(idempotencyKey, out _))
         {
@@ -58,6 +60,7 @@ internal sealed class SqlRequestReceiptStore
         var subjectHash = subjectHashes[0];
         var keyHash = KeyDigest(idempotencyKey);
         var requestDigest = Digest(canonicalRequest);
+        var legacyDigest = legacyCanonicalRequest is null ? null : Digest(legacyCanonicalRequest);
         var expiresAt = now.Add(ReceiptTtl);
 
         var existingReceipts = ReadExisting(connection, transaction, subjectHashes, operationKey, keyHash);
@@ -72,8 +75,10 @@ internal sealed class SqlRequestReceiptStore
                 keyHash,
                 requestDigest,
                 now,
-                expiresAt);
+                expiresAt, claimIfMissing, legacyDigest);
         }
+
+        if (!claimIfMissing) return ReceiptClaim.Missing;
 
         try
         {
@@ -97,7 +102,7 @@ internal sealed class SqlRequestReceiptStore
                     keyHash,
                     requestDigest,
                     now,
-                    expiresAt);
+                    expiresAt, claimIfMissing, legacyDigest);
         }
     }
 
@@ -217,12 +222,16 @@ internal sealed class SqlRequestReceiptStore
         byte[] keyHash,
         byte[] requestDigest,
         DateTime now,
-        DateTime expiresAt)
+        DateTime expiresAt,
+        bool claimIfMissing,
+        byte[]? legacyDigest)
     {
         var active = existingReceipts.Where(receipt => receipt.ExpiresAt > now).ToArray();
         if (active.Length > 0)
         {
-            if (active.Any(receipt => !CryptographicOperations.FixedTimeEquals(receipt.RequestDigest, requestDigest)))
+            if (active.Any(receipt => !CryptographicOperations.FixedTimeEquals(receipt.RequestDigest, requestDigest)
+                && !(legacyDigest is not null && string.IsNullOrWhiteSpace(receipt.ResultJson)
+                     && CryptographicOperations.FixedTimeEquals(receipt.RequestDigest, legacyDigest))))
             {
                 return ReceiptClaim.Conflict;
             }
@@ -244,6 +253,8 @@ internal sealed class SqlRequestReceiptStore
                 succeeded.ResultStatusCode,
                 succeeded.ResultJson);
         }
+
+        if (!claimIfMissing) return ReceiptClaim.Missing;
 
         // All rows are beyond the unchanged TTL. Reuse the operation-qualified
         // row when present so the next request writes the legacy-compatible
@@ -339,8 +350,10 @@ internal readonly record struct ReceiptClaim(
     string? ResultCode = null,
     int? ResultStatusCode = null,
     string? ResultJson = null,
-    bool IsInvalid = false)
+    bool IsInvalid = false,
+    bool IsMissing = false)
 {
+    public static ReceiptClaim Missing => new(false, false, false, Array.Empty<byte>(), string.Empty, Array.Empty<byte>(), IsMissing: true);
     public static ReceiptClaim Invalid => new(false, false, true, Array.Empty<byte>(), string.Empty, Array.Empty<byte>(), IsInvalid: true);
     public static ReceiptClaim Conflict => new(false, false, true, Array.Empty<byte>(), string.Empty, Array.Empty<byte>());
     public static ReceiptClaim InProgress => new(false, false, false, Array.Empty<byte>(), string.Empty, Array.Empty<byte>());

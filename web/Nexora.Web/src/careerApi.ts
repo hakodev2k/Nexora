@@ -1,5 +1,15 @@
-import { apiFetch, jsonMutationHeaders } from './api';
+import { apiFetch, jsonMutationHeaders, isProductivityAcknowledgement, NexoraApiError, type CalendarEventRecord, type ProductivityCommittedAcknowledgement } from './api';
 const root = '/api/v1/career';
+export type CareerAppointment = { id: string; jobId: string; eventId: string; etag: string; event: CalendarEventRecord | null; state: 'Available' | 'Unavailable' };
+export type AppointmentEvent = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string; isAllDay: boolean; startDate: string | null; endDateExclusive: string | null };
+export const careerAppointments = (jobId: string, cursor = '') => apiFetch<{ items: CareerAppointment[]; nextCursor: string | null }>(`${root}/jobs/${encodeURIComponent(jobId)}/events?cursor=${encodeURIComponent(cursor)}`);
+export async function linkCareerAppointment(jobId: string, etag: string, command: { eventId: string | null; event: AppointmentEvent | null }, key: string) {
+  const result = await apiFetch<ProductivityCommittedAcknowledgement>(`${root}/jobs/${encodeURIComponent(jobId)}/events`, { method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }), body: JSON.stringify(command) }, 201);
+  if (!isProductivityAcknowledgement(result) || !/^[0-9a-f-]{36}$/i.test(result.id) || Object.keys(result).some(field => !['id', 'committed', 'detailAvailable'].includes(field)))
+    throw new NexoraApiError('Chưa xác nhận được Event/link. Thử lại thao tác cũ để đối chiếu.', 0, 'UnexpectedAcknowledgement');
+  return result;
+}
+export const unlinkCareerAppointment = (item: CareerAppointment, key: string) => apiFetch<void>(`${root}/jobs/${encodeURIComponent(item.jobId)}/events/${encodeURIComponent(item.id)}`, { method: 'DELETE', headers: jsonMutationHeaders(key, { 'If-Match': item.etag }) }, 204);
 export const careerStages = ['Saved', 'Preparing', 'Applied', 'Screening', 'Interviewing', 'Offer', 'Accepted', 'Rejected', 'Withdrawn', 'Closed'] as const;
 export const returnToProgress = (from: string, to: string) => ['Accepted', 'Rejected', 'Withdrawn', 'Closed'].includes(from) && careerStages.slice(0, 6).includes(to as typeof careerStages[number]);
 export type CompanyMetadata = { title: string; url: string | null; industry: string | null; location: string | null; notes: string | null };

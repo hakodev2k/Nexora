@@ -17,7 +17,7 @@ namespace Nexora.Infrastructure.Productivity;
 /// compare-and-swap. No request can choose an owner or move a Task between
 /// Projects.
 /// </summary>
-public sealed class SqlProductivityService : IProductivityService
+public sealed partial class SqlProductivityService : IProductivityService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
@@ -75,6 +75,9 @@ public sealed class SqlProductivityService : IProductivityService
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX11", "projects.project.read")) return ModuleUnavailable<ProjectRecord>();
         var project = ReadProject(connection, transaction, actor.OwnerId, projectId, forUpdate: false);
+        if (project is not null && project.Status != "Deleted")
+            Nexora.Infrastructure.Discovery.SqlRecentActivity.RecordWithin(connection, transaction, _capabilities, actor,
+                ReadRecentSourceWithin(connection, transaction, actor, "Project", projectId));
         return project is null || project.Status == "Deleted"
             ? Failure<ProjectRecord>("ResourceUnavailable", 404, "Project unavailable.")
             : CommitAuthorized(connection, transaction, actor, "FX11", ["projects.project.read"], IdentityOperationResult<ProjectRecord>.Success(project));
@@ -371,6 +374,9 @@ public sealed class SqlProductivityService : IProductivityService
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX12", "tasks.task.read")) return ModuleUnavailable<TaskRecord>();
         var task = ReadTask(connection, transaction, actor.OwnerId, taskId, forUpdate: false);
+        if (task is not null && task.Status != "Deleted")
+            Nexora.Infrastructure.Discovery.SqlRecentActivity.RecordWithin(connection, transaction, _capabilities, actor,
+                ReadRecentSourceWithin(connection, transaction, actor, "Task", taskId));
         return task is null || task.Status == "Deleted"
             ? Failure<TaskRecord>("ResourceUnavailable", 404, "Task unavailable.")
             : CommitAuthorized(connection, transaction, actor, "FX12", ["tasks.task.read"], IdentityOperationResult<TaskRecord>.Success(task));
@@ -755,6 +761,8 @@ public sealed class SqlProductivityService : IProductivityService
                 return Failure<EventRecord>("ResourceUnavailable", 404, "Event unavailable.");
             }
         }
+        Nexora.Infrastructure.Discovery.SqlRecentActivity.RecordWithin(connection, transaction, _capabilities, actor,
+            ReadRecentSourceWithin(connection, transaction, actor, "Event", eventId));
         return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.read"], IdentityOperationResult<EventRecord>.Success(current));
     }
 
@@ -763,7 +771,6 @@ public sealed class SqlProductivityService : IProductivityService
         if (!ModuleAvailable(actor, "FX13", "calendar.event.create")) return ModuleUnavailable<EventRecord>();
         var validation = ValidateEvent(command);
         if (validation is not null) return validation;
-        var id = Guid.NewGuid();
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
@@ -777,6 +784,24 @@ public sealed class SqlProductivityService : IProductivityService
             transaction.Rollback();
             return receiptFailure;
         }
+        var created = CreateEventWithin(connection, transaction, actor, command, traceId);
+        if (!created.Succeeded || created.Value is null) return created;
+        var result = created.Value;
+        var id = result.Id;
+        CompleteReceipt(connection, transaction, receipt, "EventCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
+        var response = MutationProjection(connection, transaction, actor, "FX13", "calendar.event.read", id, result, 201, "EventCreated");
+        return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.create"], response);
+    }
+
+    // Calendar owns validation/identity/audit and uses the orchestrator's SQL
+    // transaction. No nested commit, receipt, reminder or external effect here.
+    internal IdentityOperationResult<EventRecord> CreateEventWithin(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, EventCommand command, string? traceId)
+    {
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX13", "calendar.event.create")) return ModuleUnavailable<EventRecord>();
+        var validation = ValidateEvent(command); if (validation is not null) return validation;
+        if (command.Status is not null and not "Scheduled") return IdentityOperationResult<EventRecord>.Failure("ValidationFailed",422,"New Personal Events must be Scheduled.");
+        var id = Guid.NewGuid();
         using var insert = connection.CreateCommand();
         insert.Transaction = transaction;
         insert.CommandText = """
@@ -797,11 +822,30 @@ public sealed class SqlProductivityService : IProductivityService
         SqlManualEventRegistry.Create(connection, transaction, actor, id);
         WriteAudit(connection, transaction, actor, id, "calendar.event.create", traceId);
         var result = ReadEvent(connection, transaction, actor.OwnerId, id, forUpdate: false);
-        CompleteReceipt(connection, transaction, receipt, "EventCreated", 201, result is null ? null : JsonSerializer.Serialize(result));
-        var response = MutationProjection(connection, transaction, actor, "FX13", "calendar.event.read", id, result, 201, "EventCreated");
-        return CommitAuthorized(connection, transaction, actor, "FX13", ["calendar.event.create"], response);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX13", "calendar.event.create")) return ModuleUnavailable<EventRecord>();
+        return result is null ? IdentityOperationResult<EventRecord>.Failure("PersistenceUnavailable",503,"Event unavailable.") : IdentityOperationResult<EventRecord>.Success(result,201);
     }
 
+    internal EventRecord? ReadPersonalEventWithin(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid id)
+    {
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX13", "calendar.event.read")) return null;
+        var row=ReadEvent(connection,transaction,actor.OwnerId,id,false);
+        using var trash = connection.CreateCommand(); trash.Transaction = transaction;
+        trash.CommandText = "SELECT COUNT(*) FROM [platform].[TrashItem] WHERE OwnerId=@Owner AND ResourceType='Event' AND ResourceId=@Id AND RestoredAt IS NULL AND PurgedAt IS NULL;";
+        Add(trash, "@Owner", SqlDbType.UniqueIdentifier, actor.OwnerId); Add(trash, "@Id", SqlDbType.UniqueIdentifier, id);
+        var trashed = Convert.ToInt32(trash.ExecuteScalar()) != 0;
+        return !trashed && row is not null && row.SourceKind=="Manual" && row.TaskId is null && row.Status!="Deleted"
+            && _capabilities.IsAllowed(connection, transaction, actor, "FX13", "calendar.event.read") ? row : null;
+    }
+
+    internal bool IsScheduledPersonalEventWithin(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, Guid id, string action)
+    {
+        if (action is not ("calendar.event.create" or "calendar.event.read") || !_capabilities.IsAllowed(connection, transaction, actor, "FX13", action)) return false;
+        using var sql=connection.CreateCommand();sql.Transaction=transaction;
+        sql.CommandText="SELECT 1 FROM [calendar].[Event] e WHERE e.[OwnerId]=@Owner AND e.[Id]=@Id AND e.[SourceKind]='Manual' AND e.[TaskId] IS NULL AND e.[Status]='Scheduled' AND NOT EXISTS(SELECT 1 FROM [platform].[TrashItem] t WHERE t.[OwnerId]=e.[OwnerId] AND t.[ResourceType]='Event' AND t.[ResourceId]=e.[Id] AND t.[RestoredAt] IS NULL AND t.[PurgedAt] IS NULL);";
+        Add(sql,"@Owner",SqlDbType.UniqueIdentifier,actor.OwnerId);Add(sql,"@Id",SqlDbType.UniqueIdentifier,id);
+        return sql.ExecuteScalar() is not null && _capabilities.IsAllowed(connection,transaction,actor,"FX13",action);
+    }
     public IdentityOperationResult<EventRecord> UpdateEvent(IdentityPrincipal actor, Guid eventId, string? ifMatch, EventCommand command, string? idempotencyKey = null, string? traceId = null) =>
         UpdateEventCore(actor, eventId, ifMatch, command, idempotencyKey, traceId,
             "calendar.event.update", "calendar.event.update", ["calendar.event.update", "calendar.event.read"]);

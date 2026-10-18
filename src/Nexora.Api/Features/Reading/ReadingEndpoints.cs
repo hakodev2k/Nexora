@@ -18,10 +18,10 @@ public static class ReadingEndpoints
                 principal => service.Capabilities(principal), value => value))
             .WithName("readingCapabilities");
 
-        api.MapGet("/read-later", (HttpContext context, string? state, int? limit, string? cursor,
+        api.MapGet("/read-later", (HttpContext context, string? state, int? limit, string? cursor, string? sourceType,
             IReadingService service, IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, state, limit, cursor),
+                principal => service.List(principal, state, limit, cursor, sourceType),
                 value => new ReadingPageResponse(value.Items.Select(ToResponse).ToArray(), value.NextCursor)))
             .WithName("listReadingQueue");
 
@@ -43,7 +43,7 @@ public static class ReadingEndpoints
             IReadingService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Update(principal, itemId, context.Request.Headers.IfMatch.ToString(),
-                    new UpdateReadingCommand(request.State, request.Progress), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+                    new UpdateReadingCommand(request.State, request.Progress, context.Request.Headers["If-Source-Match"].ToString()), IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("updateReadingItem");
 
         return app;
@@ -85,5 +85,5 @@ public static class ReadingEndpoints
 
     private static ReadingResponse ToResponse(ReadingItemRecord value) => new(value.Id, value.SourceType, value.SourceId,
         value.State, value.Progress, value.SavedAt, value.ReadAt, value.SafeTitleSnapshot, value.SafeUrlSnapshot,
-        value.SourceAvailable, value.UpdatedAt, value.ETag);
+        value.SourceAvailable, value.UpdatedAt, value.ETag, value.SourceETag);
 }

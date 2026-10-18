@@ -1,6 +1,8 @@
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using Nexora.Infrastructure.Productivity;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Identity;
 using Nexora.Application.Planner;
@@ -19,26 +21,30 @@ public sealed class SqlPlannerService : IPlannerService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly SqlPlannerTaskSource _sources;
 
     public SqlPlannerService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
         _capabilities = new SqlSelfCapability(connections);
+        _sources = new SqlPlannerTaskSource(_capabilities);
     }
 
     public IdentityOperationResult<PlannerPlan> List(IdentityPrincipal actor, DateOnly? from = null, DateOnly? to = null)
     {
-        if (!HasCapabilities(actor, "planner.plan.read") || !TaskReadAvailable(actor))
+        if (!HasCapabilities(actor, "planner.plan.read"))
             return ModuleUnavailable<PlannerPlan>();
 
         using var connection = _connections.Create();
         connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!CurrentAuthority(connection, transaction, actor, "planner.plan.read")) return ModuleUnavailable<PlannerPlan>();
         DateOnly rangeFrom;
         DateOnly rangeTo;
         if (from is null && to is null)
         {
-            if (!TryReadOwnerLocalToday(connection, actor.OwnerId, out var ownerToday))
+            if (!TryReadOwnerLocalToday(connection, transaction, actor.OwnerId, out var ownerToday))
                 return PersistenceFailure<PlannerPlan>();
             rangeFrom = ownerToday;
             rangeTo = ownerToday;
@@ -54,7 +60,10 @@ public sealed class SqlPlannerService : IPlannerService
 
         try
         {
-            return IdentityOperationResult<PlannerPlan>.Success(ReadPlan(connection, null, actor.OwnerId, rangeFrom, rangeTo, false));
+            var plan = ReadPlan(connection, transaction, actor, rangeFrom, rangeTo, false);
+            if (!CurrentAuthority(connection, transaction, actor, "planner.plan.read")) return ModuleUnavailable<PlannerPlan>();
+            transaction.Commit();
+            return IdentityOperationResult<PlannerPlan>.Success(plan);
         }
         catch (SqlException)
         {
@@ -74,12 +83,14 @@ public sealed class SqlPlannerService : IPlannerService
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var receiptFailure = CheckReceipt<PlannerPinRecord>(connection, transaction, actor, "planner.plan.pin", idempotencyKey,
-            $"task:{command.TaskId:N}|date:{command.PlanDate:yyyy-MM-dd}|notes:{notes}", out var receipt);
+            Intent(new { command.TaskId, command.PlanDate, notes }),
+            $"task:{command.TaskId:N}|date:{command.PlanDate:yyyy-MM-dd}|notes:{notes}", null, ["planner.plan.pin"], out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
         {
-            var source = ReadTask(connection, transaction, actor.OwnerId, command.TaskId, true);
+            if (!LockOwner(connection, transaction, actor)) return Rollback(transaction, Busy<PlannerPinRecord>());
+            var source = _sources.Read(connection, transaction, actor, command.TaskId);
             if (source is null) return Rollback(transaction, Missing<PlannerPinRecord>());
             if (!source.SourceAvailable) return Rollback(transaction, LifecycleLocked<PlannerPinRecord>());
             if (ReadPinByTaskDate(connection, transaction, actor.OwnerId, command.TaskId, command.PlanDate, true) is not null)
@@ -100,12 +111,10 @@ public sealed class SqlPlannerService : IPlannerService
                 ("@Rank", SqlDbType.Decimal, rank, null),
                 ("@Notes", SqlDbType.NVarChar, (object?)notes ?? DBNull.Value, 2000));
 
-            var created = ReadPin(connection, transaction, actor.OwnerId, pinId, false);
+            var created = ReadPin(connection, transaction, actor, pinId, false);
             if (created is null) return Rollback(transaction, PersistenceFailure<PlannerPinRecord>());
             WriteAudit(connection, transaction, actor, pinId, "planner.plan.pin", "productivity.PlannerPin", traceId);
-            CompleteReceipt(connection, transaction, receipt, "PlannerPinned");
-            transaction.Commit();
-            return IdentityOperationResult<PlannerPinRecord>.Success(created, 201, "PlannerPinned");
+            return CommitPin(connection, transaction, actor, receipt, created, "planner.plan.pin", ["planner.plan.pin"], "PlannerPinned", 201);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -129,14 +138,27 @@ public sealed class SqlPlannerService : IPlannerService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var current = ReadPin(connection, transaction, actor.OwnerId, pinId, true);
+        var canonical = Intent(new { pinId, ifMatch, command.PlanDate, notes });
+        var legacy = $"pin:{pinId:N}|etag:{ifMatch}|date:{command.PlanDate:yyyy-MM-dd}|notes:{notes}";
+        foreach (var candidate in new[] { "planner.plan.notes", "planner.plan.reschedule" })
+        {
+            var previous = InspectReceipt(connection, transaction, actor, candidate, idempotencyKey, canonical, legacy);
+            if (previous.HasValue) return Rollback(transaction, ReceiptOutcome<PlannerPinRecord>(connection, transaction, actor, candidate, pinId, previous.Value));
+        }
+        if ((!CurrentAuthority(connection, transaction, actor, "planner.plan.notes")
+            && !CurrentAuthority(connection, transaction, actor, "planner.plan.reschedule")) || !_sources.CanRead(connection, transaction, actor))
+            return Rollback(transaction, ModuleUnavailable<PlannerPinRecord>());
+        if (!LockOwner(connection, transaction, actor)) return Rollback(transaction, Busy<PlannerPinRecord>());
+        var current = ReadPin(connection, transaction, actor, pinId, true);
         if (current is null) return Rollback(transaction, Missing<PlannerPinRecord>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<PlannerPinRecord>());
         var action = current.PlanDate == command.PlanDate ? "planner.plan.notes" : "planner.plan.reschedule";
-        if (!HasCapabilities(actor, action)) return Rollback(transaction, ModuleUnavailable<PlannerPinRecord>());
+        var actions = current.PlanDate != command.PlanDate && !string.Equals(current.Notes, notes, StringComparison.Ordinal)
+            ? new[] { "planner.plan.reschedule", "planner.plan.notes" } : new[] { action };
+        if (!CurrentAuthority(connection, transaction, actor, actions)) return Rollback(transaction, ModuleUnavailable<PlannerPinRecord>());
         if (!current.SourceAvailable) return Rollback(transaction, LifecycleLocked<PlannerPinRecord>());
         var receiptFailure = CheckReceipt<PlannerPinRecord>(connection, transaction, actor, action, idempotencyKey,
-            $"pin:{pinId:N}|etag:{ifMatch}|date:{command.PlanDate:yyyy-MM-dd}|notes:{notes}", out var receipt);
+            canonical, legacy, pinId, actions, out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
@@ -162,12 +184,10 @@ public sealed class SqlPlannerService : IPlannerService
                 ("@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId, null),
                 ("@RowVersion", SqlDbType.Binary, expectedVersion, 8));
             if (changed != 1) return Rollback(transaction, Revision<PlannerPinRecord>());
-            var updated = ReadPin(connection, transaction, actor.OwnerId, pinId, false);
+            var updated = ReadPin(connection, transaction, actor, pinId, false);
             if (updated is null) return Rollback(transaction, PersistenceFailure<PlannerPinRecord>());
             WriteAudit(connection, transaction, actor, pinId, action, "productivity.PlannerPin", traceId);
-            CompleteReceipt(connection, transaction, receipt, "PlannerPinUpdated");
-            transaction.Commit();
-            return IdentityOperationResult<PlannerPinRecord>.Success(updated, 200, "PlannerPinUpdated");
+            return CommitPin(connection, transaction, actor, receipt, updated, action, actions, "PlannerPinUpdated", 200);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -184,21 +204,24 @@ public sealed class SqlPlannerService : IPlannerService
     {
         if (!HasCapabilities(actor, "planner.plan.reorder") || !TaskReadAvailable(actor))
             return ModuleUnavailable<PlannerPlan>();
-        if (!TryETag(ifMatch, out var expectedPlanVersion)) return Precondition<PlannerPlan>();
+        if (!TryETag(ifMatch, out var expectedPlanVersion, 32)) return Precondition<PlannerPlan>();
         if (command.PinIds.Count is < 1 or > 100 || command.PinIds.Distinct().Count() != command.PinIds.Count)
             return Failure<PlannerPlan>("ValidationFailed", 422, "Planner reorder must contain distinct pins for one day.");
 
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var current = ReadPlan(connection, transaction, actor.OwnerId, command.PlanDate, command.PlanDate, true);
+        var receiptFailure = CheckReceipt<PlannerPlan>(connection, transaction, actor, "planner.plan.reorder", idempotencyKey,
+            Intent(new { command.PlanDate, ifMatch, command.PinIds }),
+            $"date:{command.PlanDate:yyyy-MM-dd}|etag:{ifMatch}|pins:{string.Join(',', command.PinIds)}",
+            command.PinIds[0], ["planner.plan.reorder"], out var receipt);
+        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
+        if (!LockOwner(connection, transaction, actor)) return Rollback(transaction, Busy<PlannerPlan>());
+        var current = ReadPlan(connection, transaction, actor, command.PlanDate, command.PlanDate, true);
         if (!MatchesETag(expectedPlanVersion, current.ETag)) return Rollback(transaction, Revision<PlannerPlan>());
         if (current.Pins.Count != command.PinIds.Count || !current.Pins.Select(pin => pin.Id).Order().SequenceEqual(command.PinIds.Order()))
             return Rollback(transaction, Failure<PlannerPlan>("PlannerReorderConflict", 409, "The submitted pins do not match the current plan day."));
         if (current.Pins.Any(pin => !pin.SourceAvailable)) return Rollback(transaction, LifecycleLocked<PlannerPlan>());
-        var receiptFailure = CheckReceipt<PlannerPlan>(connection, transaction, actor, "planner.plan.reorder", idempotencyKey,
-            $"date:{command.PlanDate:yyyy-MM-dd}|etag:{ifMatch}|pins:{string.Join(',', command.PinIds)}", out var receipt);
-        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
         {
@@ -216,11 +239,17 @@ public sealed class SqlPlannerService : IPlannerService
                     ("@PlanDate", SqlDbType.Date, ToDbDate(command.PlanDate), null));
                 if (changed != 1) return Rollback(transaction, Revision<PlannerPlan>());
             }
-            var reordered = ReadPlan(connection, transaction, actor.OwnerId, command.PlanDate, command.PlanDate, false);
             WriteAudit(connection, transaction, actor, command.PinIds[0], "planner.plan.reorder", "productivity.PlannerPin", traceId);
-            CompleteReceipt(connection, transaction, receipt, "PlannerReordered");
+            CompleteReceipt(connection, transaction, actor, receipt, "planner.plan.reorder", command.PinIds[0], ["planner.plan.reorder"], "PlannerReordered", 200);
+            var reordered = ReadPlan(connection, transaction, actor, command.PlanDate, command.PlanDate, false);
+            if (!CurrentAuthority(connection, transaction, actor, "planner.plan.reorder")
+                || !_sources.CanRead(connection, transaction, actor) || reordered.Pins.Any(pin => !pin.SourceAvailable)
+                || !reordered.Pins.Select(pin => pin.Id).Order().SequenceEqual(command.PinIds.Order()))
+                return Rollback(transaction, ModuleUnavailable<PlannerPlan>());
+            var canRead = CurrentAuthority(connection, transaction, actor, "planner.plan.read");
             transaction.Commit();
-            return IdentityOperationResult<PlannerPlan>.Success(reordered, 200, "PlannerReordered");
+            return canRead ? IdentityOperationResult<PlannerPlan>.Success(reordered, 200, "PlannerReordered")
+                : IdentityOperationResult<PlannerPlan>.Committed(command.PinIds[0], 200, "PlannerReordered");
         }
         catch (SqlException)
         {
@@ -236,12 +265,13 @@ public sealed class SqlPlannerService : IPlannerService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var current = ReadPin(connection, transaction, actor.OwnerId, pinId, true);
+        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "planner.plan.unpin", idempotencyKey,
+            Intent(new { pinId, ifMatch }), $"pin:{pinId:N}|etag:{ifMatch}", pinId, ["planner.plan.unpin"], out var receipt);
+        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
+        if (!LockOwner(connection, transaction, actor)) return Rollback(transaction, Busy<object?>());
+        var current = ReadPin(connection, transaction, actor, pinId, true, includeSource: false);
         if (current is null) return Rollback(transaction, Missing<object?>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<object?>());
-        var receiptFailure = CheckReceipt<object?>(connection, transaction, actor, "planner.plan.unpin", idempotencyKey,
-            $"pin:{pinId:N}|etag:{ifMatch}", out var receipt);
-        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
         {
@@ -254,7 +284,9 @@ public sealed class SqlPlannerService : IPlannerService
                 ("@RowVersion", SqlDbType.Binary, expectedVersion, 8));
             if (removed != 1) return Rollback(transaction, Revision<object?>());
             WriteAudit(connection, transaction, actor, pinId, "planner.plan.unpin", "productivity.PlannerPin", traceId);
-            CompleteReceipt(connection, transaction, receipt, "PlannerUnpinned");
+            CompleteReceipt(connection, transaction, actor, receipt, "planner.plan.unpin", pinId, ["planner.plan.unpin"], "PlannerUnpinned", 204);
+            if (!CurrentAuthority(connection, transaction, actor, "planner.plan.unpin"))
+                return Rollback(transaction, ModuleUnavailable<object?>());
             transaction.Commit();
             return IdentityOperationResult<object?>.Success(null, 204, "PlannerUnpinned");
         }
@@ -270,123 +302,66 @@ public sealed class SqlPlannerService : IPlannerService
     private bool TaskReadAvailable(IdentityPrincipal actor) =>
         _capabilities.IsAllowed(actor, "FX12", "tasks.task.read");
 
-    private static PlannerPlan ReadPlan(SqlConnection connection, SqlTransaction? transaction, Guid ownerId,
+    private PlannerPlan ReadPlan(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
         DateOnly from, DateOnly to, bool forUpdate)
     {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes],
-                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND taskRow.[DeletedAt] IS NULL
-                                           AND projectRow.[DeletedAt] IS NULL
-                                     THEN 1 ELSE 0 END) AS [SourceAvailable],
-                   pin.[UpdatedAt], pin.[RowVersion]
-            FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
-            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
-            WHERE pin.[OwnerId] = @OwnerId AND pin.[PlanDate] >= @From AND pin.[PlanDate] <= @To
-            ORDER BY pin.[PlanDate], pin.[Rank], pin.[Id];
+            SELECT [Id],[TaskId],[PlanDate],[Rank],[Notes],[UpdatedAt],[RowVersion]
+            FROM [productivity].[PlannerPin] {(forUpdate ? "WITH (UPDLOCK, HOLDLOCK)" : string.Empty)}
+            WHERE [OwnerId]=@OwnerId AND [PlanDate]>=@From AND [PlanDate]<=@To
+            ORDER BY [PlanDate],[Rank],[Id];
             """;
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        Add(command, "@From", SqlDbType.Date, ToDbDate(from));
-        Add(command, "@To", SqlDbType.Date, ToDbDate(to));
-        using var reader = command.ExecuteReader();
+        Add(command,"@OwnerId",SqlDbType.UniqueIdentifier,actor.OwnerId);
+        Add(command,"@From",SqlDbType.Date,ToDbDate(from)); Add(command,"@To",SqlDbType.Date,ToDbDate(to));
         var pins = new List<PlannerPinRecord>();
-        while (reader.Read()) pins.Add(ReadPin(reader));
-        return new PlannerPlan(from, to, pins, PlanETag(pins));
+        using (var reader = command.ExecuteReader()) while (reader.Read()) pins.Add(ReadPin(reader));
+        var projected = pins.Select(pin => ProjectPin(connection, transaction, actor, pin)).ToArray();
+        return new PlannerPlan(from,to,projected,PlanETag(projected));
     }
 
-    private static PlannerPinRecord? ReadPin(SqlConnection connection, SqlTransaction? transaction, Guid ownerId,
-        Guid pinId, bool forUpdate)
+    private PlannerPinRecord? ReadPin(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        Guid pinId, bool forUpdate, bool includeSource = true)
     {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes],
-                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND taskRow.[DeletedAt] IS NULL
-                                           AND projectRow.[DeletedAt] IS NULL
-                                     THEN 1 ELSE 0 END) AS [SourceAvailable],
-                   pin.[UpdatedAt], pin.[RowVersion]
-            FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
-            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
-            WHERE pin.[OwnerId] = @OwnerId AND pin.[Id] = @Id;
+            SELECT [Id],[TaskId],[PlanDate],[Rank],[Notes],[UpdatedAt],[RowVersion]
+            FROM [productivity].[PlannerPin] {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
+            WHERE [OwnerId]=@OwnerId AND [Id]=@Id;
             """;
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        Add(command, "@Id", SqlDbType.UniqueIdentifier, pinId);
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? ReadPin(reader) : null;
+        Add(command,"@OwnerId",SqlDbType.UniqueIdentifier,actor.OwnerId); Add(command,"@Id",SqlDbType.UniqueIdentifier,pinId);
+        PlannerPinRecord? pin;
+        using (var reader = command.ExecuteReader()) pin = reader.Read() ? ReadPin(reader) : null;
+        return pin is null || !includeSource ? pin : ProjectPin(connection, transaction, actor, pin);
     }
 
     private static PlannerPinRecord? ReadPinByTaskDate(SqlConnection connection, SqlTransaction transaction, Guid ownerId,
         Guid taskId, DateOnly planDate, bool forUpdate)
     {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
         command.CommandText = $"""
-            SELECT TOP (1) pin.[Id], pin.[TaskId], taskRow.[Title], taskRow.[Status], projectRow.[Name], taskRow.[StartAt], taskRow.[EndAt],
-                   pin.[PlanDate], pin.[Rank], pin.[Notes],
-                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND taskRow.[DeletedAt] IS NULL
-                                           AND projectRow.[DeletedAt] IS NULL
-                                     THEN 1 ELSE 0 END) AS [SourceAvailable],
-                   pin.[UpdatedAt], pin.[RowVersion]
-            FROM [productivity].[PlannerPin] pin {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON taskRow.[Id] = pin.[TaskId] AND taskRow.[OwnerId] = pin.[OwnerId]
-            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = pin.[OwnerId]
-            WHERE pin.[OwnerId] = @OwnerId AND pin.[TaskId] = @TaskId AND pin.[PlanDate] = @PlanDate;
+            SELECT TOP(1) [Id],[TaskId],[PlanDate],[Rank],[Notes],[UpdatedAt],[RowVersion]
+            FROM [productivity].[PlannerPin] {(forUpdate ? "WITH (UPDLOCK, HOLDLOCK)" : string.Empty)}
+            WHERE [OwnerId]=@OwnerId AND [TaskId]=@TaskId AND [PlanDate]=@PlanDate;
             """;
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        Add(command, "@TaskId", SqlDbType.UniqueIdentifier, taskId);
-        Add(command, "@PlanDate", SqlDbType.Date, ToDbDate(planDate));
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? ReadPin(reader) : null;
+        Add(command,"@OwnerId",SqlDbType.UniqueIdentifier,ownerId); Add(command,"@TaskId",SqlDbType.UniqueIdentifier,taskId);
+        Add(command,"@PlanDate",SqlDbType.Date,ToDbDate(planDate));
+        using var reader = command.ExecuteReader(); return reader.Read() ? ReadPin(reader) : null;
     }
 
-    private static PlannerTask? ReadTask(SqlConnection connection, SqlTransaction transaction, Guid ownerId,
-        Guid taskId, bool forUpdate)
+    private PlannerPinRecord ProjectPin(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, PlannerPinRecord pin)
     {
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText = $"""
-            SELECT taskRow.[Id],
-                   CONVERT(bit, CASE WHEN taskRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND projectRow.[Status] IN ('NotStarted', 'InProgress')
-                                           AND taskRow.[DeletedAt] IS NULL
-                                           AND projectRow.[DeletedAt] IS NULL
-                                     THEN 1 ELSE 0 END) AS [SourceAvailable]
-            FROM [productivity].[Task] taskRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-            INNER JOIN [productivity].[Project] projectRow {(forUpdate ? "WITH (UPDLOCK, ROWLOCK)" : string.Empty)}
-                ON projectRow.[Id] = taskRow.[ProjectId] AND projectRow.[OwnerId] = taskRow.[OwnerId]
-            WHERE taskRow.[OwnerId] = @OwnerId AND taskRow.[Id] = @TaskId;
-            """;
-        Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);
-        Add(command, "@TaskId", SqlDbType.UniqueIdentifier, taskId);
-        using var reader = command.ExecuteReader();
-        return reader.Read()
-            ? new PlannerTask(reader.GetGuid(0), reader.GetBoolean(1))
-            : null;
+        var source = _sources.Read(connection, transaction, actor, pin.TaskId);
+        return pin with { TaskTitle=source?.Title, TaskStatus=source?.Status, ProjectName=source?.ProjectName,
+            StartAt=source?.StartAt, EndAt=source?.EndAt, SourceAvailable=source?.SourceAvailable ?? false };
     }
-
-    private static bool TryReadOwnerLocalToday(SqlConnection connection, Guid ownerId, out DateOnly today)
+    private static bool TryReadOwnerLocalToday(SqlConnection connection, SqlTransaction transaction, Guid ownerId, out DateOnly today)
     {
         today = default;
         try
         {
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText = """
                 SELECT userRow.[TimeZoneId]
                 FROM [platform].[PersonalSpace] spaceRow
@@ -416,11 +391,9 @@ public sealed class SqlPlannerService : IPlannerService
     }
 
     private static PlannerPinRecord ReadPin(SqlDataReader reader) => new(
-        reader.GetGuid(0), reader.GetGuid(1), reader.GetString(2), reader.GetString(3), reader.GetString(4),
-        ToOffset(reader.GetDateTime(5)), ToOffset(reader.GetDateTime(6)), DateOnly.FromDateTime(reader.GetDateTime(7)),
-        reader.GetDecimal(8), reader.IsDBNull(9) ? null : reader.GetString(9),
-        reader.GetBoolean(10), ToOffset(reader.GetDateTime(11)), EncodeETag(reader.GetFieldValue<byte[]>(12)));
-
+        reader.GetGuid(0), reader.GetGuid(1), null, null, null, null, null,
+        DateOnly.FromDateTime(reader.GetDateTime(2)), reader.GetDecimal(3), reader.IsDBNull(4) ? null : reader.GetString(4),
+        false, ToOffset(reader.GetDateTime(5)), EncodeETag(reader.GetFieldValue<byte[]>(6)));
     private static bool TryValidateNotes(string? value, out string? notes)
     {
         notes = PlannerPolicy.NormalizeNotes(value);
@@ -440,19 +413,104 @@ public sealed class SqlPlannerService : IPlannerService
         catch (InvalidTimeZoneException) { return false; }
     }
 
-    private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
+    private static string Intent(object command) => JsonSerializer.Serialize(new { version = 2, command });
+
+    private bool CurrentAuthority(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, params string[] actions) =>
+        _capabilities.IsAllowed(connection, transaction, actor, "FX15", actions);
+
+    private static bool LockOwner(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor)
     {
-        claim = default;
-        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
-        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
-        if (claim.IsClaimed) return null;
-        return Failure<T>(claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress", 409,
-            "The request was already completed or is in progress.");
+        // Serialize only this owner's Planner writers, including empty days.
+        // Source mutations never acquire this lock or write Planner metadata.
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = "DECLARE @result int; EXEC @result=sys.sp_getapplock @Resource=@Resource, @LockMode='Exclusive', @LockOwner='Transaction', @LockTimeout=5000; SELECT @result;";
+        Add(command, "@Resource", SqlDbType.NVarChar, $"planner:{actor.OwnerId:N}", 255);
+        return Convert.ToInt32(command.ExecuteScalar()) >= 0;
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private ReceiptClaim? InspectReceipt(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        string operation, string? key, string canonical, string legacy)
+    {
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        var claim = _receipts.TryClaim(connection, transaction, actor.UserId, operation, key, canonical, DateTime.UtcNow,
+            claimIfMissing: false, legacyCanonicalRequest: legacy);
+        return claim.IsMissing ? null : claim;
+    }
+
+    private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest,
+        string legacyCanonicalRequest, Guid? id, string[] actions, out ReceiptClaim claim)
+    {
+        claim = default;
+        if (!CurrentAuthority(connection, transaction, actor, actions)
+            || (operationKey != "planner.plan.unpin" && !_sources.CanRead(connection, transaction, actor)))
+            return ModuleUnavailable<T>();
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest,
+            DateTime.UtcNow, legacyCanonicalRequest: legacyCanonicalRequest);
+        if (claim.IsClaimed) return null;
+        return ReceiptOutcome<T>(connection, transaction, actor, operationKey, id, claim);
+    }
+
+    private IdentityOperationResult<T> ReceiptOutcome<T>(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operation, Guid? id, ReceiptClaim claim)
+    {
+        if (!CurrentAuthority(connection, transaction, actor, operation)
+            || (operation != "planner.plan.unpin" && !_sources.CanRead(connection, transaction, actor))) return ModuleUnavailable<T>();
+        if (claim.IsInvalid) return Failure<T>("ValidationFailed", 422, "Idempotency key must be a UUID.");
+        if (claim.IsConflict) return Failure<T>("IdempotencyConflict", 409, "The key belongs to another request.");
+        if (!claim.IsReplay) return Busy<T>();
+        PlannerReceipt? outcome = null;
+        if (!string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            try { outcome = JsonSerializer.Deserialize<PlannerReceipt>(claim.ResultJson); }
+            catch (JsonException) { }
+        }
+        else if (id.HasValue && operation is "planner.plan.reorder" or "planner.plan.unpin")
+            outcome = new PlannerReceipt(2, actor.UserId, actor.OwnerId, id.Value, operation, [operation],
+                operation == "planner.plan.unpin" ? 204 : 200, claim.ResultCode ?? string.Empty);
+        if (outcome is null || outcome.Version != 2 || outcome.UserId != actor.UserId || outcome.OwnerId != actor.OwnerId
+            || outcome.Id == Guid.Empty || (id.HasValue && outcome.Id != id.Value) || outcome.Operation != operation
+            || outcome.Code != claim.ResultCode || (claim.ResultStatusCode.HasValue && outcome.Status != claim.ResultStatusCode.Value)
+            || !ValidOutcome(outcome))
+            return Failure<T>("CommittedOutcomeUnavailable", 409, "The request completed. Reconcile its outcome before starting another request.");
+        if (!CurrentAuthority(connection, transaction, actor, outcome.Actions)) return ModuleUnavailable<T>();
+        return outcome.Status == 204 ? IdentityOperationResult<T>.Success(default!, 204, outcome.Code)
+            : IdentityOperationResult<T>.Committed(outcome.Id, outcome.Status, outcome.Code);
+    }
+
+    private static bool ValidOutcome(PlannerReceipt value)
+    {
+        if (value.Actions is null || !(value.Actions.SequenceEqual(new[] { value.Operation })
+            || (value.Operation == "planner.plan.reschedule" && value.Actions.SequenceEqual(new[] { value.Operation, "planner.plan.notes" })))) return false;
+        return (value.Operation, value.Code, value.Status) is
+            ("planner.plan.pin", "PlannerPinned", 201) or
+            ("planner.plan.notes" or "planner.plan.reschedule", "PlannerPinUpdated", 200) or
+            ("planner.plan.reorder", "PlannerReordered", 200) or ("planner.plan.unpin", "PlannerUnpinned", 204);
+    }
+
+    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        ReceiptClaim claim, string operation, Guid id, string[] actions, string code, int status) =>
+        _receipts.Complete(connection, transaction, claim, code, status,
+            JsonSerializer.Serialize(new PlannerReceipt(2, actor.UserId, actor.OwnerId, id, operation, actions, status, code)));
+
+    private IdentityOperationResult<PlannerPinRecord> CommitPin(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, ReceiptClaim claim, PlannerPinRecord pin, string operation, string[] actions, string code, int status)
+    {
+        CompleteReceipt(connection, transaction, actor, claim, operation, pin.Id, actions, code, status);
+        var current = ReadPin(connection, transaction, actor, pin.Id, false);
+        if (!CurrentAuthority(connection, transaction, actor, actions) || !_sources.CanRead(connection, transaction, actor)
+            || current is null || !current.SourceAvailable) return Rollback(transaction, ModuleUnavailable<PlannerPinRecord>());
+        var canRead = CurrentAuthority(connection, transaction, actor, "planner.plan.read");
+        transaction.Commit();
+        return canRead ? IdentityOperationResult<PlannerPinRecord>.Success(current, status, code)
+            : IdentityOperationResult<PlannerPinRecord>.Committed(pin.Id, status, code);
+    }
+
+    private sealed record PlannerReceipt(int Version, Guid UserId, Guid OwnerId, Guid Id, string Operation,
+        string[] Actions, int Status, string Code);
+
+    private static IdentityOperationResult<T> Busy<T>() => Failure<T>("RequestInProgress", 409, "The request is in progress.");
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
         Guid targetId, string actionKey, string targetType, string? traceId) => Execute(connection, transaction, """
@@ -501,14 +559,16 @@ public sealed class SqlPlannerService : IPlannerService
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
     private static string EncodeETag(byte[] value) => $"\"{Convert.ToBase64String(value)}\"";
     private static bool MatchesETag(byte[] expected, string actual) => CryptographicOperations.FixedTimeEquals(expected, DecodeETag(actual));
-    private static bool TryETag(string? value, out byte[] bytes)
+    private static bool TryETag(string? value, out byte[] bytes, int size = 8)
     {
         bytes = Array.Empty<byte>();
         try
         {
-            if (string.IsNullOrWhiteSpace(value) || value.Trim() == "*") return false;
-            bytes = DecodeETag(value);
-            return bytes.Length is 8 or 32;
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            var token = value.Trim();
+            if (token.Length < 3 || token[0] != '"' || token[^1] != '"') return false;
+            bytes = Convert.FromBase64String(token[1..^1]);
+            return bytes.Length == size && Convert.ToBase64String(bytes) == token[1..^1];
         }
         catch (FormatException) { return false; }
     }
@@ -519,5 +579,4 @@ public sealed class SqlPlannerService : IPlannerService
         return EncodeETag(SHA256.HashData(Encoding.UTF8.GetBytes(material)));
     }
 
-    private sealed record PlannerTask(Guid Id, bool SourceAvailable);
 }

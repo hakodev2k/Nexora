@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ActionDialog, registerDirtyLeaveGuard } from './App';
 import { ResourceFormDialog } from './ResourceFormDialog';
+import { CareerAppointments } from './CareerAppointments';
 import { careerCapabilities, careerCompanies, careerCompany, careerJobs, careerJob, careerHistory, careerStages, saveCompany, saveJob, changeJobStage, previewJob, jobLifecycle, previewCompanyMerge, mergeCompany, returnToProgress, type CareerCompany, type CareerJob, type CompanyMetadata, type JobMetadata, type JobFilter, type HistoryFilter, type JobEvent, type JobPreview, type MergePreview } from './careerApi';
 
 type Draft = Record<keyof JobMetadata | 'industry' | 'stage' | 'reason', string>;
@@ -12,9 +13,10 @@ type Editor = { kind: 'company'; item?: CareerCompany; baseline: string } | { ki
 const draftOf = (item?: CareerCompany | CareerJob): Draft => item ? { ...blank, ...Object.fromEntries(Object.entries(item.metadata).map(([k, v]) => [k, v ?? ''])), stage: 'stage' in item ? item.stage : '' } : { ...blank };
 const textError = (e: unknown) => e instanceof Error ? e.message : 'Không thể hoàn tất thao tác.';
 
-export function CareerScreen({ onAuthLost }: { onAuthLost: () => void }) {
+export function CareerScreen({ onAuthLost, onOpenEvent = () => {} }: { onAuthLost: () => void; onOpenEvent?: (id: string) => void }) {
   const prefix = useId(); const [caps, setCaps] = useState<Record<string, boolean>>({});
   const [companies, setCompanies] = useState<CareerCompany[]>([]); const [jobs, setJobs] = useState<CareerJob[]>([]);
+  const [appointmentJob, setAppointmentJob] = useState<CareerJob | null>(null);
   const [companyCursor, setCompanyCursor] = useState<string | null>(null); const [jobCursor, setJobCursor] = useState<string | null>(null);
   const [companyQuery, setCompanyQuery] = useState(''); const [companyApplied, setCompanyApplied] = useState('');
   const [filter, setFilter] = useState(emptyFilter); const [applied, setApplied] = useState(emptyFilter); const [view, setView] = useState<'Table' | 'Kanban'>('Table');
@@ -30,7 +32,7 @@ export function CareerScreen({ onAuthLost }: { onAuthLost: () => void }) {
   const clearEditor = () => { setEditor(null); setDraft(blank); setConflict(null); setFormError(null); setPicker([]); setPickerCursor(null); };
   const fail = useCallback((e: unknown) => {
     setError(textError(e)); const status = (e as { status?: number }).status;
-    if (status === 401 || status === 403) { sequence.current++; setLoading(false); setBusy(false); setCaps({}); setCompanies([]); setJobs([]); setCompanyCursor(null); setJobCursor(null); setHistory(null); setEditor(null); setDraft(blank); setConflict(null); setPicker([]); setPickerCursor(null); setPending(null); setMerge(null); setLeave(null); setFormError(null); if (status === 401) onAuthLost(); }
+    if (status === 401 || status === 403 || (e as { code?: string }).code === 'ModuleUnavailable') { setAppointmentJob(null); sequence.current++; setLoading(false); setBusy(false); setCaps({}); setCompanies([]); setJobs([]); setCompanyCursor(null); setJobCursor(null); setHistory(null); setEditor(null); setDraft(blank); setConflict(null); setPicker([]); setPickerCursor(null); setPending(null); setMerge(null); setLeave(null); setFormError(null); if (status === 401) onAuthLost(); }
   }, [onAuthLost]);
   const load = useCallback(async () => {
     const stamp = ++sequence.current; setLoading(true); setError(null); setHistory(null);
@@ -90,13 +92,14 @@ export function CareerScreen({ onAuthLost }: { onAuthLost: () => void }) {
     try { await jobLifecycle(pending.preview, key.current); setPending(null); await load(); return true as const; }
     catch (e) { if ([409, 412].includes((e as { status?: number }).status ?? 0)) { setPending(null); await load(); } fail(e); return { error: textError(e) }; } finally { flight.current = false; setBusy(false); }
   }
-  const blocked = loading || busy; const backwards = editor?.kind === 'stage' && returnToProgress(editor.item.stage, draft.stage);
+  const blocked = loading || busy || appointmentJob !== null; const backwards = editor?.kind === 'stage' && returnToProgress(editor.item.stage, draft.stage);
   function field(name: keyof Draft, label: string, max = 200, multiline = false, type = 'text', required = false) {
     return <div key={name}><label htmlFor={prefix + name}>{label}</label>{multiline ? <textarea id={prefix + name} maxLength={max} value={draft[name]} onChange={e => change(name, e.target.value)} /> : <input id={prefix + name} type={type} required={required} maxLength={max} value={draft[name]} onChange={e => change(name, e.target.value)} />}</div>;
   }
   const jobActions = (item: CareerJob) => <div className="resource-actions">
     {!item.isTrash && <><button disabled={!can('job.update') || blocked} onClick={() => void begin('job', item)}>Edit Job</button><button disabled={!can('job.transition') || blocked} onClick={() => void begin('stage', item)}>Change Job stage</button></>}
     <button disabled={!can('job.history') || blocked} onClick={() => void openHistory(item)}>Job history</button>
+    <button disabled={blocked || !['read','create_event','link_event','unlink_event'].some(action => can('appointment.' + action))} onClick={() => setAppointmentJob(item)}>Calendar links</button>
     {(item.isTrash ? ['restore', 'purge'] as const : ['trash'] as const).map(op => <button key={op} disabled={!can('job.' + op) || blocked} onClick={() => void life(item, op)}>{operationNames[op]}</button>)}
   </div>;
   const metadataDetails = (metadata: CompanyMetadata | JobMetadata) => <details><summary>View metadata</summary><dl>{Object.entries(metadata).map(([name,value]) => <div key={name}><dt>{name}</dt><dd>{value ?? '—'}</dd></div>)}</dl></details>;
@@ -119,6 +122,7 @@ export function CareerScreen({ onAuthLost }: { onAuthLost: () => void }) {
         {view === 'Table' ? <div className="career-table-scroll" tabIndex={0} role="region" aria-label="Job table"><table className="career-table"><thead><tr><th scope="col">Job</th><th scope="col">Stage</th><th scope="col">Company</th><th scope="col">Dates</th><th scope="col">Salary</th><th scope="col">Actions</th></tr></thead><tbody>{jobs.map(item => <tr key={item.id} className="resource-card"><td><h2>{item.metadata.title}</h2><p>{item.metadata.location} · {item.metadata.workMode}</p>{item.metadata.notes && <p>{item.metadata.notes}</p>}{metadataDetails(item.metadata)}</td><td>{item.stage}{item.isTrash?' · Trash':''}</td><td>{item.companyLabel ?? '—'}</td><td><p>Discovered: {item.metadata.discoveredOn ?? '—'}</p><p>Applied: {item.metadata.appliedOn ?? '—'}</p></td><td>{item.metadata.salaryText && <p>{item.metadata.salaryText}</p>}{(item.metadata.salaryMin || item.metadata.salaryMax) && <p>{item.metadata.salaryMin ?? '—'} … {item.metadata.salaryMax ?? '—'} {item.metadata.currency}</p>}</td><td>{jobActions(item)}</td></tr>)}</tbody></table></div> : <div className="career-kanban">{careerStages.map(stage => <section aria-label={stage} key={stage}><h3>{stage}</h3>{jobs.filter(j => j.stage === stage).map(jobCard)}</section>)}</div>}
         {jobCursor && <button disabled={blocked} onClick={() => void run(async () => { const page = await careerJobs(applied, jobCursor); setJobs(old => [...old, ...page.items]); setJobCursor(page.nextCursor); })}>Load more Jobs</button>}</>}
     </section>
+    {appointmentJob && <CareerAppointments key={appointmentJob.id} job={appointmentJob} caps={caps} onClose={() => setAppointmentJob(null)} onFailure={fail} onOpenEvent={onOpenEvent} />}
     {history && <section aria-label="Job history" className="resource-card"><h2>History: {history.title}</h2><form className="resource-form career-form" onSubmit={e => { e.preventDefault(); void run(async () => { const page = await careerHistory(history.id, historyFilter); setHistoryApplied({ ...historyFilter }); setHistory({ ...history, items: page.items, cursor: page.nextCursor }); }); }}>
       <label htmlFor={prefix+'history-action'}>History action</label><select id={prefix+'history-action'} disabled={blocked} value={historyFilter.action} onChange={e => setHistoryFilter(old => ({ ...old, action: e.target.value }))}><option value="">All</option>{['career.job.create','career.job.update','career.job.transition','career.job.trash','career.job.restore','career.company.merge'].map(a => <option key={a}>{a}</option>)}</select>
       {(['from', 'to'] as const).map(name => <div key={name}><label htmlFor={prefix+'history-'+name}>{name === 'from' ? 'History instant from' : 'History instant before'}</label><input id={prefix+'history-'+name} disabled={blocked} placeholder="2026-10-03T00:00:00Z" value={historyFilter[name]} onChange={e => setHistoryFilter(old => ({ ...old, [name]: e.target.value }))} /></div>)}<button disabled={blocked}>Filter history</button></form>

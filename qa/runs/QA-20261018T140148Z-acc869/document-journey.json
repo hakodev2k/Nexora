@@ -1,0 +1,30 @@
+{
+  "CaseId": "QA-DOC-CURRENT-UI",
+  "RequirementRef": "FX20 raw HTML escaped; versioning/explicit Publish/Archive; current topology contract",
+  "Status": "PASS",
+  "resources": [
+    {
+      "id": "fd5ed190-961a-4393-aad4-18a8c4e15c03",
+      "type": "Document",
+      "expected": "Archived",
+      "layer": "UI"
+    }
+  ],
+  "Actual": {
+    "created": 201,
+    "rawHtml": "Displayed literally, no execution",
+    "reload": "Body persisted exactly",
+    "version": 2,
+    "publish": "Published",
+    "archive": "Archived via current preview+checkbox+confirm",
+    "sql": [
+      {
+        "Id": "FD5ED190-961A-4393-AAD4-18A8C4E15C03",
+        "OwnerId": "A0E7EDC7-BC1C-4FD2-92FA-65BA921AC7E8",
+        "Status": "Archived",
+        "VersionNumber": 2,
+        "Versions": 2
+      }
+    ]
+  }
+}

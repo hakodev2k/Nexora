@@ -403,7 +403,12 @@ public sealed class SqlSharingRepairTests
         await fixture.ExecuteAsync("UPDATE [security].[ShareLink] SET ExpiresAt=DATEADD(day,-1,SYSUTCDATETIME()) WHERE Id=@Id", Id("@Id", I(links[0])));
         using (var revoke = await Send(owner, HttpMethod.Delete, $"{Links}/{I(links[1])}", new { }, E(links[1]))) Assert.Equal(HttpStatusCode.NoContent, revoke.StatusCode);
         var expired = await Get(owner, Links + filter + "&state=Expired"); Assert.Single(expired.GetProperty("items").EnumerateArray()); Assert.Equal(I(links[0]), I(expired.GetProperty("items")[0]));
-        var revoked = await Get(owner, Links + filter + "&state=Revoked"); Assert.Single(revoked.GetProperty("items").EnumerateArray()); Assert.Equal(I(links[1]), I(revoked.GetProperty("items")[0]));
+        // Current PO invalidation deletes the link permanently. Older revoked
+        // diagnostics wording cannot revive it in owner active management.
+        var revoked = await Get(owner, Links + filter + "&state=Revoked"); Assert.Empty(revoked.GetProperty("items").EnumerateArray());
+        Assert.Equal(1, await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [security].[ShareLink] WHERE OwnerId=@Owner AND Id=@Id AND IsDeleted=1 AND RevokedAt IS NOT NULL;", Id("@Owner", owner.OwnerId), Id("@Id", I(links[1]))));
+        using (var invalidated = await fixture.SendAuthenticatedAsync(HttpMethod.Get, $"{Links}/{I(links[1])}", owner.RawSessionHandle)) Assert.Equal(HttpStatusCode.NotFound, invalidated.StatusCode);
+        using (var invalidatedViewer = await Resolve(links[1])) Assert.Equal(HttpStatusCode.NotFound, invalidatedViewer.StatusCode);
         var active = await Get(owner, Links + filter + "&state=Active"); Assert.Equal(25, active.GetProperty("items").GetArrayLength());
         Assert.DoesNotContain(active.GetProperty("items").EnumerateArray().Select(I), id => id == I(links[0]) || id == I(links[1]));
         await Policy(scope.Super, "FX04", new { sharingEnabled = false }); await Policy(scope.Super, "FX04", new { sharingEnabled = true });

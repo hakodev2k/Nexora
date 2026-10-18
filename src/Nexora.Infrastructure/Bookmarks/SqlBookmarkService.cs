@@ -17,7 +17,7 @@ namespace Nexora.Infrastructure.Bookmarks;
 /// external navigation are separate gated capabilities and are intentionally
 /// unavailable in the local slice.
 /// </summary>
-public sealed class SqlBookmarkService : IBookmarkService
+public sealed partial class SqlBookmarkService : IBookmarkService
 {
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
@@ -112,6 +112,9 @@ public sealed class SqlBookmarkService : IBookmarkService
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
             return ModuleUnavailable<BookmarkRecord>();
         var bookmark = Read(connection, transaction, actor.OwnerId, bookmarkId, forUpdate: false);
+        if (bookmark is not null && bookmark.Status is "Active" or "Archived")
+            Nexora.Infrastructure.Discovery.SqlRecentActivity.RecordWithin(connection, transaction, _capabilities, actor,
+                ReadRecentSourceWithin(connection, transaction, actor, bookmarkId));
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX21", "bookmarks.bookmark.read"))
             return ModuleUnavailable<BookmarkRecord>();
         transaction.Commit();

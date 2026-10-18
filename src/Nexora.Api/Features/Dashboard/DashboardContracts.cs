@@ -6,7 +6,10 @@ public sealed record DashboardItemResponse(
     string Title,
     string? Status,
     DateTimeOffset? At,
-    string? Detail);
+    string? Detail,
+    DateOnly? StartDate = null,
+    DateOnly? EndDateExclusive = null,
+    DateTimeOffset? EndAt = null);
 
 public sealed record DashboardWidgetResponse(
     string Id,
@@ -16,7 +19,8 @@ public sealed record DashboardWidgetResponse(
     string? Message,
     DateTimeOffset RefreshedAt,
     int Count,
-    IReadOnlyList<DashboardItemResponse> Items);
+    IReadOnlyList<DashboardItemResponse> Items,
+    string? DrilldownToken = null);
 
 public sealed record DashboardSnapshotResponse(
     string TimeZoneId,

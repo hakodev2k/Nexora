@@ -3,8 +3,29 @@
 > **Current implementation overlay — 2026-09-10:** `/goals` now provides the
 > local numeric Goal list/create/edit/detail/progress flow on PR #4. The UI
 > uses server-provided data, CSRF, idempotency and Goal `ETag` conflict reload;
-> it does not expose task-linked/boolean targets, archive/trash/history,
+> **2026-10-18:** Goal detail additionally exposes Boolean target create/read/progress
+> using native explicit dialogs; [contract](../../implementation/remediation-plan-20261016/goals-boolean-contract-20261018.md).
+> It does not expose task-linked targets, Trash,
 > reminders or provider actions. See [slice evidence](../../implementation/goals-numeric-slice.md).
+> A native explicit-load progress-history table is additionally code-present;
+> [contract](../../implementation/remediation-plan-20261016/goals-progress-history-contract-20261018.md).
+> It labels current target names and never fabricates historical Goal revisions.
+> Native target management now handles all Numeric/Boolean targets, exact decimals,
+> one-decimal percentage display, signed before/after edit/remove confirmation,
+> retained removed-target evidence, and explicit Archive/Unarchive confirmations.
+> [Target contract](../../implementation/remediation-plan-20261016/goals-target-management-contract-20261018.md)
+> · [Archive contract](../../implementation/remediation-plan-20261016/goals-archive-contract-20261018.md).
+> No browser/runtime acceptance inferred from build.
+> Native Numeric/Boolean target-definition history additionally provides explicit
+> readonly25-row expandable snapshots, original target title/exact values and
+> removed marker, independent of progress evidence. Honest legacy baseline and
+> profile-timezone instants; [contract](../../implementation/remediation-plan-20261016/goals-target-history-contract-20261018.md).
+> Goal metadata versions (title, description, original date-only period) are also
+> explicit-load readonly snapshots with capture/source-update instants and honest
+> legacy baseline wording. [Contract](../../implementation/remediation-plan-20261016/goals-metadata-history-contract-20261018.md).
+> Numeric/Boolean target-definition versions are additionally code-present.
+> Target commands preserve a separate metadata draft; lifecycle buttons require
+> that draft to be saved/discarded first. Empty target counts explicitly say No targets.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Numeric local flow implemented on PR #4; remaining surfaces are documentation/gated.
 
@@ -118,6 +139,13 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
 ### FX16-S03 — Goal detail
+
+Local state-history continuation: explicit-load25-row table of source-defined
+Start/Complete/Abandon/Reopen/Archive/Unarchive transitions, exact before/after
+status and profile-timezone instant. No fabricated prior events; no metadata or
+target-definition history implied. Owner history+Goal read rechecked per page;
+no target-read prerequisite for this state-only projection.
+[Contract](../../implementation/remediation-plan-20261016/goals-lifecycle-history-contract-20261018.md).
 
 | Dimension | Specification |
 | --- | --- |

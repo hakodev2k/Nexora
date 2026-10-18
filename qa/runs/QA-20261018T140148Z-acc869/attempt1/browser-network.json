@@ -1,0 +1,4182 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 401
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/me",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 400
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 400
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 403
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/targets/d0efede3-7239-4be9-856b-3c30feace44a/change-preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/targets/d0efede3-7239-4be9-856b-3c30feace44a/update-definition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/metadata-history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/target-history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/state-history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/f8a1203c-92bf-4533-a623-34e45534e3d0/target-history",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/habits",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/planner",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/categories",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/records",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/organization/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/favorites",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/commands",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/developer/tools",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/timer",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/report",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/entries",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/folders",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/habits",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/planner",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/categories",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/records",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/organization/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/favorites",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/commands",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/developer/tools",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/entries",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/report",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/timer",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/folders",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/habits",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/planner",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/categories",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/records",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/organization/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/favorites",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/commands",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/developer/tools",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/entries",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/timer",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/report",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/folders",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/habits",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/planner",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/categories",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/records",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/organization/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/favorites",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/commands",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/developer/tools",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/entries",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/report",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/timer",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/folders",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/habits",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/planner",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/categories",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/finance/records",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/snippets",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/read-later",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/bookmarks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/organization/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/favorites",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/commands",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/recents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/notifications",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/developer/tools",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/projects",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/tasks",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/calendar/events",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/entries",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/timer",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/time/report",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/sessions",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/focus/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/folders",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/documents/tags",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  }
+]

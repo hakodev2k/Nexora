@@ -908,6 +908,11 @@ public sealed class SqlApiIntegrationTests
         Assert.Equal(file.Id, replayBody.RootElement.GetProperty("id").GetGuid());
         Assert.True(replayBody.RootElement.GetProperty("committed").GetBoolean());
         Assert.False(replayBody.RootElement.GetProperty("detailAvailable").GetBoolean());
+        Assert.False(replayBody.RootElement.TryGetProperty("lifecycle", out _));
+        Assert.False(replayBody.RootElement.TryGetProperty("originalName", out _));
+        using var supersededContent = await _fixture.SendAuthenticatedAsync(HttpMethod.Get,
+            $"/api/v1/files/{file.Id}/content", owner.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.NotFound, supersededContent.StatusCode);
         Assert.Equal(new[] { "committed", "detailAvailable", "id" }, replayBody.RootElement.EnumerateObject().Select(p => p.Name).Order().ToArray());
         using var currentTrash = await _fixture.SendAuthenticatedAsync(HttpMethod.Get, $"/api/v1/files/{file.Id}", owner.RawSessionHandle);
         Assert.Equal(HttpStatusCode.OK, currentTrash.StatusCode);

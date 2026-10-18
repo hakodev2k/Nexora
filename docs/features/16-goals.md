@@ -3,8 +3,23 @@
 > **Current decision amendment — 2026-09-10:** FX16-S01/S02/S03/S04 numeric
 > Goal subset is implemented locally on PR #4 under `DEC-20260909-014`.
 > Goal/target/progress data is SQL-backed and owner-isolated; task-linked,
-> boolean, archive/trash/history, reminders and provider behavior remain gated.
+> Trash, reminders and provider behavior remain separate.
+> **2026-10-18 local continuation:** Boolean target create/read/progress is code-present
+> under the [bounded contract](../implementation/remediation-plan-20261016/goals-boolean-contract-20261018.md).
+> Compile evidence only; runtime acceptance and independent review remain open.
+> Local progress-history query/UI is also code-present under its
+> [bounded contract](../implementation/remediation-plan-20261016/goals-progress-history-contract-20261018.md).
+> Goal metadata and lifecycle state history are additionally code-present under their 2026-10-18 bounded contracts. Numeric/Boolean target-definition versions are additionally code-present.
+> Additional local code now implements [Numeric/Boolean target management](../implementation/remediation-plan-20261016/goals-target-management-contract-20261018.md)
+> and [Archive/Unarchive](../implementation/remediation-plan-20261016/goals-archive-contract-20261018.md).
+> Removed targets leave the active denominator but retain progress evidence;
+> Unarchive restores the recorded prior status. Runtime acceptance/review Pending.
 > See [numeric slice evidence](../implementation/goals-numeric-slice.md).
+> Goal metadata versions: [bounded contract](../implementation/remediation-plan-20261016/goals-metadata-history-contract-20261018.md);
+> immutable private snapshots, no pre-install backfill or restore-version command.
+> Numeric/Boolean target definitions also retain original title/initial/target
+> snapshots on create/update/remove, including removed targets, under the
+> [target history contract](../implementation/remediation-plan-20261016/goals-target-history-contract-20261018.md).
 
 FX-16 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 

@@ -90,9 +90,13 @@ internal sealed class SqlSelfCapability
             actions.Any(action => action is not ("monitoring.monitor.read" or "monitoring.monitor.create" or "monitoring.monitor.update" or "monitoring.monitor.pause" or "monitoring.monitor.resume")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
-        // Only the installed private category subset is available for every role.
+        // Only installed Category and stored-reader operations are available.
+        // Feed refresh/ingestion and TopicWatch remain uninstalled for every role.
         if (string.Equals(moduleCode, "FX29", StringComparison.Ordinal) &&
-            actions.Any(action => action is not ("news.category.read" or "news.category.create" or "news.category.update")))
+            actions.Any(action => action is not ("news.category.read" or "news.category.create" or "news.category.update"
+                or "news.source.read" or "news.source.follow" or "news.source.update" or "news.source.pause" or "news.source.resume" or "news.source.unfollow"
+                or "news.article.read" or "news.article.mark_read" or "news.article.mark_unread" or "news.article.mark_all_read" or "news.article.save"
+                or "news.history.read" or "news.history.clear")))
             return SqlCapabilityStatus.ModuleUnavailable;
 
         // Admin SELF is an explicit grant context. A stale or hand-inserted

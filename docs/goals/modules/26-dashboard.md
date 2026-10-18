@@ -2,13 +2,15 @@
 
 Product phase: **P03** · Delivery: **RM11** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** FX26-S01 read-only attention slice implemented locally on PR #4; layout/quick-create/provider widgets remain gated and runtime is not run. Goals có điều kiện không là quyền code. FX-26 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** local code on the PR #4 branch covers four fixed attention providers, owner layout/refresh, expanded lists and five native Quick Create handoffs. Runtime is NOT RUN and independent review Pending; uncommitted continuation has not been published to PR #4. Additional provider contracts remain gated. Goals có điều kiện không là quyền code. FX-26 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Current implementation overlay
 
-The local slice implements `NXG-FX26-G01`/`G02` for four independent
-owner-scoped source widgets through `getDashboard`. It does not claim the full
-layout lifecycle in `NXG-FX26-G03` or any provider/quick-create behavior.
+Local code addresses `NXG-FX26-G01/G02/G03` for the four registered source widgets,
+layout, refresh, scoped live drilldown and canonical Project/Task/Event/Document/
+manual-Finance create handoffs. See the [current implementation overlay](../../features/26-dashboard.md).
+Build-only evidence does not satisfy these goals' runtime acceptance, independent
+review or arbitrary future provider contracts.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

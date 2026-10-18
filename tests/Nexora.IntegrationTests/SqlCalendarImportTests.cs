@@ -109,10 +109,10 @@ public sealed class SqlCalendarImportTests(SqlApiFixture fixture)
         Assert.Equal(0,await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [operations].[ImportRow] WHERE OwnerId=@Owner AND BatchId=@Id AND(CandidateJson IS NOT NULL OR ExternalKeyHash IS NOT NULL)",Id("@Owner",owner.OwnerId),Id("@Id",I(batch,"batchId"))));
         using(var locked=await Send(owner,HttpMethod.Post,$"{Root}/imports/{I(batch,"batchId")}/commit",new{confirmed=true},E(canceled)))Assert.Equal(HttpStatusCode.Conflict,locked.StatusCode);
         using(var pin=await Send(owner,HttpMethod.Post,$"/api/v1/files/{I(file)}/trash",new{},E(file))) { var denied=await Json(pin,HttpStatusCode.Conflict);Assert.Equal("DependencyUnavailable",denied.GetProperty("code").GetString()); }
-        // Metadata rename is installed and allowed for a retained clean file; retention still blocks trash.
+        // Rename is now installed and changes display metadata, not the retained binary revision.
         using(var rename=await Send(owner,HttpMethod.Patch,$"/api/v1/files/{I(file)}",new{originalName="renamed-synthetic.ics"},E(file)))
-        { var renamed=await Json(rename); Assert.Equal("renamed-synthetic.ics",renamed.GetProperty("originalName").GetString()); Assert.NotEqual(E(file),E(renamed)); }
-        // Separately simulate a new binary revision to exercise source/report invalidation.
+        { var renamed=await Json(rename,HttpStatusCode.OK);Assert.Equal("renamed-synthetic.ics",renamed.GetProperty("originalName").GetString());Assert.NotEqual(E(file),E(renamed)); }
+        // A synthetic binary revision change still exercises report invalidation independently of rename.
         await fixture.ExecuteAsync("UPDATE [files].[FileObject] SET CurrentRevision=CurrentRevision+1,OriginalName=N'revised-synthetic.ics' WHERE OwnerId=@Owner AND Id=@Id",Id("@Owner",owner.OwnerId),Id("@Id",I(file)));
         using(var connection=new SqlConnection(fixture.ConnectionString))
         {

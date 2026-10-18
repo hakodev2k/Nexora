@@ -55,6 +55,11 @@
           "Microsoft.Identity.Client.Extensions.Msal": "4.78.0"
         }
       },
+      "Markdig": {
+        "type": "Transitive",
+        "resolved": "1.4.1",
+        "contentHash": "laiWlBRnwVqQlY9eWR56+uteUVtR+LpGw0doMSpirFuxdplSi3V59UOGRTepJaE8hJvfKGcCoguIZ8jmUHcEnA=="
+      },
       "Microsoft.AspNetCore.Cryptography.Internal": {
         "type": "Transitive",
         "resolved": "10.0.11",
@@ -512,6 +517,7 @@
       "nexora.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "Markdig": "[1.4.1, )",
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.11, )",
           "Microsoft.Extensions.Hosting.Abstractions": "[10.0.11, )",
           "Microsoft.Extensions.Identity.Core": "[10.0.11, )",

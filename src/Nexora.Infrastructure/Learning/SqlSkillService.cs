@@ -10,12 +10,12 @@ using Nexora.Infrastructure.Persistence;
 
 namespace Nexora.Infrastructure.Learning;
 
-/// <summary>Owner-controlled skill metadata and explicit self assessment. Evidence/merge are not installed.</summary>
-public sealed class SqlSkillService
-    : ISkillService
+/// <summary>Owner-controlled skill metadata, evidence and explicit self assessment.</summary>
+public sealed partial class SqlSkillService
+    : ISkillService, ISkillEvidenceService
 {
     public static readonly string[] Actions = ["learning.skill.read", "learning.skill.create", "learning.skill.update",
-        "learning.skill.proficiency", "learning.skill.archive", "learning.skill.unarchive",
+        "learning.skill.proficiency", "learning.skill.evidence", "learning.skill.archive", "learning.skill.unarchive",
         "learning.skill.trash", "learning.skill.restore", "learning.skill.purge"];
     private readonly SqlConnectionFactory connections;
     private readonly SqlSelfCapability capabilities;
@@ -42,8 +42,9 @@ public sealed class SqlSkillService
         status ??= "Active";
         if (status is not ("Active" or "Archived" or "Trash") || query is { Length: > 200 })
             return Fail<SkillPage>("ValidationFailed", 422, "Choose a valid skill state and a query up to 200 characters.");
-        using var c = connections.Create(); c.Open();
-        using var cmd = Command(c, null, $"""
+        using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
+        if (!Allowed(c, tx, actor, "learning.skill.read")) return Denied<SkillPage>();
+        using var cmd = Command(c, tx, $"""
             WITH selected AS (SELECT {Columns} FROM [learning].[Skill]
                 WHERE OwnerId=@Owner AND Status=@Status AND (@Query IS NULL OR CHARINDEX(@Query,Title)>0))
             SELECT TOP(26) {Columns} FROM selected
@@ -54,12 +55,18 @@ public sealed class SqlSkillService
         Add(cmd, "@Status", SqlDbType.VarChar, status, 64); Add(cmd, "@Cursor", SqlDbType.UniqueIdentifier, cursor);
         Add(cmd, "@Query", SqlDbType.NVarChar, string.IsNullOrWhiteSpace(query) ? null : query.Trim(), 200);
         var items = Rows(cmd);
+        if (!Allowed(c, tx, actor, "learning.skill.read")) return Denied<SkillPage>();
+        tx.Commit();
         return IdentityOperationResult<SkillPage>.Success(new(items.Take(25).ToArray(), items.Count > 25 ? items[24].Id : null));
     }
     public IdentityOperationResult<Skill> Get(IdentityPrincipal actor, Guid id)
     {
         if (!Allowed(actor, "learning.skill.read")) return Denied<Skill>();
-        using var c = connections.Create(); c.Open(); var item = Read(c, null, actor.OwnerId, id);
+        using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(IsolationLevel.Serializable);
+        if (!Allowed(c, tx, actor, "learning.skill.read")) return Denied<Skill>();
+        var item = Read(c, tx, actor.OwnerId, id);
+        if (!Allowed(c, tx, actor, "learning.skill.read")) return Denied<Skill>();
+        tx.Commit();
         return item is null ? Missing<Skill>() : IdentityOperationResult<Skill>.Success(item);
     }
     public IdentityOperationResult<SkillAcknowledgement> Create(IdentityPrincipal actor, SkillCreate body, string key, string? trace) =>
@@ -214,7 +221,9 @@ public sealed class SqlSkillService
         using var audit = Command(c, tx, "INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result,TraceId) VALUES(@User,@User,@Action,'learning.Skill',@Id,'Succeeded',@Trace);", actor.OwnerId);
         Add(audit, "@User", SqlDbType.UniqueIdentifier, actor.UserId); Add(audit, "@Action", SqlDbType.NVarChar, action, 160);
         Add(audit, "@Id", SqlDbType.UniqueIdentifier, result.Value.ItemId); Add(audit, "@Trace", SqlDbType.NVarChar, trace, 100); audit.ExecuteNonQuery();
-        receipts.Complete(c, tx, claim, result.Code, result.StatusCode, JsonSerializer.Serialize(result.Value)); tx.Commit(); return result;
+        receipts.Complete(c, tx, claim, result.Code, result.StatusCode, JsonSerializer.Serialize(result.Value));
+        if (!RequiredAllowed(c, tx, actor, action)) return Denied<SkillAcknowledgement>();
+        tx.Commit(); return result;
     }
     private static string? Action(string operation) => operation switch
     {
@@ -267,7 +276,7 @@ public sealed class SqlSkillService
     }
     private static int ReferenceCount(SqlConnection c, SqlTransaction? tx, Guid owner, Guid id)
     {
-        using var cmd = Command(c, tx, "SELECT COUNT(*) FROM [platform].[ResourceLink] WHERE OwnerId=@Owner AND (SourceResourceId=@Id OR TargetResourceId=@Id) AND State<>'Detached';", owner);
+        using var cmd = Command(c, tx, "SELECT (SELECT COUNT(*) FROM [platform].[ResourceLink] WHERE OwnerId=@Owner AND (SourceResourceId=@Id OR TargetResourceId=@Id) AND State<>'Detached') + (SELECT COUNT(*) FROM [learning].[SkillEvidence] WHERE OwnerId=@Owner AND SkillId=@Id);", owner);
         Add(cmd, "@Id", SqlDbType.UniqueIdentifier, id); return Convert.ToInt32(cmd.ExecuteScalar());
     }
     private static string? Previous(SqlConnection c, SqlTransaction tx, Guid owner, Guid id, string column)

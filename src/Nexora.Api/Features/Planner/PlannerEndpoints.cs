@@ -55,6 +55,8 @@ public static class PlannerEndpoints
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, new IdentityOperationResult<PlannerPlanResponse>(false,
             default, auth.Code, auth.StatusCode, auth.Title));
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return ToHttp(context, IdentityOperationResult<CommittedResourceAcknowledgement>.Success(acknowledgement, result.StatusCode, result.Code));
         if (result.Succeeded && result.Value is not null) context.Response.Headers.ETag = result.Value.ETag;
         return result.Succeeded && result.Value is not null
             ? ToHttp(context, IdentityOperationResult<PlannerPlanResponse>.Success(ToResponse(result.Value), result.StatusCode, result.Code))
@@ -67,6 +69,8 @@ public static class PlannerEndpoints
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, new IdentityOperationResult<PlannerPinResponse>(false,
             default, auth.Code, auth.StatusCode, auth.Title));
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return ToHttp(context, IdentityOperationResult<CommittedResourceAcknowledgement>.Success(acknowledgement, result.StatusCode, result.Code));
         if (result.Succeeded && result.Value is not null) context.Response.Headers.ETag = result.Value.ETag;
         return result.Succeeded && result.Value is not null
             ? ToHttp(context, IdentityOperationResult<PlannerPinResponse>.Success(ToResponse(result.Value), result.StatusCode, result.Code))

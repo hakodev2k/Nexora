@@ -18,6 +18,20 @@ test('Snippets: literal content, edit/version, archive/unarchive and SQL reload'
   await card(page, title).getByRole('button', { name: 'Archive', exact: true }).click(); await confirm(page, 'Archive snippet'); expect(sql('Snippet', item.id)[0].Status).toBe('Archived'); await page.getByLabel('Hiển thị snippet đã archive').check(); await card(page, title).getByRole('button', { name: 'Unarchive' }).click(); await expect.poll(() => sql('Snippet', item.id)[0].Status).toBe('Active'); await page.reload(); await expect(card(page, title)).toBeVisible();
 });
 
+test('Snippets: every cursor page is reachable and conflict recovery preserves the draft with an exact revision', async ({ page }) => {
+  await page.goto('/modules/FX22');const prefix=unique('snippet-paging');const created=[];
+  for(let i=0;i<27;i++)created.push(await api(page,'createSnippet',[`${prefix}-${i.toString().padStart(2,'0')}`,'plaintext',`Synthetic source ${i}`,null]));
+  await page.reload();await page.locator('#snippet-query').fill(prefix);await page.getByRole('button',{name:'Áp dụng',exact:true}).click();
+  await expect(page.locator('.snippet-card')).toHaveCount(25);await page.getByRole('button',{name:'Tải thêm snippets',exact:true}).click();await expect(page.locator('.snippet-card')).toHaveCount(27);
+  const target=created[0];expect(sql('Snippet',target.id)[0].OwnerId.toLowerCase()).toBe((await api(page,'getMe')).personalSpaceId.toLowerCase());
+  await card(page,target.title).getByRole('button',{name:'Sửa',exact:true}).click();const draft='Synthetic preserved conflict draft';await page.locator('#snippet-body').fill(draft);
+  const concurrent=await api(page,'saveSnippet',[target.id,target.etag,target.title,target.language,'Synthetic concurrent source',null]);expect(concurrent.versionNumber).toBe(2);
+  const rejected=page.waitForResponse(r=>r.url().endsWith(`/api/v1/snippets/${target.id}`)&&r.request().method()==='PUT');await page.getByRole('button',{name:'Lưu version',exact:true}).click();expect((await rejected).status()).toBe(412);
+  await expect(page.locator('#snippet-body')).toHaveValue(draft);await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toBeVisible();expect(sql('Snippet',target.id)[0].Body).toBe('Synthetic concurrent source');
+  await page.getByRole('button',{name:'Tải revision',exact:true}).click();await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toHaveCount(0);await expect(page.locator('#snippet-body')).toHaveValue(draft);
+  await page.getByRole('button',{name:'Lưu version',exact:true}).click();await expect.poll(()=>sql('Snippet',target.id)[0].VersionNumber).toBe(3);expect(sql('Snippet',target.id)[0].Body).toBe(draft);
+});
+
 test('Read Later: add source, invalid/valid position, read/unread and remove preserves source', async ({ page }) => {
   await page.goto('/'); const title = unique('reading'); const source = await api(page, 'createBookmark', ['https://example.invalid/' + title, title, 'source fixture']); await page.goto('/modules/FX23'); let modal = await dialog(page, 'Thêm vào Read Later'); await page.locator('#read-later-source').selectOption(source.id); await modal.getByRole('button', { name: 'Lưu vào Read Later', exact: true }).click(); await expect(modal).toHaveCount(0);
   const { item } = await record(page, 'listReadingQueue', ['', 100], 'ReadingItem', title, 'safeTitleSnapshot'); const row = card(page, title);

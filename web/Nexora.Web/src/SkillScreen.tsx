@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { ActionDialog, registerDirtyLeaveGuard } from './App';
 import { ResourceFormDialog } from './ResourceFormDialog';
+import { SkillEvidencePanel } from './SkillEvidence';
 import { skillCapabilities, skillGet, skillList, skillPreview, skillSave, skillSetProficiency, skillTransition, type Skill, type SkillOperation, type SkillPreview } from './skillApi';
 
 type Draft = { title: string; level: string; description: string; category: string; lastUsed: string };
@@ -16,6 +17,7 @@ export function SkillScreen({ onAuthLost }: { onAuthLost: () => void }) {
   const [error, setError] = useState<string | null>(null); const [formError, setFormError] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ item?: Skill; mode: 'metadata' | 'proficiency'; baseline: string } | null>(null); const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [pending, setPending] = useState<{ preview: SkillPreview; title: string } | null>(null);
+  const [evidenceSkill, setEvidenceSkill] = useState<Skill | null>(null);
   const [conflict, setConflict] = useState(false); const [currentVersion, setCurrentVersion] = useState<Skill | null>(null); const [leave, setLeave] = useState<{ proceed: () => void } | null>(null);
   const sequence = useRef(0); const key = useRef(crypto.randomUUID()); const inFlight = useRef(false);
   const fail = useCallback((e: unknown) => {
@@ -77,7 +79,8 @@ export function SkillScreen({ onAuthLost }: { onAuthLost: () => void }) {
     try { await skillTransition(pending.preview, key.current); await load(); return true as const; }
     catch (e) { if ((e as { status?: number }).status === 412) { setPending(null); await load(); } fail(e); return { error: message(e) }; } finally { inFlight.current = false; setBusy(false); }
   }
-  const blocked = loading || busy;
+  const blocked = loading || busy || evidenceSkill !== null;
+  if (evidenceSkill) return <SkillEvidencePanel key={evidenceSkill.id} skill={evidenceSkill} canWrite={can('evidence')} onClose={() => { setEvidenceSkill(null); void load(); }} onFailure={e => { setEvidenceSkill(null); fail(e); }} />;
   return <section className="content-section" aria-labelledby="skill-title">
     <div className="content-heading"><div><p className="eyebrow">FX40 / LEARNING</p><h1 id="skill-title">Skills</h1><p>Kỹ năng cá nhân và mức độ tự đánh giá.</p></div><button className="secondary-button" disabled={blocked} onClick={() => void load()}>Tải lại</button></div>
     {error && <p role="alert">{error}</p>}{loading && <p role="status">Đang tải…</p>}
@@ -92,6 +95,7 @@ export function SkillScreen({ onAuthLost }: { onAuthLost: () => void }) {
       <div className="resource-cards">{items.map(item => {
         const operations: SkillOperation[] = item.status === 'Trash' ? ['restore', 'purge'] : item.status === 'Archived' ? ['unarchive', 'trash'] : ['archive', 'trash'];
         return <article key={item.id} className="resource-card"><div><h2>{item.title}</h2><p>{item.status} · Self-assessed: {item.level}</p>{item.category && <p>Category: {item.category}</p>}{item.lastUsed && <p>Last used: {item.lastUsed}</p>}{item.description && <p>{item.description}</p>}</div><div className="resource-actions">
+          <button disabled={blocked} onClick={() => setEvidenceSkill(item)}>Evidence</button>
           {item.status === 'Active' && <><button disabled={!can('update') || blocked} onClick={() => begin(item)}>Edit Skill</button><button disabled={!can('proficiency') || blocked} onClick={() => begin(item, 'proficiency')}>Assess proficiency</button></>}
           {operations.map(op => <button key={op} disabled={!can(op) || blocked} onClick={() => void preview(item, op)}>{names[op]}</button>)}
         </div></article>;

@@ -1,5 +1,14 @@
 # FX-40 — Learning — UX/UI Specification
 
+> **Local continuation 2026-10-18:** Learning links to `/learning/work-log` with
+> manual create/detail/edit, date/title/state filters25/page, explicit Archive/
+> Unarchive and gross manual-minute day report. Date-only values stay unchanged
+> under timezone changes; fresh form defaults use the explicit profile timezone.
+> Common dirty/uncertainty dialogs, frozen retry, safe leave confirmation and
+> owner-scoped in-memory filters are code-present. Source links/TimeEntry dedupe,
+> Native Work Log Trash/Restore/Purge and edit history are now code-present; global Trash provider and full Learning overview remain open. [Contract](../../implementation/remediation-plan-20261016/worklog-manual-contract-20261018.md).
+> Browser/runtime acceptance and independent review Pending.
+
 > **Current decision amendment — 2026-09-07:** Language/internal-link rules apply; sensitive sharing remains gated and no new external LMS integration. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
@@ -175,6 +184,20 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
 ### FX40-S06 — Work log form / list
+
+Local continuation: exact Category filter is shared by native list and gross
+report. Own detail offers explicit-load25-row immutable manual snapshots,
+with expandable prior fields, source-update and capture instants in profile
+timezone. Legacy HistoryStarted is honestly labelled; there is no fabricated
+pre-install history or history-restore command. [Bounded contract](../../implementation/remediation-plan-20261016/worklog-filter-history-contract-20261018.md).
+Runtime/independent review Pending; TimeEntry/source links remain open.
+Native Trash/Restore/Purge is now additionally code-present under the
+[lifecycle contract](../../implementation/remediation-plan-20261016/worklog-trash-contract-20261018.md):
+Trash status filter, readonly detail/history, restore actual prior Active/Archived,
+exact one-root cohort/reference/version preview, explicit irreversible purge of
+content and versions. Cancel focused first; refs block purge; pending retry freezes
+original key/revision/token. Trash excluded from reports. TimeEntry/source links
+and global Trash provider registration remain open, runtime/review Pending.
 
 | Dimension | Specification |
 | --- | --- |

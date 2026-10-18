@@ -16,7 +16,8 @@ namespace Nexora.Infrastructure.Career;
 public sealed class SqlCareerService : ICareerService
 {
     public static readonly string[] Actions = ["career.company.read", "career.company.create", "career.company.update", "career.company.merge",
-        "career.job.read", "career.job.create", "career.job.update", "career.job.transition", "career.job.history", "career.job.trash", "career.job.restore", "career.job.purge"];
+        "career.job.read", "career.job.create", "career.job.update", "career.job.transition", "career.job.history", "career.job.trash", "career.job.restore", "career.job.purge",
+        "career.appointment.read", "career.appointment.create_event", "career.appointment.link_event", "career.appointment.unlink_event"];
     private readonly SqlConnectionFactory connections;
     private readonly SqlSelfCapability capabilities;
     private readonly SqlRequestReceiptStore receipts;
@@ -31,7 +32,10 @@ public sealed class SqlCareerService : ICareerService
     private bool Allowed(SqlConnection c, SqlTransaction tx, IdentityPrincipal actor, string action) => capabilities.IsAllowed(c, tx, actor, "FX39", action);
     private bool Required(SqlConnection c, SqlTransaction tx, IdentityPrincipal actor, string action) => Allowed(c, tx, actor, action) &&
         (action != "career.company.update" || Allowed(c, tx, actor, "career.company.read")) &&
-        (action != "career.job.update" || Allowed(c, tx, actor, "career.job.read"));
+        (action != "career.job.update" || Allowed(c, tx, actor, "career.job.read")) &&
+        (action is not ("career.appointment.read" or "career.appointment.create_event" or "career.appointment.link_event")
+            || (Allowed(c,tx,actor,"career.job.read") && capabilities.IsAllowed(c,tx,actor,"FX13",
+                action == "career.appointment.create_event" ? "calendar.event.create" : "calendar.event.read")));
     private static IdentityOperationResult<T> Fail<T>(string code, int status, string title) => IdentityOperationResult<T>.Failure(code, status, title);
     private static IdentityOperationResult<T> Denied<T>() => Fail<T>("ModuleUnavailable", 403, "The module or action is unavailable.");
     private static IdentityOperationResult<T> Missing<T>() => Fail<T>("ResourceUnavailable", 404, "The resource is unavailable.");
@@ -387,7 +391,7 @@ public sealed class SqlCareerService : ICareerService
         Common(cmd, actor, id, now); Add(cmd, "@Availability", SqlDbType.VarChar, availability, 64); if (cmd.ExecuteNonQuery() != 1) throw new InvalidOperationException("Career registry integrity failed.");
     }
     private static int ReferenceCount(SqlConnection c, SqlTransaction tx, Guid owner, Guid id)
-    { using var cmd = Command(c, tx, "SELECT COUNT(*) FROM [platform].[ResourceLink] WHERE OwnerId=@Owner AND (SourceResourceId=@Id OR TargetResourceId=@Id) AND State<>'Detached';", owner); Add(cmd, "@Id", SqlDbType.UniqueIdentifier, id); return Convert.ToInt32(cmd.ExecuteScalar()); }
+    { using var cmd = Command(c, tx, "SELECT (SELECT COUNT(*) FROM [platform].[ResourceLink] WHERE OwnerId=@Owner AND (SourceResourceId=@Id OR TargetResourceId=@Id) AND State<>'Detached') + (SELECT COUNT(*) FROM [career].[CalendarLink] WHERE OwnerId=@Owner AND JobApplicationId=@Id);", owner); Add(cmd, "@Id", SqlDbType.UniqueIdentifier, id); return Convert.ToInt32(cmd.ExecuteScalar()); }
     private static CareerCompany? ReadCompany(SqlConnection c, SqlTransaction tx, Guid owner, Guid id, bool jobRead = false)
     {
         using var cmd = Command(c, tx, $"SELECT {CompanyColumns},CASE WHEN @JobRead=1 THEN (SELECT COUNT(*) FROM [career].[JobApplication] j WHERE j.OwnerId=@Owner AND j.CompanyId=co.Id) ELSE NULL END FROM [career].[Company] co WHERE OwnerId=@Owner AND Id=@Id;", owner);

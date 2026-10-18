@@ -1,9 +1,10 @@
 # FX-25 — Search / Favorites / Command Palette: actions
 
-Catalog v1 · 2026-09-07 · Source business decisions giữ nguyên; the current
-PR #4 overlay implements only the bounded FX25-S01 Search and FX25-S03
-Favorites rows locally. Remaining rows stay delegated/gated; Blocked rows
-không được kích hoạt bằng grant.
+Catalog v1 · source business decisions giữ nguyên. Local PR4-branch continuation
+has code for bounded Search/Favorites, Saved Search, Recents and finite Palette
+handoffs. Runtime and independent review remain Pending; local uncommitted code
+does not prove PR synchronization or all-provider acceptance. Blocked rows cannot
+be enabled by grants.
 
 ## Sources và phạm vi
 
@@ -46,7 +47,7 @@ không được kích hoạt bằng grant.
 | `discovery.favorite.remove` | Own refs; source read; không bypass Archived/disabled; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.favorite.reorder` | Own refs; source read; không bypass Archived/disabled; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.recent.read` | Current permission trên từng source result; index không authority; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
-| `discovery.recent.clear` | Current permission trên từng source result; index không authority; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
+| `discovery.recent.clear` | Own metadata only, explicit owner-wide rowversion preview and idempotent selection; later opens survive, source/Audit untouched. No source-read prerequisite for removing own recent metadata | Common + current clear action/owner/session; FX-25-BR-005; DISC3 contract |
 | `discovery.saved_search.read` | Owner query definition only; query params không embed secrets; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.saved_search.create` | Owner query definition only; query params không embed secrets; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.saved_search.update` | Owner query definition only; query params không embed secrets; Current permission trên từng source result; index không authority | `discovery.saved_search.read` |

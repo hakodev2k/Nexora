@@ -7,6 +7,8 @@ using Nexora.Application.Notifications;
 using Nexora.Infrastructure.Authorization;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Persistence;
+using Nexora.Infrastructure.Productivity;
+using Nexora.Infrastructure.News;
 
 namespace Nexora.Infrastructure.Notifications;
 
@@ -21,18 +23,34 @@ public sealed class SqlNotificationService : INotificationService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly NotificationListCursor _cursors;
+    private readonly SqlProductivityService _sourceProvider;
+    private readonly SqlNewsReaderService _newsSourceProvider;
 
     public SqlNotificationService(SqlConnectionFactory connections, string? idempotencySecret = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
-        _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        var secret = idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+        _receipts = new SqlRequestReceiptStore(secret);
+        _cursors = new(secret);
+        _sourceProvider = new(connections, secret);
+        _newsSourceProvider = new(connections, secret);
         _capabilities = new SqlSelfCapability(connections);
     }
 
-    public IdentityOperationResult<NotificationPage> List(IdentityPrincipal actor, bool unreadOnly = false, int? limit = null)
+    public IdentityOperationResult<NotificationPage> List(IdentityPrincipal actor, bool unreadOnly = false, int? limit = null,
+        string? cursor = null, string? category = null, DateTimeOffset? from = null, DateTimeOffset? to = null)
     {
         if (!ModuleAvailable(actor, "FX06", "notifications.inbox.read")) return ModuleUnavailable<NotificationPage>();
-        var take = Math.Clamp(limit ?? 50, 1, 200);
+        var take = Math.Clamp(limit ?? 25, 1, 200);
+        category = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
+        if (category is { Length: > 64 } || (from.HasValue && to.HasValue && from >= to))
+            return Failure<NotificationPage>("ValidationFailed", 422, "Choose a valid category and ordered UTC date boundaries.");
+        var context = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new {
+            version = 1, actor.UserId, actor.OwnerId, unreadOnly, category, from = from?.UtcTicks, to = to?.UtcTicks, take })));
+        DateTime? cursorAt = null; Guid? cursorId = null;
+        if (!string.IsNullOrEmpty(cursor) && !_cursors.TryDecode(cursor, context, out cursorAt, out cursorId))
+            return Failure<NotificationPage>("InvalidCursor", 422, "The page cursor does not match this inbox query.");
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
@@ -47,11 +65,19 @@ public sealed class SqlNotificationService : INotificationService
             WHERE n.[OwnerUserId] = (SELECT [UserId] FROM [platform].[PersonalSpace] WHERE [Id] = @OwnerId)
               AND n.[DeletedAt] IS NULL
               AND (@UnreadOnly = 0 OR n.[ReadAt] IS NULL)
+              AND (@Category IS NULL OR n.[Kind]=@Category)
+              AND (@From IS NULL OR n.[CreatedAt]>=@From) AND (@To IS NULL OR n.[CreatedAt]<@To)
+              AND (@CursorAt IS NULL OR n.[CreatedAt]<@CursorAt OR (n.[CreatedAt]=@CursorAt AND n.[Id]<@CursorId))
             ORDER BY n.[CreatedAt] DESC, n.[Id] DESC;
             """;
-        Add(command, "@Limit", SqlDbType.Int, take);
+        Add(command, "@Limit", SqlDbType.Int, take + 1);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
         Add(command, "@UnreadOnly", SqlDbType.Bit, unreadOnly);
+        Add(command, "@Category", SqlDbType.NVarChar, (object?)category ?? DBNull.Value);
+        Add(command, "@From", SqlDbType.DateTime2, (object?)from?.UtcDateTime ?? DBNull.Value);
+        Add(command, "@To", SqlDbType.DateTime2, (object?)to?.UtcDateTime ?? DBNull.Value);
+        Add(command, "@CursorAt", SqlDbType.DateTime2, (object?)cursorAt ?? DBNull.Value);
+        Add(command, "@CursorId", SqlDbType.UniqueIdentifier, (object?)cursorId ?? DBNull.Value);
         var items = new List<NotificationRecord>();
         using (var reader = command.ExecuteReader())
         {
@@ -60,6 +86,8 @@ public sealed class SqlNotificationService : INotificationService
 
         // Keep the response projection explicit and avoid an open reader while
         // querying delivery rows. A bounded inbox (max 200) keeps this simple.
+        var more = items.Count > take;
+        if (more) items.RemoveAt(take);
         var projected = items.Select(item => Project(connection, transaction, actor, item)).ToArray();
         using var count = connection.CreateCommand();
         count.Transaction = transaction;
@@ -67,13 +95,32 @@ public sealed class SqlNotificationService : INotificationService
             SELECT COUNT_BIG(1)
             FROM [notifications].[Notification] n
             WHERE n.[OwnerUserId] = (SELECT [UserId] FROM [platform].[PersonalSpace] WHERE [Id] = @OwnerId)
-              AND n.[DeletedAt] IS NULL AND n.[ReadAt] IS NULL;
+              AND n.[DeletedAt] IS NULL AND n.[ReadAt] IS NULL
+              AND (@Category IS NULL OR n.[Kind]=@Category)
+              AND (@From IS NULL OR n.[CreatedAt]>=@From) AND (@To IS NULL OR n.[CreatedAt]<@To);
             """;
         Add(count, "@OwnerId", SqlDbType.UniqueIdentifier, actor.OwnerId);
+        Add(count, "@Category", SqlDbType.NVarChar, (object?)category ?? DBNull.Value);
+        Add(count, "@From", SqlDbType.DateTime2, (object?)from?.UtcDateTime ?? DBNull.Value);
+        Add(count, "@To", SqlDbType.DateTime2, (object?)to?.UtcDateTime ?? DBNull.Value);
         var unreadCount = Convert.ToInt32(count.ExecuteScalar() ?? 0L);
         if (!_capabilities.IsAllowed(connection, transaction, actor, "FX06", "notifications.inbox.read")) return ModuleUnavailable<NotificationPage>();
         transaction.Commit();
-        return IdentityOperationResult<NotificationPage>.Success(new NotificationPage(projected, null, unreadCount));
+        return IdentityOperationResult<NotificationPage>.Success(new NotificationPage(projected,
+            more ? _cursors.Encode(context, items[^1].CreatedAt, items[^1].Id) : null, unreadCount));
+    }
+
+    public IdentityOperationResult<NotificationSource> OpenSource(IdentityPrincipal actor, Guid notificationId)
+    {
+        using var connection = _connections.Create(); connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX06", "notifications.source.open")) return ModuleUnavailable<NotificationSource>();
+        var item = ReadNotification(connection, transaction, actor, notificationId, false);
+        if (item?.SourceRef is not { } reference) return Missing<NotificationSource>();
+        var source = ResolveSourceWithin(connection, transaction, actor, reference);
+        if (source is null) return Missing<NotificationSource>();
+        if (!_capabilities.IsAllowed(connection, transaction, actor, "FX06", "notifications.source.open")) return ModuleUnavailable<NotificationSource>();
+        transaction.Commit(); return IdentityOperationResult<NotificationSource>.Success(source);
     }
 
     public IdentityOperationResult<NotificationRecord> MarkRead(IdentityPrincipal actor, Guid notificationId,
@@ -253,13 +300,11 @@ public sealed class SqlNotificationService : INotificationService
         return deliveries;
     }
 
-    private static NotificationRecord Project(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, NotificationRecord value)
+    private NotificationRecord Project(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, NotificationRecord value)
     {
         var projected = value with { Deliveries = ReadDeliveries(connection, transaction, actor, value.Id) };
-        // Source-linked legacy snapshots can contain a private task/event title.
-        // No registered current source projection contract is installed here.
-        // Until its owner supplies one, fail closed without cross-module private
-        // table reads or using cached content as present source authority.
+        if (projected.SourceRef is { } reference && ResolveSourceWithin(connection, transaction, actor, reference) is { } source)
+            return projected with { Title = source.Title, Body = "Open the source to see its current state.", SourceUnavailable = false };
         return projected.SourceRef is null ? projected : projected with
         {
             Title = "Source unavailable",
@@ -267,6 +312,18 @@ public sealed class SqlNotificationService : INotificationService
             SourceRef = null,
             SourceUnavailable = true
         };
+    }
+
+    private NotificationSource? ResolveSourceWithin(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string reference)
+    {
+        const string newsPrefix = "NewsArticle:";
+        if (!reference.StartsWith(newsPrefix, StringComparison.Ordinal))
+            return _sourceProvider.ResolveNotificationSourceWithin(connection, transaction, actor, reference);
+        var value = reference[newsPrefix.Length..];
+        if ((!Guid.TryParseExact(value, "N", out var id) && !Guid.TryParseExact(value, "D", out id)) || id == Guid.Empty)
+            return null;
+        return _newsSourceProvider.ReadNotificationSourceWithin(connection, transaction, actor, id);
     }
 
     private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,

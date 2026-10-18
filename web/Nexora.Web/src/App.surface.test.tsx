@@ -47,6 +47,8 @@ function renderEnabledShell(location: LocationState, profile = enabledProfile())
 function emptyReadModel({ request }: { request: Request }) {
   const url = new URL(request.url);
   switch (url.pathname) {
+    case '/api/v1/snippets/capabilities':
+      return HttpResponse.json(Object.fromEntries(['read','create','save','archive','unarchive'].map(action => [`snippets.snippet.${action}`, true])));
     case '/api/v1/bookmarks/capabilities':
       return HttpResponse.json(Object.fromEntries(['read','create','update','archive','unarchive'].map(action => ['bookmarks.bookmark.' + action, true])));
     case '/api/v1/read-later/capabilities':

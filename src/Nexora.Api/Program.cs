@@ -212,7 +212,9 @@ builder.Services.AddSingleton<IAdminAccessService>(services =>
 builder.Services.AddSingleton<IProductivityService>(services =>
     new SqlProductivityService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IDashboardService>(services =>
-    new SqlDashboardService(services.GetRequiredService<SqlConnectionFactory>()));
+    new SqlDashboardService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, services.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<IDashboardLayoutService>(services =>
+    new SqlDashboardLayoutService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IPlannerService>(services =>
     new SqlPlannerService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<SqlReminderService>(services =>
@@ -234,8 +236,14 @@ builder.Services.AddSingleton<INotificationService>(services =>
     new SqlNotificationService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IFavoriteService>(services =>
     new SqlFavoriteService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IRecentService>(services =>
+    new SqlRecentService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, services.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<ICommandPaletteService>(services =>
+    new SqlCommandPaletteService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISearchService>(services =>
     new SqlSearchService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<ISavedSearchService>(services =>
+    new SqlSavedSearchService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IBookmarkService>(services =>
     new SqlBookmarkService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IReadingService>(services =>
@@ -246,6 +254,11 @@ builder.Services.AddSingleton<ISnippetService>(services =>
     new SqlSnippetService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IDocumentService>(services =>
     new SqlDocumentService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
+builder.Services.AddSingleton<IDocumentVersionService>(services => (SqlDocumentService)services.GetRequiredService<IDocumentService>());
+builder.Services.AddSingleton<IDocumentExportService>(s => new SqlDocumentExportService(s.GetRequiredService<SqlConnectionFactory>(), (SqlDocumentService)s.GetRequiredService<IDocumentService>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<IDocumentImportService>(s => new SqlDocumentImportService(s.GetRequiredService<SqlConnectionFactory>(), (SqlDocumentService)s.GetRequiredService<IDocumentService>(), s.GetRequiredService<SqlFileService>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<IDocumentFolderService>(s => new SqlDocumentFolderService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<IDocumentTreeService>(s => new SqlDocumentTreeService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISharingService>(services =>
     new SqlSharingService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<ISupportService>(services =>
@@ -272,6 +285,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ICalendarImportService>(s => new SqlCalendarImportService(s.GetRequiredService<SqlConnectionFactory>(), s.GetRequiredService<IFileService>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ICalendarExportService>(s => new SqlCalendarExportService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<ICareerService>(s => new SqlCareerService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<ICareerAppointmentService>(s => new SqlCareerAppointmentService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IDigitalAssetService>(s => new SqlDigitalAssetService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IMonitoringService>(s => new SqlMonitoringService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 var automationLimits = new AutomationLocalExecutionLimits(builder.Configuration.GetValue<int?>("Automation:LocalMaxConcurrentRuns") ?? 1,
@@ -286,7 +300,10 @@ builder.Services.AddSingleton<IAutomationRunService>(s => s.GetRequiredService<S
 builder.Services.AddHostedService<AutomationTaskWorker>();
 builder.Services.AddSingleton<IIntegrationConnectionService>(s => new SqlIntegrationConnectionService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<INewsCategoryService>(s => new SqlNewsCategoryService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<INewsReaderService>(s => new SqlNewsReaderService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<IWorkLogService>(s => new SqlWorkLogService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<ISkillEvidenceService>(s => (SqlSkillService)s.GetRequiredService<ISkillService>());
 builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 
 builder.Services.AddSingleton<SqlFocusService>(s => new SqlFocusService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
@@ -339,6 +356,7 @@ app.MapIdentityEndpoints();
 app.MapModuleEndpoints();
 app.MapAdminAccessEndpoints();
 app.MapDashboardEndpoints();
+app.MapDashboardLayoutEndpoints();
 app.MapProductivityEndpoints();
 app.MapPlannerEndpoints();
 app.MapReminderEndpoints();
@@ -349,14 +367,19 @@ app.MapWishlistEndpoints();
 app.MapPersonalAssetEndpoints();
 app.MapDigitalAssetEndpoints();
 app.MapCareerEndpoints();
+app.MapCareerAppointmentEndpoints();
 app.MapCalendarImportEndpoints();
 app.MapCalendarExportEndpoints();
+app.MapDocumentExportEndpoints();
+app.MapDocumentImportEndpoints();
 app.MapMonitoringEndpoints();
 app.MapNewsCategoryEndpoints();
+app.MapNewsReaderEndpoints();
 app.MapAutomationDefinitionEndpoints();
 app.MapAutomationRunEndpoints();
 app.MapIntegrationConnectionEndpoints();
 app.MapSkillEndpoints();
+app.MapWorkLogEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
@@ -364,11 +387,15 @@ app.MapSettingsEndpoints();
 app.MapNotificationEndpoints();
 app.MapFavoriteEndpoints();
 app.MapSearchEndpoints();
+app.MapRecentEndpoints();
+app.MapCommandPaletteEndpoints();
+app.MapSavedSearchEndpoints();
 app.MapBookmarkEndpoints();
 app.MapReadingEndpoints();
 app.MapFinanceEndpoints();
 app.MapSnippetEndpoints();
 app.MapDocumentEndpoints();
+app.MapDocumentTopologyEndpoints();
 app.MapDocumentTagEndpoints();
 app.MapSharingEndpoints();
 app.MapSupportEndpoints();

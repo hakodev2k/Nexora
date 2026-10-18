@@ -10,7 +10,9 @@ internal static class SqlDocumentSharedSource
     internal static (Guid OwnerId,string Status)? ReadState(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid resourceId)
     {
         using var command=connection.CreateCommand(); command.Transaction=transaction;
-        command.CommandText="SELECT [OwnerId], CASE WHEN [DeletedAt] IS NOT NULL THEN 'Deleted' ELSE [Status] END FROM [documents].[Page] WITH(HOLDLOCK) WHERE [Id]=@Id AND [OwnerId]=@OwnerId;";
+        // Policy-only status: archiving a suspended Draft must not make an old
+        // link readable. The canonical Page status/projection stays unchanged.
+        command.CommandText=$"SELECT p.[OwnerId], CASE WHEN p.[Status]='Archived' AND (p.[PreArchiveStatus] IS NULL OR p.[PreArchiveStatus]<>'Published') THEN 'Draft' ELSE p.[Status] END FROM [documents].[Page] p WITH(HOLDLOCK) WHERE p.[Id]=@Id AND p.[OwnerId]=@OwnerId AND {SqlDocumentService.ContainersVisible};";
         Add(command,"@Id",SqlDbType.UniqueIdentifier,resourceId); Add(command,"@OwnerId",SqlDbType.UniqueIdentifier,ownerId);
         using var reader=command.ExecuteReader(); return reader.Read()?(reader.GetGuid(0),reader.GetString(1)):null;
     }
@@ -19,10 +21,12 @@ internal static class SqlDocumentSharedSource
         var ownerId=source.OwnerId; var documentId=source.ResourceId;
         using var command = connection.CreateCommand();
         command.Transaction=transaction;
-        command.CommandText = """
-            SELECT [Id], [Title], [DocumentType], [EditorMode], [Body], [Status], [VersionNumber], [UpdatedAt]
-            FROM [documents].[Page]
-            WHERE [Id] = @Id AND [OwnerId] = @OwnerId AND [DeletedAt] IS NULL AND [Status] IN ('Published','Archived');
+        command.CommandText = $"""
+            SELECT p.[Id], p.[Title], p.[DocumentType], p.[EditorMode], p.[Body], p.[Status], p.[VersionNumber], p.[UpdatedAt]
+            FROM [documents].[Page] p
+            WHERE p.[Id] = @Id AND p.[OwnerId] = @OwnerId AND p.[DeletedAt] IS NULL
+              AND (p.[Status]='Published' OR(p.[Status]='Archived' AND p.[PreArchiveStatus]='Published'))
+              AND {SqlDocumentService.ContainersVisible};
             """;
         Add(command, "@Id", SqlDbType.UniqueIdentifier, documentId);
         Add(command, "@OwnerId", SqlDbType.UniqueIdentifier, ownerId);

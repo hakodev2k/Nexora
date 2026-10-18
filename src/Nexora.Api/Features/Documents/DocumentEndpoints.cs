@@ -15,10 +15,10 @@ public static class DocumentEndpoints
         // the document group instead of weakening the global 64 KiB default.
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods(8 * 1024 * 1024);
 
-        api.MapGet("/documents", (HttpContext context, string? status, int? limit, string? cursor, string? query, string? documentType, DateOnly? createdFrom, DateOnly? createdTo, Guid? tagId, IDocumentService service,
+        api.MapGet("/documents", (HttpContext context, string? status, int? limit, string? cursor, string? query, string? documentType, DateOnly? createdFrom, DateOnly? createdTo, Guid? tagId, Guid? folderId, Guid? parentPageId, IDocumentService service,
             IIdentityService identity, SessionCookieService cookies) =>
             Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
-                principal => service.List(principal, status, limit, cursor, query, documentType, createdFrom, createdTo, tagId), value =>
+                principal => service.List(principal, status, limit, cursor, query, documentType, createdFrom, createdTo, tagId, folderId, parentPageId), value =>
                     new DocumentPageResponse(value.Items.Select(ToSummary).ToArray(), value.NextCursor)))
             .WithName("listDocuments");
 
@@ -46,9 +46,24 @@ public static class DocumentEndpoints
             IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
                 principal => service.Create(principal,
-                    new DocumentCreateCommand(request.Title, request.DocumentType, request.EditorMode, request.Body, request.TagId),
+                    new DocumentCreateCommand(request.Title, request.DocumentType, request.EditorMode, request.Body, request.TagId, request.FolderId, request.ParentPageId),
                     IdempotencyKey(context), context.TraceIdentifier), ToResponse))
             .WithName("createDocument");
+
+        api.MapGet("/documents/{documentId:guid}/versions/compare", (HttpContext context, Guid documentId, long before, long after,
+            IDocumentVersionService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)),
+                principal => service.Compare(principal, documentId, before, after), value => new DocumentVersionComparisonResponse(
+                    new(ToVersionResponse(value.Before.Snapshot), value.Before.Body), new(ToVersionResponse(value.After.Snapshot), value.After.Body))))
+            .WithName("compareDocumentVersions");
+
+        api.MapPost("/documents/{documentId:guid}/versions/restore", (HttpContext context, Guid documentId,
+            DocumentRestoreVersionRequest request, IDocumentVersionService service, IIdentityService identity, SessionCookieService cookies) =>
+            MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                service.RestoreVersion(principal, documentId, context.Request.Headers.IfMatch.ToString(),
+                    new(request.VersionNumber, request.Tag is null ? null : new DocumentTagChange(request.Tag.Id), request.ChangeNote),
+                    IdempotencyKey(context), context.TraceIdentifier), ToResponse))
+            .WithName("restoreDocumentVersion");
 
         api.MapPut("/documents/{documentId:guid}", (HttpContext context, Guid documentId, DocumentSaveRequest request,
             IDocumentService service, IIdentityService identity, SessionCookieService cookies) =>
@@ -103,9 +118,9 @@ public static class DocumentEndpoints
 
     private static DocumentSummaryResponse ToSummary(DocumentSummary value) => new(
         value.Id, value.Title, value.DocumentType, value.EditorMode, value.Status, value.PreArchiveStatus, value.VersionNumber,
-        value.CreatedAt, value.UpdatedAt, value.ETag, value.TagId, value.TagName);
+        value.CreatedAt, value.UpdatedAt, value.ETag, value.TagId, value.TagName, value.FolderId, value.ParentPageId, value.Depth);
 
     private static DocumentResponse ToResponse(DocumentDetail value) => new(
         value.Id, value.Title, value.DocumentType, value.EditorMode, value.Body, value.Status, value.PreArchiveStatus, value.VersionNumber,
-        value.CreatedAt, value.UpdatedAt, value.ETag, value.TagId, value.TagName);
+        value.CreatedAt, value.UpdatedAt, value.ETag, value.TagId, value.TagName, value.FolderId, value.ParentPageId, value.Depth);
 }

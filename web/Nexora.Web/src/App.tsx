@@ -1,7 +1,27 @@
 import { isolateModalLayer } from './modalIsolation';
+import { GoalTargetManager } from './GoalTargetManager';
+import { exactGoalDecimal } from './goalNumbers';
+import { GoalProgressHistory } from './GoalProgressHistory';
+import { GoalStateHistory } from './GoalStateHistory';
+import { GoalMetadataHistory } from './GoalMetadataHistory';
+import { GoalTargetDefinitionHistory } from './GoalTargetDefinitionHistory';
 import { attemptDirtyLeave, registerDirtyLeaveGuard, type DirtyLeaveContinuation, type DirtyLeaveGuard } from './navigationGuard';
 export { registerDirtyLeaveGuard, requestDirtyLeave } from './navigationGuard';
+import { restoreDocumentVersion } from './api';
+import { DashboardLayoutEditor } from './DashboardLayoutEditor';
+import { DashboardQuickCreate } from './DashboardQuickCreate';
+import { DashboardDrilldownDialog, dashboardScopeLabel } from './DashboardDrilldownDialog';
+import { RecentsScreen, type RecentView } from './RecentsScreen';
+import { CommandPalette } from './CommandPalette';
+import type { DashboardLayout } from './api';
+import { SavedSearches } from './SavedSearches';
 import { DocumentHistory } from './DocumentHistory';
+import { DocumentBodyEditor } from './DocumentBodyEditor';
+import { DocumentExportLauncher } from './DocumentExportDialog';
+import { commitDocumentImport, DocumentImportPanel, DocumentImportReceiptNotice, type DocumentImportDraft } from './DocumentImportPanel';
+import { DocumentNavigation, DocumentChildren } from './DocumentNavigation';
+import { DocumentTreeDialog } from './DocumentTreeDialog';
+import { type Folder as DocumentFolder, type TreeTarget as DocumentTreeTarget } from './documentTopologyApi';
 import { isProductivityAcknowledgement } from './api';
 import { IntegrationConnectionsScreen } from './IntegrationConnectionsScreen';
 import { AutomationScreen } from './AutomationScreen';
@@ -14,7 +34,8 @@ import { SharedProjectionContent } from './SharedProjectionContent';
 import { ShareDisclosurePreview } from './ShareDisclosurePreview';
 import { ShareLinkEditor } from './ShareLinkEditor';
 import { CreatedShareLink } from './CreatedShareLink';
-import { NewsCategoryScreen } from './NewsCategoryScreen';
+import { NewsReaderScreen } from './NewsReaderScreen';
+import { NewsArticleDialog } from './NewsArticleDialog';
 import { MonitoringScreen } from './MonitoringScreen';
 import { CalendarTransferScreen } from './CalendarTransferScreen';
 import { CareerScreen } from './CareerScreen';
@@ -22,6 +43,8 @@ import { DigitalAssetScreen } from './DigitalAssetScreen';
 import { AssetScreen } from './PersonalAssetScreen';
 import { WishlistScreen } from './WishlistScreen';
 import { LearningScreen } from './LearningScreen';
+import { WorkLogScreen } from './WorkLogScreen';
+import type { WorkLogFilters } from './workLogApi';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
@@ -109,6 +132,7 @@ import {
   listFinanceCategories,
   listFinanceRecords,
   listNotifications,
+  openNotificationSource,
   listPreferences,
   listAdminUsers,
   listBookmarks,
@@ -190,7 +214,6 @@ import {
   listGoals,
   createGoal,
   updateGoal,
-  recordGoalProgress,
   transitionGoal,
   listPlanner,
   pinPlannerTask,
@@ -207,10 +230,10 @@ import {
 } from './api';
 import { LocaleContext, useI18n } from './i18n';
 
-export type Screen = 'home' | 'search' | 'favorites' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
-export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string };
+export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string; createIntent?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
 const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
@@ -258,8 +281,16 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       return { screen: 'security' };
     case '/search':
       return { screen: 'search' };
+    case '/search/saved':
+      return { screen: 'savedSearches' };
+    case '/learning/work-log':
+      return { screen: 'workLog' };
     case '/favorites':
       return { screen: 'favorites' };
+    case '/recent':
+      return { screen: 'recents' };
+    case '/command-palette':
+      return { screen: 'commands' };
     case '/notifications':
       return { screen: 'notifications' };
     case '/trash':
@@ -333,8 +364,16 @@ function pathForLocation(location: LocationState): string {
       return '/settings/security';
     case 'search':
       return '/search';
+    case 'savedSearches':
+      return '/search/saved';
+    case 'workLog':
+      return '/learning/work-log';
     case 'favorites':
       return '/favorites';
+    case 'recents':
+      return '/recent';
+    case 'commands':
+      return '/command-palette';
     case 'notifications':
       return '/notifications';
     case 'trash':
@@ -489,7 +528,7 @@ const moduleNames: Record<string, { vi: string; en: string }> = {
   FX39: { vi: 'Career — Company và Job thủ công', en: 'Career — Manual Companies and Jobs' },
   FX38: { vi: 'Tài sản số — Metadata và renewal', en: 'Digital Assets — Manual metadata and renewals' },
   FX37: { vi: 'Tài sản — Metadata và lịch sử', en: 'Personal Assets — Metadata and history' },
-  FX40: { vi: 'Học tập — Skills và Courses', en: 'Learning — Skills and Courses' }
+  FX40: { vi: 'Học tập', en: 'Learning' }
 };
 
 const moduleScreenCodes = new Set([
@@ -1257,7 +1296,7 @@ export function Shell({
 }: {
   profile: ProfileResponse;
   location: LocationState;
-  navigate: (screen: Screen, moduleCode?: string) => void;
+  navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string, createMode?: boolean) => void;
   onLogout: () => Promise<void>;
   onProfileUpdated: (profile: ProfileResponse) => void;
   onThemeChanged: (mode: ThemeMode) => void;
@@ -1268,8 +1307,11 @@ export function Shell({
   const { t } = useI18n();
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const recentView = useRef<{ owner: string; view: RecentView } | null>(null);
+  const recentOwner = profile.id + ':' + profile.personalSpaceId;
   const mainRef = useRef<HTMLElement>(null);
-  const routeKey = `${location.screen}:${location.moduleCode ?? ''}:${location.resourceType ?? ''}:${location.resourceId ?? ''}`;
+  const routeKey = `${location.screen}:${location.moduleCode ?? ''}:${location.resourceType ?? ''}:${location.resourceId ?? ''}:${location.createIntent ?? ''}`;
   const previousRoute = useRef(routeKey);
   useEffect(() => {
     if (previousRoute.current === routeKey) return;
@@ -1285,9 +1327,24 @@ export function Shell({
   const canOrganization = profile.modules.some((module) => module.code.toUpperCase() === 'FX24' && module.enabled);
   const canToolbox = profile.modules.some((module) => module.code.toUpperCase() === 'FX32' && module.enabled);
   const canGoals = profile.modules.some((module) => module.code.toUpperCase() === 'FX16' && module.enabled);
+  const canLearning = profile.modules.some((module) => module.code.toUpperCase() === 'FX40' && module.enabled);
+  const workLogOwner = profile.id + ':' + (profile.personalSpaceId ?? '');
+  const workLogView = useRef<{ owner: string; filters?: WorkLogFilters }>({ owner: workLogOwner });
+  if (workLogView.current.owner !== workLogOwner) workLogView.current = { owner: workLogOwner };
   const canPlanner = profile.modules.some((module) => module.code.toUpperCase() === 'FX15' && module.enabled);
   const canHabits = profile.modules.some((module) => module.code.toUpperCase() === 'FX17' && module.enabled);
   const canSearch = profile.modules.some((module) => module.code.toUpperCase() === 'FX25' && module.enabled);
+  useEffect(() => {
+    if (!canSearch) { setPaletteOpen(false); return; }
+    const shortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.defaultPrevented || event.repeat || event.isComposing || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'k'
+          || (target instanceof HTMLElement && (target.isContentEditable || Boolean(target.closest('input,textarea,select,[contenteditable]'))))
+          || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      event.preventDefault(); setPaletteOpen(true);
+    };
+    window.addEventListener('keydown', shortcut); return () => window.removeEventListener('keydown', shortcut);
+  }, [canSearch]);
   const canSharing = profile.modules.some((module) => module.code.toUpperCase() === 'FX04' && module.enabled);
   const canSupport = profile.modules.some((module) => module.code.toUpperCase() === 'FX05' && module.enabled);
   const canFiles = profile.modules.some((module) => module.code.toUpperCase() === 'FX07' && module.enabled);
@@ -1326,6 +1383,7 @@ export function Shell({
           <button className={location.screen === 'home' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'home' ? 'page' : undefined} onClick={() => navigate('home')}><NavItemContent icon="⌂" label={t('home')} /></button>
           {canSearch && <button className={location.screen === 'search' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'search' ? 'page' : undefined} onClick={() => navigate('search')}><NavItemContent icon="⌕" label={t('search')} /></button>}
           {canSearch && <button className={location.screen === 'favorites' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'favorites' ? 'page' : undefined} onClick={() => navigate('favorites')}><NavItemContent icon="★" label={t('favorites')} /></button>}
+          {canSearch && <button className={location.screen === 'recents' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'recents' ? 'page' : undefined} onClick={() => navigate('recents')}><NavItemContent icon="◷" label="Đã mở gần đây" /></button>}
           {canFinance && <button className={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'finance' || (location.screen === 'module' && location.moduleCode === 'FX27') ? 'page' : undefined} onClick={() => navigate('finance')}><NavItemContent icon="₫" label={t('finance')} /></button>}
           {canBookmarks && <button className={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'bookmarks' || (location.screen === 'module' && location.moduleCode === 'FX21') ? 'page' : undefined} onClick={() => navigate('bookmarks')}><NavItemContent icon="🔖" label={t('bookmarks')} /></button>}
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}><NavItemContent icon="⌘" label={t('snippets')} /></button>}
@@ -1367,6 +1425,7 @@ export function Shell({
       </aside>
       <div className="shell-content">
         <header className="shell-header">
+          {canSearch && <button type="button" className="secondary-button" onClick={() => setPaletteOpen(true)}>Command Palette · Ctrl/Cmd+K</button>}
           <div>
             <p className="eyebrow">{t('personalSpace')}</p>
             <p className="signed-in">{profile.email}</p>
@@ -1377,26 +1436,39 @@ export function Shell({
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
           {location.screen === 'resource' && <ResourceScreen resourceType={location.resourceType} resourceId={location.resourceId} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'savedSearches' && (canSearch ? <SearchScreen key="saved-searches" savedPage onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
           {location.screen === 'favorites' && (canSearch ? <FavoritesScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'recents' && (canSearch ? <RecentsScreen key={recentOwner} contextKey={JSON.stringify([profile.role, profile.modules])}
+            initialClear={location.moduleCode === 'clear'} onInitialClearConsumed={() => navigate('recents', undefined, true)}
+            initialView={recentView.current?.owner === recentOwner ? recentView.current.view : undefined} onViewChange={view => { recentView.current = { owner: recentOwner, view }; }}
+            timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} onOpen={(type, id) => navigate('resource', type, false, id)} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
+          {location.screen === 'commands' && !canSearch && <ModuleUnavailableScreen moduleCode="FX25" />}
+          {canSearch && (paletteOpen || location.screen === 'commands') && <CommandPalette key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])}
+            onAuthLost={onAuthLost} onClose={() => { setPaletteOpen(false); if (location.screen === 'commands') navigate('home', undefined, true); }}
+            onHandoff={value => {
+              setPaletteOpen(false);
+              navigate(value.screen, value.screen === 'resource' ? value.resourceType ?? undefined : value.screen === 'module' ? value.moduleCode ?? undefined : value.mode ?? undefined, false, value.resourceId ?? undefined, value.mode === 'create');
+            }} />}
           {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />}
           {location.screen === 'security' && <SecurityScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />}
-          {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} />}
+          {location.screen === 'notifications' && <NotificationsScreen onAuthLost={onAuthLost} onOpenSource={(type, id) => navigate('resource', type, false, id)} />}
           {location.screen === 'trash' && <TrashScreen onAuthLost={onAuthLost} />}
           {location.screen === 'sharing' && (canSharing ? <SharingScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX04" />)}
           {location.screen === 'support' && (canSupport ? <SupportScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX05" />)}
           {location.screen === 'files' && (canFiles ? <FilesScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX07" />)}
           {location.screen === 'admin' && (canViewAdminAccess ? <AdminAccessScreen onAuthLost={onAuthLost} readOnly={profile.role !== 'SuperAdmin'} /> : <AdminAccessUnavailableScreen />)}
           {location.screen === 'adminModules' && (canViewModuleCatalog ? <ModulePolicyScreen onAuthLost={onAuthLost} readOnly={!canManageModulePolicy} /> : <AdminAccessUnavailableScreen />)}
-          {location.screen === 'finance' && (canFinance ? <FinanceScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
+          {location.screen === 'finance' && (canFinance ? <FinanceScreen key={location.createIntent ?? 'finance'} timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} initialCreate={location.moduleCode === 'create' || Boolean(location.createIntent)} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
           {location.screen === 'bookmarks' && (canBookmarks ? <BookmarksScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX21" />)}
           {location.screen === 'snippets' && (canSnippets ? <SnippetsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX22" />)}
           {location.screen === 'readLater' && (canReadLater ? <ReadLaterScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX23" />)}
           {location.screen === 'tags' && (canOrganization ? <OrganizationTagsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
           {location.screen === 'tools' && (canToolbox ? <DeveloperToolsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX32" />)}
-          {location.screen === 'goals' && (canGoals ? <GoalsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX16" />)}
+          {location.screen === 'goals' && (canGoals ? <GoalsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX16" />)}
           {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
+          {location.screen === 'workLog' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><WorkLogScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} initialFilters={workLogView.current.filters} onViewChange={filters => { if (workLogView.current.owner === workLogOwner) workLogView.current.filters = filters; }} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
           {location.screen === 'habits' && (canHabits ? <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
-          {location.screen === 'module' && <ModuleScreen profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
+          {location.screen === 'module' && <ModuleScreen key={(location.moduleCode ?? '') + ':' + (location.createIntent ?? '')} profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
         </main>
       </div>
@@ -1705,114 +1777,100 @@ function browserMediaType(file: File): string {
   return extension === 'pdf' ? 'application/pdf' : extension === 'png' ? 'image/png' : extension === 'jpg' || extension === 'jpeg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : extension === 'md' || extension === 'markdown' ? 'text/markdown' : extension === 'csv' ? 'text/csv' : extension === 'ics' ? 'text/calendar' : extension === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : extension === 'xlsx' ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' : 'text/plain';
 }
 
-function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function NotificationsScreen({ onAuthLost, onOpenSource }: { onAuthLost: () => Promise<void>; onOpenSource: (type: 'Task' | 'Event', id: string) => void }) {
   const [items, setItems] = useState<NotificationRecord[]>([]);
+  const [newsSource, setNewsSource] = useState<{ notificationId: string; articleId: string } | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadOnly, setUnreadOnly] = useState(false);
+  const [filters, setFilters] = useState({ category: '', from: '', to: '' });
+  const [filterDraft, setFilterDraft] = useState({ category: '', from: '', to: '' });
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [committed, setCommitted] = useState(false);
-  const readRequests = useRef(new Map<string, string>());
+  const [uncertain, setUncertain] = useState(false);
+  const [leave, setLeave] = useState<{ proceed: () => void } | null>(null);
+  const pendingIntent = useRef<{ label: string; run: () => Promise<unknown> } | null>(null);
+  const inFlight = useRef(false);
+  const blocked = busy !== null || uncertain || pendingIntent.current !== null;
+  useEffect(() => registerDirtyLeaveGuard(proceed => { if (!pendingIntent.current) return false; setLeave({ proceed }); return true; }, 1), [uncertain, busy]);
+  useEffect(() => {
+    if (!uncertain && !busy) return;
+    const prevent = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', prevent); return () => window.removeEventListener('beforeunload', prevent);
+  }, [uncertain, busy]);
   const epoch = useRef(0);
-  function clearPrivate() { epoch.current++; setItems([]); setUnreadCount(0); setSelected(new Set()); }
+  function clearPrivate() { epoch.current++; setNewsSource(null); setItems([]); setUnreadCount(0); setSelected(new Set()); setNextCursor(null); }
+  useEffect(() => () => { ++epoch.current; }, []);
   const denied = (failure: NexoraApiError) => [401,403,404].includes(failure.status) || ['ModuleUnavailable','DependencyUnavailable'].includes(failure.code ?? '');
-  const markAllRequestRef = useRef<{ signature: string; key: string } | null>(null);
-  const deleteRequestRef = useRef<{ signature: string; key: string } | null>(null);
 
-  async function load() {
+
+
+  async function load(cursor = '') {
+    if (pendingIntent.current || inFlight.current) return;
     const currentEpoch = ++epoch.current;
     setLoading(true);
     setError(null);
     try {
-      const page = await listNotifications(unreadOnly, 100);
+      const page = await listNotifications(unreadOnly, 25, cursor, filters);
       if (currentEpoch !== epoch.current) return;
       setItems(page.items);
       setUnreadCount(page.unreadCount);
       setSelected(new Set());
+      setNextCursor(page.nextCursor); setCommitted(false);
     } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (denied(apiError)) clearPrivate();
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { void load(); }, [unreadOnly]);
-
-  async function toggleRead(item: NotificationRecord) {
-    setBusy(item.id);
-    setError(null);
-    try {
-      const signature = `${item.id}:${item.etag}:${item.readAt === null}`;
-      if (!readRequests.current.has(signature)) readRequests.current.set(signature, createIdempotencyKey());
-      const currentEpoch = epoch.current;
-      const updated = await markNotificationRead(item.id, item.etag, item.readAt === null, readRequests.current.get(signature)!);
-      readRequests.current.delete(signature);
       if (currentEpoch !== epoch.current) return;
-      if (isProductivityAcknowledgement(updated)) { clearPrivate(); setCommitted(true); return; }
-      setItems((current) => current.map((candidate) => candidate.id === updated.id ? updated : candidate));
-      setUnreadCount((current) => Math.max(0, current + (item.readAt === null ? -1 : 1)));
-    } catch (requestError) {
       const apiError = asApiError(requestError);
       setError(apiError);
-      if (denied(apiError)) clearPrivate();
+      if (denied(apiError)) { clearPrivate(); setLoading(false); }
       if (apiError.status === 401) await onAuthLost();
-      if (apiError.status === 412) await load();
     } finally {
-      setBusy(null);
+      if (currentEpoch === epoch.current) setLoading(false);
     }
   }
 
-  async function markAll() {
-    const signature = 'mark-all';
-    if (markAllRequestRef.current?.signature !== signature) {
-      markAllRequestRef.current = { signature, key: createIdempotencyKey() };
-    }
-    setBusy('all');
-    setError(null);
-    try {
-      const result = await markAllNotificationsRead(markAllRequestRef.current.key);
-      markAllRequestRef.current = null;
-      if (isProductivityAcknowledgement(result)) { clearPrivate(); setCommitted(true); return; }
-      await load();
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (denied(apiError)) clearPrivate();
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      setBusy(null);
-    }
-  }
+  useEffect(() => { void load(); return () => { epoch.current++; }; }, [unreadOnly, filters]);
 
-  async function removeSelected() {
-    if (selected.size === 0) return { error: 'Chọn ít nhất một thông báo trước khi xóa.' };
-    const signature = Array.from(selected).sort().join(',');
-    if (deleteRequestRef.current?.signature !== signature) {
-      deleteRequestRef.current = { signature, key: createIdempotencyKey() };
-    }
-    setBusy('delete');
-    setError(null);
+  async function executeIntent() {
+    const intent = pendingIntent.current;
+    if (!intent || inFlight.current) return { error: 'Request đang được xử lý.' };
+    inFlight.current = true; ++epoch.current; setBusy(intent.label); setError(null); setCommitted(false);
     try {
-      await deleteNotifications(Array.from(selected), deleteRequestRef.current.key);
-      deleteRequestRef.current = null;
-      await load();
-      return true;
+      await intent.run();
+      if (pendingIntent.current !== intent) return { error: 'Ngữ cảnh đã thay đổi.' };
+      pendingIntent.current = null; setUncertain(false); clearPrivate(); setCommitted(true); return true;
     } catch (requestError) {
+      if (pendingIntent.current !== intent) return { error: 'Ngữ cảnh đã thay đổi.' };
       const apiError = asApiError(requestError);
+      const unknown = apiError.status === 0 || apiError.status >= 500 || ['RequestInProgress', 'ReceiptUnavailable', 'CommittedOutcomeUnavailable'].includes(apiError.code ?? '');
+      setUncertain(unknown); if (!unknown) pendingIntent.current = null;
       setError(apiError);
-      if (denied(apiError)) clearPrivate();
+      if (denied(apiError)) { pendingIntent.current = null; setUncertain(false); clearPrivate(); }
       if (apiError.status === 401) await onAuthLost();
       return { error: apiError.message };
-    } finally {
-      setBusy(null);
-    }
+    } finally { inFlight.current = false; setBusy(null); }
   }
-
+  async function toggleRead(item: NotificationRecord) {
+    if (pendingIntent.current || inFlight.current) return;
+    const id = item.id, etag = item.etag, read = item.readAt === null, key = createIdempotencyKey();
+    pendingIntent.current = { label: id, run: () => markNotificationRead(id, etag, read, key) };
+    await executeIntent();
+  }
+  async function markAll() {
+    if (pendingIntent.current || inFlight.current) return;
+    const key = createIdempotencyKey();
+    pendingIntent.current = { label: 'all', run: () => markAllNotificationsRead(key) };
+    await executeIntent();
+  }
+  async function removeSelected() {
+    if (pendingIntent.current || inFlight.current) return { error: 'Đối chiếu request trước trước khi gửi thao tác mới.' };
+    if (!selected.size) return { error: 'Chọn ít nhất một thông báo trước khi xóa.' };
+    const ids = Array.from(selected).sort(), key = createIdempotencyKey();
+    pendingIntent.current = { label: 'delete', run: () => deleteNotifications(ids, key) };
+    return executeIntent();
+  }
   function select(id: string, checked: boolean) {
     setSelected((current) => {
       const next = new Set(current);
@@ -1821,15 +1879,52 @@ function NotificationsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }
     });
   }
 
+  async function openSource(item: NotificationRecord) {
+    if (blocked || loading) return; const stamp = ++epoch.current; setBusy('source'); setError(null);
+    try {
+      const source = await openNotificationSource(item.id);
+      if (stamp === epoch.current) {
+        if (source.resourceType === 'NewsArticle') setNewsSource({ notificationId: item.id, articleId: source.resourceId });
+        else onOpenSource(source.resourceType, source.resourceId);
+      }
+    } catch (value) {
+      if (stamp !== epoch.current) return;
+      const failure = asApiError(value); setError(failure);
+      setItems(current => current.map(row => row.id === item.id ? { ...row, title: 'Nguồn không khả dụng', body: 'Quyền hoặc nguồn đã thay đổi.', sourceRef: null, sourceUnavailable: true } : row));
+      if (denied(failure) && failure.status !== 404) clearPrivate();
+      if (failure.status === 401) await onAuthLost();
+    } finally { setBusy(null); }
+  }
+
   const selectedItems = items.filter((item) => selected.has(item.id));
 
   return (
     <section className="content-section" aria-labelledby="notifications-title">
-      <div className="content-heading"><div><p className="eyebrow">FX06 / INBOX</p><h1 id="notifications-title">Notifications</h1><p className="lead">Thông báo thuộc PersonalSpace hiện tại; delivery state được hiển thị đúng theo SQL projection.</p></div><button className="secondary-button" type="button" onClick={load} disabled={loading}>Tải lại</button></div>
-      <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={busy !== null || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><ConfirmActionButton confirmationTitle={`Xóa ${selectedItems.length} mục khỏi Inbox?`} confirmationDescription={`Các mục đã chọn (${selectedItems.map((item) => item.title).join(', ') || 'không có mục'}) sẽ bị xóa khỏi Inbox. Thao tác này không xóa audit log hoặc resource nguồn.`} confirmLabel="Xóa mục đã chọn" disabled={busy !== null || selectedItems.length === 0} onConfirm={removeSelected}>Xóa mục đã chọn</ConfirmActionButton></div>
+      {newsSource && <NewsArticleDialog articleId={newsSource.articleId} onAuthLost={onAuthLost}
+        onClose={() => setNewsSource(null)} onUnavailable={status => {
+          if ([401, 403, 409].includes(status ?? 0)) clearPrivate();
+          else setItems(current => current.map(row => row.id === newsSource.notificationId
+            ? { ...row, title: 'Nguồn không khả dụng', body: 'Quyền hoặc nguồn đã thay đổi.', sourceRef: null, sourceUnavailable: true } : row));
+        }} />}
+      <div className="content-heading"><div><p className="eyebrow">FX06 / INBOX</p><h1 id="notifications-title">Notifications</h1><p className="lead">Thông báo thuộc PersonalSpace hiện tại; delivery state được hiển thị đúng theo SQL projection.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || blocked}>Tải lại</button></div>
+      <div className="toolbar"><label className="check-label"><input type="checkbox" checked={unreadOnly} disabled={loading || blocked} onChange={(event) => { clearPrivate(); setUnreadOnly(event.target.checked); }} /> Chỉ chưa đọc ({unreadCount})</label><button className="secondary-button" type="button" onClick={markAll} disabled={blocked || unreadCount === 0}>Đánh dấu tất cả đã đọc</button><ConfirmActionButton confirmationTitle={`Xóa ${selectedItems.length} mục khỏi Inbox?`} confirmationDescription={`Các mục đã chọn (${selectedItems.map((item) => item.title).join(', ') || 'không có mục'}) sẽ bị xóa khỏi Inbox. Thao tác này không xóa audit log hoặc resource nguồn.`} confirmLabel="Xóa mục đã chọn" disabled={blocked || selectedItems.length === 0} onConfirm={removeSelected}>Xóa mục đã chọn</ConfirmActionButton></div>
+      <form className="resource-form" onSubmit={event => {
+        event.preventDefault();
+        const explicitInstant = (value: string) => !value || (/^\d{4}-\d{2}-\d{2}T.*(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value)));
+        if (!explicitInstant(filterDraft.from) || !explicitInstant(filterDraft.to) || (filterDraft.from && filterDraft.to && Date.parse(filterDraft.from) >= Date.parse(filterDraft.to))) { setError(new NexoraApiError('Nhập ISO 8601 có UTC offset; mốc từ phải trước mốc đến.', 422, 'ValidationFailed')); return; }
+        clearPrivate(); setFilters({ category: filterDraft.category.trim(), from: filterDraft.from ? new Date(filterDraft.from).toISOString() : '', to: filterDraft.to ? new Date(filterDraft.to).toISOString() : '' });
+      }}><fieldset disabled={loading || blocked}><legend>Lọc Inbox</legend>
+        <label>Category (Kind chính xác)<input maxLength={64} value={filterDraft.category} onChange={event => setFilterDraft(old => ({ ...old, category: event.target.value }))} /></label>
+        <label>Từ thời điểm UTC (bao gồm)<input placeholder="2026-10-01T00:00:00Z" value={filterDraft.from} onChange={event => setFilterDraft(old => ({ ...old, from: event.target.value }))} /></label>
+        <label>Đến thời điểm UTC (không bao gồm)<input placeholder="2026-11-01T00:00:00Z" value={filterDraft.to} onChange={event => setFilterDraft(old => ({ ...old, to: event.target.value }))} /></label>
+        <button type="submit">Áp dụng bộ lọc</button><button type="button" onClick={() => { clearPrivate(); const empty = { category: '', from: '', to: '' }; setFilterDraft(empty); setFilters(empty); }}>Xóa bộ lọc</button>
+      </fieldset></form>
+      {nextCursor && <button type="button" disabled={loading || blocked} onClick={() => void load(nextCursor)}>Trang tiếp theo · 25 mục</button>}
+      {uncertain && <div role="status"><p>Kết quả request chưa xác định. Thử lại đúng payload/revision/mã cũ để đối chiếu.</p><button type="button" disabled={busy !== null} onClick={() => void executeIntent()}>Thử lại request cũ</button></div>}
+      <ResourceFormDialog open={leave !== null} title="Rời Inbox" dirty={false} busy={busy !== null} onClose={() => setLeave(null)}><p>Rời màn hình sẽ mất mã đối chiếu; request đã gửi có thể đã commit.</p><button disabled={busy !== null} onClick={() => { const proceed = leave?.proceed; pendingIntent.current = null; ++epoch.current; setLeave(null); proceed?.(); }}>Bỏ mã đối chiếu và rời Inbox</button></ResourceFormDialog>
       {committed && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      {loading ? <div className="loading-state" role="status">Đang tải thông báo…</div> : items.length === 0 && (error || committed) ? <div className="empty-state"><h2>Chi tiết Inbox hiện không khả dụng</h2><p>Chọn Tải lại để kiểm tra quyền đọc hiện tại.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Inbox trống</h2><p>Không có thông báo phù hợp trong projection hiện tại.</p></div> : <div className="notification-list">{items.map((item) => <article className={item.readAt ? 'notification-card read' : 'notification-card'} key={item.id}><label className="notification-select"><input type="checkbox" checked={selected.has(item.id)} onChange={(event) => select(item.id, event.target.checked)} aria-label={`Chọn ${item.title}`} /></label><div className="notification-content"><div className="notification-heading"><h2>{item.title}</h2><span className="state-pill">{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span></div><p>{item.body}</p><span className="muted">{item.kind} · {dateTime(item.createdAt)}</span><div className="delivery-summary">{item.deliveries.map((delivery) => <span key={delivery.channel} title={delivery.lastErrorCode ?? undefined}>{delivery.channel}: {delivery.state}</span>)}</div></div><button className="secondary-button" type="button" onClick={() => void toggleRead(item)} disabled={busy !== null}>{item.readAt ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></article>)}</div>}
+      {loading ? <div className="loading-state" role="status">Đang tải thông báo…</div> : items.length === 0 && (error || committed) ? <div className="empty-state"><h2>Chi tiết Inbox hiện không khả dụng</h2><p>Chọn Tải lại để kiểm tra quyền đọc hiện tại.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Inbox trống</h2><p>Không có thông báo phù hợp trong projection hiện tại.</p></div> : <div className="notification-list">{items.map((item) => <article className={item.readAt ? 'notification-card read' : 'notification-card'} key={item.id}><label className="notification-select"><input type="checkbox" checked={selected.has(item.id)} disabled={blocked || loading} onChange={(event) => select(item.id, event.target.checked)} aria-label={`Chọn ${item.title}`} /></label><div className="notification-content"><div className="notification-heading"><h2>{item.title}</h2><span className="state-pill">{item.readAt ? 'Đã đọc' : 'Chưa đọc'}</span></div><p>{item.body}</p><span className="muted">{item.kind} · {dateTime(item.createdAt)}</span><div className="delivery-summary">{item.deliveries.map((delivery) => <span key={delivery.channel} title={delivery.lastErrorCode ?? undefined}>{delivery.channel}: {delivery.state}</span>)}</div></div>{item.sourceRef && !item.sourceUnavailable && <button className="secondary-button" type="button" disabled={blocked || loading} onClick={() => void openSource(item)}>Mở nguồn hiện tại</button>}<button className="secondary-button" type="button" onClick={() => void toggleRead(item)} disabled={blocked}>{item.readAt ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></article>)}</div>}
     </section>
   );
 }
@@ -2047,11 +2142,19 @@ function DocumentInlineTagCreator({ name, setName, disabled, onPendingChange, on
 }
 
 type DocumentPendingCommand =
-  | { kind: 'create'; title: string; body: string; documentType: string; editorMode: string; tagId: string | null; key: string }
+  | { kind: 'create'; title: string; body: string; documentType: string; editorMode: string; tagId: string | null; key: string; scope?: { folderId?: string | null; parentPageId?: string | null } }
+  | { kind: 'import'; source: DocumentImportDraft; title: string; body: string; documentType: string; editorMode: string; tagId: string | null; key: string; scope?: { folderId?: string | null; parentPageId?: string | null } }
   | { kind: 'save'; id: string; etag: string; title: string; body: string; tag?: { id: string | null }; key: string }
-  | { kind: 'transition'; id: string; etag: string; status: string; key: string };
+  | { kind: 'transition'; id: string; etag: string; status: string; key: string }
+  | { kind: 'restore'; id: string; etag: string; versionNumber: number; tag?: { id: string | null }; key: string };
 
 function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [importDraft, setImportDraft] = useState<DocumentImportDraft | null>(null);
+  const [lastImportedPageId, setLastImportedPageId] = useState<string | null>(null);
+  const documentOperations = useRef(new Set<string>());
+  const [documentFolder, setDocumentFolder] = useState<DocumentFolder | null>(null);
+  const [createParent, setCreateParent] = useState<string | null>(null);
+  const [treeTarget, setTreeTarget] = useState<DocumentTreeTarget | null>(null);
   const [items, setItems] = useState<DocumentSummary[]>([]);
   const [selected, setSelected] = useState<DocumentRecord | null>(null);
   const [title, setTitle] = useState('');
@@ -2062,8 +2165,13 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [inlineTagName, setInlineTagName] = useState('');
   const tagPendingRef = useRef(false);
   function tagOperationChanged(value: boolean) {
-    tagPendingRef.current = value; setTagPending(value);
-    if (value) {
+    documentOperationChanged('tag', value);
+  }
+  function documentOperationChanged(name: string, value: boolean) {
+    if (value) documentOperations.current.add(name); else documentOperations.current.delete(name);
+    const active = documentOperations.current.size > 0;
+    tagPendingRef.current = active; setTagPending(active);
+    if (active) {
       readEpoch.current++; listController.current?.abort(); listController.current = null;
       if (listDebounce.current !== null) { clearTimeout(listDebounce.current); listDebounce.current = null; }
       setLoading(false); setReadSuspended(true);
@@ -2170,7 +2278,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (!append) { setItems([]); setNextCursor(null); setHasLoadedList(false); }
     setLoading(true); setError(null);
     try {
-      const page = await listDocuments(libraryStatus || undefined, 25, cursor, libraryQuery, libraryType, request.signal, libraryCreatedFrom, libraryCreatedTo, libraryTag);
+      const page = await listDocuments(libraryStatus || undefined, 25, cursor, libraryQuery, libraryType, request.signal, libraryCreatedFrom, libraryCreatedTo, libraryTag, libraryStatus ? undefined : documentFolder?.id);
       if (current !== readEpoch.current || request.signal.aborted) return;
       const incoming = Array.isArray(page.items) ? page.items : [];
       setItems(previous => append ? Array.from(new Map([...previous, ...incoming].map(item => [item.id, item])).values()) : incoming);
@@ -2188,15 +2296,18 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   useEffect(() => {
     invalidateList();
+    if (readSuspended) { setLoading(false); return; }
     if (libraryQuery.trim()) listDebounce.current = setTimeout(() => { listDebounce.current = null; void load(); }, 300);
     else void load();
     return () => {
       readEpoch.current++; listController.current?.abort(); listController.current = null;
       if (listDebounce.current !== null) clearTimeout(listDebounce.current);
     };
-  }, [libraryStatus, libraryQuery, libraryType, libraryCreatedFrom, libraryCreatedTo, libraryTag]);
+  }, [libraryStatus, libraryQuery, libraryType, libraryCreatedFrom, libraryCreatedTo, libraryTag, documentFolder?.id]);
 
   function clearEditor() {
+    setImportDraft(null);
+    setCreateParent(null);
     setInlineTagName('');
     setReadSuspended(false);
     readEpoch.current++; setLoading(false); setCommand(null);
@@ -2232,7 +2343,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     requestDirtyAction(clearEditor);
   }
 
-  async function openDocumentNow(item: DocumentSummary) {
+  async function openDocumentNow(item: Pick<DocumentSummary, 'id'>) {
     if (tagPendingRef.current || loading || busy !== null || pendingRef.current || flight.current) return;
     const current = ++readEpoch.current;
     setBusy(`open:${item.id}`);
@@ -2258,7 +2369,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
   }
 
-  function openDocument(item: DocumentSummary) {
+  function openDocument(item: Pick<DocumentSummary, 'id'>) {
     requestDirtyAction(() => openDocumentNow(item));
   }
 
@@ -2269,13 +2380,16 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     setError(null); setConflict(null); setCommitNotice(false);
     try {
       const saved = command.kind === 'create'
-        ? await createDocument(command.title, command.documentType, command.editorMode, command.body, command.key, command.tagId)
+        ? await createDocument(command.title, command.documentType, command.editorMode, command.body, command.key, command.tagId, command.scope)
+        : command.kind === 'import' ? await commitDocumentImport(command.source, { title: command.title, body: command.body, documentType: command.documentType, editorMode: command.editorMode, tagId: command.tagId, ...command.scope }, command.key)
         : command.kind === 'save'
           ? await saveDocument(command.id, command.etag, command.title, command.body, null, command.key, command.tag)
+          : command.kind === 'restore' ? await restoreDocumentVersion(command.id, command.etag, command.versionNumber, command.tag, command.key)
           : await transitionDocument(command.id, command.etag, command.status, command.key);
       if (current !== readEpoch.current) return false;
       setCommand(null);
       if (saved === undefined || isProductivityAcknowledgement(saved)) {
+        if (command.kind === 'import' && saved && isProductivityAcknowledgement(saved)) setLastImportedPageId(saved.id);
         clearEditor(); setReadSuspended(true); setLibraryTagLabel(null); setItems([]); setNextCursor(null); setHasLoadedList(false); setCommitNotice(true); return true;
       }
       setSelected(saved); setTitle(saved.title); setBody(saved.body); setTagId(saved.tagId ?? ''); setTagLabel(saved.tagName ?? null);
@@ -2290,7 +2404,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       if (!(failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress' || failure.code === 'IdempotencyConflict')) setCommand(null);
       handlePrivateFailure(failure);
       if (failure.status === 401) await onAuthLost();
-      if (failure.status === 412 && command.kind !== 'create') {
+      if (failure.status === 412 && command.kind !== 'create' && command.kind !== 'import') {
         try {
           const latest = await getDocument(command.id);
           if (current === readEpoch.current) setConflict(latest);
@@ -2306,7 +2420,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     if (tagPendingRef.current) return false;
     if (inlineTagName.trim()) { setError(new NexoraApiError('Tạo Tag đang nhập hoặc xóa tên Tag trước khi Save Page.', 422, 'ValidationFailed')); return false; }
     if (pendingRef.current) {
-      if (pendingRef.current.kind === 'transition') return false;
+      if (pendingRef.current.kind === 'transition' || pendingRef.current.kind === 'restore') return false;
       return execute(pendingRef.current);
     }
     if (!title.trim() || !documentType || !editorMode) {
@@ -2315,7 +2429,8 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
     }
     return execute(selected
       ? { kind: 'save', id: selected.id, etag: selected.etag, title: title.trim(), body, tag: tagId === (selected.tagId ?? '') ? undefined : { id: tagId || null }, key: createIdempotencyKey() }
-      : { kind: 'create', title: title.trim(), body, documentType, editorMode, tagId: tagId || null, key: createIdempotencyKey() });
+      : importDraft ? { kind: 'import', source: importDraft, title: title.trim(), body, documentType, editorMode, tagId: tagId || null, key: createIdempotencyKey(), scope: createParent ? { parentPageId: createParent } : documentFolder ? { folderId: documentFolder.id } : undefined }
+      : { kind: 'create', title: title.trim(), body, documentType, editorMode, tagId: tagId || null, key: createIdempotencyKey(), scope: createParent ? { parentPageId: createParent } : documentFolder ? { folderId: documentFolder.id } : undefined });
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -2354,20 +2469,29 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {leavePrompt && <div className="dialog-backdrop" role="presentation"><div ref={leaveDialogRef} className="dialog-panel" role="dialog" aria-modal="true" aria-labelledby="unsaved-changes-title"><h2 id="unsaved-changes-title">Unsaved changes</h2><p>Document hiện có thay đổi chưa lưu hoặc thao tác đã gửi cần đối chiếu. Bỏ draft không hủy thao tác đã gửi. Bạn muốn lưu thay đổi, bỏ draft hay tiếp tục chỉnh sửa?</p><div className="form-actions"><button className="primary-button" type="button" onClick={() => void saveAndContinue()} disabled={tagPending || busy !== null}>Save changes</button><button className="danger-button" type="button" onClick={discardAndContinue} disabled={tagPending || busy !== null}>Discard changes</button><button className="link-button" type="button" onClick={() => setLeavePrompt(null)} disabled={busy !== null}>Keep editing</button></div></div></div>}
       {conflict && <div className="conflict-panel" role="alert" aria-labelledby="document-conflict-title"><div><h2 id="document-conflict-title">Document đã thay đổi trên server</h2><p>Draft hiện tại vẫn giữ nguyên trong memory. Revision server là v{conflict.versionNumber}; chọn cách xử lý trước khi lưu tiếp.</p><details><summary>So sánh bản server</summary><p><strong>Tiêu đề:</strong> {conflict.title}</p><p><strong>Trạng thái:</strong> {conflict.status}</p><pre className="conflict-preview">{conflict.body}</pre></details></div><div className="form-actions"><button className="secondary-button" type="button" disabled={tagPending} onClick={() => { if (tagPendingRef.current) return; setSelected(conflict); setTitle(conflict.title); setBody(conflict.body); setTagId(conflict.tagId ?? ''); setTagLabel(conflict.tagName ?? null); setDocumentType(conflict.documentType); setEditorMode(conflict.editorMode); setConflict(null); setError(null); }}>Tải bản server</button><button className="primary-button" type="button" disabled={tagPending} onClick={() => { if (tagPendingRef.current) return; setSelected(conflict); setConflict(null); setError(null); }}>Giữ draft và áp dụng lại</button><button className="link-button" type="button" onClick={() => setConflict(null)}>Hủy xử lý</button></div></div>}
+      {lastImportedPageId && <DocumentImportReceiptNotice key={lastImportedPageId} pageId={lastImportedPageId} onUnavailable={() => { setLastImportedPageId(null); clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); }} onAuthLost={onAuthLost} />}
+      <DocumentNavigation folder={documentFolder} suspended={readSuspended} disabled={tagPending || loading || busy !== null || pending !== null || treeTarget !== null} onFolder={folder => requestDirtyAction(() => { const sameLocation = folder?.id === documentFolder?.id && libraryStatus === ''; clearEditor(); setCreateParent(null); setDocumentFolder(folder); setLibraryStatus(''); if (sameLocation) void load(); else invalidateList(); })} onTree={target => requestDirtyAction(() => { clearEditor(); setTreeTarget(target); })} beforeEdit={proceed => requestDirtyAction(() => { clearEditor(); proceed(); })} onCommitted={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); setCommitNotice(true); }} onUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setDocumentFolder(null); setReadSuspended(true); }} onAuthLost={onAuthLost} />
+      {treeTarget && <DocumentTreeDialog target={treeTarget} onClose={() => setTreeTarget(null)} onCommitted={() => { setTreeTarget(null); clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); setCommitNotice(true); }} onUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); }} onAuthLost={onAuthLost} />}
+      {!selected && createParent && <p>Đang tạo trang con của trang đã chọn. Vị trí không đổi sau khi tạo.</p>}
       <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew} disabled={tagPending || loading || busy !== null}>Tạo mới</button>}</div>
           <div className="field-group"><label htmlFor="document-title">Tiêu đề</label><input id="document-title" value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} disabled={tagPending || loading || busy !== null || pending !== null || selected?.status === 'Archived'} required /></div>
-          <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={tagPending || loading || busy !== null || pending !== null || selected !== null} required><option value="">Chọn Document type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={tagPending || loading || busy !== null || pending !== null || selected !== null} required><option value="">Chọn Editor mode</option><option value="Markdown">Markdown</option><option value="Block">Block</option></select></div></div>
+          <div className="form-grid"><div className="field-group"><label htmlFor="document-type">Document type</label><select id="document-type" value={documentType} onChange={(event) => setDocumentType(event.target.value)} disabled={tagPending || loading || busy !== null || pending !== null || selected !== null} required><option value="">Chọn Document type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><div className="field-group"><label htmlFor="document-editor">Editor mode</label><select id="document-editor" value={editorMode} onChange={(event) => setEditorMode(event.target.value)} disabled={tagPending || loading || busy !== null || pending !== null || selected !== null || importDraft !== null} required><option value="">Chọn Editor mode</option><option value="Markdown">Markdown</option><option value="Block">Block</option></select></div></div>
           <DocumentTagSelector autoLoad={!readSuspended} controlId="document-tag" value={tagId} label={tagLabel} onChange={(id, name) => { if (!tagPendingRef.current && !flight.current && !pendingRef.current) { setTagId(id); setTagLabel(name); } }} disabled={tagPending || loading || busy !== null || pending !== null || selected?.status === 'Archived'} onAuthLost={onAuthLost} />
-          <DocumentInlineTagCreator name={inlineTagName} setName={setInlineTagName} disabled={loading || busy !== null || pending !== null || selected?.status === 'Archived' || conflict !== null} onPendingChange={tagOperationChanged} onCreated={tag => { setTagId(tag.id); setTagLabel(tag.name); }} onAuthLost={onAuthLost} />
-          <div className="field-group"><label htmlFor="document-body">Body <span className="optional">(tối đa 1 MiB)</span></label><textarea id="document-body" value={body} onChange={(event) => setBody(event.target.value)} rows={12} maxLength={1048576} disabled={tagPending || loading || busy !== null || pending !== null || selected?.status === 'Archived'} /></div>
+          <DocumentInlineTagCreator name={inlineTagName} setName={setInlineTagName} disabled={documentOperations.current.has('import') || loading || busy !== null || pending !== null || selected?.status === 'Archived' || conflict !== null} onPendingChange={tagOperationChanged} onCreated={tag => { setTagId(tag.id); setTagLabel(tag.name); }} onAuthLost={onAuthLost} />
+          {!selected && <DocumentImportPanel mode={editorMode} source={importDraft} disabled={documentOperations.current.has('tag') || loading || busy !== null || pending !== null || !documentType || !editorMode} onWorkingChange={value => documentOperationChanged('import', value)} onApply={(source, replaceBody) => { setImportDraft(source); if (replaceBody) setBody(source.body); }} onClear={() => setImportDraft(null)} onUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); }} onAuthLost={onAuthLost} />}
+          <DocumentBodyEditor key={selected?.id ?? 'new'} body={body} mode={editorMode} readOnly={selected?.status === 'Archived'} onChange={setBody} disabled={tagPending || loading || busy !== null || pending !== null || selected?.status === 'Archived'} />
           <div className="form-actions"><button className="secondary-button" type="button" onClick={startNew} disabled={tagPending || busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={tagPending || loading || busy !== null || pending !== null || selected?.status === 'Archived'}>{selected ? 'Save version' : 'Tạo page'}</SubmitButton></div>
-          {selected && isDirty && <p className="field-help">Hãy Save hoặc dùng Làm mới để quyết định giữ/bỏ bản nháp trước khi đổi lifecycle. Thay đổi chưa lưu được giữ nguyên.</p>}{selected && <div className="form-actions">{selected.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(selected.preArchiveStatus ?? '')} disabled={tagPending || loading || busy !== null || pending !== null || isDirty || !['Draft', 'Published'].includes(selected.preArchiveStatus ?? '')}>Unarchive</button> : <><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : 'Draft')} disabled={tagPending || loading || busy !== null || pending !== null || isDirty}>{selected.status === 'Draft' ? 'Publish' : 'Return to Draft'}</button><ConfirmActionButton confirmationTitle={`Archive “${selected.title}”?`} confirmationDescription="Document sẽ trở thành chỉ-đọc. Version hiện tại được giữ; Unarchive chỉ trở về trạng thái trước đó." confirmLabel="Archive document" disabled={tagPending || loading || busy !== null || pending !== null || isDirty} onConfirm={() => transition('Archived')}>Archive</ConfirmActionButton></>}<span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
+          {selected && isDirty && <p className="field-help">Hãy Save hoặc dùng Làm mới để quyết định giữ/bỏ bản nháp trước khi đổi lifecycle. Thay đổi chưa lưu được giữ nguyên.</p>}{selected && <div className="form-actions">{selected.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => setTreeTarget({ id: selected.id, kind: 'Page', operation: 'unarchive' })} disabled={tagPending || loading || busy !== null || pending !== null || isDirty || !['Draft', 'Published'].includes(selected.preArchiveStatus ?? '')}>Unarchive</button> : <><button className="secondary-button" type="button" onClick={() => void transition(selected.status === 'Draft' ? 'Published' : 'Draft')} disabled={tagPending || loading || busy !== null || pending !== null || isDirty}>{selected.status === 'Draft' ? 'Publish' : 'Return to Draft'}</button><button type="button" className="secondary-button" disabled={tagPending || loading || busy !== null || pending !== null || isDirty} onClick={() => setTreeTarget({ id: selected.id, kind: 'Page', operation: 'archive' })}>Archive</button></>}<span className="muted">{selected.status} · version {selected.versionNumber} · {selected.etag}</span></div>}
         </form>
         <div className="resource-list"><form className="form-panel" onSubmit={event => { event.preventDefault(); void load(); }}><div className="form-grid"><div className="field-group"><label htmlFor="document-library-query">Tìm Title hoặc Tag</label><input id="document-library-query" value={libraryQuery} maxLength={200} onChange={event => { if (tagPendingRef.current) return; invalidateList(); setLibraryQuery(event.target.value); }} disabled={tagPending || busy !== null || pending !== null} /><p className="field-help">Tìm Title hoặc tên Tag hiện tại, không tìm nội dung body.</p></div><div className="field-group"><label htmlFor="document-library-type">Lọc Document type</label><select id="document-library-type" value={libraryType} onChange={event => { if (tagPendingRef.current) return; invalidateList(); setLibraryType(event.target.value); }} disabled={tagPending || busy !== null || pending !== null}><option value="">Tất cả type</option><option value="Document">Document</option><option value="Note">Note</option><option value="Knowledge">Knowledge</option></select></div><DocumentTagSelector autoLoad={!readSuspended} controlId="document-library-tag" value={libraryTag} label={libraryTagLabel} onChange={(id, name) => { if (!tagPendingRef.current && !flight.current && !pendingRef.current) { invalidateList(); setLibraryTag(id); setLibraryTagLabel(name); } }} disabled={tagPending || busy !== null || pending !== null} onAuthLost={onAuthLost} emptyLabel="Tất cả Tag" /><div className="field-group"><label htmlFor="document-created-from">Ngày tạo từ (timezone hồ sơ)</label><input id="document-created-from" type="date" value={libraryCreatedFrom} onChange={event => { if (tagPendingRef.current) return; invalidateList(); setLibraryCreatedFrom(event.target.value); }} disabled={tagPending || busy !== null || pending !== null} /></div><div className="field-group"><label htmlFor="document-created-to">Ngày tạo đến (timezone hồ sơ)</label><input id="document-created-to" type="date" value={libraryCreatedTo} onChange={event => { if (tagPendingRef.current) return; invalidateList(); setLibraryCreatedTo(event.target.value); }} disabled={tagPending || busy !== null || pending !== null} /></div></div><div className="form-actions"><button type="submit" className="secondary-button" disabled={tagPending || busy !== null || pending !== null}>Tìm kiếm</button>{(libraryQuery || libraryType || libraryCreatedFrom || libraryCreatedTo || libraryTag) && <button type="button" className="link-button" disabled={tagPending || busy !== null || pending !== null} onClick={() => { if (tagPendingRef.current) return; invalidateList(); setLibraryQuery(''); setLibraryType(''); setLibraryCreatedFrom(''); setLibraryCreatedTo(''); setLibraryTag(''); setLibraryTagLabel(null); }}>Xóa bộ lọc</button>}</div></form><div className="module-tabs" role="tablist" aria-label="Document library scope"><button type="button" role="tab" aria-selected={libraryStatus === ''} className={libraryStatus === '' ? 'tab-button active' : 'tab-button'} disabled={tagPending || loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { clearEditor(); setLibraryStatus(''); })}>Library</button><button type="button" role="tab" aria-selected={libraryStatus === 'Archived'} className={libraryStatus === 'Archived' ? 'tab-button active' : 'tab-button'} disabled={tagPending || loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { clearEditor(); setLibraryStatus('Archived'); })}>Archived</button></div><div className="section-heading"><div><h2>Page của bạn</h2><span className="muted">{items.length} mục đã tải</span></div><div className="module-tabs" role="tablist" aria-label="Document views"><button className={documentView === 'grid' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'grid'} onClick={() => setDocumentView('grid')}>Grid</button><button className={documentView === 'table' ? 'tab-button active' : 'tab-button'} type="button" role="tab" aria-selected={documentView === 'table'} onClick={() => setDocumentView('table')}>Table</button></div></div>{loading ? <div className="loading-state" role="status">Đang tải Documents…</div> : error && items.length === 0 ? <div className="empty-state"><h3>Không thể tải Documents</h3><p>Thử tải lại khi quyền hoặc kết nối được khôi phục.</p></div> : !hasLoadedList ? <div className="empty-state"><h3>Danh sách chưa được tải</h3><p>Dùng Tải lại để đọc danh sách với quyền hiện tại.</p></div> : items.length === 0 && (libraryQuery || libraryType || libraryCreatedFrom || libraryCreatedTo || libraryTag) ? <div className="empty-state"><h3>Không có page phù hợp</h3><p>Thử Title khác hoặc xóa bộ lọc.</p></div> : items.length === 0 ? <div className="empty-state"><h3>{libraryStatus === 'Archived' ? 'Chưa có page Archived' : 'Chưa có page'}</h3><p>{libraryStatus === 'Archived' ? 'Trang đã Archive sẽ xuất hiện tại đây.' : 'Tạo Document, Note hoặc Knowledge page đầu tiên.'}</p></div> : documentView === 'grid' ? <div className="resource-cards">{items.map((item) => <article className={selected?.id === item.id ? 'resource-card selected' : 'resource-card'} key={item.id}><div><h3>{item.title}</h3><p>{item.tagName ?? 'Không có Tag'}</p><p>{item.documentType}</p></div><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={tagPending || loading || busy !== null || pending !== null}>Mở</button></article>)}</div> : <div className="table-wrapper"><table><caption>Document pages</caption><thead><tr><th>Title</th><th>Document type</th><th>Tag</th><th aria-label="Actions"></th></tr></thead><tbody>{items.map((item) => <tr key={item.id}><td><strong>{item.title}</strong></td><td>{item.documentType}</td><td>{item.tagName ?? 'Không có Tag'}</td><td><button className="secondary-button" type="button" onClick={() => void openDocument(item)} disabled={tagPending || loading || busy !== null || pending !== null}>Mở</button></td></tr>)}</tbody></table></div>}{nextCursor && <button type="button" className="secondary-button" disabled={tagPending || loading || busy !== null || pending !== null} onClick={() => void load(true)}>Tải thêm Documents</button>}</div>
       </div>
-      {selected && <DocumentHistory key={selected.id + '|' + selected.etag} pageId={selected.id} revision={selected.etag} disabled={tagPending || loading || busy !== null || pending !== null} onAuthLost={onAuthLost} formatTime={dateTime} />}
+      {selected?.parentPageId && <p>Trang con · <button type="button" disabled={tagPending || loading || busy !== null || pending !== null} onClick={() => openDocument({ id: selected.parentPageId! })}>Mở trang cha</button></p>}
+      {selected && <div className="form-actions"><button type="button" disabled={tagPending || loading || busy !== null || pending !== null || isDirty} onClick={() => setTreeTarget({ id: selected.id, kind: 'Page', operation: 'trash' })}>Đưa trang vào Thùng rác</button>{(selected.depth ?? 1) === 1 && selected.status !== 'Archived' && <button type="button" disabled={tagPending || loading || busy !== null || pending !== null} onClick={() => requestDirtyAction(() => { const id = selected.id; clearEditor(); setCreateParent(id); })}>Tạo trang con</button>}</div>}
+      {selected && <DocumentChildren parentId={selected.parentPageId ?? selected.id} suspended={readSuspended} disabled={tagPending || loading || busy !== null || pending !== null || treeTarget !== null} onOpen={item => void openDocument(item)} onUnavailable={status => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); if (status === 401) void onAuthLost(); }} />}
+      {selected && <DocumentExportLauncher key={selected.id + '|export|' + selected.etag} target={{ id: selected.id, etag: selected.etag, versionNumber: selected.versionNumber }} disabled={tagPending || loading || busy !== null || pending !== null || isDirty || treeTarget !== null} onUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); }} onAuthLost={onAuthLost} />}
+      {selected && <DocumentHistory key={selected.id + '|' + selected.etag} pageId={selected.id} revision={selected.etag} disabled={tagPending || loading || busy !== null || pending !== null} onAuthLost={onAuthLost} formatTime={dateTime} restoreDisabled={isDirty || selected.status === 'Archived'} exportDisabled={isDirty} onSourceUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); }} currentTagId={selected.tagId ?? null} currentTagName={selected.tagName ?? null} onRestore={async (versionNumber, tag) => { if (isDirty || !selected || selected.status === 'Archived') return false; return execute({ kind: 'restore', id: selected.id, etag: selected.etag, versionNumber, tag, key: createIdempotencyKey() }); }} /> }
     </section>
   );
 }
@@ -2760,7 +2884,7 @@ function ModulePolicyScreen({ onAuthLost, readOnly = false }: { onAuthLost: () =
   </section>;
 }
 
-function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void }) {
+function SearchScreen({ onAuthLost, navigate, savedPage = false }: { onAuthLost: () => Promise<void>; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void; savedPage?: boolean }) {
   const [query, setQuery] = useState('');
   const [resourceType, setResourceType] = useState('');
   const [from, setFrom] = useState('');
@@ -2823,7 +2947,8 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
 
   return (
     <section className="content-section" aria-labelledby="search-title">
-      <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="search-title">Global Search</h1><p className="lead">Tìm trong các nguồn đã được cấp quyền. Search không tạo authority mới và không trả Vault/secret payload.</p></div></div>
+      <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="search-title">{savedPage ? 'Saved Searches' : 'Global Search'}</h1><p className="lead">Tìm trong các nguồn đã được cấp quyền. Search không tạo authority mới và không trả Vault/secret payload.</p></div>
+        <button type="button" className="secondary-button" onClick={() => navigate(savedPage ? 'search' : 'savedSearches')}>{savedPage ? 'Global Search' : 'Saved Searches'}</button></div>
       <form className="form-panel" onSubmit={(event) => void run(event)}>
         <div className="form-grid">
           <div className="field-group"><label htmlFor="global-search-query">Query</label><input id="global-search-query" value={query} onChange={(event) => { invalidate(); setQuery(event.target.value); }} maxLength={500} placeholder="Tiêu đề, mô tả hoặc nội dung…" autoComplete="off" /></div>
@@ -2845,6 +2970,7 @@ function SearchScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<void
         {page.nextCursor && <button type="button" className="secondary-button" disabled={loading} onClick={() => void run(undefined, true)}>Tải thêm kết quả</button>}
         <div className="form-panel"><div className="section-heading"><h3>Source status</h3><span className="muted">Current access rechecked at query time</span></div><ul className="grant-list">{page.providers.map((provider) => <li key={provider.resourceType}><span><strong>{provider.resourceType}</strong><small>{provider.sourceModule} · {provider.message ?? provider.state}</small></span><span>{provider.count}</span></li>)}</ul></div>
       </>}
+      <SavedSearches definition={{ text: query, resourceType: resourceType || null, from: from || null, to: to || null, includeArchived, sort: 'relevance' }} onAuthLost={onAuthLost} onOpen={item => navigate('resource', item.resourceType, false, item.id)} />
       {!page && !loading && !error && <div className="empty-state"><h2>Bắt đầu tìm kiếm</h2><p>Nhập query để tìm trong các nguồn local đã được server cấp quyền.</p></div>}
     </section>
   );
@@ -3098,6 +3224,7 @@ function FavoritesScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<v
   return (
     <section className="content-section" aria-labelledby="favorites-title">
       <div className="content-heading"><div><p className="eyebrow">FX25 / DISCOVERY</p><h1 id="favorites-title">Favorites</h1><p className="lead">Favorites chỉ lưu typed reference theo PersonalSpace. Server recheck quyền và trạng thái nguồn mỗi lần đọc.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>Tải lại</button></div>
+      <button type="button" className="secondary-button" disabled={busy !== null} onClick={() => navigate('recents')}>Xem các nguồn đã mở gần đây</button>
       <button className="primary-button" type="button" disabled={busy !== null} onClick={() => { form.begin(); }}>Thêm favorite</button><ResourceFormDialog open={form.open} title={'Thêm favorite'} busy={busy !== null} dirty={form.dirty} onClose={() => { form.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={add}>
         <div className="section-heading"><h2>Thêm favorite</h2><span className="muted">Không nhập title hoặc owner; server tự resolve nguồn</span></div>
         <div className="form-grid"><div className="field-group"><label htmlFor="favorite-resource-type">Resource type</label><select id="favorite-resource-type" value={resourceType} onChange={(event) => setResourceType(event.target.value)}>{FAVORITE_RESOURCE_TYPES.map((type) => <option key={type}>{type}</option>)}</select></div><div className="field-group"><label htmlFor="favorite-resource-id">Resource id</label><input id="favorite-resource-id" value={resourceId} onChange={(event) => setResourceId(event.target.value)} placeholder="UUID của resource đã có quyền đọc" maxLength={36} required /></div></div>
@@ -3109,32 +3236,50 @@ function FavoritesScreen({ onAuthLost, navigate }: { onAuthLost: () => Promise<v
   );
 }
 
-function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string) => void; onAuthLost: () => Promise<void> }) {
+function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileResponse; navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void; onAuthLost: () => Promise<void> }) {
+  const [drilldownToken, setDrilldownToken] = useState<string | null>(null);
   const { t } = useI18n();
   const enabledModules = profile.modules.filter((module) => module.enabled);
+  const [layout, setLayout] = useState<DashboardLayout | null | undefined>(undefined);
+  const [refreshToken, setRefreshToken] = useState(0), [opaqueLayout, setOpaqueLayout] = useState(false);
+  const [refreshMode, setRefreshMode] = useState(false);
+  const [layoutReadable, setLayoutReadable] = useState(false);
+  const contextKey = JSON.stringify([profile.id, profile.role, profile.personalSpaceId, profile.timeZoneId, profile.modules]);
+  const [loadedContext, setLoadedContext] = useState('');
   const [dashboard, setDashboard] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<NexoraApiError | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
+    let cancelled = false; const controller = new AbortController();
+    setLayoutReadable(false); setDashboard(null); setLayout(undefined); setOpaqueLayout(false);
+    setDrilldownToken(null);
     setLoading(true);
     setError(null);
-    getDashboard().then((result) => {
-      if (!cancelled) setDashboard(result);
+    getDashboard(controller.signal, refreshMode).then((result) => {
+      if (!cancelled) { setDashboard(result); setLoadedContext(contextKey); }
     }).catch((requestError) => {
       if (cancelled) return;
       const apiError = asApiError(requestError);
-      setError(apiError);
+      setDashboard(null); setLayout(null); setOpaqueLayout(false); setError(apiError);
       if (apiError.status === 401) void onAuthLost();
     }).finally(() => {
       if (!cancelled) setLoading(false);
     });
-    return () => { cancelled = true; };
-  }, [profile.id, onAuthLost]);
+  return () => { cancelled = true; controller.abort(); };
+  }, [profile, onAuthLost, refreshToken, refreshMode]);
 
+  const displayWidgets = dashboard?.widgets && layout ? layout.widgets.filter(widget => widget.enabled).map(config => {
+    const source = dashboard.widgets.find(widget => widget.id === config.key);
+    return source && config.providerVersion === '1' && config.configVersion === 1 && Object.keys(config.options).length === 0
+      ? { ...source, id: config.id ?? source.id, providerKey: config.key, widthUnits: config.widthUnits }
+      : { id: config.id ?? config.key, providerKey: config.key, title: 'Widget không tương thích', sourceModule: '', state: 'Unavailable', message: 'Cần provider/config tương thích; bố cục vẫn được giữ.', count: 0, items: [], refreshedAt: dashboard.generatedAt, widthUnits: 1 };
+  }) : dashboard?.widgets.map(widget => ({ ...widget, providerKey: widget.id, widthUnits: 1 })) ?? [];
   return (
     <section className="content-section" aria-labelledby="home-title">
+      {drilldownToken && <DashboardDrilldownDialog key={contextKey} token={drilldownToken} onClose={() => setDrilldownToken(null)} onAuthLost={onAuthLost}
+        onOpenSource={(type, id) => navigate('resource', type, false, id)}
+        onUnavailable={() => { setDashboard(null); setLayoutReadable(false); }} />}
       <div className="content-heading">
         <div>
           <p className="eyebrow">HOME</p>
@@ -3144,18 +3289,26 @@ function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileRespons
         <span className="state-pill state-active">{profile.state}</span>
       </div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      {loading ? <div className="loading-state" role="status">Đang tải các widget…</div> : dashboard && <section className="module-section" aria-labelledby="dashboard-attention-title">
+      {opaqueLayout && <Notice kind="success">Bố cục đã lưu; chi tiết không khả dụng. Tải lại khi cần đọc dữ liệu hiện tại.</Notice>}
+      <DashboardQuickCreate key={contextKey} enabledModules={enabledModules.map(module => module.code.toUpperCase())}
+        onOpen={moduleCode => moduleCode === 'FX27' ? navigate('finance', 'create') : navigate('module', moduleCode)} onAuthLost={onAuthLost}
+        onDenied={() => { setDashboard(null); setLayout(null); setLayoutReadable(false); }} />
+      <button type="button" className="secondary-button" disabled={loading} onClick={() => { setRefreshMode(true); setRefreshToken(value => value + 1); }}>Tải lại Dashboard</button>
+      {loading || layout === undefined ? <div className="loading-state" role="status">Đang tải các widget…</div> : dashboard && layoutReadable && loadedContext === contextKey && <section className="module-section" aria-labelledby="dashboard-attention-title">
         <div className="section-heading"><div><h2 id="dashboard-attention-title">Attention</h2><p className="muted">Nguồn dữ liệu giữ nguyên owner và timezone của PersonalSpace.</p></div><span className="muted">{dateTime(dashboard.generatedAt, profile.timeZoneId, profile.locale)}</span></div>
         <div className="module-grid">
-          {dashboard.widgets.map((widget) => (
-            <article key={widget.id} className={widget.state === 'Unavailable' ? 'module-card unavailable' : 'module-card'}>
+          {displayWidgets.map((widget) => (
+            <article key={widget.id} className={[widget.state === 'Unavailable' ? 'module-card unavailable' : 'module-card', widget.widthUnits === 2 ? 'dashboard-widget-wide' : ''].join(' ')}>
               <div className="module-card-heading"><h3>{widget.title}</h3><span className={widget.state === 'Ready' ? 'state-pill state-active' : 'state-pill'}>{widget.state}</span></div>
               <p>{widget.message ?? `${widget.count} item${widget.count === 1 ? '' : 's'}`}</p>
-              {widget.items.length === 0 ? <p className="muted">Không có mục cần chú ý.</p> : <ul className="grant-list">{widget.items.map((item) => <li key={item.id}><span><strong>{item.title}</strong><small>{item.status ?? item.kind}{item.at ? ` · ${dateTime(item.at, profile.timeZoneId, profile.locale)}` : ''}</small></span></li>)}</ul>}
+              <p className="muted">{dashboardScopeLabel(widget.providerKey)}</p>
+              {'drilldownToken' in widget && typeof widget.drilldownToken === 'string' && <button type="button" className="secondary-button" onClick={() => setDrilldownToken(widget.drilldownToken as string)}>Xem danh sách đầy đủ</button>}
+              {widget.state === 'Unavailable' || widget.state === 'Degraded' ? null : widget.items.length === 0 ? <p className="muted">Không có mục cần chú ý.</p> : <ul className="grant-list">{widget.items.map((item) => <li key={item.id}><span><strong>{item.title}</strong><small>{item.status ?? item.kind}{item.startDate && item.endDateExclusive ? ` · ${item.startDate} — ${item.endDateExclusive} (end exclusive)` : ''}{item.at ? ` · ${dateTime(item.at, profile.timeZoneId, profile.locale)}` : ''}</small></span></li>)}</ul>}
             </article>
           ))}
         </div>
       </section>}
+      <DashboardLayoutEditor key={contextKey} refreshToken={refreshToken} onLayout={value => { setLayout(value); setLayoutReadable(true); }} onAuthLost={onAuthLost} onUnavailable={() => { setLayoutReadable(false); setDashboard(null); setLayout(null); setOpaqueLayout(false); }} onCommit={readable => { setRefreshMode(false); setLayoutReadable(false); setDashboard(null); if (readable) setRefreshToken(value => value + 1); else { setLayout(null); setOpaqueLayout(true); } }} />
       <div className="info-grid">
         <article className="info-card">
           <p className="card-label">Locale</p>
@@ -3292,6 +3445,9 @@ function ProductivityScreen({
   navigate: (screen: Screen, moduleCode?: string) => void;
   onAuthLost: () => Promise<void>;
 }) {
+  function emptyTaskDraft(projectId = ''): TaskDraft {
+    return { projectId, title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' };
+  }
   const [committedNotice, setCommittedNotice] = useState<string | null>(null);
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const projectPickerEpoch = useRef(0), projectPickerFlight = useRef(false), productivityMounted = useRef(true);
@@ -3314,7 +3470,7 @@ function ProductivityScreen({
   const [editingTask, setEditingTask] = useState<TaskRecord | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEventRecord | null>(null);
   const [projectDraft, setProjectDraft] = useState<ProjectDraft>({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
-  const [taskDraft, setTaskDraft] = useState<TaskDraft>({ projectId: '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+  const [taskDraft, setTaskDraft] = useState<TaskDraft>(emptyTaskDraft());
   const [eventDraft, setEventDraft] = useState<EventDraft>({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
   const [taskReminderChanged, setTaskReminderChanged] = useState(false);
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month' | 'agenda'>('day');
@@ -3323,6 +3479,20 @@ function ProductivityScreen({
   const taskRequestKey = useRef<string | null>(null);
   const eventRequestKey = useRef<string | null>(null);
   const actionRequestKeys = useRef<Record<string, { signature: string; key: string }>>({});
+  const draftBaselines = useRef({ project: JSON.stringify(projectDraft), task: JSON.stringify(taskDraft), event: JSON.stringify(eventDraft) });
+  const [productivityLeave, setProductivityLeave] = useState<{ proceed: () => void } | null>(null);
+  const hasProductivityDraft = moduleCode === 'FX11' ? JSON.stringify(projectDraft) !== draftBaselines.current.project
+    : moduleCode === 'FX12' ? JSON.stringify(taskDraft) !== draftBaselines.current.task || taskReminderChanged
+      : JSON.stringify(eventDraft) !== draftBaselines.current.event;
+  useEffect(() => registerDirtyLeaveGuard(proceed => {
+    if (!hasProductivityDraft && busy === null) return false;
+    setProductivityLeave({ proceed }); return true;
+  }, 1), [hasProductivityDraft, busy]);
+  useEffect(() => {
+    if (!hasProductivityDraft && busy === null) return;
+    const prevent = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', prevent); return () => window.removeEventListener('beforeunload', prevent);
+  }, [hasProductivityDraft, busy]);
 
   function getActionRequestKey(operation: string, signature: string): string {
     const current = actionRequestKeys.current[operation];
@@ -3357,7 +3527,8 @@ function ProductivityScreen({
   function clearProtectedProductivity() {
     setProjects([]); setTasks([]); setEvents([]);
     setProjectNextCursor(null); setTaskNextCursor(null); setEventNextCursor(null);
-    resetProject(); resetTask(); resetEvent(); setTaskDraft(old => ({ ...old, projectId: '' }));
+    resetProject(); resetTask(); resetEvent();
+    const blank = emptyTaskDraft(); draftBaselines.current.task = JSON.stringify(blank); setTaskDraft(blank);
     setTimeWarning(null); actionRequestKeys.current = {};
   }
 
@@ -3430,46 +3601,52 @@ function ProductivityScreen({
   function resetProject() {
     projectRequestKey.current = null;
     setEditingProject(null);
-    setProjectDraft({ name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' });
+    const next: ProjectDraft = { name: '', description: '', startAt: '', endAt: '', priority: 'P3', tagsJson: '[]', notes: '' };
+    draftBaselines.current.project = JSON.stringify(next); setProjectDraft(next);
   }
 
   function resetTask() {
     taskRequestKey.current = null;
     setEditingTask(null);
     setTaskReminderChanged(false);
-    setTaskDraft({ projectId: projects[0]?.id ?? '', title: '', description: '', status: 'NotStarted', dueAt: '', startAt: '', endAt: '', priority: '', tagsJson: '[]', acceptanceCriteriaJson: '[]', reminderAt: '' });
+    const next = emptyTaskDraft(projects[0]?.id ?? '');
+    draftBaselines.current.task = JSON.stringify(next); setTaskDraft(next);
   }
 
   function resetEvent() {
     eventRequestKey.current = null;
     setEditingEvent(null);
-    setEventDraft({ title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false });
+    const next: EventDraft = { title: '', description: '', startAt: '', endAt: '', timeZoneId: profile.timeZoneId, isAllDay: false };
+    draftBaselines.current.event = JSON.stringify(next); setEventDraft(next);
   }
 
   function beginProjectEdit(project: ProjectRecord) {
     projectRequestKey.current = null;
     setEditingProject(project);
-    setProjectDraft({ name: project.name, description: project.description ?? '', startAt: isoToLocalInput(project.startAt, profile.timeZoneId), endAt: isoToLocalInput(project.endAt, profile.timeZoneId), priority: project.priority, tagsJson: project.tagsJson, notes: project.notes ?? '' });
+    const next: ProjectDraft = { name: project.name, description: project.description ?? '', startAt: isoToLocalInput(project.startAt, profile.timeZoneId), endAt: isoToLocalInput(project.endAt, profile.timeZoneId), priority: project.priority, tagsJson: project.tagsJson, notes: project.notes ?? '' };
+    draftBaselines.current.project = JSON.stringify(next); setProjectDraft(next);
   }
 
   function beginTaskEdit(task: TaskRecord) {
     taskRequestKey.current = null;
     setEditingTask(task);
     setTaskReminderChanged(false);
-    setTaskDraft({ projectId: task.projectId, title: task.title, description: task.description ?? '', status: task.status, dueAt: isoToLocalInput(task.dueAt, profile.timeZoneId), startAt: isoToLocalInput(task.startAt, profile.timeZoneId), endAt: isoToLocalInput(task.endAt, profile.timeZoneId), priority: task.priority ?? '', tagsJson: task.tagsJson, acceptanceCriteriaJson: task.acceptanceCriteriaJson, reminderAt: isoToLocalInput(task.reminderAt, profile.timeZoneId) });
+    const next: TaskDraft = { projectId: task.projectId, title: task.title, description: task.description ?? '', status: task.status, dueAt: isoToLocalInput(task.dueAt, profile.timeZoneId), startAt: isoToLocalInput(task.startAt, profile.timeZoneId), endAt: isoToLocalInput(task.endAt, profile.timeZoneId), priority: task.priority ?? '', tagsJson: task.tagsJson, acceptanceCriteriaJson: task.acceptanceCriteriaJson, reminderAt: isoToLocalInput(task.reminderAt, profile.timeZoneId) };
+    draftBaselines.current.task = JSON.stringify(next); setTaskDraft(next);
   }
 
   function beginEventEdit(event: CalendarEventRecord) {
     eventRequestKey.current = null;
     setEditingEvent(event);
-    setEventDraft({
+    const next: EventDraft = {
       title: event.title,
       description: event.description ?? '',
       startAt: event.isAllDay ? (event.startDate ?? isoToLocalDate(event.startAt, event.timeZoneId)) : isoToLocalInput(event.startAt, event.timeZoneId),
       endAt: event.isAllDay ? addDateDays(event.endDateExclusive ?? isoToLocalDate(event.endAt, event.timeZoneId), -1) : isoToLocalInput(event.endAt, event.timeZoneId),
       timeZoneId: event.timeZoneId,
       isAllDay: event.isAllDay
-    });
+    };
+    draftBaselines.current.event = JSON.stringify(next); setEventDraft(next);
   }
 
   async function saveProject(event: FormEvent<HTMLFormElement>) {
@@ -3760,12 +3937,20 @@ function ProductivityScreen({
   }
 
   const title = moduleCode === 'FX11' ? 'Projects' : moduleCode === 'FX12' ? 'Tasks' : 'Calendar';
+  const leaveDialog = <ResourceFormDialog open={productivityLeave !== null} title="Rời biểu mẫu hiện tại?" busy={busy !== null} dirty={false} onClose={() => setProductivityLeave(null)}>
+    <p>Bản nháp hiện tại sẽ bị bỏ nếu bạn tiếp tục. Một request đã gửi có thể đã được server ghi nhận; rời biểu mẫu không hủy kết quả đó.</p>
+    <button type="button" className="secondary-button" disabled={busy !== null} onClick={() => setProductivityLeave(null)}>Tiếp tục sửa</button>
+    <button type="button" className="danger-button" disabled={busy !== null} onClick={() => {
+      const proceed = productivityLeave?.proceed; setProductivityLeave(null); resetProject(); resetTask(); resetEvent(); setTimeWarning(null); proceed?.();
+    }}>Bỏ bản nháp và tiếp tục</button>
+  </ResourceFormDialog>;
   if (loading) {
-    return <section className="content-section"><div className="loading-state" role="status">Đang tải {title}…</div></section>;
+    return <section className="content-section">{leaveDialog}<div className="loading-state" role="status">Đang tải {title}…</div></section>;
   }
 
   return (
     <section className="content-section" aria-labelledby="productivity-title">
+      {leaveDialog}
       <div className="content-heading">
         <div><p className="eyebrow">{moduleCode} / PERSONAL PRODUCTIVITY</p><h1 id="productivity-title">{title}</h1><p className="lead">Dữ liệu được lọc theo PersonalSpace hiện tại; server giữ quyền sở hữu, lifecycle và revision.</p></div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={busy !== null}>Tải lại</button>
@@ -4728,10 +4913,11 @@ type ReadingState = 'Unread' | 'Reading' | 'Read' | 'Archived';
 
 type ReadingPendingCommand =
   | { kind: 'save'; sourceId: string; key: string }
-  | { kind: 'update'; id: string; etag: string; state: 'Unread' | 'Reading' | 'Read'; progress?: number; key: string }
+  | { kind: 'update'; id: string; etag: string; sourceETag?: string | null; state: 'Unread' | 'Reading' | 'Read'; progress?: number; key: string }
   | { kind: 'remove'; id: string; etag: string; key: string };
 
 function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+  const [newsArticleId, setNewsArticleId] = useState<string | null>(null);
   const [capabilities, setCapabilities] = useState<Record<string, boolean>>({});
   const can = (action: string) => capabilities[`reading.${action}`] === true;
   const [items, setItems] = useState<ReadingItemRecord[]>([]);
@@ -4847,7 +5033,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       const result = command.kind === 'save'
         ? await saveReadingItem('Bookmark', command.sourceId, command.key)
         : command.kind === 'update'
-          ? await updateReadingItem(command.id, command.etag, command.state, command.progress, command.key)
+          ? await updateReadingItem(command.id, command.etag, command.state, command.progress, command.key, command.sourceETag)
           : await removeReadingItem(command.id, command.etag, command.key);
       if (current !== epoch.current) return false;
       setCommand(null); requestKey.current = null; setSelectedBookmarkId(''); form.finish();
@@ -4878,7 +5064,7 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   }
   async function changeState(item: ReadingItemRecord, state: Exclude<ReadingState, 'Archived'>, progress?: number) {
     if (pendingRef.current || flight.current || loading || !item.sourceAvailable) return { error: 'Đối chiếu thao tác hiện tại trước khi thay đổi.' };
-    return execute({ kind: 'update', id: item.id, etag: item.etag, state, progress, key: createIdempotencyKey() });
+    return execute({ kind: 'update', id: item.id, etag: item.etag, sourceETag: item.sourceETag, state, progress, key: createIdempotencyKey() });
   }
   async function savePosition(item: ReadingItemRecord, raw: string) {
     const progress = Number(raw);
@@ -4893,11 +5079,12 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const selectableBookmarks = bookmarks.filter((bookmark) => bookmark.status === 'Active' || bookmark.status === 'Archived');
   return (
     <section className="content-section" aria-labelledby="read-later-title">
+      {newsArticleId && <NewsArticleDialog articleId={newsArticleId} onAuthLost={onAuthLost} onUnavailable={status => { setItems(current => current.map(item => item.sourceType === 'NewsArticle' && ([401, 403].includes(status ?? 0) || item.sourceId === newsArticleId) ? { ...item, safeTitleSnapshot: 'Source unavailable', safeUrlSnapshot: '', sourceAvailable: false, sourceETag: null } : item)); }} onClose={() => { setNewsArticleId(null); void load(stateFilter, true); }} />}
       <div className="content-heading">
         <div>
           <p className="eyebrow">FX23 / KNOWLEDGE</p>
           <h1 id="read-later-title">Read Later</h1>
-          <p className="lead">Queue chỉ lưu tham chiếu Bookmark và snapshot title/URL an toàn. Không copy body, không tự fetch hoặc mở provider bên ngoài.</p>
+          <p className="lead">Queue lưu tham chiếu Bookmark/NewsArticle; title và read state được kiểm tra ở nguồn hiện tại. News đọc trong Nexora; không tự fetch provider.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={blocked}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
@@ -4920,14 +5107,14 @@ function ReadLaterScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
             </div>
             <div className="form-actions">{sourceCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void loadMoreSources()}>Tải thêm Bookmark nguồn</button>}<SubmitButton busy={busy === 'save'} disabled={loading || sourceLoading || !can('item.save') || (pending !== null && pending.kind !== 'save')}>Lưu vào Read Later</SubmitButton></div>
           </form></ResourceFormDialog>
-          <div className="security-policy"><strong>Source boundary</strong><span>Xóa queue không xóa Bookmark. Khi source bị xóa, disabled hoặc không còn quyền đọc, UI chỉ giữ snapshot an toàn và không hiển thị body cache.</span></div>
+          <div className="security-policy"><strong>Source boundary</strong><span>Gỡ queue giữ nguyên nguồn. Khi source bị xóa, unfollow hoặc mất quyền đọc, chỉ giữ metadata để gỡ liên kết; title/URL/body nguồn không được dùng từ cache.</span></div>
         </div>
         <div className="content-section">
           <div className="form-panel">
             <div className="section-heading"><h2>Queue của bạn</h2><span className="muted">{items.length} mục</span></div>
             <div className="field-group"><label htmlFor="read-later-state">Lọc trạng thái</label><select id="read-later-state" value={stateFilter} onChange={(event) => { if (!flight.current && !pendingRef.current) setStateFilter(event.target.value); }} disabled={blocked}><option value="">Tất cả</option><option value="Unread">Unread</option><option value="Reading">Reading</option><option value="Read">Read</option></select></div>
           </div>
-          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : error && !pending && items.length === 0 ? <div className="empty-state"><h2>Không thể tải queue</h2><p>Hãy thử lại khi kết nối hoặc quyền truy cập được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <PromptActionButton confirmationTitle="Position metadata" confirmationDescription="Vị trí metadata từ 0 đến 1; không phải tỷ lệ đọc body." inputLabel="Position metadata (0–1)" initialValue={String(item.progress)} confirmLabel="Lưu vị trí" disabled={blocked || !can('item.position') || item.state === 'Archived'} onConfirm={raw => savePosition(item, raw)}>Đổi vị trí</PromptActionButton> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || blocked || item.state === 'Archived' || !can(item.state === 'Read' ? 'item.unread' : 'item.read')}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || blocked || !can('item.position')}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Bookmark nguồn sẽ không bị xóa." confirmLabel="Gỡ khỏi queue" disabled={blocked || !can('item.remove')} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void load(stateFilter, false, true)}>Tải thêm</button>}</div>}
+          {loading ? <div className="loading-state" role="status">Đang tải Read Later…</div> : error && !pending && items.length === 0 ? <div className="empty-state"><h2>Không thể tải queue</h2><p>Hãy thử lại khi kết nối hoặc quyền truy cập được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Queue đang trống</h2><p>{stateFilter ? 'Không có mục phù hợp với bộ lọc.' : 'Chọn một Bookmark để lưu source vào queue.'}</p></div> : <div className="resource-list"><div className="resource-cards">{items.map((item) => <article className={`resource-card reading-card${item.sourceAvailable ? '' : ' source-unavailable'}`} key={item.id}><div><h3>{item.safeTitleSnapshot}</h3><p className="reading-url" title="URL snapshot bất hoạt"><code>{item.safeUrlSnapshot}</code></p><span className="muted">{item.sourceType} · {item.state} · lưu {dateTime(item.savedAt)}{item.readAt ? ` · đọc ${dateTime(item.readAt)}` : ''}</span>{item.sourceAvailable ? <PromptActionButton confirmationTitle="Position metadata" confirmationDescription="Vị trí metadata từ 0 đến 1; không phải tỷ lệ đọc body." inputLabel="Position metadata (0–1)" initialValue={String(item.progress)} confirmLabel="Lưu vị trí" disabled={blocked || !can('item.position') || item.state === 'Archived'} onConfirm={raw => savePosition(item, raw)}>Đổi vị trí</PromptActionButton> : <p className="source-unavailable-message">Source unavailable. Không có cached body hoặc % đọc giả.</p>}</div><div className="resource-actions">{item.sourceType === 'NewsArticle' && item.sourceAvailable && <button className="secondary-button" type="button" disabled={blocked} onClick={() => setNewsArticleId(item.sourceId)}>Đọc News trong Nexora</button>}<button className="secondary-button" type="button" onClick={() => void changeState(item, item.state === 'Read' ? 'Unread' : 'Read')} disabled={!item.sourceAvailable || blocked || item.state === 'Archived' || !can(item.state === 'Read' ? 'item.unread' : 'item.read')}>{item.state === 'Read' ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button>{item.state !== 'Archived' && item.state !== 'Read' && <button className="secondary-button" type="button" onClick={() => void changeState(item, 'Reading')} disabled={!item.sourceAvailable || blocked || !can('item.position')}>Đang đọc</button>}<ConfirmActionButton confirmationTitle={`Gỡ “${item.safeTitleSnapshot}” khỏi Read Later?`} confirmationDescription="Mục sẽ bị gỡ khỏi queue. Resource nguồn và read state của News được giữ nguyên." confirmLabel="Gỡ khỏi queue" disabled={blocked || !can('item.remove')} onConfirm={() => remove(item)}>{busy === `remove:${item.id}` ? 'Đang gỡ…' : 'Gỡ khỏi queue'}</ConfirmActionButton></div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={blocked} onClick={() => void load(stateFilter, false, true)}>Tải thêm</button>}</div>}
         </div>
       </div>
     </section>
@@ -5340,44 +5527,101 @@ function emptyGoalDraft(): GoalFormDraft {
   return { title: '', description: '', startDate: '', endDate: '', targetTitle: '', initialValue: '0', currentValue: '0', targetValue: '' };
 }
 
-function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function GoalsScreen({ onAuthLost, timeZoneId, locale }: { onAuthLost: () => Promise<void>; timeZoneId: string; locale: string }) {
   const [items, setItems] = useState<GoalRecord[]>([]);
   const [selected, setSelected] = useState<GoalDetail | null>(null);
   const [editing, setEditing] = useState<GoalRecord | null>(null);
   const [draft, setDraft] = useState<GoalFormDraft>(emptyGoalDraft);
-  const [progressValue, setProgressValue] = useState('');
-  const [progressNote, setProgressNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
   const requestKey = useRef<string | null>(null);
+  const [committedOpaque, setCommittedOpaque] = useState(false);
+  const readGeneration = useRef(0);
+  const pendingGoal = useRef<{ send: () => ReturnType<typeof createGoal>; kind: string } | null>(null);
+  const [uncertainGoal, setUncertainGoal] = useState(false);
+  const goalEditorDirty = editing
+    ? draft.title !== editing.title || draft.description !== (editing.description ?? '')
+      || draft.startDate !== (editing.startDate ?? '') || draft.endDate !== (editing.endDate ?? '')
+    : JSON.stringify(draft) !== JSON.stringify(emptyGoalDraft());
 
-  const progressForm = useResourceDialog({ progressValue, progressNote }, value => { setProgressValue(value.progressValue); setProgressNote(value.progressNote); });
+  function clearGoalData() {
+    ++readGeneration.current;
+    setItems([]); setSelected(null); setEditing(null); setDraft(emptyGoalDraft());
+    setConflict(false);
+    requestKey.current = null; setLoading(false);
+    setBusy(null);
+    pendingGoal.current = null; setUncertainGoal(false);
+  }
+
+  function acknowledgeGoalCommit() {
+    clearGoalData(); setError(null); setCommittedOpaque(true);
+  }
+
 
   async function load(selectedId?: string) {
+    const generation = ++readGeneration.current;
     setLoading(true);
     setError(null);
     try {
       const page = await listGoals('', '', 100);
+      if (generation !== readGeneration.current) return;
+      setCommittedOpaque(false);
       const nextItems = Array.isArray(page.items) ? page.items : [];
       setItems(nextItems);
       const id = selectedId ?? selected?.goal.id;
       if (id && nextItems.some((item) => item.id === id)) {
-        setSelected(await getGoal(id));
+        const detail = await getGoal(id);
+        if (generation !== readGeneration.current) return;
+        setSelected(detail);
       } else if (!id || !nextItems.some((item) => item.id === id)) {
         setSelected(null);
       }
     } catch (requestError) {
+      if (generation !== readGeneration.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'DependencyUnavailable', 'ActionDenied'].includes(apiError.code ?? '')) clearGoalData();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (generation === readGeneration.current) setLoading(false);
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); return () => { ++readGeneration.current; pendingGoal.current = null; }; }, []);
+
+  async function executeGoalIntent() {
+    const intent = pendingGoal.current;
+    if (!intent || busy !== null) return false;
+    ++readGeneration.current; setLoading(false);
+    setBusy(intent.kind); setError(null); setConflict(false);
+    try {
+      const result = await intent.send();
+      if (pendingGoal.current !== intent) return false;
+      pendingGoal.current = null; setUncertainGoal(false); requestKey.current = null;
+      if (isProductivityAcknowledgement(result)) { acknowledgeGoalCommit(); return true; }
+      // Target changes must not discard a separate metadata draft. State changes
+      // require a clean editor before opening their confirmation.
+      if (intent.kind === 'save' || intent.kind.startsWith('transition:')) resetEditor();
+      setSelected(result);
+      await load(result.goal.id);
+      return true;
+    } catch (requestError) {
+      if (pendingGoal.current !== intent) return false;
+      const apiError = showError(requestError);
+      const unknownOutcome = apiError.status === 0 || apiError.status >= 500 || apiError.status === 408
+        || ['RequestInProgress', 'CommittedOutcomeUnavailable', 'IdempotencyConflict'].includes(apiError.code ?? '');
+      if (unknownOutcome && pendingGoal.current === intent) {
+        setUncertainGoal(true);
+        // Keep the frozen command, and return focus to the reconciliation
+        // controls outside the modal rather than trapping retry behind it.
+      }
+      else { pendingGoal.current = null; requestKey.current = null; setUncertainGoal(false); }
+      if (apiError.status === 412) setConflict(true);
+      return false;
+    } finally { setBusy(null); }
+  }
 
   function resetEditor() {
     setEditing(null);
@@ -5406,12 +5650,14 @@ function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   function showError(requestError: unknown) {
     const apiError = asApiError(requestError);
     setError(apiError);
+    if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'DependencyUnavailable', 'ActionDenied'].includes(apiError.code ?? '')) clearGoalData();
     if (apiError.status === 401) void onAuthLost();
     return apiError;
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pendingGoal.current || busy !== null) return;
     setError(null);
     setConflict(false);
     const title = draft.title.trim();
@@ -5423,104 +5669,57 @@ function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       setError(new NexoraApiError('Ngày kết thúc không được trước ngày bắt đầu.', 422, 'ValidationFailed'));
       return;
     }
-    let numericTarget: { title: string; initialValue: number; currentValue: number; targetValue: number } | null = null;
+    let numericTarget: { title: string; initialValue: string; currentValue: string; targetValue: string } | null = null;
     if (!editing && (draft.targetTitle.trim() || draft.targetValue.trim() || draft.initialValue.trim() !== '0' || draft.currentValue.trim() !== '0')) {
-      const initialValue = Number(draft.initialValue);
-      const currentValue = Number(draft.currentValue);
-      const targetValue = Number(draft.targetValue);
-      if (!draft.targetTitle.trim() || !Number.isFinite(initialValue) || !Number.isFinite(currentValue) || !Number.isFinite(targetValue) || targetValue <= initialValue) {
+      const initialValue = draft.initialValue.trim();
+      const currentValue = draft.currentValue.trim();
+      const targetValue = draft.targetValue.trim();
+      if (!draft.targetTitle.trim() || exactGoalDecimal(initialValue) === null || exactGoalDecimal(currentValue) === null || exactGoalDecimal(targetValue) === null || exactGoalDecimal(targetValue)! <= exactGoalDecimal(initialValue)!) {
         setError(new NexoraApiError('Numeric target cần title hợp lệ và target lớn hơn initial.', 422, 'ValidationFailed'));
         return;
       }
       numericTarget = { title: draft.targetTitle.trim(), initialValue, currentValue, targetValue };
     }
-    requestKey.current ??= createIdempotencyKey();
-    setBusy('save');
-    try {
-      const result = editing
-        ? await updateGoal(editing.id, editing.etag, title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, requestKey.current)
-        : await createGoal(title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, numericTarget, requestKey.current);
-      requestKey.current = null;
-      setSelected(result);
-      resetEditor();
-      await load(result.goal.id);
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) {
-        setConflict(true);
-        await load(editing?.id);
-      }
-    } finally {
-      setBusy(null);
-    }
+    const key = createIdempotencyKey();
+    // Capture payload, route and ETag from this render. Retry uses this closure,
+    // never the edited form or a new key.
+    pendingGoal.current = { kind: 'save', send: editing
+      ? () => updateGoal(editing.id, editing.etag, title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, key)
+      : () => createGoal(title, draft.description.trim() || null, draft.startDate || null, draft.endDate || null, numericTarget, key) };
+    await executeGoalIntent();
   }
 
   async function selectGoal(id: string) {
+    const generation = ++readGeneration.current;
     setBusy(`load:${id}`);
     setError(null);
     try {
-      setSelected(await getGoal(id));
+      const detail = await getGoal(id); if (generation === readGeneration.current) setSelected(detail);
     } catch (requestError) {
-      showError(requestError);
+      if (generation === readGeneration.current) showError(requestError);
     } finally {
-      setBusy(null);
+      if (generation === readGeneration.current) setBusy(null);
     }
   }
 
   async function transition(status: string) {
-    if (!selected) return false;
-    setBusy(`transition:${status}`);
-    setError(null);
-    setConflict(false);
-    try {
-      const result = await transitionGoal(selected.goal.id, selected.goal.etag, status);
-      setSelected(result);
-      await load(result.goal.id);
-      return true;
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) {
-        setConflict(true);
-        await load(selected.goal.id);
-      }
-      return { error: apiError.message };
-    } finally {
-      setBusy(null);
+    if (!selected || pendingGoal.current || busy !== null) return false;
+    if (goalEditorDirty) {
+      setError(new NexoraApiError('Lưu hoặc hủy bản nháp Goal trước khi chuyển trạng thái.', 409, 'UnsavedGoalDraft'));
+      return false;
     }
+    const key = createIdempotencyKey();
+    pendingGoal.current = { kind: `transition:${status}`,
+      send: () => transitionGoal(selected.goal.id, selected.goal.etag, status, key) };
+    return executeGoalIntent();
   }
 
-  async function recordProgress(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
-    const target = selected.targets.find((item) => item.kind === 'Numeric');
-    const value = Number(progressValue);
-    if (!target || !Number.isFinite(value)) {
-      setError(new NexoraApiError('Nhập một giá trị numeric hợp lệ.', 422, 'ValidationFailed'));
-      return;
-    }
-    setBusy('progress');
-    setError(null);
-    setConflict(false);
-    try {
-      const result = await recordGoalProgress(selected.goal.id, target.id, selected.goal.etag, value, progressNote.trim() || null);
-      setSelected(result);
-      progressForm.finish();
-      setProgressValue('');
-      setProgressNote('');
-      await load(result.goal.id);
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) {
-        setConflict(true);
-        await load(selected.goal.id);
-      }
-    } finally {
-      setBusy(null);
-    }
+  async function executeTargetIntent(send: () => ReturnType<typeof createGoal>) {
+    if (pendingGoal.current || busy !== null) return false;
+    pendingGoal.current = { kind: 'target', send };
+    return executeGoalIntent();
   }
-
-  const numericTarget = selected?.targets.find((item) => item.kind === 'Numeric');
-  const percent = selected ? Math.round(Math.max(0, Math.min(1, selected.goal.progress)) * 100) : 0;
+  const percent = selected ? (Math.max(0, Math.min(1, selected.goal.progress)) * 100).toFixed(1) : '0.0';
   return (
     <section className="content-section" aria-labelledby="goals-title">
       <div className="content-heading">
@@ -5532,7 +5731,11 @@ function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
       {conflict && <Notice kind="error"><span>Goal đã thay đổi ở nơi khác. Draft vẫn giữ trong memory; hãy tải revision mới trước khi lưu.</span><button className="inline-button" type="button" onClick={() => void load(selected?.goal.id)} disabled={loading}>Tải revision</button></Notice>}
+      {goalEditorDirty && selected && <Notice kind="info">Bản nháp Goal đang được giữ; lưu hoặc hủy trước khi chuyển trạng thái.</Notice>}
+      {committedOpaque && <Notice kind="success">Thao tác đã được lưu; chi tiết không khả dụng. Tải lại chỉ khi bạn muốn đọc dữ liệu hiện tại.</Notice>}
+      {uncertainGoal && <Notice kind="error">Chưa xác nhận được kết quả. Thao tác đang được giữ nguyên; thử lại sẽ dùng cùng nội dung và mã yêu cầu.<button className="inline-button" type="button" disabled={busy !== null} onClick={() => void executeGoalIntent()}>Thử lại thao tác cũ</button></Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      <fieldset disabled={busy !== null || uncertainGoal} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
       <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{editing ? 'Sửa goal' : 'Goal mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
@@ -5543,12 +5746,18 @@ function GoalsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
           <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu goal' : 'Tạo goal'}</SubmitButton></div>
         </form>
         <div className="content-section">
-          <div className="section-heading"><h2>Goals của bạn</h2><span className="muted">{items.length} goal</span></div>
-          {loading ? <div className="loading-state" role="status">Đang tải goals…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có goal</h2><p>Tạo goal đầu tiên để theo dõi một kết quả có thể đo lường.</p></div> : <div className="resource-cards">{items.map((goal) => { const itemPercent = Math.round(Math.max(0, Math.min(1, goal.progress)) * 100); return <article className={selected?.goal.id === goal.id ? 'resource-card selected-card' : 'resource-card'} key={goal.id}><button className="resource-card-button" type="button" onClick={() => void selectGoal(goal.id)} disabled={busy !== null}><span><strong>{goal.title}</strong><span className="muted">{goal.status} · {goal.targetCount} target · {itemPercent}%</span></span><span className="goal-progress"><progress max={100} value={itemPercent} aria-label={`Tiến độ ${goal.title}`} /></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(goal)} disabled={busy !== null || goal.status === 'Completed' || goal.status === 'Abandoned'}>Sửa</button></div></article>; })}</div>}
+          <div className="section-heading"><h2>Goals của bạn</h2>{!committedOpaque && !error && <span className="muted">{items.length} goal</span>}</div>
+          {loading ? <div className="loading-state" role="status">Đang tải goals…</div> : committedOpaque || error ? null : items.length === 0 ? <div className="empty-state"><h2>Chưa có goal</h2><p>Tạo goal đầu tiên để theo dõi một kết quả có thể đo lường.</p></div> : <div className="resource-cards">{items.map((goal) => { const itemPercent = (Math.max(0, Math.min(1, goal.progress)) * 100).toFixed(1); return <article className={selected?.goal.id === goal.id ? 'resource-card selected-card' : 'resource-card'} key={goal.id}><button className="resource-card-button" type="button" onClick={() => void selectGoal(goal.id)} disabled={busy !== null}><span><strong>{goal.title}</strong><span className="muted">{goal.status} · {goal.targetCount === 0 ? 'No targets' : `${goal.targetCount} target`} · {itemPercent}%</span></span><span className="goal-progress"><progress max={100} value={itemPercent} aria-label={`Tiến độ ${goal.title}`} /></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(goal)} disabled={busy !== null || goal.status === 'Completed' || goal.status === 'Abandoned' || goal.status === 'Archived'}>Sửa</button></div></article>; })}</div>}
         </div>
       </div>
-      {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED GOAL</p><h2>{selected.goal.title}</h2></div><span className="state-pill state-active">{selected.goal.status}</span></div><p>{selected.goal.description || 'Không có mô tả.'}</p><div className="goal-progress-summary"><strong>{percent}%</strong><progress max={100} value={percent} aria-label="Tiến độ goal" /><span className="muted">{selected.goal.targetCount} target · cập nhật {dateTime(selected.goal.updatedAt)}</span></div><div className="form-actions">{selected.goal.status === 'Draft' && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Bắt đầu</button>}{selected.goal.status === 'Active' && <><ConfirmActionButton confirmationTitle="Hoàn thành goal?" confirmationDescription="Goal sẽ chuyển sang trạng thái chỉ đọc; bạn có thể mở lại." confirmLabel="Hoàn thành" disabled={busy !== null} onConfirm={() => transition('Completed')}>Hoàn thành</ConfirmActionButton><ConfirmActionButton confirmationTitle="Bỏ goal goal?" confirmationDescription="Goal sẽ chuyển sang trạng thái chỉ đọc; bạn có thể mở lại." confirmLabel="Bỏ goal" disabled={busy !== null} onConfirm={() => transition('Abandoned')}>Bỏ goal</ConfirmActionButton></>}{(selected.goal.status === 'Completed' || selected.goal.status === 'Abandoned') && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Mở lại</button>}</div>{numericTarget && <><button className="primary-button" type="button" disabled={busy !== null} onClick={() => { progressForm.begin(); }}>Ghi progress</button><ResourceFormDialog open={progressForm.open} title={'Ghi progress'} busy={busy !== null} dirty={progressForm.dirty} onClose={() => { progressForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="nested-panel" onSubmit={recordProgress} noValidate><div className="section-heading"><h3>{numericTarget.title}</h3><span className="muted">{numericTarget.currentValue} / {numericTarget.targetValue}</span></div><div className="form-grid"><div className="field-group"><label htmlFor="goal-progress-value">Current value</label><input id="goal-progress-value" type="number" step="any" value={progressValue} onChange={(event) => setProgressValue(event.target.value)} required /></div><div className="field-group"><label htmlFor="goal-progress-note">Note <span className="optional">(tùy chọn)</span></label><input id="goal-progress-note" value={progressNote} maxLength={2000} onChange={(event) => setProgressNote(event.target.value)} /></div></div><button className="primary-button" type="submit" disabled={busy !== null}>{busy === 'progress' ? 'Đang ghi…' : 'Ghi progress'}</button></form></ResourceFormDialog></>}</div>}
-      <div className="security-policy"><strong>Boundary</strong><span>Slice này chỉ có Goal CRUD, numeric target và explicit progress/status. Task-linked targets, habits, reminders, planner, history/trash và automation chưa được bật.</span></div>
+      {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED GOAL</p><h2>{selected.goal.title}</h2></div><span className="state-pill state-active">{selected.goal.status}</span></div><p>{selected.goal.description || 'Không có mô tả.'}</p><div className="goal-progress-summary"><strong>{percent}%</strong><progress max={100} value={percent} aria-label="Tiến độ goal" /><span className="muted">{selected.goal.targetCount === 0 ? 'No targets' : `${selected.goal.targetCount} target`} · cập nhật {dateTime(selected.goal.updatedAt)}</span></div><div className="form-actions">{selected.goal.status === 'Draft' && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null || goalEditorDirty}>Bắt đầu</button>}{selected.goal.status === 'Active' && <><ConfirmActionButton confirmationTitle="Hoàn thành goal?" confirmationDescription="Goal sẽ chuyển sang trạng thái chỉ đọc; bạn có thể mở lại." confirmLabel="Hoàn thành" disabled={busy !== null || goalEditorDirty} onConfirm={() => transition('Completed')}>Hoàn thành</ConfirmActionButton><ConfirmActionButton confirmationTitle="Bỏ goal goal?" confirmationDescription="Goal sẽ chuyển sang trạng thái chỉ đọc; bạn có thể mở lại." confirmLabel="Bỏ goal" disabled={busy !== null || goalEditorDirty} onConfirm={() => transition('Abandoned')}>Bỏ goal</ConfirmActionButton></>}{(selected.goal.status === 'Completed' || selected.goal.status === 'Abandoned') && <button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null || goalEditorDirty}>Mở lại</button>}{['Draft', 'Active', 'Completed', 'Abandoned'].includes(selected.goal.status) && <ConfirmActionButton confirmationTitle="Archive Goal?" confirmationDescription={`Goal sẽ chỉ đọc và giữ trạng thái trước archive: ${selected.goal.status}. Target và lịch sử tiến độ được giữ lại.`} confirmLabel="Archive" disabled={busy !== null || goalEditorDirty} onConfirm={() => transition('Archived')}>Archive</ConfirmActionButton>}{selected.goal.status === 'Archived' && <><ConfirmActionButton confirmationTitle="Unarchive Goal?" confirmationDescription={`Goal sẽ trở về trạng thái đã lưu trước archive: ${selected.goal.preArchiveStatus ?? 'không khả dụng'}. Không tự chuyển sang Active.`} confirmLabel="Unarchive" disabled={busy !== null || goalEditorDirty || !['Draft', 'Active', 'Completed', 'Abandoned'].includes(selected.goal.preArchiveStatus ?? '')} onConfirm={() => transition('Unarchive')}>Unarchive</ConfirmActionButton>{!selected.goal.preArchiveStatus && <p className="muted">Không có trạng thái trước archive để khôi phục; hệ thống không tự đoán trạng thái mới.</p>}</>}</div></div>}
+      {selected && <GoalTargetManager key={selected.goal.id} detail={selected} busy={busy !== null} uncertain={uncertainGoal} error={error?.message} onCommand={executeTargetIntent} onError={failure => { const apiError = showError(failure); if (apiError.status === 412) setConflict(true); }} />}
+      {selected && <GoalProgressHistory key={`${selected.goal.id}:${selected.goal.etag}`} goalId={selected.goal.id} timeZoneId={timeZoneId} locale={locale} onAuthLost={onAuthLost} />}
+      {selected && <GoalStateHistory key={`${selected.goal.id}:${selected.goal.etag}`} goalId={selected.goal.id} timeZoneId={timeZoneId} locale={locale} onAuthLost={onAuthLost} />}
+      {selected && <GoalMetadataHistory key={`${selected.goal.id}:${selected.goal.etag}`} goalId={selected.goal.id} timeZoneId={timeZoneId} locale={locale} onAuthLost={onAuthLost} />}
+      {selected && <GoalTargetDefinitionHistory key={`${selected.goal.id}:${selected.goal.etag}`} goalId={selected.goal.id} timeZoneId={timeZoneId} locale={locale} onAuthLost={onAuthLost} />}
+      </fieldset>
+      <div className="security-policy"><strong>Boundary</strong><span>Goal cùng Numeric/Boolean targets hỗ trợ tạo, sửa định nghĩa, ghi tiến độ, bỏ target và xem lịch sử tiến độ. Archive giữ trạng thái trước đó để Unarchive. Task-linked targets và Trash vẫn đang hoàn thiện.</span></div>
     </section>
   );
 }
@@ -5575,141 +5784,132 @@ function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthL
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [opaque, setOpaque] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const [pickerError, setPickerError] = useState<NexoraApiError | null>(null);
+  const planEpoch = useRef(0), preparing = useRef(false);
+  const pending = useRef<{ kind: string; send: () => Promise<Awaited<ReturnType<typeof pinPlannerTask>> | Awaited<ReturnType<typeof reorderPlanner>> | void> } | null>(null);
   const requestKey = useRef<string | null>(null);
 
   const form = useResourceDialog({ taskId, notes }, value => { setTaskId(value.taskId); setNotes(value.notes); });
 
+  function clearPicker() { ++pickerEpoch.current; setTasks([]); setTaskCursor(null); setTaskId(''); }
+  function redactSources() {
+    setPlan(current => current ? { ...current, pins: current.pins.map(pin => ({ ...pin, taskTitle: null, taskStatus: null, projectName: null, startAt: null, endAt: null, sourceAvailable: false })) } : null);
+  }
+  function clearProtected() {
+    ++planEpoch.current; clearPicker(); pending.current = null;
+    setPlan(null); setNotes(''); setConflict(false); setLoading(false); setBusy(null); setUncertain(false);
+    form.finish(); requestKey.current = null;
+  }
+  function showError(requestError: unknown, scope: 'plan' | 'picker' | 'mutation' = 'mutation') {
+    const apiError = asApiError(requestError);
+    const denied = [401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '');
+    if (scope === 'picker') {
+      setPickerError(apiError);
+      if (denied) { clearPicker(); redactSources(); }
+    } else { setError(apiError); if (denied) clearProtected(); }
+    if (apiError.status === 401) { clearProtected(); void onAuthLost(); }
+    return apiError;
+  }
+  async function loadPicker() {
+    const stamp = ++pickerEpoch.current; setPickerError(null);
+    try {
+      const page = await listTasks(undefined, 25);
+      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
+      setTasks((page.items ?? []).filter(task => task.status === 'NotStarted' || task.status === 'InProgress'));
+      setTaskCursor(page.nextCursor);
+    } catch (requestError) { if (pickerMounted.current && stamp === pickerEpoch.current) showError(requestError, 'picker'); }
+  }
   async function load() {
     if (!pickerMounted.current) return;
-    const stamp = ++pickerEpoch.current;
-    setLoading(true);
-    setError(null);
+    const stamp = ++planEpoch.current; setLoading(true); setError(null);
+    const range = plannerRange(planDate, view);
     try {
-      const range = plannerRange(planDate, view);
-      const [planner, taskPage] = await Promise.all([listPlanner(range.from, range.to), listTasks(undefined, 25)]);
-      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
-      setPlan(planner);
-      setTasks((taskPage.items ?? []).filter((task) => task.status === 'NotStarted' || task.status === 'InProgress'));
-      setTaskCursor(taskPage.nextCursor);
-    } catch (requestError) {
-      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if ([401, 403, 404].includes(apiError.status)) { setTasks([]); setTaskCursor(null); setTaskId(''); setPlan(null); }
-      if (apiError.status === 401) await onAuthLost();
-    } finally {
-      if (pickerMounted.current && stamp === pickerEpoch.current) setLoading(false);
-    }
+      const planner = await listPlanner(range.from, range.to);
+      if (!pickerMounted.current || stamp !== planEpoch.current) return;
+      setPlan(planner); setOpaque(false);
+    } catch (requestError) { if (pickerMounted.current && stamp === planEpoch.current) showError(requestError, 'plan'); }
+    finally { if (pickerMounted.current && stamp === planEpoch.current) setLoading(false); }
   }
   async function loadMoreTasks() {
-    if (!pickerMounted.current || !taskCursor || pickerFlight.current || loading || busy !== null) return;
+    if (!pickerMounted.current || !taskCursor || pickerFlight.current || busy !== null || uncertain) return;
     pickerFlight.current = true; const stamp = pickerEpoch.current; setBusy('picker');
     try {
       const page = await listTasks(undefined, 25, taskCursor);
       if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
       setTasks(old => [...new Map([...old, ...page.items.filter(task => task.status === 'NotStarted' || task.status === 'InProgress')].map(task => [task.id, task])).values()]);
       setTaskCursor(page.nextCursor);
-    } catch (requestError) {
-      if (!pickerMounted.current || stamp !== pickerEpoch.current) return;
-      const apiError = showError(requestError);
-      if ([401, 403, 404].includes(apiError.status)) { setTasks([]); setTaskCursor(null); setTaskId(''); setPlan(null); }
-    } finally { pickerFlight.current = false; if (pickerMounted.current) setBusy(current => current === 'picker' ? null : current); }
+    } catch (requestError) { if (pickerMounted.current && stamp === pickerEpoch.current) showError(requestError, 'picker'); }
+    finally { pickerFlight.current = false; if (pickerMounted.current) setBusy(current => current === 'picker' ? null : current); }
   }
-  useEffect(() => { pickerMounted.current = true; return () => { pickerMounted.current = false; pickerEpoch.current++; }; }, []);
-
+  useEffect(() => { pickerMounted.current = true; void loadPicker(); return () => { pickerMounted.current = false; ++pickerEpoch.current; ++planEpoch.current; pending.current = null; }; }, []);
   useEffect(() => { setPlanDate(todayDateInput(timeZoneId)); }, [timeZoneId]);
   useEffect(() => { void load(); }, [planDate, timeZoneId, view]);
-
-  function showError(requestError: unknown) {
-    const apiError = asApiError(requestError);
-    setError(apiError);
-    if (apiError.status === 401) void onAuthLost();
-    return apiError;
+  async function executeIntent(prepared = false) {
+    const intent = pending.current; if (!intent || (busy !== null && !prepared)) return false;
+    ++planEpoch.current; ++pickerEpoch.current; setLoading(false); setBusy(intent.kind); setError(null); setConflict(false);
+    try {
+      const result = await intent.send(); if (pending.current !== intent) return false;
+      pending.current = null; setUncertain(false); form.finish(); setTaskId(''); setNotes('');
+      if (result === undefined || isProductivityAcknowledgement(result)) { clearProtected(); setError(null); setOpaque(true); return true; }
+      await load(); return true;
+    } catch (requestError) {
+      if (pending.current !== intent) return false;
+      const apiError = showError(requestError);
+      const unknown = apiError.status === 0 || apiError.status >= 500 || apiError.status === 408
+        || ['RequestInProgress', 'CommittedOutcomeUnavailable', 'IdempotencyConflict'].includes(apiError.code ?? '');
+      if (unknown && pending.current === intent) { setUncertain(true); form.finish(); }
+      else { pending.current = null; setUncertain(false); }
+      if (apiError.status === 412) setConflict(true); return false;
+    } finally { setBusy(null); }
   }
-
   async function pin(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!taskId) {
-      setError(new NexoraApiError('Chọn một Task đang hoạt động.', 422, 'ValidationFailed'));
-      return;
-    }
-    requestKey.current ??= createIdempotencyKey();
-    setBusy('pin');
-    setConflict(false);
-    setError(null);
-    try {
-      await pinPlannerTask(taskId, planDate, notes.trim() || null, requestKey.current);
-      requestKey.current = null;
-      form.finish();
-      setTaskId('');
-      setNotes('');
-      await load();
-    } catch (requestError) {
-      showError(requestError);
-    } finally {
-      setBusy(null);
-    }
+    event.preventDefault(); if (pending.current || busy !== null) return;
+    if (!taskId) { setError(new NexoraApiError('Chọn một Task đang hoạt động.', 422, 'ValidationFailed')); return; }
+    const key = createIdempotencyKey();
+    pending.current = { kind: 'pin', send: () => pinPlannerTask(taskId, planDate, notes.trim() || null, key) };
+    await executeIntent();
   }
-
   async function remove(pin: PlannerPinRecord) {
-    setBusy(`remove:${pin.id}`);
-    setConflict(false);
-    setError(null);
-    try {
-      await unpinPlannerTask(pin.id, pin.etag);
-      await load();
-      return true;
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) { setConflict(true); await load(); }
-      return { error: apiError.message };
-    } finally {
-      setBusy(null);
-    }
+    if (pending.current || busy !== null) return false;
+    const key = createIdempotencyKey();
+    pending.current = { kind: `remove:${pin.id}`, send: () => unpinPlannerTask(pin.id, pin.etag, key) };
+    return executeIntent();
   }
-
   async function move(pin: PlannerPinRecord, offset: number) {
-    const nextDate = addDateDays(pin.planDate, offset);
-    setBusy(`move:${pin.id}`);
-    setConflict(false);
-    setError(null);
-    try {
-      await updatePlannerPin(pin.id, pin.etag, nextDate, pin.notes);
-      await load();
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) { setConflict(true); await load(); }
-    } finally {
-      setBusy(null);
-    }
+    if (pending.current || busy !== null) return;
+    const key = createIdempotencyKey(), nextDate = addDateDays(pin.planDate, offset);
+    pending.current = { kind: `move:${pin.id}`, send: () => updatePlannerPin(pin.id, pin.etag, nextDate, pin.notes, key) };
+    await executeIntent();
   }
-
   async function reorder(date: string, pins: PlannerPinRecord[], index: number, direction: -1 | 1) {
     const swap = index + direction;
-    if (swap < 0 || swap >= pins.length) return;
-    setBusy(`reorder:${date}`);
-    setConflict(false);
-    setError(null);
+    if (swap < 0 || swap >= pins.length || pending.current || busy !== null || preparing.current) return;
+    preparing.current = true; setBusy('prepare-reorder'); const stamp = ++planEpoch.current;
     try {
-      const dayPlan = await listPlanner(date, date);
-      const ids = [...pins];
-      [ids[index], ids[swap]] = [ids[swap], ids[index]];
-      await reorderPlanner(date, ids.map((pin) => pin.id), dayPlan.etag);
-      await load();
+      const day = await listPlanner(date, date);
+      if (!pickerMounted.current || stamp !== planEpoch.current) return;
+      if (day.pins.length !== pins.length || day.pins.some((pin, i) => pin.id !== pins[i].id || pin.etag !== pins[i].etag))
+        throw new NexoraApiError('Plan đã thay đổi. Tải revision mới trước khi sắp xếp.', 412, 'RevisionConflict');
+      const ids = pins.map(pin => pin.id); [ids[index], ids[swap]] = [ids[swap], ids[index]];
+      const key = createIdempotencyKey();
+      pending.current = { kind: `reorder:${date}`, send: () => reorderPlanner(date, ids, day.etag, key) };
+      await executeIntent(true);
     } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) { setConflict(true); await load(); }
-    } finally {
-      setBusy(null);
-    }
+      if (pickerMounted.current && stamp === planEpoch.current) { const apiError = showError(requestError); if (apiError.status === 412) setConflict(true); }
+    } finally { preparing.current = false; if (pickerMounted.current) setBusy(null); }
   }
-
   const days = plan ? dateRangeInputs(plan.from, plan.to) : [];
   return (
     <section className="content-section" aria-labelledby="planner-title">
-      <div className="content-heading"><div><p className="eyebrow">FX15 / PLANNER</p><h1 id="planner-title">Daily & weekly planner</h1><p className="lead">Planner chỉ pin tham chiếu Task theo ngày. Nó không clone Task, không đổi Start/End, status, reminder hoặc tạo Calendar Event.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
-      {conflict && <Notice kind="error">Plan đã đổi ở nơi khác. Đã tải lại revision hiện tại.</Notice>}
+      <div className="content-heading"><div><p className="eyebrow">FX15 / PLANNER</p><h1 id="planner-title">Daily & weekly planner</h1><p className="lead">Planner chỉ pin tham chiếu Task theo ngày. Nó không clone Task, không đổi Start/End, status, reminder hoặc tạo Calendar Event.</p></div><button className="secondary-button" type="button" onClick={() => { void load(); void loadPicker(); }} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      {conflict && <Notice kind="error">Plan đã đổi ở nơi khác. Tải lại revision trước khi áp dụng thay đổi.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {opaque && <Notice kind="success">Thao tác đã được lưu. Tải lại khi cần đọc plan hiện tại.</Notice>}
+      {uncertain && <Notice kind="error">Chưa xác nhận được kết quả.<button type="button" className="inline-button" disabled={busy !== null} onClick={() => void executeIntent()}>Thử lại thao tác cũ</button></Notice>}
+      {pickerError && <Notice kind="error">Không tải được lựa chọn Task. Các pin hiện có vẫn có thể được dọn.<button type="button" className="inline-button" onClick={() => void loadPicker()} disabled={busy !== null}>Tải lại Task</button></Notice>}
+      <fieldset disabled={busy !== null || uncertain} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
       <div className="resource-layout">
         <div className="form-panel">
           <div className="section-heading"><h2>Pin existing Task</h2><span className="state-pill state-active">Task lens</span></div>
@@ -5719,8 +5919,9 @@ function PlannerScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthL
           <SubmitButton busy={busy === 'pin'}>Pin vào plan</SubmitButton>
           <p className="field-help">Task terminal hoặc Project terminal sẽ bị server từ chối; cross-user Task không được tiết lộ.</p>
         </form></ResourceFormDialog>
-          <div className="content-section"><div className="section-heading"><h2>{view === 'day' ? 'Daily plan' : 'Weekly plan'}</h2><span className="muted">{plan?.pins.length ?? 0} pin</span></div>{loading ? <div className="loading-state" role="status">Đang tải planner và Task có thể pin…</div> : !plan || plan.pins.length === 0 ? <div className="empty-state"><h2>Chưa có pin</h2><p>Không có auto-carryover. Chọn một Task hiện có nếu bạn muốn đưa nó vào ngày này.</p></div> : <div className="resource-cards">{days.map((day) => { const pins = plan.pins.filter((pin) => pin.planDate === day); return <article className="form-panel" key={day}><div className="section-heading"><h3>{day}</h3><span className="muted">{pins.length} Task</span></div>{pins.length === 0 ? <p className="muted">Không có Task được pin.</p> : <div className="resource-cards">{pins.map((pin, index) => <article className="resource-card" key={pin.id}><div><strong>{pin.taskTitle}</strong><span className="muted">{pin.projectName} · {pin.taskStatus} · {dateTime(pin.startAt)}</span>{pin.notes && <p>{pin.notes}</p>}{!pin.sourceAvailable && <span className="state-pill state-warning">Source unavailable / readonly</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, -1)} disabled={busy !== null || !pin.sourceAvailable || index === 0}>↑</button><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, 1)} disabled={busy !== null || !pin.sourceAvailable || index === pins.length - 1}>↓</button><button className="secondary-button" type="button" onClick={() => void move(pin, -1)} disabled={busy !== null || !pin.sourceAvailable}>← Ngày trước</button><button className="secondary-button" type="button" onClick={() => void move(pin, 1)} disabled={busy !== null || !pin.sourceAvailable}>Ngày sau →</button><ConfirmActionButton confirmationTitle="Unpin Task?" confirmationDescription="Chỉ gỡ pin; Task nguồn được giữ nguyên." confirmLabel="Unpin" disabled={busy !== null} onConfirm={() => remove(pin)}>Unpin</ConfirmActionButton></div></article>)}</div>}</article>; })}</div>}</div>
+          <div className="content-section"><div className="section-heading"><h2>{view === 'day' ? 'Daily plan' : 'Weekly plan'}</h2>{plan && !opaque && !error && <span className="muted">{plan.pins.length} pin</span>}</div>{loading ? <div className="loading-state" role="status">Đang tải planner và Task có thể pin…</div> : opaque || error ? null : !plan || plan.pins.length === 0 ? <div className="empty-state"><h2>Chưa có pin</h2><p>Không có auto-carryover. Chọn một Task hiện có nếu bạn muốn đưa nó vào ngày này.</p></div> : <div className="resource-cards">{days.map((day) => { const pins = plan.pins.filter((pin) => pin.planDate === day); return <article className="form-panel" key={day}><div className="section-heading"><h3>{day}</h3><span className="muted">{pins.length} Task</span></div>{pins.length === 0 ? <p className="muted">Không có Task được pin.</p> : <div className="resource-cards">{pins.map((pin, index) => <article className="resource-card" key={pin.id}><div><strong>{pin.taskTitle ?? 'Nguồn không khả dụng'}</strong>{pin.taskTitle !== null && <span className="muted">{pin.projectName} · {pin.taskStatus} · {pin.startAt ? dateTime(pin.startAt) : ''}</span>}{pin.notes && <p>{pin.notes}</p>}{!pin.sourceAvailable && <span className="state-pill state-warning">Source unavailable / readonly</span>}</div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, -1)} disabled={busy !== null || !pin.sourceAvailable || index === 0}>↑</button><button className="secondary-button" type="button" onClick={() => void reorder(day, pins, index, 1)} disabled={busy !== null || !pin.sourceAvailable || index === pins.length - 1}>↓</button><button className="secondary-button" type="button" onClick={() => void move(pin, -1)} disabled={busy !== null || !pin.sourceAvailable}>← Ngày trước</button><button className="secondary-button" type="button" onClick={() => void move(pin, 1)} disabled={busy !== null || !pin.sourceAvailable}>Ngày sau →</button><ConfirmActionButton confirmationTitle="Unpin Task?" confirmationDescription="Chỉ gỡ pin; Task nguồn được giữ nguyên." confirmLabel="Unpin" disabled={busy !== null} onConfirm={() => remove(pin)}>Unpin</ConfirmActionButton></div></article>)}</div>}</article>; })}</div>}</div>
       </div>
+      </fieldset>
       <div className="security-policy"><strong>Boundary</strong><span>Planner không share riêng, không có workspace/team behavior và không là đường tắt để sửa nguồn Task hoặc Calendar.</span></div>
     </section>
   );
@@ -5752,6 +5953,10 @@ function HabitsScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLo
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<NexoraApiError | null>(null);
   const [conflict, setConflict] = useState(false);
+  const [opaque, setOpaque] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const generation = useRef(0);
+  const pending = useRef<{ kind: string; send: () => ReturnType<typeof createHabit> } | null>(null);
   const requestKey = useRef<string | null>(null);
   const checkInRequestKey = useRef<string | null>(null);
   const checkInRequestSignature = useRef<string | null>(null);
@@ -5759,145 +5964,118 @@ function HabitsScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLo
   const checkForm = useResourceDialog({ checkInDate, checkInCount, checkInNote }, value => { setCheckInDate(value.checkInDate); setCheckInCount(value.checkInCount); setCheckInNote(value.checkInNote); });
   const scheduleForm = useResourceDialog({ scheduleDate, scheduleMask, scheduleTarget }, value => { setScheduleDate(value.scheduleDate); setScheduleMask(value.scheduleMask); setScheduleTarget(value.scheduleTarget); });
 
-  async function load(selectedId?: string) {
-    setLoading(true);
-    setError(null);
-    try {
-      const page = await listHabits('', '', 100);
-      const next = page.items ?? [];
-      setItems(next);
-      const id = selectedId ?? selected?.habit.id;
-      if (id && next.some((item) => item.id === id)) setSelected(await getHabit(id));
-      else if (!id || !next.some((item) => item.id === id)) setSelected(null);
-    } catch (requestError) {
-      const apiError = asApiError(requestError);
-      setError(apiError);
-      if (apiError.status === 401) await onAuthLost();
-    } finally { setLoading(false); }
+  function clearProtected() {
+    ++generation.current; pending.current = null;
+    setItems([]); setSelected(null); setEditing(null); setDraft(emptyHabitDraft(timeZoneId));
+    setCheckInNote(''); setCheckInCount('1'); setCheckInDate(todayDateInput(timeZoneId));
+    setScheduleDate(tomorrowDateInput(timeZoneId)); setScheduleMask(127); setScheduleTarget('1');
+    setUncertain(false); setConflict(false); setLoading(false); setBusy(null);
+    requestKey.current = null; checkInRequestKey.current = null; checkInRequestSignature.current = null;
+    checkForm.finish(); scheduleForm.finish();
   }
-
-  useEffect(() => { void load(); }, []);
-
   function showError(requestError: unknown) {
-    const apiError = asApiError(requestError);
-    setError(apiError);
+    const apiError = asApiError(requestError); setError(apiError);
+    if ([401, 403, 404].includes(apiError.status) || ['ModuleUnavailable', 'ActionDenied', 'DependencyUnavailable'].includes(apiError.code ?? '')) clearProtected();
     if (apiError.status === 401) void onAuthLost();
     return apiError;
   }
-
-  function resetEditor() { setEditing(null); setDraft(emptyHabitDraft(timeZoneId)); requestKey.current = null; checkInRequestKey.current = null; checkInRequestSignature.current = null; setConflict(false); }
-
-  function beginEdit(habit: HabitRecord) {
-    const localToday = todayDateInput(habit.timeZoneId);
-    setEditing(habit);
-    setDraft({ title: habit.title, kind: habit.kind === 'Count' ? 'Count' : 'Boolean', targetCount: String(habit.targetCount ?? 1), unit: habit.unit ?? '', effectiveFrom: localToday, weekdayMask: habit.currentSchedule?.weekdayMask ?? 127, timeZoneId: habit.timeZoneId, reminderLocalTime: habit.reminderLocalTime?.slice(0, 5) ?? '' });
-    setScheduleMask(habit.currentSchedule?.weekdayMask ?? 127);
-    setScheduleTarget(String(habit.currentSchedule?.targetCount ?? habit.targetCount ?? 1));
-    setCheckInDate(localToday);
-    setScheduleDate(addDateDays(localToday, 1));
-    checkInRequestKey.current = null;
-    checkInRequestSignature.current = null;
-    setError(null);
-    setConflict(false);
-  }
-
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const title = draft.title.trim();
-    const target = draft.kind === 'Count' ? Number(draft.targetCount) : null;
-    if (!title || title.length > 100 || (draft.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0)) || !draft.weekdayMask || !draft.timeZoneId.trim()) {
-      setError(new NexoraApiError('Kiểm tra title, count target, weekdays và timezone.', 422, 'ValidationFailed'));
-      return;
-    }
-    requestKey.current ??= createIdempotencyKey();
-    setBusy('save'); setError(null); setConflict(false);
+  async function load(selectedId?: string) {
+    const current = ++generation.current; setLoading(true); setError(null);
     try {
-      const result = editing
-        ? await updateHabit(editing.id, editing.etag, { title, unit: draft.unit.trim() || null, reminderLocalTime: draft.reminderLocalTime || null, timeZoneId: draft.timeZoneId.trim() }, requestKey.current)
-        : await createHabit({ title, kind: draft.kind, targetCount: target, unit: draft.unit.trim() || null, effectiveFrom: draft.effectiveFrom, weekdayMask: draft.weekdayMask, timeZoneId: draft.timeZoneId.trim(), reminderLocalTime: draft.reminderLocalTime || null }, requestKey.current);
-      requestKey.current = null;
-      setCheckInDate(todayDateInput(result.habit.timeZoneId));
-      setScheduleDate(tomorrowDateInput(result.habit.timeZoneId));
-      setSelected(result);
-      resetEditor();
-      await load(result.habit.id);
+      const page = await listHabits('', '', 100);
+      if (current !== generation.current) return;
+      const next = page.items ?? []; setItems(next); setOpaque(false);
+      const id = selectedId ?? selected?.habit.id;
+      if (id && next.some(item => item.id === id)) {
+        const detail = await getHabit(id); if (current !== generation.current) return; setSelected(detail);
+      } else setSelected(null);
+    } catch (requestError) { if (current === generation.current) showError(requestError); }
+    finally { if (current === generation.current) setLoading(false); }
+  }
+  useEffect(() => { void load(); return () => { ++generation.current; pending.current = null; }; }, []);
+  function resetEditor() { setEditing(null); setDraft(emptyHabitDraft(timeZoneId)); setConflict(false); }
+  function beginEdit(habit: HabitRecord) {
+    if (pending.current || busy !== null) return;
+    const today = todayDateInput(habit.timeZoneId);
+    setEditing(habit);
+    setDraft({ title: habit.title, kind: habit.kind === 'Count' ? 'Count' : 'Boolean', targetCount: String(habit.targetCount ?? 1), unit: habit.unit ?? '', effectiveFrom: today, weekdayMask: habit.currentSchedule?.weekdayMask ?? 127, timeZoneId: habit.timeZoneId, reminderLocalTime: habit.reminderLocalTime?.slice(0, 5) ?? '' });
+    setScheduleMask(habit.currentSchedule?.weekdayMask ?? 127); setScheduleTarget(String(habit.currentSchedule?.targetCount ?? habit.targetCount ?? 1));
+    setCheckInDate(today); setScheduleDate(addDateDays(today, 1)); setError(null); setConflict(false);
+  }
+  async function executeIntent() {
+    const intent = pending.current; if (!intent || busy !== null) return false;
+    ++generation.current; setLoading(false); setBusy(intent.kind); setError(null); setConflict(false);
+    try {
+      const result = await intent.send(); if (pending.current !== intent) return false;
+      pending.current = null; setUncertain(false); checkForm.finish(); scheduleForm.finish();
+      if (isProductivityAcknowledgement(result)) { clearProtected(); setError(null); setOpaque(true); return true; }
+      setSelected(result); setCheckInNote(''); resetEditor();
+      setCheckInDate(todayDateInput(result.habit.timeZoneId)); setScheduleDate(tomorrowDateInput(result.habit.timeZoneId));
+      await load(result.habit.id); return true;
     } catch (requestError) {
+      if (pending.current !== intent) return false;
       const apiError = showError(requestError);
-      if (apiError.status === 412) { setConflict(true); await load(editing?.id); }
+      const unknown = apiError.status === 0 || apiError.status >= 500 || apiError.status === 408
+        || ['RequestInProgress', 'CommittedOutcomeUnavailable', 'IdempotencyConflict'].includes(apiError.code ?? '');
+      if (unknown && pending.current === intent) { setUncertain(true); checkForm.finish(); scheduleForm.finish(); }
+      else { pending.current = null; setUncertain(false); }
+      if (apiError.status === 412) setConflict(true); return false;
     } finally { setBusy(null); }
   }
-
-  async function selectHabit(id: string) {
-    setBusy(`load:${id}`); setError(null);
-    try {
-      const result = await getHabit(id);
-      setSelected(result);
-      const localToday = todayDateInput(result.habit.timeZoneId);
-      setCheckInDate(localToday);
-      setScheduleDate(addDateDays(localToday, 1));
-      checkInRequestKey.current = null;
-      checkInRequestSignature.current = null;
-    } catch (requestError) { showError(requestError); } finally { setBusy(null); }
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); if (pending.current || busy !== null) return;
+    const title = draft.title.trim(), target = draft.kind === 'Count' ? Number(draft.targetCount) : null;
+    if (!title || title.length > 100 || (draft.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0)) || !draft.weekdayMask || !draft.timeZoneId.trim()) {
+      setError(new NexoraApiError('Kiểm tra title, count target, weekdays và timezone.', 422, 'ValidationFailed')); return;
+    }
+    const key = createIdempotencyKey();
+    pending.current = { kind: 'save', send: editing
+      ? () => updateHabit(editing.id, editing.etag, { title, unit: draft.unit.trim() || null, reminderLocalTime: draft.reminderLocalTime || null, timeZoneId: draft.timeZoneId.trim() }, key)
+      : () => createHabit({ title, kind: draft.kind, targetCount: target, unit: draft.unit.trim() || null, effectiveFrom: draft.effectiveFrom, weekdayMask: draft.weekdayMask, timeZoneId: draft.timeZoneId.trim(), reminderLocalTime: draft.reminderLocalTime || null }, key) };
+    await executeIntent();
   }
-
+  async function selectHabit(id: string) {
+    const current = ++generation.current; setBusy(`load:${id}`); setError(null);
+    try {
+      const result = await getHabit(id); if (current !== generation.current) return;
+      setSelected(result); setCheckInDate(todayDateInput(result.habit.timeZoneId)); setScheduleDate(tomorrowDateInput(result.habit.timeZoneId));
+    } catch (requestError) { if (current === generation.current) showError(requestError); }
+    finally { if (current === generation.current) setBusy(null); }
+  }
   async function recordCheckIn(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
+    event.preventDefault(); if (!selected || pending.current || busy !== null) return;
     const count = Number(checkInCount);
     if (!Number.isInteger(count) || count < 0) { setError(new NexoraApiError('Check-in count phải là số nguyên không âm.', 422, 'ValidationFailed')); return; }
-    const note = checkInNote.trim() || null;
-    const requestSignature = `${checkInDate}|${count}|${note ?? ''}`;
-    if (checkInRequestSignature.current !== requestSignature) {
-      checkInRequestSignature.current = requestSignature;
-      checkInRequestKey.current = createIdempotencyKey();
-    }
-    const requestKeyValue = checkInRequestKey.current ?? createIdempotencyKey();
-    checkInRequestKey.current = requestKeyValue;
-    setBusy('checkin'); setError(null); setConflict(false);
-    try {
-      const result = await recordHabitCheckIn(selected.habit.id, selected.habit.etag, { localDate: checkInDate, count, note }, requestKeyValue);
-      checkInRequestKey.current = null;
-      checkInRequestSignature.current = null;
-      checkForm.finish(); setSelected(result); setCheckInNote(''); await load(result.habit.id);
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) { checkInRequestKey.current = null; checkInRequestSignature.current = null; setConflict(true); await load(selected.habit.id); }
-    } finally { setBusy(null); }
+    const key = createIdempotencyKey();
+    pending.current = { kind: 'checkin', send: () => recordHabitCheckIn(selected.habit.id, selected.habit.etag, { localDate: checkInDate, count, note: checkInNote.trim() || null }, key) };
+    await executeIntent();
   }
-
   async function saveSchedule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!selected) return;
+    event.preventDefault(); if (!selected || pending.current || busy !== null) return;
     const target = selected.habit.kind === 'Count' ? Number(scheduleTarget) : null;
-    if (!scheduleMask || (selected.habit.kind === 'Count' && (!Number.isInteger(target) || (target ?? 0) <= 0))) { setError(new NexoraApiError('Chọn weekdays và count target hợp lệ.', 422, 'ValidationFailed')); return; }
-    setBusy('schedule'); setError(null); setConflict(false);
-    try {
-      const result = await setHabitSchedule(selected.habit.id, selected.habit.etag, { effectiveFrom: scheduleDate, weekdayMask: scheduleMask, targetCount: target });
-      scheduleForm.finish(); setSelected(result); await load(result.habit.id);
-    } catch (requestError) {
-      const apiError = showError(requestError);
-      if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); }
-    } finally { setBusy(null); }
+    if (!scheduleMask || (target !== null && (!Number.isInteger(target) || target <= 0))) { setError(new NexoraApiError('Chọn ngày và target hợp lệ.', 422, 'ValidationFailed')); return; }
+    const key = createIdempotencyKey();
+    pending.current = { kind: 'schedule', send: () => setHabitSchedule(selected.habit.id, selected.habit.etag, { effectiveFrom: scheduleDate, weekdayMask: scheduleMask, targetCount: target }, key) };
+    await executeIntent();
   }
-
   async function transition(state: 'Active' | 'Paused' | 'Archived' | 'Unarchive') {
-    if (!selected) return false;
-    setBusy(`transition:${state}`); setError(null); setConflict(false);
-    try { const result = await transitionHabit(selected.habit.id, selected.habit.etag, state); setSelected(result); await load(result.habit.id); return true; }
-    catch (requestError) { const apiError = showError(requestError); if (apiError.status === 412) { setConflict(true); await load(selected.habit.id); } return { error: apiError.message }; }
-    finally { setBusy(null); }
+    if (!selected || pending.current || busy !== null) return false;
+    const key = createIdempotencyKey();
+    pending.current = { kind: `transition:${state}`, send: () => transitionHabit(selected.habit.id, selected.habit.etag, state, key) };
+    return executeIntent();
   }
-
   function toggleWeekday(bit: number, target: 'draft' | 'schedule') {
     if (target === 'draft') setDraft({ ...draft, weekdayMask: draft.weekdayMask ^ bit });
     else setScheduleMask(scheduleMask ^ bit);
   }
-
   return (
     <section className="content-section" aria-labelledby="habits-title">
       <div className="content-heading"><div><p className="eyebrow">FX17 / HABITS</p><h1 id="habits-title">Habit tracker</h1><p className="lead">Habit và check-in chỉ thuộc PersonalSpace hiện tại. Schedule dùng ngày local theo timezone lưu trên Habit; lịch sử không bị relabel khi đổi timezone.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
-      {conflict && <Notice kind="error">Habit đã thay đổi ở nơi khác. Đã tải revision hiện tại.</Notice>}
+      {conflict && <Notice kind="error">Habit đã thay đổi ở nơi khác. Giữ bản nháp; tải lại revision trước khi áp dụng thay đổi.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {opaque && <Notice kind="success">Thao tác đã được lưu; chi tiết không khả dụng.</Notice>}
+      {uncertain && <Notice kind="error">Chưa xác nhận được kết quả. Giữ nguyên thao tác trước khi tiếp tục.<button type="button" className="inline-button" disabled={busy !== null} onClick={() => void executeIntent()}>Thử lại thao tác cũ</button></Notice>}
+      <fieldset disabled={busy !== null || uncertain} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
       <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{editing ? 'Sửa Habit' : 'Habit mới'}</h2>{editing && <button className="link-button" type="button" onClick={resetEditor}>Hủy sửa</button>}</div>
@@ -5908,9 +6086,10 @@ function HabitsScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLo
           <div className="field-group"><label htmlFor="habit-reminder">Reminder local time <span className="optional">(metadata only)</span></label><input id="habit-reminder" type="time" value={draft.reminderLocalTime} onChange={(event) => setDraft({ ...draft, reminderLocalTime: event.target.value })} /><p className="field-help">Không enqueue hoặc gọi email/browser push provider trong slice này.</p></div>
           <div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null}>Làm mới</button><SubmitButton busy={busy === 'save'}>{editing ? 'Lưu Habit' : 'Tạo Habit'}</SubmitButton></div>
         </form>
-        <div className="content-section"><div className="section-heading"><h2>Habits của bạn</h2><span className="muted">{items.length} habit</span></div>{loading ? <div className="loading-state" role="status">Đang tải habits…</div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có Habit</h2><p>Tạo thói quen đầu tiên với ngày schedule rõ ràng.</p></div> : <div className="resource-cards">{items.map((habit) => <article className={selected?.habit.id === habit.id ? 'resource-card selected-card' : 'resource-card'} key={habit.id}><button className="resource-card-button" type="button" onClick={() => void selectHabit(habit.id)} disabled={busy !== null}><span><strong>{habit.title}</strong><span className="muted">{habit.kind} · {habit.state} · streak {habit.currentStreak}</span></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(habit)} disabled={busy !== null || habit.state !== 'Active'}>Sửa</button></div></article>)}</div>}</div>
+        <div className="content-section"><div className="section-heading"><h2>Habits của bạn</h2>{!opaque && !error && <span className="muted">{items.length} habit</span>}</div>{loading ? <div className="loading-state" role="status">Đang tải habits…</div> : opaque || error ? null : items.length === 0 ? <div className="empty-state"><h2>Chưa có Habit</h2><p>Tạo thói quen đầu tiên với ngày schedule rõ ràng.</p></div> : <div className="resource-cards">{items.map((habit) => <article className={selected?.habit.id === habit.id ? 'resource-card selected-card' : 'resource-card'} key={habit.id}><button className="resource-card-button" type="button" onClick={() => void selectHabit(habit.id)} disabled={busy !== null}><span><strong>{habit.title}</strong><span className="muted">{habit.kind} · {habit.state} · streak {habit.currentStreak}</span></span></button><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(habit)} disabled={busy !== null || habit.state !== 'Active'}>Sửa</button></div></article>)}</div>}</div>
       </div>
       {selected && <div className="form-panel goal-detail"><div className="section-heading"><div><p className="eyebrow">SELECTED HABIT</p><h2>{selected.habit.title}</h2></div><span className="state-pill state-active">{selected.habit.state}</span></div><p className="muted">{selected.habit.kind}{selected.habit.targetCount ? ` · target ${selected.habit.targetCount}${selected.habit.unit ? ` ${selected.habit.unit}` : ''}` : ''} · {selected.habit.timeZoneId} · streak {selected.habit.currentStreak}</p><div className="form-actions">{selected.habit.state === 'Active' && <><button className="secondary-button" type="button" onClick={() => void transition('Paused')} disabled={busy !== null}>Pause</button><ConfirmActionButton confirmationTitle="Archive Habit?" confirmationDescription="Lịch sử check-in được giữ nguyên. Bạn có thể unarchive sau." confirmLabel="Archive Habit" disabled={busy !== null} onConfirm={() => transition('Archived')}>Archive</ConfirmActionButton></>}{selected.habit.state === 'Paused' && <><button className="secondary-button" type="button" onClick={() => void transition('Active')} disabled={busy !== null}>Resume</button><ConfirmActionButton confirmationTitle="Archive Habit?" confirmationDescription="Lịch sử check-in được giữ nguyên. Bạn có thể unarchive sau." confirmLabel="Archive Habit" disabled={busy !== null} onConfirm={() => transition('Archived')}>Archive</ConfirmActionButton></>}{selected.habit.state === 'Archived' && <button className="secondary-button" type="button" onClick={() => void transition('Unarchive')} disabled={busy !== null}>Unarchive</button>}</div>{selected.habit.state === 'Active' && <div className="resource-layout"><button className="primary-button" type="button" disabled={busy !== null} onClick={() => { checkForm.begin(); }}>Check-in</button><ResourceFormDialog open={checkForm.open} title={'Check-in'} busy={busy !== null} dirty={checkForm.dirty} onClose={() => { checkForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="nested-panel" onSubmit={recordCheckIn} noValidate><div className="section-heading"><h3>Check-in</h3><span className="muted">one record per local date</span></div><div className="form-grid"><div className="field-group"><label htmlFor="habit-check-date">Local date</label><input id="habit-check-date" type="date" value={checkInDate} onChange={(event) => setCheckInDate(event.target.value)} required /></div><div className="field-group"><label htmlFor="habit-check-count">{selected.habit.kind === 'Count' ? 'Count' : 'Completed (1) / correction (0)'}</label><input id="habit-check-count" type="number" min={0} max={selected.habit.kind === 'Boolean' ? 1 : undefined} step={1} value={checkInCount} onChange={(event) => setCheckInCount(event.target.value)} required /></div></div><div className="field-group"><label htmlFor="habit-check-note">Note <span className="optional">(tùy chọn)</span></label><input id="habit-check-note" value={checkInNote} maxLength={1000} onChange={(event) => setCheckInNote(event.target.value)} /></div><SubmitButton busy={busy === 'checkin'}>Record check-in</SubmitButton></form></ResourceFormDialog><button className="primary-button" type="button" disabled={busy !== null} onClick={() => { scheduleForm.begin(); }}>Future schedule</button><ResourceFormDialog open={scheduleForm.open} title={'Future schedule'} busy={busy !== null} dirty={scheduleForm.dirty} onClose={() => { scheduleForm.cancel(); }}>{error && <Notice kind="error">{error.message}</Notice>}<form className="nested-panel" onSubmit={saveSchedule} noValidate><div className="section-heading"><h3>Future schedule</h3><span className="muted">past records are preserved</span></div><div className="field-group"><label htmlFor="habit-schedule-date">Effective from</label><input id="habit-schedule-date" type="date" value={scheduleDate} onChange={(event) => setScheduleDate(event.target.value)} required /></div><WeekdayPicker value={scheduleMask} onToggle={(bit) => toggleWeekday(bit, 'schedule')} />{selected.habit.kind === 'Count' && <div className="field-group"><label htmlFor="habit-schedule-target">Target count</label><input id="habit-schedule-target" type="number" min={1} step={1} value={scheduleTarget} onChange={(event) => setScheduleTarget(event.target.value)} required /></div>}<SubmitButton busy={busy === 'schedule'}>Save schedule</SubmitButton></form></ResourceFormDialog></div>}<div className="nested-panel"><div className="section-heading"><h3>Recent local-date history</h3><span className="muted">{selected.checkIns.length} record</span></div>{selected.checkIns.length === 0 ? <p className="muted">Chưa có check-in trong khoảng hiện tại.</p> : <div className="resource-cards">{selected.checkIns.map((checkIn) => <article className="resource-card" key={checkIn.id}><div><strong>{checkIn.localDate}</strong><span className="muted">Count {checkIn.count} · schedule {checkIn.scheduleId.slice(0, 8)}</span>{checkIn.note && <p>{checkIn.note}</p>}</div></article>)}</div>}</div></div>}
+      </fieldset>
       <div className="security-policy"><strong>Boundary</strong><span>Không có social/team tracking, Calendar Event tự tạo, reminder dispatch, Trash/purge hay provider execution trong local slice này.</span></div>
     </section>
   );
@@ -5920,7 +6099,7 @@ function WeekdayPicker({ value, onToggle }: { value: number; onToggle: (bit: num
   return <fieldset className="field-group"><legend>Scheduled weekdays</legend><div className="check-grid">{WEEKDAYS.map((day) => <label className="check-row" key={day.bit}><input type="checkbox" checked={(value & day.bit) !== 0} onChange={() => onToggle(day.bit)} /><span>{day.label}</span></label>)}</div></fieldset>;
 }
 
-function FinanceScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLost: () => Promise<void> }) {
+function FinanceScreen({ timeZoneId, onAuthLost, initialCreate = false }: { timeZoneId: string; onAuthLost: () => Promise<void>; initialCreate?: boolean }) {
   const [categories, setCategories] = useState<FinanceCategoryRecord[]>([]);
   const [records, setRecords] = useState<FinanceManualRecord[]>([]);
   const [summaries, setSummaries] = useState<FinanceSummary[]>([]);
@@ -5961,6 +6140,13 @@ function FinanceScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthL
 
   const categoryForm = useResourceDialog(categoryTitle);
   const recordForm = useResourceDialog(recordDraft, setRecordDraft);
+  const initialCreateConsumed = useRef(false);
+  useEffect(() => {
+    if (!initialCreate || initialCreateConsumed.current) return;
+    initialCreateConsumed.current = true;
+    const next = { categoryId: '', amount: '', currencyCode: '', occurredOn: todayDateInput(timeZoneId), note: '' };
+    setRecordDraft(next); recordForm.begin(next);
+  }, [initialCreate, timeZoneId]);
 
   async function load(nextFilters: FinanceFilters = filters, reconciled = false) {
     if (pendingOutcome !== null && !reconciled) return;
@@ -6219,7 +6405,7 @@ function ModuleScreen({
 }: {
   profile: ProfileResponse;
   module?: ProfileResponse['modules'][number];
-  navigate: (screen: Screen, moduleCode?: string) => void;
+  navigate: (screen: Screen, moduleCode?: string, replace?: boolean, resourceId?: string) => void;
   onAuthLost: () => Promise<void>;
 }) {
   if (!module) {
@@ -6240,14 +6426,14 @@ function ModuleScreen({
   const normalizedCode = module.code.toUpperCase();
   if (module.enabled && normalizedCode === 'FX10') return <CalendarTransferScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX31') return <WishlistScreen onAuthLost={onAuthLost} />;
-  if (module.enabled && normalizedCode === 'FX39') return <CareerScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX39') return <CareerScreen onAuthLost={onAuthLost} onOpenEvent={id => navigate('resource', 'Event', false, id)} />;
   if (module.enabled && normalizedCode === 'FX38') return <DigitalAssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX37') return <AssetScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX36') return <MonitoringScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX35') return <IntegrationConnectionsScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX34') return <AutomationScreen onAuthLost={onAuthLost} />;
-  if (module.enabled && normalizedCode === 'FX29') return <NewsCategoryScreen onAuthLost={onAuthLost} />;
-  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX29') return <NewsReaderScreen onAuthLost={onAuthLost} />;
+  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} onWorkLog={() => navigate('workLog')} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
@@ -6275,7 +6461,7 @@ function ModuleScreen({
     return <DeveloperToolsScreen onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX16') {
-    return <GoalsScreen onAuthLost={onAuthLost} />;
+    return <GoalsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} />;
   }
   if (module.enabled && normalizedCode === 'FX15') {
     return <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />;
@@ -6763,7 +6949,7 @@ export function App() {
     setNotice(undefined);
   }
 
-  function navigate(screen: Screen, moduleCode?: string, replace = false, resourceId?: string) {
+  function navigate(screen: Screen, moduleCode?: string, replace = false, resourceId?: string, createMode = false) {
     const next: LocationState = screen === 'shared'
       ? { screen, token: moduleCode }
       : screen === 'login'
@@ -6771,8 +6957,9 @@ export function App() {
       : screen === 'resource'
         ? { screen, resourceType: moduleCode as ResourceType, resourceId }
         : { screen, moduleCode };
+    if ((createMode || (screen === 'finance' && moduleCode === 'create')) && (screen === 'module' || screen === 'finance')) next.createIntent = createIdempotencyKey();
     const nextPath = pathForLocation(next);
-    if (!replace && window.location.pathname !== nextPath) {
+    if (!replace && (window.location.pathname !== nextPath || next.createIntent !== locationRef.current.createIntent || (screen === 'recents' && moduleCode === 'clear'))) {
       const handled = attemptDirtyLeave(() => commitNavigation(next, nextPath, false));
       if (handled) return;
     }

@@ -1,5 +1,6 @@
 using System.Data;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Nexora.Application.Habits;
 using Nexora.Application.Identity;
@@ -20,12 +21,14 @@ public sealed class SqlHabitService : IHabitService
     private readonly SqlConnectionFactory _connections;
     private readonly SqlRequestReceiptStore _receipts;
     private readonly SqlSelfCapability _capabilities;
+    private readonly TimeProvider _clock;
 
-    public SqlHabitService(SqlConnectionFactory connections, string? idempotencySecret = null)
+    public SqlHabitService(SqlConnectionFactory connections, string? idempotencySecret = null, TimeProvider? clock = null)
     {
         _connections = connections ?? throw new ArgumentNullException(nameof(connections));
         _receipts = new SqlRequestReceiptStore(idempotencySecret ?? Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
         _capabilities = new SqlSelfCapability(connections);
+        _clock = clock ?? TimeProvider.System;
     }
 
     public IdentityOperationResult<HabitPage> List(IdentityPrincipal actor, string? state = null, string? query = null, int? limit = null)
@@ -40,8 +43,13 @@ public sealed class SqlHabitService : IHabitService
 
         using var connection = _connections.Create();
         connection.Open();
-        var rows = ReadHabitRows(connection, null, actor.OwnerId, normalizedState, normalizedQuery, Math.Clamp(limit ?? 50, 1, 100), false);
-        var records = rows.Select(row => ToRecord(connection, null, row)).ToArray();
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!CanReadDetail(connection, transaction, actor)) return ModuleUnavailable<HabitPage>();
+        var now = _clock.GetUtcNow();
+        var rows = ReadHabitRows(connection, transaction, actor.OwnerId, normalizedState, normalizedQuery, Math.Clamp(limit ?? 50, 1, 100), false);
+        var records = rows.Select(row => ToRecord(connection, transaction, row, now)).ToArray();
+        if (!CanReadDetail(connection, transaction, actor)) return ModuleUnavailable<HabitPage>();
+        transaction.Commit();
         return IdentityOperationResult<HabitPage>.Success(new HabitPage(records, null));
     }
 
@@ -50,9 +58,20 @@ public sealed class SqlHabitService : IHabitService
         if (!HasCapability(actor, "habits.habit.read")) return ModuleUnavailable<HabitDetail>();
         using var connection = _connections.Create();
         connection.Open();
-        var row = ReadHabit(connection, null, actor.OwnerId, habitId, false);
+        using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        if (!CanReadDetail(connection, transaction, actor)) return ModuleUnavailable<HabitDetail>();
+        var row = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
         if (row is null) return Missing<HabitDetail>();
-        return IdentityOperationResult<HabitDetail>.Success(ReadDetail(connection, null, row, from, to));
+        var now = _clock.GetUtcNow();
+        var today = LocalToday(ResolveZone(row.TimeZoneId), now);
+        var lower = from ?? today.AddDays(-DefaultDetailHistoryDays);
+        var upper = to ?? today;
+        if (upper < lower || upper.DayNumber - lower.DayNumber > 366)
+            return Failure<HabitDetail>("ValidationFailed", 422, "Habit history range must be ordered and at most 366 days.");
+        var detail = ReadDetail(connection, transaction, row, lower, upper, now);
+        if (!CanReadDetail(connection, transaction, actor)) return ModuleUnavailable<HabitDetail>();
+        transaction.Commit();
+        return IdentityOperationResult<HabitDetail>.Success(detail);
     }
 
     public IdentityOperationResult<HabitDetail> Create(IdentityPrincipal actor, HabitCreateCommand command,
@@ -67,13 +86,17 @@ public sealed class SqlHabitService : IHabitService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, "habits.habit.create", idempotencyKey,
-            CanonicalCreate(command, title, unit), out var receipt);
+        var actions = command.ReminderLocalTime is null ? new[] { "habits.habit.create" }
+            : new[] { "habits.habit.create", "habits.habit.set_reminder" };
+        var now = _clock.GetUtcNow();
+        var receiptFailure = CheckReceipt(connection, transaction, actor, "habits.habit.create", idempotencyKey,
+            Intent(command with { Title = title, Unit = unit, TimeZoneId = zone!.Id }),
+            CanonicalCreate(command, title, unit), null, actions, out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
         {
-            var today = LocalToday(zone!);
+            var today = LocalToday(zone!, now);
             if (command.EffectiveFrom < today)
                 return Rollback(transaction, Failure<HabitDetail>("ScheduleHistoryLocked", 422, "A new Habit schedule cannot begin before its current local date."));
             var habitId = Guid.NewGuid();
@@ -96,11 +119,8 @@ public sealed class SqlHabitService : IHabitService
                 command.Kind == HabitKinds.Count ? command.TargetCount : null, paused: false);
             var row = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
             if (row is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
-            var created = ReadDetail(connection, transaction, row, null, null);
             WriteAudit(connection, transaction, actor, habitId, "habits.habit.create", "productivity.Habit", traceId);
-            CompleteReceipt(connection, transaction, receipt, "HabitCreated");
-            transaction.Commit();
-            return IdentityOperationResult<HabitDetail>.Success(created, 201, "HabitCreated");
+            return CommitResource(connection, transaction, actor, receipt, row, "habits.habit.create", actions, "HabitCreated", 201, now);
         }
         catch (SqlException)
         {
@@ -111,7 +131,8 @@ public sealed class SqlHabitService : IHabitService
     public IdentityOperationResult<HabitDetail> Update(IdentityPrincipal actor, Guid habitId, string? ifMatch,
         HabitUpdateCommand command, string? idempotencyKey = null, string? traceId = null)
     {
-        if (!HasCapability(actor, "habits.habit.update")) return ModuleUnavailable<HabitDetail>();
+        if (!HasCapability(actor, "habits.habit.update") && !HasCapability(actor, "habits.habit.set_reminder"))
+            return ModuleUnavailable<HabitDetail>();
         if (!TryETag(ifMatch, out var expectedVersion)) return Precondition<HabitDetail>();
         var validation = ValidateUpdate(command, out var title, out var unit, out var zone);
         if (validation is not null) return Failure<HabitDetail>("ValidationFailed", 422, validation);
@@ -119,6 +140,17 @@ public sealed class SqlHabitService : IHabitService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var now = _clock.GetUtcNow();
+        var canonical = Intent(new { habitId, ifMatch, title, unit, zone = zone!.Id, command.ReminderLocalTime });
+        var legacy = $"habit:{habitId:N}|etag:{ifMatch}|title:{title}|unit:{unit}|zone:{zone!.Id}|reminder:{command.ReminderLocalTime}";
+        foreach (var candidate in new[] { "habits.habit.update", "habits.habit.set_reminder" })
+        {
+            var previous = InspectReceipt(connection, transaction, actor, candidate, idempotencyKey, canonical, legacy);
+            if (previous is not null) return Rollback(transaction, ReceiptOutcome(connection, transaction, actor, candidate, habitId, previous.Value));
+        }
+        if (!CurrentAuthority(connection, transaction, actor, "habits.habit.update")
+            && !CurrentAuthority(connection, transaction, actor, "habits.habit.set_reminder"))
+            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
         var current = ReadHabit(connection, transaction, actor.OwnerId, habitId, true);
         if (current is null) return Rollback(transaction, Missing<HabitDetail>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<HabitDetail>());
@@ -127,13 +159,12 @@ public sealed class SqlHabitService : IHabitService
             !string.Equals(current.Unit, unit, StringComparison.Ordinal) ||
             !string.Equals(current.TimeZoneId, zone!.Id, StringComparison.Ordinal);
         var reminderChanged = current.ReminderLocalTime != command.ReminderLocalTime;
-        if (coreFieldsChanged && !HasCapability(actor, "habits.habit.update"))
-            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
-        if (reminderChanged && !HasCapability(actor, "habits.habit.set_reminder"))
-            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
         var action = reminderChanged && !coreFieldsChanged ? "habits.habit.set_reminder" : "habits.habit.update";
-        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, action, idempotencyKey,
-            $"habit:{habitId:N}|etag:{ifMatch}|title:{title}|unit:{unit}|zone:{zone!.Id}|reminder:{command.ReminderLocalTime}", out var receipt);
+        var actions = action == "habits.habit.set_reminder" ? new[] { action }
+            : reminderChanged ? new[] { action, "habits.habit.read", "habits.habit.set_reminder" }
+            : new[] { action, "habits.habit.read" };
+        var receiptFailure = CheckReceipt(connection, transaction, actor, action, idempotencyKey,
+            canonical, legacy, habitId, actions, out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
@@ -156,9 +187,8 @@ public sealed class SqlHabitService : IHabitService
             var updated = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
             if (updated is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             WriteAudit(connection, transaction, actor, habitId, action, "productivity.Habit", traceId);
-            CompleteReceipt(connection, transaction, receipt, action == "habits.habit.set_reminder" ? "HabitReminderUpdated" : "HabitUpdated");
-            transaction.Commit();
-            return IdentityOperationResult<HabitDetail>.Success(ReadDetail(connection, null, updated, null, null), 200, "HabitUpdated");
+            return CommitResource(connection, transaction, actor, receipt, updated, action, actions,
+                action == "habits.habit.set_reminder" ? "HabitReminderUpdated" : "HabitUpdated", 200, now);
         }
         catch (SqlException)
         {
@@ -177,19 +207,22 @@ public sealed class SqlHabitService : IHabitService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var now = _clock.GetUtcNow();
+        var receiptFailure = CheckReceipt(connection, transaction, actor, "habits.habit.schedule", idempotencyKey,
+            Intent(new { habitId, ifMatch, command.EffectiveFrom, command.WeekdayMask, command.TargetCount }),
+            $"habit:{habitId:N}|etag:{ifMatch}|effective:{command.EffectiveFrom:yyyy-MM-dd}|mask:{command.WeekdayMask}|target:{command.TargetCount}",
+            habitId, ["habits.habit.schedule"], out var receipt);
+        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
         var current = ReadHabit(connection, transaction, actor.OwnerId, habitId, true);
         if (current is null) return Rollback(transaction, Missing<HabitDetail>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<HabitDetail>());
         if (current.State != HabitStates.Active) return Rollback(transaction, LifecycleLocked<HabitDetail>("Only active Habits can change schedule."));
-        var today = LocalToday(ResolveZone(current.TimeZoneId));
+        var today = LocalToday(ResolveZone(current.TimeZoneId), now);
         if (command.EffectiveFrom <= today)
             return Rollback(transaction, Failure<HabitDetail>("ScheduleHistoryLocked", 422, "Schedule changes must begin after the current local date."));
         if ((current.Kind == HabitKinds.Boolean && command.TargetCount is not null) ||
             (current.Kind == HabitKinds.Count && command.TargetCount is not > 0))
             return Rollback(transaction, Failure<HabitDetail>("ValidationFailed", 422, "The schedule target does not match the Habit mode."));
-        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, "habits.habit.schedule", idempotencyKey,
-            $"habit:{habitId:N}|etag:{ifMatch}|effective:{command.EffectiveFrom:yyyy-MM-dd}|mask:{command.WeekdayMask}|target:{command.TargetCount}", out var receipt);
-        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         try
         {
@@ -216,9 +249,8 @@ public sealed class SqlHabitService : IHabitService
             var updated = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
             if (updated is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             WriteAudit(connection, transaction, actor, habitId, "habits.habit.schedule", "productivity.HabitSchedule", traceId);
-            CompleteReceipt(connection, transaction, receipt, "HabitScheduleUpdated");
-            transaction.Commit();
-            return IdentityOperationResult<HabitDetail>.Success(ReadDetail(connection, null, updated, null, null), 200, "HabitScheduleUpdated");
+            return CommitResource(connection, transaction, actor, receipt, updated, "habits.habit.schedule",
+                ["habits.habit.schedule"], "HabitScheduleUpdated", 200, now);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627 or 51023)
         {
@@ -243,15 +275,21 @@ public sealed class SqlHabitService : IHabitService
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
-        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, HabitReceiptOperations.CheckIn, idempotencyKey,
-            $"habit:{habitId:N}|etag:{ifMatch}|date:{command.LocalDate:yyyy-MM-dd}|count:{command.Count}|note:{note}", out var receipt);
+        var now = _clock.GetUtcNow();
+        if (!CurrentAuthority(connection, transaction, actor, "habits.checkin.record")
+            && !CurrentAuthority(connection, transaction, actor, "habits.checkin.correct"))
+            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        var receiptFailure = CheckReceipt(connection, transaction, actor, HabitReceiptOperations.CheckIn, idempotencyKey,
+            Intent(new { habitId, ifMatch, command.LocalDate, command.Count, note }),
+            $"habit:{habitId:N}|etag:{ifMatch}|date:{command.LocalDate:yyyy-MM-dd}|count:{command.Count}|note:{note}",
+            habitId, [], out var receipt);
         if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
 
         var current = ReadHabit(connection, transaction, actor.OwnerId, habitId, true);
         if (current is null) return Rollback(transaction, Missing<HabitDetail>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<HabitDetail>());
         if (current.State != HabitStates.Active) return Rollback(transaction, LifecycleLocked<HabitDetail>("Paused or archived Habits do not accept check-ins."));
-        var today = LocalToday(ResolveZone(current.TimeZoneId));
+        var today = LocalToday(ResolveZone(current.TimeZoneId), now);
         if (command.LocalDate > today) return Rollback(transaction, Failure<HabitDetail>("FutureCheckInDenied", 422, "Future local dates cannot be checked in."));
         var schedule = ReadScheduleAt(connection, transaction, actor.OwnerId, habitId, command.LocalDate, true);
         if (schedule is null || schedule.Paused || !HabitPolicy.IsScheduled(command.LocalDate, schedule.WeekdayMask))
@@ -260,7 +298,7 @@ public sealed class SqlHabitService : IHabitService
             return Rollback(transaction, Failure<HabitDetail>("ValidationFailed", 422, "Check-in value does not match the Habit mode."));
         var existing = ReadCheckIn(connection, transaction, actor.OwnerId, habitId, command.LocalDate, true);
         var action = existing is null ? "habits.checkin.record" : "habits.checkin.correct";
-        if (!HasCapability(actor, action)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        if (!CurrentAuthority(connection, transaction, actor, action)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
 
         try
         {
@@ -301,10 +339,8 @@ public sealed class SqlHabitService : IHabitService
             var updated = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
             if (updated is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             WriteAudit(connection, transaction, actor, habitId, action, "productivity.HabitCheckIn", traceId);
-            CompleteReceipt(connection, transaction, receipt, existing is null ? "HabitCheckInRecorded" : "HabitCheckInCorrected");
-            transaction.Commit();
-            return IdentityOperationResult<HabitDetail>.Success(ReadDetail(connection, null, updated, null, null), 200,
-                existing is null ? "HabitCheckInRecorded" : "HabitCheckInCorrected");
+            return CommitResource(connection, transaction, actor, receipt, updated, HabitReceiptOperations.CheckIn,
+                [action], existing is null ? "HabitCheckInRecorded" : "HabitCheckInCorrected", 200, now);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627)
         {
@@ -321,22 +357,31 @@ public sealed class SqlHabitService : IHabitService
     {
         if (!TryETag(ifMatch, out var expectedVersion)) return Precondition<HabitDetail>();
         var requested = state?.Trim() ?? string.Empty;
+        var requestedAction = requested switch
+        {
+            HabitStates.Paused => "habits.habit.pause", HabitStates.Active => "habits.habit.resume",
+            HabitStates.Archived => "habits.habit.archive", "Unarchive" => "habits.habit.unarchive", _ => null
+        };
+        if (requestedAction is null) return Failure<HabitDetail>("ValidationFailed", 422, "Habit transition is invalid.");
         using var connection = _connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
+        var now = _clock.GetUtcNow();
+        var receiptFailure = CheckReceipt(connection, transaction, actor, requestedAction, idempotencyKey,
+            Intent(new { habitId, ifMatch, state = requested }),
+            $"habit:{habitId:N}|etag:{ifMatch}|state:{requested}", habitId, [requestedAction], out var receipt);
+        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
         var current = ReadHabit(connection, transaction, actor.OwnerId, habitId, true);
         if (current is null) return Rollback(transaction, Missing<HabitDetail>());
         if (!MatchesETag(expectedVersion, current.ETag)) return Rollback(transaction, Revision<HabitDetail>());
         if (!TryTransition(current, requested, out var nextState, out var action))
             return Rollback(transaction, LifecycleLocked<HabitDetail>("The requested Habit lifecycle transition is not allowed."));
-        if (!HasCapability(actor, action)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
-        var receiptFailure = CheckReceipt<HabitDetail>(connection, transaction, actor, action, idempotencyKey,
-            $"habit:{habitId:N}|etag:{ifMatch}|state:{requested}", out var receipt);
-        if (receiptFailure is not null) return Rollback(transaction, receiptFailure);
+        if (action != requestedAction || !CurrentAuthority(connection, transaction, actor, action))
+            return Rollback(transaction, ModuleUnavailable<HabitDetail>());
 
         try
         {
-            var today = LocalToday(ResolveZone(current.TimeZoneId));
+            var today = LocalToday(ResolveZone(current.TimeZoneId), now);
             var schedule = ReadScheduleAt(connection, transaction, actor.OwnerId, habitId, today, true);
             if (schedule is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             var shouldPauseSchedule = nextState != HabitStates.Active;
@@ -349,9 +394,7 @@ public sealed class SqlHabitService : IHabitService
             var updated = ReadHabit(connection, transaction, actor.OwnerId, habitId, false);
             if (updated is null) return Rollback(transaction, PersistenceFailure<HabitDetail>());
             WriteAudit(connection, transaction, actor, habitId, action, "productivity.Habit", traceId);
-            CompleteReceipt(connection, transaction, receipt, "HabitTransitioned");
-            transaction.Commit();
-            return IdentityOperationResult<HabitDetail>.Success(ReadDetail(connection, null, updated, null, null), 200, "HabitTransitioned");
+            return CommitResource(connection, transaction, actor, receipt, updated, action, [action], "HabitTransitioned", 200, now);
         }
         catch (SqlException exception) when (exception.Number is 2601 or 2627 or 51023)
         {
@@ -365,20 +408,20 @@ public sealed class SqlHabitService : IHabitService
 
     private bool HasCapability(IdentityPrincipal actor, string action) => _capabilities.IsAllowed(actor, "FX17", action);
 
-    private static HabitDetail ReadDetail(SqlConnection connection, SqlTransaction? transaction, HabitRow row, DateOnly? from, DateOnly? to)
+    private static HabitDetail ReadDetail(SqlConnection connection, SqlTransaction? transaction, HabitRow row, DateOnly? from, DateOnly? to, DateTimeOffset now)
     {
         var zone = ResolveZone(row.TimeZoneId);
-        var today = LocalToday(zone);
+        var today = LocalToday(zone, now);
         var lower = from ?? today.AddDays(-DefaultDetailHistoryDays);
         var upper = to ?? today;
         if (upper < lower) (lower, upper) = (upper, lower);
-        return new HabitDetail(ToRecord(connection, transaction, row), ReadSchedules(connection, transaction, row.OwnerId, row.Id, false),
+        return new HabitDetail(ToRecord(connection, transaction, row, now), ReadSchedules(connection, transaction, row.OwnerId, row.Id, false),
             ReadCheckIns(connection, transaction, row.OwnerId, row.Id, lower, upper, false));
     }
 
-    private static HabitRecord ToRecord(SqlConnection connection, SqlTransaction? transaction, HabitRow row)
+    private static HabitRecord ToRecord(SqlConnection connection, SqlTransaction? transaction, HabitRow row, DateTimeOffset now)
     {
-        var today = LocalToday(ResolveZone(row.TimeZoneId));
+        var today = LocalToday(ResolveZone(row.TimeZoneId), now);
         var schedule = ReadScheduleAt(connection, transaction, row.OwnerId, row.Id, today, false);
         return new HabitRecord(row.Id, row.Title, row.Kind, row.TargetCount, row.Unit, row.State, row.TimeZoneId,
             row.ReminderLocalTime, schedule, ComputeCurrentStreak(connection, transaction, row, today), row.CreatedAt, row.UpdatedAt, row.ETag);
@@ -663,19 +706,129 @@ public sealed class SqlHabitService : IHabitService
         .Replace("_", "\\_", StringComparison.Ordinal)
         .Replace("[", "\\[", StringComparison.Ordinal);
 
-    private IdentityOperationResult<T>? CheckReceipt<T>(SqlConnection connection, SqlTransaction transaction,
-        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest, out ReceiptClaim claim)
+    private static string Intent(object command) => JsonSerializer.Serialize(new { version = 2, command });
+
+    private bool CurrentAuthority(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        params string[] actions) => _capabilities.IsAllowed(connection, transaction, actor, "FX17", actions);
+
+    // The installed projection includes history-derived streaks. A write grant
+    // never supplies either of these independent read capabilities.
+    private bool CanReadDetail(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor) =>
+        CurrentAuthority(connection, transaction, actor, "habits.habit.read", "habits.streak.read");
+
+    private ReceiptClaim? InspectReceipt(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
+        string operation, string? key, string canonical, string legacy)
     {
-        claim = default;
-        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
-        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest, DateTime.UtcNow);
-        if (claim.IsClaimed) return null;
-        return Failure<T>(claim.IsConflict ? "IdempotencyConflict" : claim.IsReplay ? "IdempotencyReplay" : "RequestInProgress", 409,
-            "The request was already completed or is in progress.");
+        if (string.IsNullOrWhiteSpace(key)) return null;
+        var claim = _receipts.TryClaim(connection, transaction, actor.UserId, operation, key, canonical,
+            _clock.GetUtcNow().UtcDateTime, claimIfMissing: false, legacyCanonicalRequest: legacy);
+        return claim.IsMissing ? null : claim;
     }
 
-    private void CompleteReceipt(SqlConnection connection, SqlTransaction transaction, ReceiptClaim claim, string resultCode) =>
-        _receipts.Complete(connection, transaction, claim, resultCode);
+    private IdentityOperationResult<HabitDetail>? CheckReceipt(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operationKey, string? idempotencyKey, string canonicalRequest,
+        string legacyCanonicalRequest, Guid? habitId, string[] actions, out ReceiptClaim claim)
+    {
+        claim = default;
+        if (actions.Length > 0 && !CurrentAuthority(connection, transaction, actor, actions))
+            return ModuleUnavailable<HabitDetail>();
+        if (string.IsNullOrWhiteSpace(idempotencyKey)) return null;
+        claim = _receipts.TryClaim(connection, transaction, actor.UserId, operationKey, idempotencyKey, canonicalRequest,
+            _clock.GetUtcNow().UtcDateTime, legacyCanonicalRequest: legacyCanonicalRequest);
+        if (claim.IsClaimed) return null;
+        return ReceiptOutcome(connection, transaction, actor, operationKey, habitId, claim);
+    }
+
+    private IdentityOperationResult<HabitDetail> ReceiptOutcome(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, string operation, Guid? habitId, ReceiptClaim claim)
+    {
+        var entryActions = operation == HabitReceiptOperations.CheckIn
+            ? new[] { "habits.checkin.record", "habits.checkin.correct" }
+            : new[] { operation };
+        if (!entryActions.Any(action => CurrentAuthority(connection, transaction, actor, action)))
+            return ModuleUnavailable<HabitDetail>();
+        if (claim.IsInvalid) return Failure<HabitDetail>("ValidationFailed", 422, "Idempotency key must be a UUID.");
+        if (claim.IsConflict) return Failure<HabitDetail>("IdempotencyConflict", 409, "The key belongs to another request.");
+        if (!claim.IsReplay) return Failure<HabitDetail>("RequestInProgress", 409, "The request is in progress.");
+
+        HabitReceipt? outcome = null;
+        if (!string.IsNullOrWhiteSpace(claim.ResultJson))
+        {
+            try { outcome = JsonSerializer.Deserialize<HabitReceipt>(claim.ResultJson); }
+            catch (JsonException) { }
+        }
+        else if (habitId is { } legacyId)
+        {
+            // Only fixed typed payloads (with a final free-text note for check-in)
+            // have an unambiguous legacy binding. Metadata/create do not.
+            var legacyAction = operation == HabitReceiptOperations.CheckIn ? claim.ResultCode switch
+            {
+                "HabitCheckInRecorded" => "habits.checkin.record",
+                "HabitCheckInCorrected" => "habits.checkin.correct", _ => null
+            } : operation is "habits.habit.schedule" or "habits.habit.pause" or "habits.habit.resume"
+                or "habits.habit.archive" or "habits.habit.unarchive" ? operation : null;
+            if (legacyAction is not null)
+                outcome = new HabitReceipt(2, actor.UserId, actor.OwnerId, legacyId, operation, [legacyAction], 200, claim.ResultCode ?? string.Empty);
+        }
+        if (outcome is null || outcome.Version != 2 || outcome.UserId != actor.UserId || outcome.OwnerId != actor.OwnerId
+            || outcome.HabitId == Guid.Empty || (habitId.HasValue && outcome.HabitId != habitId.Value)
+            || outcome.Operation != operation || outcome.Code != claim.ResultCode
+            || (claim.ResultStatusCode.HasValue && outcome.Status != claim.ResultStatusCode.Value)
+            || !ValidOutcome(outcome))
+            return Failure<HabitDetail>("CommittedOutcomeUnavailable", 409,
+                "The request completed. Reconcile its outcome before starting another request.");
+        if (!CurrentAuthority(connection, transaction, actor, outcome.Actions)) return ModuleUnavailable<HabitDetail>();
+        return IdentityOperationResult<HabitDetail>.Committed(outcome.HabitId, outcome.Status, outcome.Code);
+    }
+
+    private static bool ValidOutcome(HabitReceipt value)
+    {
+        if (value.Actions is null) return false;
+        string[][] actionSets = value.Operation switch
+        {
+            "habits.habit.create" => [[value.Operation], [value.Operation, "habits.habit.set_reminder"]],
+            "habits.habit.update" => [[value.Operation, "habits.habit.read"], [value.Operation, "habits.habit.read", "habits.habit.set_reminder"]],
+            HabitReceiptOperations.CheckIn => [["habits.checkin.record"], ["habits.checkin.correct"]],
+            "habits.habit.set_reminder" or "habits.habit.schedule" or "habits.habit.pause" or "habits.habit.resume"
+                or "habits.habit.archive" or "habits.habit.unarchive" => [[value.Operation]],
+            _ => []
+        };
+        if (!actionSets.Any(set => value.Actions.SequenceEqual(set))) return false;
+        return (value.Operation, value.Code, value.Status) switch
+        {
+            ("habits.habit.create", "HabitCreated", 201) => true,
+            ("habits.habit.update", "HabitUpdated", 200) => true,
+            ("habits.habit.set_reminder", "HabitReminderUpdated", 200) => true,
+            ("habits.habit.schedule", "HabitScheduleUpdated", 200) => true,
+            (HabitReceiptOperations.CheckIn, "HabitCheckInRecorded", 200) => value.Actions[0] == "habits.checkin.record",
+            (HabitReceiptOperations.CheckIn, "HabitCheckInCorrected", 200) => value.Actions[0] == "habits.checkin.correct",
+            ("habits.habit.pause" or "habits.habit.resume" or "habits.habit.archive" or "habits.habit.unarchive", "HabitTransitioned", 200) => true,
+            _ => false
+        };
+    }
+
+    private IdentityOperationResult<HabitDetail> CommitResource(SqlConnection connection, SqlTransaction transaction,
+        IdentityPrincipal actor, ReceiptClaim claim, HabitRow row, string operation, string[] actions,
+        string code, int status, DateTimeOffset now)
+    {
+        _receipts.Complete(connection, transaction, claim, code, status,
+            JsonSerializer.Serialize(new HabitReceipt(2, actor.UserId, actor.OwnerId, row.Id, operation, actions, status, code)));
+        if (!CurrentAuthority(connection, transaction, actor, actions)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        HabitDetail? detail = null;
+        if (CanReadDetail(connection, transaction, actor))
+        {
+            var current = ReadHabit(connection, transaction, actor.OwnerId, row.Id, false);
+            if (current is not null) detail = ReadDetail(connection, transaction, current, null, null, now);
+        }
+        if (!CurrentAuthority(connection, transaction, actor, actions)) return Rollback(transaction, ModuleUnavailable<HabitDetail>());
+        var readable = detail is not null && CanReadDetail(connection, transaction, actor);
+        transaction.Commit();
+        return readable ? IdentityOperationResult<HabitDetail>.Success(detail!, status, code)
+            : IdentityOperationResult<HabitDetail>.Committed(row.Id, status, code);
+    }
+
+    private sealed record HabitReceipt(int Version, Guid UserId, Guid OwnerId, Guid HabitId, string Operation,
+        string[] Actions, int Status, string Code);
 
     private static void WriteAudit(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
         Guid targetId, string actionKey, string targetType, string? traceId) => Execute(connection, transaction, """
@@ -736,7 +889,7 @@ public sealed class SqlHabitService : IHabitService
     }
     private static TimeZoneInfo ResolveZone(string value) => TryResolveZone(value, out var zone) && zone is not null
         ? zone : throw new InvalidOperationException("Stored Habit timezone is invalid.");
-    private static DateOnly LocalToday(TimeZoneInfo zone) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, zone).DateTime);
+    private static DateOnly LocalToday(TimeZoneInfo zone, DateTimeOffset now) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
     private static object ToDbDate(DateOnly date) => date.ToDateTime(TimeOnly.MinValue);
     private static DateTimeOffset ToOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
     private static string EncodeETag(byte[] value) => $"\"{Convert.ToBase64String(value)}\"";
@@ -747,9 +900,11 @@ public sealed class SqlHabitService : IHabitService
         bytes = Array.Empty<byte>();
         try
         {
-            if (string.IsNullOrWhiteSpace(value) || value.Trim() == "*") return false;
-            bytes = DecodeETag(value);
-            return bytes.Length == 8;
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            var token = value.Trim();
+            if (token.Length < 3 || token[0] != '"' || token[^1] != '"') return false;
+            bytes = Convert.FromBase64String(token[1..^1]);
+            return bytes.Length == 8 && Convert.ToBase64String(bytes) == token[1..^1];
         }
         catch (FormatException) { return false; }
     }

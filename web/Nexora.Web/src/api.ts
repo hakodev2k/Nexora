@@ -37,6 +37,9 @@ export type DashboardItem = {
   status: string | null;
   at: string | null;
   detail: string | null;
+  startDate?: string | null;
+  endDateExclusive?: string | null;
+  endAt?: string | null;
 };
 
 export type DashboardWidget = {
@@ -48,13 +51,34 @@ export type DashboardWidget = {
   refreshedAt: string;
   count: number;
   items: DashboardItem[];
+  drilldownToken?: string | null;
 };
+
+export type DashboardDrilldownPage = { widget: DashboardWidget; timeZoneId: string; capturedAt: string; localDate: string; nextToken: string | null; previousToken: string | null };
+export function getDashboardDrilldown(token: string, signal?: AbortSignal) {
+  return apiFetch<DashboardDrilldownPage>(`/api/v1/dashboard/drilldown?${new URLSearchParams({ token })}`, { signal });
+}
 
 export type DashboardSnapshot = {
   timeZoneId: string;
   generatedAt: string;
   widgets: DashboardWidget[];
 };
+
+export type DashboardWidgetConfig = { id: string | null; key: string; providerVersion: string; configVersion: number; widthUnits: number; enabled: boolean; options: Record<string, never> };
+export type DashboardLayout = { id: string; schemaVersion: number; layoutVersion: number; widgets: DashboardWidgetConfig[]; etag: string };
+export function getDashboardLayout(signal?: AbortSignal) {
+  return apiFetch<{ layout: DashboardLayout | null }>('/api/v1/dashboard/layout', { signal });
+}
+export async function saveDashboardLayout(current: DashboardLayout | null, widgets: DashboardWidgetConfig[], key: string) {
+  const result = await apiFetch<DashboardLayout | ProductivityCommittedAcknowledgement>('/api/v1/dashboard/layout', {
+    method: current ? 'PUT' : 'POST', headers: jsonMutationHeaders(key, current ? { 'If-Match': current.etag } : {}), body: JSON.stringify({ schemaVersion: 1, widgets })
+  }, current ? 200 : 201);
+  if (!result || typeof result.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(result.id) || (current && result.id.toLowerCase() !== current.id.toLowerCase())
+      || (('committed' in result || 'detailAvailable' in result) ? !isProductivityAcknowledgement(result) : !Array.isArray(result.widgets) || typeof result.etag !== 'string'))
+    throw new NexoraApiError('Chưa xác nhận được bố cục. Giữ nguyên thao tác và thử lại để đối chiếu.', 0, 'UnexpectedAcknowledgement');
+  return result;
+}
 
 export type SearchResultRecord = {
   id: string;
@@ -83,6 +107,28 @@ export type SearchPage = {
   providers: SearchProviderStatus[];
   nextCursor: string | null;
 };
+
+export type SavedSearchDefinition = { text: string; resourceType: string | null; from: string | null; to: string | null; includeArchived: boolean; sort: 'relevance' };
+export type SavedSearchRecord = { id: string; title: string; schemaVersion: number; query: SavedSearchDefinition | null; updatedAt: string; etag: string; state: 'Compatible' | 'MigrationRequired' };
+export function listSavedSearches(cursor = '') {
+  return apiFetch<{ items: SavedSearchRecord[]; nextCursor: string | null }>(`/api/v1/saved-searches?cursor=${encodeURIComponent(cursor)}`);
+}
+export async function saveSavedSearch(id: string | null, etag: string | null, title: string, query: SavedSearchDefinition, key: string) {
+  const result = await apiFetch<SavedSearchRecord | ProductivityCommittedAcknowledgement>(`/api/v1/saved-searches${id ? '/' + encodeURIComponent(id) : ''}`, {
+    method: id ? 'PUT' : 'POST', headers: jsonMutationHeaders(key, id && etag ? { 'If-Match': etag } : {}), body: JSON.stringify({ title, schemaVersion: 1, query })
+  }, id ? 200 : 201);
+  if (!result || typeof result.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(result.id) || (id && result.id.toLowerCase() !== id.toLowerCase())
+      || (('committed' in result || 'detailAvailable' in result) ? !isProductivityAcknowledgement(result)
+        : typeof result.title !== 'string' || typeof result.etag !== 'string' || result.schemaVersion !== 1))
+    throw new NexoraApiError('Chưa xác nhận được Saved Search. Giữ nguyên thao tác để thử lại.', 0, 'UnexpectedAcknowledgement');
+  return result;
+}
+export function deleteSavedSearch(item: SavedSearchRecord, key: string) {
+  return apiFetch<void>(`/api/v1/saved-searches/${encodeURIComponent(item.id)}`, { method: 'DELETE', headers: jsonMutationHeaders(key, { 'If-Match': item.etag }) }, 204);
+}
+export function runSavedSearch(id: string, cursor = '', signal?: AbortSignal) {
+  return apiFetch<SearchPage>(`/api/v1/saved-searches/${encodeURIComponent(id)}/run?cursor=${encodeURIComponent(cursor)}`, { method: 'POST', signal });
+}
 
 export type FavoriteRecord = {
   id: string;
@@ -234,11 +280,11 @@ export type ReminderSourceView = {
 export type PlannerPinRecord = {
   id: string;
   taskId: string;
-  taskTitle: string;
-  taskStatus: string;
-  projectName: string;
-  startAt: string;
-  endAt: string;
+  taskTitle: string | null;
+  taskStatus: string | null;
+  projectName: string | null;
+  startAt: string | null;
+  endAt: string | null;
   planDate: string;
   rank: number;
   notes: string | null;
@@ -303,6 +349,9 @@ export type HabitPage = {
 
 export type DocumentSummary = {
   id: string;
+  folderId?: string | null;
+  parentPageId?: string | null;
+  depth?: number;
   title: string;
   documentType: string;
   editorMode: string;
@@ -469,6 +518,7 @@ export type ReadingItemRecord = {
   safeTitleSnapshot: string;
   safeUrlSnapshot: string;
   sourceAvailable: boolean;
+  sourceETag?: string | null;
   updatedAt: string;
   etag: string;
 };
@@ -525,6 +575,7 @@ export type GoalRecord = {
   status: string;
   progress: number;
   targetCount: number;
+  preArchiveStatus?: string | null;
   createdAt: string;
   updatedAt: string;
   etag: string;
@@ -537,6 +588,10 @@ export type GoalTargetRecord = {
   initialValue: number | null;
   currentValue: number | null;
   targetValue: number | null;
+  initialValueExact?: string | null;
+  currentValueExact?: string | null;
+  targetValueExact?: string | null;
+  booleanValue?: boolean | null;
   progress: number;
   updatedAt: string;
   etag: string;
@@ -546,6 +601,81 @@ export type GoalDetail = {
   goal: GoalRecord;
   targets: GoalTargetRecord[];
 };
+
+export type GoalProgressEntry = {
+  id: string; targetId: string; kind: 'Numeric' | 'Boolean'; currentTargetTitle: string;
+  valueExact: string | null; checked: boolean | null; note: string | null; recordedAt: string; targetRemoved?: boolean;
+};
+export type GoalProgressPage = { items: GoalProgressEntry[]; nextCursor: string | null };
+export type GoalStateEntry = {id:string;actionKey:string;fromStatus:string;toStatus:string;recordedAt:string};
+export type GoalStatePage = {items:GoalStateEntry[];nextCursor:string|null};
+export type GoalMetadataEntry={id:string;event:'Created'|'Updated'|'HistoryStarted';title:string;description:string|null;startDate:string|null;endDate:string|null;capturedAt:string;sourceUpdatedAt:string};
+export type GoalMetadataPage={items:GoalMetadataEntry[];nextCursor:string|null};
+export type GoalTargetDefinitionEntry={id:string;targetId:string;event:'Created'|'Updated'|'Removed'|'HistoryStarted';kind:'Numeric'|'Boolean';title:string;initialValueExact:string|null;targetValueExact:string|null;removed:boolean;capturedAt:string;sourceUpdatedAt:string};
+export type GoalTargetDefinitionPage={items:GoalTargetDefinitionEntry[];nextCursor:string|null};
+
+export async function getGoalTargetDefinitionHistory(goalId:string,cursor:string|null,signal?:AbortSignal) {
+  const page=await apiFetch<GoalTargetDefinitionPage>(`/api/v1/goals/${encodeURIComponent(goalId)}/target-history${cursor?'?cursor='+encodeURIComponent(cursor):''}`,{signal});
+  const guid=(value:unknown)=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  const exact=(value:unknown)=>typeof value==='string'&&/^-?\d{1,20}(?:\.\d{1,8})?$/.test(value);
+  if(!page||!Array.isArray(page.items)||page.items.length>25||(page.nextCursor!==null&&(typeof page.nextCursor!=='string'||page.nextCursor.length>1024))
+    ||page.items.some(item=>!item||!guid(item.id)||!guid(item.targetId)||!['Created','Updated','Removed','HistoryStarted'].includes(item.event)
+      ||typeof item.title!=='string'||!item.title.trim()||item.title.length>200||typeof item.removed!=='boolean'||item.removed!==(item.event==='Removed')
+      ||(item.kind==='Numeric'?!exact(item.initialValueExact)||!exact(item.targetValueExact):item.kind!=='Boolean'||item.initialValueExact!==null||item.targetValueExact!==null)
+      ||typeof item.capturedAt!=='string'||!Number.isFinite(Date.parse(item.capturedAt))||typeof item.sourceUpdatedAt!=='string'||!Number.isFinite(Date.parse(item.sourceUpdatedAt)))
+    ||(page.nextCursor!==null&&page.items.length!==25))throw new NexoraApiError('Dữ liệu phiên bản target không hợp lệ. Vui lòng tải lại.',0,'InvalidHistoryResponse');
+  return page;
+}
+
+export async function getGoalMetadataHistory(goalId:string,cursor:string|null,signal?:AbortSignal) {
+  const query=cursor?'?cursor='+encodeURIComponent(cursor):'';
+  const page=await apiFetch<GoalMetadataPage>(`/api/v1/goals/${encodeURIComponent(goalId)}/metadata-history${query}`,{signal});
+  const day=(value:unknown)=>value===null || (typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value);
+  if(!page||!Array.isArray(page.items)||page.items.length>25||(page.nextCursor!==null&&(typeof page.nextCursor!=='string'||page.nextCursor.length>1024))
+    ||page.items.some(item=>!item||typeof item.id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id)
+      ||!['Created','Updated','HistoryStarted'].includes(item.event)||typeof item.title!=='string'||!item.title.trim()||item.title.length>200
+      ||(item.description!==null&&(typeof item.description!=='string'||item.description.length>20000))||!day(item.startDate)||!day(item.endDate)
+      ||(item.startDate!==null&&item.endDate!==null&&item.endDate<item.startDate)
+      ||typeof item.capturedAt!=='string'||!Number.isFinite(Date.parse(item.capturedAt))||typeof item.sourceUpdatedAt!=='string'||!Number.isFinite(Date.parse(item.sourceUpdatedAt)))
+    ||(page.nextCursor!==null&&page.items.length!==25))throw new NexoraApiError('Dữ liệu phiên bản Goal không hợp lệ. Vui lòng tải lại.',0,'InvalidHistoryResponse');
+  return page;
+}
+
+export async function getGoalStateHistory(goalId:string,cursor:string|null,signal?:AbortSignal) {
+  const query=cursor?'?cursor='+encodeURIComponent(cursor):'';
+  const page=await apiFetch<GoalStatePage>(`/api/v1/goals/${encodeURIComponent(goalId)}/state-history${query}`,{signal});
+  const validPair=(item:GoalStateEntry)=>{
+    switch(item.actionKey) {
+      case 'goals.goal.start':return item.fromStatus==='Draft'&&item.toStatus==='Active';
+      case 'goals.goal.reopen':return ['Completed','Abandoned'].includes(item.fromStatus)&&item.toStatus==='Active';
+      case 'goals.goal.complete':return item.fromStatus==='Active'&&item.toStatus==='Completed';
+      case 'goals.goal.abandon':return ['Draft','Active'].includes(item.fromStatus)&&item.toStatus==='Abandoned';
+      case 'goals.goal.archive':return ['Draft','Active','Completed','Abandoned'].includes(item.fromStatus)&&item.toStatus==='Archived';
+      case 'goals.goal.unarchive':return item.fromStatus==='Archived'&&['Draft','Active','Completed','Abandoned'].includes(item.toStatus);
+      default:return false;
+    }
+  };
+  if(!page || !Array.isArray(page.items) || page.items.length>25 || (page.nextCursor!==null && (typeof page.nextCursor!=='string'||page.nextCursor.length>1024))
+      || page.items.some(item=>!item || typeof item.id!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id)
+        || typeof item.recordedAt!=='string' || !Number.isFinite(Date.parse(item.recordedAt)) || !validPair(item))
+      || (page.nextCursor!==null && page.items.length!==25))
+    throw new NexoraApiError('Dữ liệu lịch sử trạng thái không hợp lệ. Vui lòng tải lại.',0,'InvalidHistoryResponse');
+  return page;
+}
+
+export async function getGoalProgressHistory(goalId: string, cursor: string | null, signal?: AbortSignal) {
+  const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : '';
+  const result = await apiFetch<GoalProgressPage>(`/api/v1/goals/${encodeURIComponent(goalId)}/progress-history${query}`, { signal });
+  if (!result || !Array.isArray(result.items) || result.items.length > 25
+      || (result.nextCursor !== null && typeof result.nextCursor !== 'string')
+      || result.items.some(item => !item || typeof item.id !== 'string' || typeof item.targetId !== 'string'
+        || typeof item.currentTargetTitle !== 'string' || !Number.isFinite(Date.parse(item.recordedAt))
+        || (item.note !== null && typeof item.note !== 'string')
+        || (item.kind === 'Numeric' ? typeof item.valueExact !== 'string' || item.checked !== null
+          : item.kind !== 'Boolean' || typeof item.checked !== 'boolean' || item.valueExact !== null)))
+    throw new NexoraApiError('Dữ liệu lịch sử không hợp lệ. Vui lòng tải lại.', 0, 'InvalidHistoryResponse');
+  return result;
+}
 
 export type GoalPage = {
   items: GoalRecord[];
@@ -917,6 +1047,26 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
   return blob;
 }
 
+export async function documentExportBlob(id: string, format: 'MD' | 'DOCX'): Promise<Blob> {
+  const expected = format === 'MD' ? 'text/markdown' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  let response: Response;
+  try { response = await fetch(`/api/v1/document-exports/${encodeURIComponent(id)}/content`, { credentials: 'same-origin', cache: 'no-store', headers: { Accept: expected } }); }
+  catch { throw new NexoraApiError('Không thể kết nối để tải artifact.', 0, 'NetworkUnavailable'); }
+  if (!response.ok) throw await toApiError(response);
+  const rotated = response.headers.get('X-CSRF-Token'); if (rotated) csrfToken = rotated;
+  if (response.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase() !== expected || Number(response.headers.get('Content-Length') ?? 0) > 5242880)
+    throw new NexoraApiError('Artifact trả về không hợp lệ.', 0, 'ArtifactUnavailable');
+  if (!response.body) {
+    if (format === 'MD' && Number(response.headers.get('Content-Length') ?? 0) === 0) return new Blob([], { type: expected });
+    throw new NexoraApiError('Artifact trả về không hợp lệ.', 0, 'ArtifactUnavailable');
+  }
+  const reader = response.body.getReader(), chunks: Uint8Array<ArrayBuffer>[] = []; let length = 0;
+  try { for (;;) { const chunk = await reader.read(); if (chunk.done) break; length += chunk.value.byteLength; if (length > 5242880) { await reader.cancel(); throw new NexoraApiError('Artifact vượt giới hạn.', 0, 'ArtifactUnavailable'); } chunks.push(new Uint8Array(chunk.value)); } }
+  finally { reader.releaseLock(); }
+  if (format === 'DOCX' && length < 4) throw new NexoraApiError('Artifact DOCX không hợp lệ.', 0, 'ArtifactUnavailable');
+  return new Blob(chunks, { type: expected });
+}
+
 async function toApiError(response: Response): Promise<NexoraApiError> {
   const fallback = messageForStatus(response.status);
   const contentType = response.headers.get('Content-Type') ?? '';
@@ -1091,8 +1241,8 @@ export function getMe() {
   return apiFetch<ProfileResponse>('/api/v1/me');
 }
 
-export function getDashboard() {
-  return apiFetch<DashboardSnapshot>('/api/v1/dashboard');
+export function getDashboard(signal?: AbortSignal, refresh = false) {
+  return apiFetch<DashboardSnapshot>(refresh ? '/api/v1/dashboard/refresh' : '/api/v1/dashboard', { signal });
 }
 
 export function searchResources(
@@ -1376,7 +1526,7 @@ export function transitionCalendarEvent(id: string, etag: string, status: string
   }, id);
 }
 
-export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal, createdFrom = '', createdTo = '', tagId = '') {
+export function listDocuments(status?: string, limit = 25, cursor = '', titleQuery = '', documentType = '', signal?: AbortSignal, createdFrom = '', createdTo = '', tagId = '', folderId?: string, parentPageId?: string) {
   const query = new URLSearchParams({ limit: String(limit) });
   if (status) query.set('status', status);
   if (cursor) query.set('cursor', cursor);
@@ -1385,6 +1535,8 @@ export function listDocuments(status?: string, limit = 25, cursor = '', titleQue
   if (createdFrom) query.set('createdFrom', createdFrom);
   if (createdTo) query.set('createdTo', createdTo);
   if (tagId) query.set('tagId', tagId);
+  if (folderId) query.set('folderId', folderId);
+  if (parentPageId) query.set('parentPageId', parentPageId);
   return apiFetch<DocumentPage>(`/api/v1/documents?${query.toString()}`, { signal });
 }
 
@@ -1421,6 +1573,22 @@ export function getDocument(id: string) {
   return apiFetch<DocumentRecord>(`/api/v1/documents/${encodeURIComponent(id)}`);
 }
 
+export async function compareDocumentVersions(id: string, before: number, after: number, signal?: AbortSignal) {
+  const result = await apiFetch<{ before: DocumentVersionPreview; after: DocumentVersionPreview }>(
+    `/api/v1/documents/${encodeURIComponent(id)}/versions/compare?before=${before}&after=${after}`, { signal });
+  for (const [value, expected] of [[result?.before, before], [result?.after, after]] as const) {
+    if (!value || typeof value.body !== 'string' || validateDocumentVersion(value.snapshot, id).versionNumber !== expected)
+      throw new NexoraApiError('Không xác nhận được kết quả so sánh phiên bản.', 0, 'UnexpectedResponse');
+  }
+  return result;
+}
+
+export function restoreDocumentVersion(id: string, etag: string, versionNumber: number, tag: { id: string | null } | undefined, key: string) {
+  return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement>(`/api/v1/documents/${encodeURIComponent(id)}/versions/restore`, {
+    method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }), body: JSON.stringify({ versionNumber, tag })
+  }, 200).then(result => validateDocumentMutation(result, id));
+}
+
 function validateDocumentMutation(result: DocumentRecord | ProductivityCommittedAcknowledgement | void, expectedId?: string) {
   if (result === undefined) return result;
   if (!result || typeof result.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(result.id) || (expectedId !== undefined && result.id.toLowerCase() !== expectedId.toLowerCase())) throw new NexoraApiError('Không thể xác nhận kết quả Document.', 0, 'UnexpectedAcknowledgement');
@@ -1430,11 +1598,11 @@ function validateDocumentMutation(result: DocumentRecord | ProductivityCommitted
   return result;
 }
 
-export function createDocument(title: string, documentType: string, editorMode: string, body: string, idempotencyKey = createIdempotencyKey(), tagId?: string | null) {
+export function createDocument(title: string, documentType: string, editorMode: string, body: string, idempotencyKey = createIdempotencyKey(), tagId?: string | null, scope?: { folderId?: string | null; parentPageId?: string | null }) {
   return apiFetch<DocumentRecord | ProductivityCommittedAcknowledgement | void>('/api/v1/documents', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
-    body: JSON.stringify({ title, documentType, editorMode, body, tagId })
+    body: JSON.stringify({ title, documentType, editorMode, body, tagId, ...scope })
   }, [201, 204]).then(validateDocumentMutation);
 }
 
@@ -1454,10 +1622,31 @@ export function transitionDocument(id: string, etag: string, status: string, ide
   }, [200, 204]).then(result => validateDocumentMutation(result, id));
 }
 
-export function listNotifications(unreadOnly = false, limit = 25, cursor = '') {
+export function listNotifications(unreadOnly = false, limit = 25, cursor = '', filters: { category?: string; from?: string; to?: string } = {}) {
   const query = new URLSearchParams({ unreadOnly: String(unreadOnly), limit: String(limit) });
   if (cursor) query.set('cursor', cursor);
+  if (filters.category) query.set('category', filters.category);
+  if (filters.from) query.set('from', filters.from);
+  if (filters.to) query.set('to', filters.to);
   return apiFetch<NotificationPage>(`/api/v1/notifications?${query.toString()}`);
+}
+
+export type DashboardCreateType = 'Project' | 'Task' | 'CalendarEvent' | 'Document' | 'FinanceRecord';
+export async function openDashboardCreate(resourceType: DashboardCreateType) {
+  const target = await apiFetch<{ resourceType: DashboardCreateType; moduleCode: string }>(`/api/v1/dashboard/quick-create/${encodeURIComponent(resourceType)}`);
+  const modules = { Project: 'FX11', Task: 'FX12', CalendarEvent: 'FX13', Document: 'FX20', FinanceRecord: 'FX27' } as const;
+  if (!target || target.resourceType !== resourceType || target.moduleCode !== modules[resourceType])
+    throw new NexoraApiError('Luồng tạo không hợp lệ.', 0, 'UnexpectedResponse');
+  return target;
+}
+
+export async function openNotificationSource(id: string) {
+  const source = await apiFetch<{ resourceType: 'Task' | 'Event' | 'NewsArticle'; resourceId: string; title: string; route: string }>(`/api/v1/notifications/${encodeURIComponent(id)}/source`);
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!source || !['Task', 'Event', 'NewsArticle'].includes(source.resourceType) || !uuid.test(source.resourceId) || typeof source.title !== 'string'
+      || source.route !== ({ Task: '/tasks/', Event: '/calendar/events/', NewsArticle: '/news/articles/' }[source.resourceType]) + source.resourceId)
+    throw new NexoraApiError('Nguồn thông báo không hợp lệ.', 0, 'UnexpectedResponse');
+  return source;
 }
 
 export function markNotificationRead(id: string, etag: string, read: boolean, idempotencyKey = createIdempotencyKey()) {
@@ -1704,10 +1893,10 @@ export function removeReadingItem(id: string, etag: string, idempotencyKey = cre
   }, 204);
 }
 
-export function updateReadingItem(id: string, etag: string, state: string, progress?: number, idempotencyKey = createIdempotencyKey()) {
+export function updateReadingItem(id: string, etag: string, state: string, progress?: number, idempotencyKey = createIdempotencyKey(), sourceETag?: string | null) {
   return readingResourceMutation(`/api/v1/read-later/${encodeURIComponent(id)}`, {
     method: 'PATCH',
-    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
+    headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag, ...(sourceETag ? { 'If-Source-Match': sourceETag } : {}) }),
     body: JSON.stringify(progress === undefined ? { state } : { state, progress })
   }, id);
 }
@@ -1825,7 +2014,7 @@ export function listPlanner(from?: string, to = from) {
 }
 
 export function pinPlannerTask(taskId: string, planDate: string, notes: string | null, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<PlannerPinRecord>('/api/v1/planner/pins', {
+  return productivityMutation<PlannerPinRecord>('/api/v1/planner/pins', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ taskId, planDate, notes })
@@ -1839,26 +2028,34 @@ export function updatePlannerPin(
   notes: string | null,
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<PlannerPinRecord>(`/api/v1/planner/pins/${encodeURIComponent(pinId)}`, {
+  return productivityMutation<PlannerPinRecord>(`/api/v1/planner/pins/${encodeURIComponent(pinId)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ planDate, notes })
-  });
+  }, pinId);
 }
 
-export function reorderPlanner(planDate: string, pinIds: string[], etag: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<PlannerPlan>('/api/v1/planner/reorder', {
+export async function reorderPlanner(planDate: string, pinIds: string[], etag: string, idempotencyKey = createIdempotencyKey()) {
+  const result = await apiFetch<PlannerPlan | ProductivityCommittedAcknowledgement>('/api/v1/planner/reorder', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ planDate, pinIds })
-  });
+  }, 200);
+  if (!result || typeof result !== 'object'
+      || (('committed' in result || 'detailAvailable' in result)
+        ? !isProductivityAcknowledgement(result) || result.id?.toLowerCase() !== pinIds[0]?.toLowerCase()
+          || Object.keys(result).some(key => !['id', 'committed', 'detailAvailable'].includes(key))
+        : !('pins' in result) || !Array.isArray(result.pins) || typeof result.etag !== 'string'
+          || result.from !== planDate || result.to !== planDate))
+    throw new NexoraApiError('Chưa xác nhận được kết quả sắp xếp. Thử lại thao tác cũ để đối chiếu.', 0, 'UnexpectedAcknowledgement');
+  return result;
 }
 
 export function unpinPlannerTask(pinId: string, etag: string, idempotencyKey = createIdempotencyKey()) {
   return apiFetch<void>(`/api/v1/planner/pins/${encodeURIComponent(pinId)}`, {
     method: 'DELETE',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag })
-  });
+  }, 204);
 }
 
 export function listHabits(state = '', query = '', limit = 100) {
@@ -1876,6 +2073,27 @@ export function getHabit(id: string, from?: string, to?: string) {
   return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}${query}`);
 }
 
+async function habitMutation(path: string, init: RequestInit, expectedId?: string): Promise<HabitDetail | ProductivityCommittedAcknowledgement> {
+  const result = await apiFetch<HabitDetail | ProductivityCommittedAcknowledgement>(path, init, expectedId ? 200 : 201);
+  const validId = (id: unknown): id is string => typeof id === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+    && id !== '00000000-0000-0000-0000-000000000000';
+  const invalid = () => { throw new NexoraApiError('Chưa xác nhận được kết quả Habit. Thử lại đúng thao tác cũ để đối chiếu.', 0, 'UnexpectedAcknowledgement'); };
+  if (!result || typeof result !== 'object') return invalid();
+  if ('committed' in result || 'detailAvailable' in result) {
+    if (!isProductivityAcknowledgement(result) || !validId(result.id)
+        || (expectedId && result.id.toLowerCase() !== expectedId.toLowerCase())
+        || Object.keys(result).some(key => !['id', 'committed', 'detailAvailable'].includes(key))) return invalid();
+    return result;
+  }
+  if (!('habit' in result) || !result.habit || !validId(result.habit.id)
+      || (expectedId && result.habit.id.toLowerCase() !== expectedId.toLowerCase())
+      || typeof result.habit.title !== 'string' || typeof result.habit.etag !== 'string'
+      || !['Active', 'Paused', 'Archived'].includes(result.habit.state)
+      || !Number.isInteger(result.habit.currentStreak) || !Array.isArray(result.schedules) || !Array.isArray(result.checkIns)) return invalid();
+  return result;
+}
+
 export function createHabit(
   value: {
     title: string; kind: 'Boolean' | 'Count'; targetCount: number | null; unit: string | null;
@@ -1883,7 +2101,7 @@ export function createHabit(
   },
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<HabitDetail>('/api/v1/habits', {
+  return habitMutation('/api/v1/habits', {
     method: 'POST', headers: jsonMutationHeaders(idempotencyKey), body: JSON.stringify(value)
   });
 }
@@ -1894,9 +2112,9 @@ export function updateHabit(
   value: { title: string; unit: string | null; reminderLocalTime: string | null; timeZoneId: string },
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}`, {
+  return habitMutation(`/api/v1/habits/${encodeURIComponent(id)}`, {
     method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify(value)
-  });
+  }, id);
 }
 
 export function setHabitSchedule(
@@ -1905,9 +2123,9 @@ export function setHabitSchedule(
   value: { effectiveFrom: string; weekdayMask: number; targetCount: number | null },
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}/schedule`, {
+  return habitMutation(`/api/v1/habits/${encodeURIComponent(id)}/schedule`, {
     method: 'PUT', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify(value)
-  });
+  }, id);
 }
 
 export function recordHabitCheckIn(
@@ -1916,15 +2134,15 @@ export function recordHabitCheckIn(
   value: { localDate: string; count: number; note: string | null },
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}/check-ins`, {
+  return habitMutation(`/api/v1/habits/${encodeURIComponent(id)}/check-ins`, {
     method: 'POST', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify(value)
-  });
+  }, id);
 }
 
 export function transitionHabit(id: string, etag: string, state: 'Active' | 'Paused' | 'Archived' | 'Unarchive', idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<HabitDetail>(`/api/v1/habits/${encodeURIComponent(id)}/transition`, {
+  return habitMutation(`/api/v1/habits/${encodeURIComponent(id)}/transition`, {
     method: 'POST', headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }), body: JSON.stringify({ state })
-  });
+  }, id);
 }
 
 export function listGoals(status = '', query = '', limit = 100) {
@@ -1938,15 +2156,42 @@ export function getGoal(id: string) {
   return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(id)}`);
 }
 
+async function goalMutation(path: string, init: RequestInit, expectedId?: string, expectedStatus?: 200 | 201): Promise<GoalDetail | ProductivityCommittedAcknowledgement> {
+  const result = await apiFetch<GoalDetail | ProductivityCommittedAcknowledgement>(path, init, expectedStatus ?? (expectedId ? 200 : 201));
+  const uuid = (value: unknown): value is string => typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+    && value !== '00000000-0000-0000-0000-000000000000';
+  const etag = (value: unknown): value is string => typeof value === 'string' && /^"[A-Za-z0-9+/]{11}="$/.test(value);
+  const fail = () => { throw new NexoraApiError('Chưa xác nhận được kết quả đã lưu. Thử lại đúng thao tác cũ để đối chiếu.', 0, 'UnexpectedAcknowledgement'); };
+  if (!result || typeof result !== 'object') return fail();
+  if ('committed' in result || 'detailAvailable' in result) {
+    if (!isProductivityAcknowledgement(result) || !uuid(result.id)
+        || (expectedId && result.id.toLowerCase() !== expectedId.toLowerCase())
+        || Object.keys(result).some(key => !['id', 'committed', 'detailAvailable'].includes(key))) return fail();
+    return result;
+  }
+  if (!('goal' in result) || !result.goal || !uuid(result.goal.id)
+      || (expectedId && result.goal.id.toLowerCase() !== expectedId.toLowerCase())
+      || typeof result.goal.title !== 'string' || !etag(result.goal.etag)
+      || !['Draft', 'Active', 'Completed', 'Abandoned', 'Archived'].includes(result.goal.status)
+      || (result.goal.preArchiveStatus != null && !['Draft', 'Active', 'Completed', 'Abandoned'].includes(result.goal.preArchiveStatus))
+      || !Number.isFinite(result.goal.progress) || !Number.isInteger(result.goal.targetCount) || result.goal.targetCount < 0
+      || !Array.isArray(result.targets) || result.targets.some(target => !target || !uuid(target.id)
+        || typeof target.title !== 'string' || !['Numeric', 'Boolean', 'Tasks'].includes(target.kind)
+        || !etag(target.etag) || !Number.isFinite(target.progress)
+        || (target.kind === 'Boolean' && typeof target.booleanValue !== 'boolean'))) return fail();
+  return result;
+}
+
 export function createGoal(
   title: string,
   description: string | null,
   startDate: string | null,
   endDate: string | null,
-  numericTarget: { title: string; initialValue: number; currentValue: number; targetValue: number } | null = null,
+  numericTarget: { title: string; initialValue: string | number; currentValue: string | number; targetValue: string | number } | null = null,
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<GoalDetail>('/api/v1/goals', {
+  return goalMutation('/api/v1/goals', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ title, description, startDate: startDate || null, endDate: endDate || null, numericTarget })
@@ -1962,34 +2207,86 @@ export function updateGoal(
   endDate: string | null,
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(id)}`, {
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ title, description, startDate: startDate || null, endDate: endDate || null, numericTarget: null })
-  });
+  }, id);
 }
 
 export function recordGoalProgress(
   goalId: string,
   targetId: string,
   goalEtag: string,
-  currentValue: number,
+  currentValue: string | number,
   note: string | null = null,
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/${encodeURIComponent(targetId)}/progress`, {
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/${encodeURIComponent(targetId)}/progress`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': goalEtag }),
     body: JSON.stringify({ currentValue, note })
-  });
+  }, goalId);
+}
+
+export function createBooleanGoalTarget(goalId: string, etag: string, title: string, booleanValue: boolean, key: string) {
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/boolean`, {
+    method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }),
+    body: JSON.stringify({ title, booleanValue })
+  }, goalId, 201);
+}
+
+export function createNumericGoalTarget(goalId: string, etag: string, title: string, initialValue: string, currentValue: string, targetValue: string, key: string) {
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/numeric`, {
+    method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }),
+    body: JSON.stringify({ title, initialValue, currentValue, targetValue })
+  }, goalId, 201);
+}
+
+export type GoalTargetChangePreview = {
+  previewToken: string; expiresAt: string; goalETag: string; targetETag: string; targetTitle: string; kind: string;
+  beforeCount: number; afterCount: number; beforeProgress: number; afterProgress: number;
+  proposedTitle: string | null; initialValueExact: string | null; targetValueExact: string | null;
+};
+
+export async function previewGoalTargetChange(goalId: string, targetId: string, etag: string,
+  change: { mode: 'Update' | 'Remove'; title?: string; initialValue?: string; targetValue?: string }, signal?: AbortSignal) {
+  const result = await apiFetch<GoalTargetChangePreview>(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/${encodeURIComponent(targetId)}/change-preview`, {
+    method: 'POST', headers: { 'If-Match': etag }, body: JSON.stringify(change), signal
+  }, 200);
+  if (!result || typeof result.previewToken !== 'string' || !result.previewToken.startsWith('gt1.') || result.previewToken.length > 4096
+      || result.goalETag !== etag || typeof result.targetETag !== 'string' || typeof result.targetTitle !== 'string'
+      || !['Numeric', 'Boolean'].includes(result.kind) || !Number.isFinite(Date.parse(result.expiresAt))
+      || ![result.beforeProgress, result.afterProgress].every(value => Number.isFinite(value) && value >= 0 && value <= 1)
+      || ![result.beforeCount, result.afterCount].every(value => Number.isSafeInteger(value) && value >= 0)
+      || (change.mode === 'Remove' ? result.afterCount !== result.beforeCount - 1 || result.proposedTitle !== null
+        : result.afterCount !== result.beforeCount || typeof result.proposedTitle !== 'string')
+      || (result.initialValueExact !== null && typeof result.initialValueExact !== 'string')
+      || (result.targetValueExact !== null && typeof result.targetValueExact !== 'string'))
+    throw new NexoraApiError('Không thể xác nhận bản xem trước. Hãy tải revision mới.', 0, 'InvalidPreviewResponse');
+  return result;
+}
+
+export function changeGoalTarget(goalId: string, targetId: string, etag: string, mode: 'Update' | 'Remove', previewToken: string, key: string) {
+  const action = mode === 'Update' ? 'update-definition' : 'remove';
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/${encodeURIComponent(targetId)}/${action}`, {
+    method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }), body: JSON.stringify({ previewToken })
+  }, goalId);
+}
+
+export function recordBooleanGoalProgress(goalId: string, targetId: string, etag: string, booleanValue: boolean, note: string | null, key: string) {
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(goalId)}/targets/${encodeURIComponent(targetId)}/boolean-progress`, {
+    method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }),
+    body: JSON.stringify({ booleanValue, note })
+  }, goalId);
 }
 
 export function transitionGoal(id: string, etag: string, status: string, idempotencyKey = createIdempotencyKey()) {
-  return apiFetch<GoalDetail>(`/api/v1/goals/${encodeURIComponent(id)}/transition`, {
+  return goalMutation(`/api/v1/goals/${encodeURIComponent(id)}/transition`, {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey, { 'If-Match': etag }),
     body: JSON.stringify({ status })
-  });
+  }, id);
 }
 
 export function listAdminUsers(query = '') {

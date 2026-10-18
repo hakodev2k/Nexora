@@ -72,6 +72,8 @@ public static class HabitEndpoints
         if (!auth.Succeeded || auth.Value is null) return ToHttp(context, new IdentityOperationResult<HabitDetailResponse>(false,
             default, auth.Code, auth.StatusCode, auth.Title));
         var result = operation(auth.Value);
+        if (result.Succeeded && result.Acknowledgement is { } acknowledgement)
+            return ToHttp(context, IdentityOperationResult<CommittedResourceAcknowledgement>.Success(acknowledgement, result.StatusCode, result.Code));
         if (result.Succeeded && result.Value is not null) context.Response.Headers.ETag = result.Value.Habit.ETag;
         return result.Succeeded && result.Value is not null
             ? ToHttp(context, IdentityOperationResult<HabitDetailResponse>.Success(ToResponse(result.Value), result.StatusCode, result.Code))

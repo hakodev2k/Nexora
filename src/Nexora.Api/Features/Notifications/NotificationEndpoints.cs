@@ -12,9 +12,15 @@ public static class NotificationEndpoints
     {
         var api = app.MapGroup("/api/v1").RequireCsrfForUnsafeMethods();
 
-        api.MapGet("/notifications", (HttpContext context, bool? unreadOnly, int? limit, INotificationService service, IIdentityService identity, SessionCookieService cookies) =>
-            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.List(principal, unreadOnly ?? false, limit), ToPage))
+        api.MapGet("/notifications", (HttpContext context, bool? unreadOnly, int? limit, string? cursor, string? category, DateTimeOffset? from, DateTimeOffset? to, INotificationService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal =>
+                ExplicitInstantJsonConverter.QueryValid(context,"from") && ExplicitInstantJsonConverter.QueryValid(context,"to")
+                ? service.List(principal, unreadOnly ?? false, limit, cursor, category, from, to)
+                : IdentityOperationResult<NotificationPage>.Failure("ValidationFailed",422,"Explicit UTC date offsets are required."), ToPage))
             .WithName("listNotifications");
+        api.MapGet("/notifications/{notificationId:guid}/source", (HttpContext context, Guid notificationId, INotificationService service, IIdentityService identity, SessionCookieService cookies) =>
+            Map(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.OpenSource(principal, notificationId), value => value))
+            .WithName("openNotificationSource");
 
         api.MapPatch("/notifications/{notificationId:guid}", (HttpContext context, Guid notificationId, NotificationReadRequest request, INotificationService service, IIdentityService identity, SessionCookieService cookies) =>
             MapResource(context, identity.GetPrincipal(cookies.ReadRawHandle(context.Request)), principal => service.MarkRead(principal, notificationId,
