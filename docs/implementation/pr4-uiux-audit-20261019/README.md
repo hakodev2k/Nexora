@@ -2,6 +2,32 @@
 
 **Audit opened:** 2026-10-19. **Current disposition: AUTOMATED_AUDIT_RUNNING / NOT_FULLY_VISUALLY_ACCEPTED**. The precise PR/tested-source SHA, CI run and artifact must be recorded **after** each new run. Do not promote this document to accepted without reviewing all screenshots, all active screen states and popup transitions. No production, real provider, real user data, SQL production migration or PR merge is authorized.
 
+## Parallel reviewer execution (2026-10-19 — replaces monolithic UIUX execution)
+
+Owner requested the single long-running review be split to avoid excessive latency and interrupted responses. The active implementation is **nine isolated CI Playwright reviewer jobs** in [`.github/workflows/pr4-uiux-sharded.yml`](../../../.github/workflows/pr4-uiux-sharded.yml), not nine independently reasoning AI agents; this interface does **not** provide a subagent-spawning capability. **max-parallel=6**, **fail-fast=false** and **25-minute per-job deadline**. The original [`m01-ci.yml`](../../../.github/workflows/m01-ci.yml) no longer runs the full UX scanner inline; ordinary backend/SQL/browser/Windows gates remain separately mandatory.
+
+Each worker checks out the exact PR commit, performs its own pinned Node 22/.NET 10 install, starts disposable loopback SQL, seeds isolated eight-persona synthetic accounts, starts the local API+Vite, and invokes `run-uiux-audit` with one **allowlisted** `NEXORA_UIUX_SHARD` name. Jobs do not reuse credentials, SQL, screenshots or mutable state. Every shard executes **desktop1440 + mobile390**; partial JSON evidence is rewritten after each attempted route. A failing shard does not cancel sibling shards. The JUnit is sanitized and visual screenshots are synthetic; no live provider calls or production user data are allowed.
+
+| Reviewer / shard | Persona | Owned route family | Deep-review handoff |
+|---|---|---|---|
+| `auth` | Anonymous | Login/register/email verify/forgot/reset/invalid-share | Field errors, re-auth, focus, submit states, malicious public input |
+| `navigation` | UserA | Home/Search/Saved/Recents/Palette/Profile/Security/Notifications/Trash | Information architecture, menu density, empty/loading/denied, keyboard |
+| `productivity` | UserA | Goals/Planner/Habits, FX11–FX19 | Project→Task sequencing, calendar dates, schedule, state/history and dialogs |
+| `knowledge` | UserA | Bookmarks/Snippets/ReadLater/Tags/Files/WorkLog/Sharing, FX20–FX24 | Rich text, file/share privacy, folder navigation, editor/preview/version |
+| `business` | UserA | Finance, FX27/29/31/32/36–40 | Explicit currency, money formatting, provider status, costs, role-aware views |
+| `platform` | UserA | FX01–FX10 | Unavailable vs implemented, feature gates, identity/support/settings/security |
+| `gated` | UserA | Tools/Support, FX25/26/28/30/33/34/35 | Dashboard, search, safe feature-unavailable experience, no real effects |
+| `admin` | SuperAdmin | Admin Access/Modules/Support/Sharing/Notifications/Security | Admin density, denied actions, permissions, safe source projections |
+| `restricted` | Restricted | Home, FX11, FX20, Files/Sharing/Profile | Honest unavailable states, no stale protected data, discoverability |
+
+**Coverage is evidence-driven.** A visited generic `/modules/FXxx` fallback is **not** feature acceptance. The scanner opens only some non-destructive visible dialogs; conditional dialogs, editing a selected record, Archive/Trash/Restore/Purge, mobile keyboard, error/409/412/422 states and deep nested pages remain `NOT_EXERCISED` unless evidenced separately. Automated axe is sampled on module screens (full first-level/public); this is not WCAG compliance or a professional visual judgement. Per-shard artifacts are `pr4-uiux-<area>-<SHA>` in Actions (7-day retention) and must be independently inspected before a signed qualitative UI score.
+
+**Initial GitHub run:** [PR4 parallel UI UX reviewers run 39212561912](https://github.com/hakodev2k/Nexora/actions/runs/39212561912) had the six first worker jobs in progress and remaining shards queued when initially checked. It does not establish success; verify final run and SHA before publishing conclusions. The release contract remains D09=A, Draft, not merge-ready.
+
+### Human review protocol per independent worker
+
+After a shard artifact is complete, its assigned reviewer should inspect **every captured page and popup** at the exact viewport, label actual state (populated/empty/loading/denied), score visual hierarchy/copy/spacing/action prominence/response clarity (0–2 per area), compare with sibling module design tokens, and reproduce important P0/P1 findings with source line and browser evidence. Write `P0/P1/P2/P3`, exact screenshot/path/viewport, repro steps, expected vs actual and suggested alternative. Use `NOT_REVIEWED` for failed/missing screenshot and `NOT_EXERCISED` for undiscovered dialogs, never mark green by absence of findings. An independent product/design reviewer must resolve conflicts and sign off the consolidated report on an exact SHA.
+
 ## 1. Environment / actual reproducibility
 
 - The assistant's ephemeral local container has **Node v22.16.0, npm v10.9.2 and Chromium 144**, but does **not** contain a .NET SDK, SQL Server binaries or Docker; HTTPS Git clone failed because the container could not resolve github.com. **A complete local checkout+running application was therefore NOT performed in that container**. Do not claim otherwise.
