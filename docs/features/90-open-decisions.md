@@ -129,3 +129,8 @@ Nguồn: DEC-20260907-Q12.
 - Real provider execution for FX30/34/35 requires later explicit approval; local simulation is already approved under DEC-014.
 
 Các chi tiết kỹ thuật còn lại do technical owner tự chốt thành ADR/acceptance có thể kiểm chứng trong phạm vi đã được PO approve. Không được suy ra provider thật, OAuth, payment hoặc production capability từ local simulation.
+
+
+## PR #4 decisions — 2026-10-19 (owner-confirmed D01–D09=A)
+
+The Product Owner expressly selected Option A for all nine PR4 blocker decisions. See [DEC-20261019-PR4](../requirements/13-owner-decisions-20261019-pr4-blockers.md) and [API/DB/UX/security/acceptance contracts](../implementation/pr4-decision-contracts-20261019/README.md). **D01=A means Vault threat model/architecture ADR only, no secret functionality.** D02 manual Finance, D03 flat Tasks/one reminder, D04 synthetic-only providers, D05 default-deny sensitive projection, D06 Plan Goal/Task/Course reference set, D07 owner-safe revoked link metadata/token-null, D08 provable original Tag create opaque ACK, D09 keep PR draft. These reaffirm DEC004–010/014 where already approved; D06–D08 resolve named contract/test ambiguities without overriding privacy/source gates. D07 still denies external viewer resolution, D08 still denies ambiguous receipts/current revoked actors, D05 still has unapproved per-field allowlists, and FX28 remains security-design gated. No user decision in this update is approval of production, real network/provider execution, crypto review, tests or merge.
