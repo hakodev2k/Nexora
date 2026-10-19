@@ -13,7 +13,9 @@
 > explicit confirmation and typed opaque replay; no Allow grants or execution.
 > [Lifecycle contract](../../implementation/remediation-plan-20261016/worklog-trash-contract-20261018.md).
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07 · Docs-only.
+
+> **2026-10-19 D06=A action-source reconciliation:** `learning.plan.link` and `learning.plan.unlink` bind only typed **Goal/Task/Course** current same-owner source references per [owner decision](../../requirements/13-owner-decisions-20261019-pr4-blockers.md) and [full contract](../../implementation/pr4-decision-contracts-20261019/04-learning-plan.md). The previous “skill/course” label was inconsistent with FX40 feature flow. This is contract correction only; no handler, grant, schema migration or acceptance implied. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 
@@ -61,7 +63,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 | <a id="learning-plan-read"></a>`learning.plan.read` — Xem Learning Plan | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
 | <a id="learning-plan-create"></a>`learning.plan.create` — Tạo Learning Plan | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
 | <a id="learning-plan-update"></a>`learning.plan.update` — Sửa Learning Plan | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
-| <a id="learning-plan-link"></a>`learning.plan.link` — Liên kết skill/course | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
+| <a id="learning-plan-link"></a>`learning.plan.link` — Liên kết Goal/Task/Course | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
 | <a id="learning-plan-unlink"></a>`learning.plan.unlink` — Gỡ reference | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
 | <a id="learning-plan-reorder"></a>`learning.plan.reorder` — Sắp xếp plan | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
 | <a id="learning-plan-complete"></a>`learning.plan.complete` — Hoàn thành plan | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX40-S05 |
