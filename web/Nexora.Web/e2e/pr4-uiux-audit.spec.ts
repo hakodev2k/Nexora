@@ -150,13 +150,13 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
     });
     out.h1 = ((await page.locator('main h1').first().textContent().catch(() => '')) ?? '').trim().slice(0, 150);
     const actualRoute = new URL(page.url()).pathname;
-    out.checks.actualRoute = actualRoute;
+    // Initialize check data before assigning bound actual route metadata.
     if (actualRoute !== route && !route.startsWith('/share/')) out.findings.push(finding('ROUTE_REDIRECT_OR_DENIAL', 'P2', 'Requested ' + route + ', actual ' + actualRoute + '; do not classify the requested page as observed.'));
     const bodyTitle = out.h1.toLowerCase();
     if (route.startsWith('/modules/') && /không khả dụng|unavailable|disabled|chưa triển khai/.test(bodyTitle)) out.findings.push(finding('MODULE_UNAVAILABLE_NOT_FEATURE_IMPLEMENTED', 'P2', 'Only the module unavailable state was observed, not the target feature.'));
 
+    out.checks = { statusCode: response?.status() ?? 0, ...stats, jsErrors, actualRoute };
     out.status = 'AUTO_PROBED';
-    out.checks = { statusCode: response?.status() ?? 0, ...stats, jsErrors };
     if (!out.h1) out.findings.push(finding('MISSING_H1', 'P2', 'No visible <h1> in main after initial load'));
     if (stats.documentWidth > stats.viewportWidth + 1) out.findings.push(finding('PAGE_HORIZONTAL_OVERFLOW', 'P1', 'Entire page scrollWidth exceeds viewport by ' + (stats.documentWidth - stats.viewportWidth) + 'px'));
     if (stats.unlabeledControls) out.findings.push(finding('UNNAMED_CONTROLS', 'P2', String(stats.unlabeledControls) + ' visible input/button controls lack a programmatic name'));
@@ -175,6 +175,7 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
       }
     } catch { out.findings.push(finding('AXE_NOT_EXECUTED', 'P3', 'Axe could not complete on this state')); }
     out.screenshot = await screenshot(page, persona, route, 'initial').catch(() => undefined);
+    if (!out.screenshot) out.findings.push(finding('SCREENSHOT_MISSING', 'P1', 'No reviewable visual evidence captured; NOT accepted'));
     // Only open clearly non-destructive interactive disclosures. Never submit/save/revoke/delete.
     if (!route.startsWith('/modules/FX30') && !route.startsWith('/modules/FX34') && !route.startsWith('/modules/FX35')) {
       const candidates = await page.locator('main button:visible').evaluateAll(nodes =>
@@ -280,5 +281,7 @@ for (const group of groups) {
     } finally { persist(info, group.role + '-' + group.group, results, seed); }
     if (results.length !== group.routes.length)
       throw new Error('AUDIT_PARTIAL: group ' + group.group + ' observed ' + results.length + '/' + group.routes.length + ' routes; see sanitized JSON.');
+    const blocked = results.filter(r => r.status !== 'AUTO_PROBED' || !r.screenshot);
+    if (blocked.length) throw new Error('AUDIT_INCOMPLETE: group ' + group.group + ' has ' + blocked.length + ' blocked/unscreened routes; JSON records remain available.');
   });
 }
