@@ -2,7 +2,7 @@
 
 **Audit opened:** 2026-10-19. **Current disposition: AUTOMATED_AUDIT_RUNNING / NOT_FULLY_VISUALLY_ACCEPTED**. The precise PR/tested-source SHA, CI run and artifact must be recorded **after** each new run. Do not promote this document to accepted without reviewing all screenshots, all active screen states and popup transitions. No production, real provider, real user data, SQL production migration or PR merge is authorized.
 
-**Detailed evidence:** [Initial nine-shard executed findings and screenshot review](executed-findings.md) · [Historical 36-route per-screen register and popup coverage](route-evidence-register.md). Both distinguish observed screenshots from unreviewed nested states and unresolved blockers.
+**Detailed evidence:** [Executed nine-shard findings and screenshot review](executed-findings.md) · [36-route per-screen baseline](route-evidence-register.md) · [60 shared JSX popup callsites + 29 specialized components](popup-source-register.md). All registers distinguish observed screenshots from unreviewed nested states and unresolved blockers.
 
 ## Parallel reviewer execution (2026-10-19 — replaces monolithic UIUX execution)
 
