@@ -2,6 +2,8 @@
 
 **Audit opened:** 2026-10-19. **Current disposition: AUTOMATED_AUDIT_RUNNING / NOT_FULLY_VISUALLY_ACCEPTED**. The precise PR/tested-source SHA, CI run and artifact must be recorded **after** each new run. Do not promote this document to accepted without reviewing all screenshots, all active screen states and popup transitions. No production, real provider, real user data, SQL production migration or PR merge is authorized.
 
+**Detailed evidence:** [Initial nine-shard executed findings and screenshot review](executed-findings.md) · [Historical 36-route per-screen register and popup coverage](route-evidence-register.md). Both distinguish observed screenshots from unreviewed nested states and unresolved blockers.
+
 ## Parallel reviewer execution (2026-10-19 — replaces monolithic UIUX execution)
 
 Owner requested the single long-running review be split to avoid excessive latency and interrupted responses. The active implementation is **nine isolated CI Playwright reviewer jobs** in [`.github/workflows/pr4-uiux-sharded.yml`](../../../.github/workflows/pr4-uiux-sharded.yml), not nine independently reasoning AI agents; this interface does **not** provide a subagent-spawning capability. **max-parallel=6**, **fail-fast=false** and **25-minute per-job deadline**. The original [`m01-ci.yml`](../../../.github/workflows/m01-ci.yml) no longer runs the full UX scanner inline; ordinary backend/SQL/browser/Windows gates remain separately mandatory.
