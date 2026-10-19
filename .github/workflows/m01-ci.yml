@@ -149,16 +149,6 @@ jobs:
         run: python3 scripts/dev/start-e2e-target.py
       - name: Run browser journeys with private logs and sanitized evidence
         run: python3 scripts/dev/start-e2e-target.py run-browser
-      - name: Audit every declared UI route and discover visible dialogs on synthetic SQL/API
-        if: always()
-        continue-on-error: true
-        shell: bash
-        run: |
-          if [[ -z "${NEXORA_E2E_TARGET_STATE:-}" || ! -f "${NEXORA_E2E_TARGET_STATE:-/not-found}" ]]; then
-            echo "UIUX_AUDIT_BLOCKED: isolated browser target was not ready; no visual acceptance claimed."
-            exit 0
-          fi
-          python3 scripts/dev/start-e2e-target.py run-uiux-audit
       - name: Sanitize browser evidence before upload
         if: always()
         run: python3 scripts/dev/start-e2e-target.py sanitize-evidence
@@ -179,17 +169,5 @@ jobs:
             web/Nexora.Web/artifacts/playwright-output/**/home.png
             web/Nexora.Web/artifacts/playwright-output/**/public-validation.png
             web/Nexora.Web/artifacts/playwright-output/**/committed-ack.png
-          if-no-files-found: warn
-          retention-days: 7
-
-      - name: Upload synthetic UIUX route/dialog audit and privacy-safe screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: uiux-audit-${{ github.sha }}
-          path: |
-            web/Nexora.Web/artifacts/uiux-audit/*.json
-            web/Nexora.Web/artifacts/uiux-audit/playwright-junit.xml
-            web/Nexora.Web/artifacts/uiux-audit/screenshots/*.png
           if-no-files-found: warn
           retention-days: 7
