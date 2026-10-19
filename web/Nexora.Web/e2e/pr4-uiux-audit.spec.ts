@@ -28,7 +28,7 @@ function safeSlug(value: string) { return value.replace(/[^a-z0-9]+/gi, '-').rep
 function finding(code: string, severity: 'P1' | 'P2' | 'P3', detail: string): Finding { return { code, severity, detail }; }
 async function screenshot(page: Page, persona: string, route: string, suffix: string) {
   mkdirSync(screenshotRoot, { recursive: true });
-  const base = safeSlug(persona + '-' + route + '-' + suffix);
+  const base = safeSlug(persona + '-' + (page.viewportSize()?.width ?? 'na') + '-' + route + '-' + suffix);
   const relative = 'screenshots/' + base + '.png';
   await page.screenshot({
     path: join(artifactRoot, relative), animations: 'disabled', timeout: 10_000,
@@ -51,6 +51,10 @@ async function logIn(page: Page, role: string) {
   // Do not include credential/email in report or test logs.
 }
 async function trySeed(page: Page, records: string[], domain: string) {
+  const fixtureSuffix = '-' + String(page.viewportSize()?.width ?? 'view');
+  const projectLabel = 'Synthetic UIUX Project' + fixtureSuffix;
+  const taskLabel = 'Synthetic UIUX Task' + fixtureSuffix;
+  const categoryLabel = 'Synthetic UIUX category' + fixtureSuffix;
   if (domain === 'knowledge') try {
     // Each UI write goes to this run's disposable SQL, not mocked network or production.
     await page.goto('/bookmarks');
@@ -73,31 +77,31 @@ async function trySeed(page: Page, records: string[], domain: string) {
   } catch { records.push('Snippets: UI seeding unverified/blocked'); }
   if (domain === 'productivity') try {
     await page.goto('/modules/FX11');
-    await page.locator('#project-name').fill('Synthetic UIUX Project');
+    await page.locator('#project-name').fill(projectLabel);
     await page.locator('#project-description').fill('Synthetic isolated QA project for populated screenshots');
     await page.locator('#project-start').fill('2026-10-20T09:00');
     await page.locator('#project-end').fill('2026-11-20T18:00');
     await page.getByRole('button', { name: 'Tạo Project', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Synthetic UIUX Project' })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: projectLabel })).toBeVisible({ timeout: 5_000 });
     records.push('Projects: synthetic real SQL UI creation confirmed');
   } catch { records.push('Projects: UI seeding unverified/blocked'); }
   if (domain === 'productivity') try {
     await page.goto('/modules/FX12');
-    await page.locator('#task-project').selectOption({ label: 'Synthetic UIUX Project' });
-    await page.locator('#task-title').fill('Synthetic UIUX Task');
+    await page.locator('#task-project').selectOption({ label: projectLabel });
+    await page.locator('#task-title').fill(taskLabel);
     await page.locator('#task-start').fill('2026-10-21T09:00');
     await page.locator('#task-end').fill('2026-10-22T18:00');
     await page.getByRole('button', { name: 'Tạo Task', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Synthetic UIUX Task' })).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: taskLabel })).toBeVisible({ timeout: 5_000 });
     records.push('Tasks: synthetic real SQL UI creation confirmed');
   } catch { records.push('Tasks: UI seeding unverified/blocked'); }
   if (domain === 'business') try {
     await page.goto('/finance');
     await page.getByRole('button', { name: 'Thêm category' }).click();
-    await page.locator('#finance-category-title').fill('Synthetic UIUX category');
+    await page.locator('#finance-category-title').fill(categoryLabel);
     await page.getByRole('dialog').getByRole('button', { name: 'Tạo category' }).click();
     await page.getByRole('button', { name: 'Thêm record' }).click();
-    await page.locator('#finance-record-category').selectOption({ label: 'Synthetic UIUX category' });
+    await page.locator('#finance-record-category').selectOption({ label: categoryLabel });
     await page.locator('#finance-record-amount').fill('123456.125');
     await page.locator('#finance-record-currency').fill('VND');
     await page.locator('#finance-record-date').fill('2026-10-19');
@@ -121,7 +125,14 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
   page.on('pageerror', onError);
   try {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 25_000 });
-    await page.locator('main').first().waitFor({ state: 'visible', timeout: 10_000 });
+    const hasMain = await page.locator('main').first().isVisible().catch(() => false);
+    if (!hasMain) {
+      out.findings.push(finding('NO_MAIN_LANDMARK', 'P1', 'No visible main; could be a modal-only route or an incomplete public error state'));
+      out.screenshot = await screenshot(page, persona, route, 'missing-main').catch(() => undefined);
+      out.checks = { statusCode: response?.status() ?? 0, actualRoute: new URL(page.url()).pathname, hasMain: false };
+      out.status = 'BLOCKED_RUNTIME';
+      return out;
+    }
     await page.waitForTimeout(200);
     const stats = await page.evaluate(() => {
       const main = document.querySelector('main');
@@ -153,7 +164,9 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
     // Initialize check data before assigning bound actual route metadata.
     if (actualRoute !== route && !route.startsWith('/share/')) out.findings.push(finding('ROUTE_REDIRECT_OR_DENIAL', 'P2', 'Requested ' + route + ', actual ' + actualRoute + '; do not classify the requested page as observed.'));
     const bodyTitle = out.h1.toLowerCase();
-    if (route.startsWith('/modules/') && /không khả dụng|unavailable|disabled|chưa triển khai/.test(bodyTitle)) out.findings.push(finding('MODULE_UNAVAILABLE_NOT_FEATURE_IMPLEMENTED', 'P2', 'Only the module unavailable state was observed, not the target feature.'));
+    const shellText = (await page.locator('main').innerText().catch(() => '')).slice(0, 1200);
+    if (/module entry|feature CRUD.*chưa nằm|chưa có dữ liệu hiển thị/i.test(shellText)) out.findings.push(finding('PLACEHOLDER_NOT_FEATURE_UX', 'P2', 'Rendered page is a generic module placeholder, not a working feature'));
+    if (route.startsWith('/modules/') && /không khả dụng|chưa khả dụng|unavailable|disabled|chưa triển khai/.test(bodyTitle)) out.findings.push(finding('MODULE_UNAVAILABLE_NOT_FEATURE_IMPLEMENTED', 'P2', 'Only the module unavailable state was observed, not the target feature.'));
 
     out.checks = { statusCode: response?.status() ?? 0, ...stats, jsErrors, actualRoute };
     out.status = 'AUTO_PROBED';
@@ -171,7 +184,7 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
       else {
       const axe = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
       out.checks.axeViolations = axe.violations.length;
-      for (const v of axe.violations.slice(0, 8)) out.findings.push(finding('AXE_' + v.id, 'P2', 'axe rule ' + v.id + ' affects ' + v.nodes.length + ' element(s); human WCAG review still required'));
+      for (const v of axe.violations.slice(0, 8)) out.findings.push(finding('AXE_' + v.id, 'P2', 'axe rule ' + v.id + ' affects ' + v.nodes.length + ' element(s); selectors=' + v.nodes.slice(0, 3).flatMap(n => n.target).join(',').slice(0, 220) + '; WCAG review required'));
       }
     } catch { out.findings.push(finding('AXE_NOT_EXECUTED', 'P3', 'Axe could not complete on this state')); }
     out.screenshot = await screenshot(page, persona, route, 'initial').catch(() => undefined);
@@ -271,9 +284,11 @@ for (const group of groups) {
       if (group.role !== 'Anonymous') await logIn(page, group.role);
       if (group.seed !== 'none') await trySeed(page, seed, group.seed);
       for (const route of group.routes) {
-        const observation = await observe(page, route, group.role, info);
-        results.push(observation);
-        // Persist partial evidence after EVERY route; a later bad page must not erase work.
+        // Fresh tab + shared owned-session cookie per route: prevents dirty modal,
+        // beforeunload and stale draft from cascading into the following route.
+        const isolated = await page.context().newPage();
+        try { results.push(await observe(isolated, route, group.role, info)); }
+        finally { await isolated.close().catch(() => undefined); }
         persist(info, group.role + '-' + group.group, results, seed);
       }
     } catch {
