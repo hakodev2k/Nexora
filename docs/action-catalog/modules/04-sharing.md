@@ -1,5 +1,7 @@
 # FX-04 — Read-only Sharing: action catalog v1.1
 
+> **2026-10-19 D07=A effective read semantics:** The existing rule “active link management omits invalidated links” applies to **active links and all LINK resolution**, not the owner's explicitly filtered **Revoked diagnostic metadata** view. With current owner/source/module/epoch proof, an own OwnerRevoked record may appear only as `IsActive=false`, `RawToken=null`; default UI requests `state=Active`. Deleted source, invalid epoch, wrong owner, denied authority and token resolve remain unavailable404. [Owner decision](../../requirements/13-owner-decisions-20261019-pr4-blockers.md) · [contract](../../implementation/pr4-decision-contracts-20261019/05-sharing-and-tag-replay.md). No grant or new handler is conferred.
+
 Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/04-read-only-sharing.md), [UX](../../ux-ui/modules/04-sharing.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
 
 New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
