@@ -1,8 +1,8 @@
 name: PR4 parallel synthetic UI UX reviewers
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches: [impl/m01-s00-scaffold]
     paths:
       - '.github/workflows/pr4-uiux-sharded.yml'
       - 'web/Nexora.Web/e2e/pr4-uiux-audit.spec.ts'
@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: pr4-uiux-${{ github.event.pull_request.number || github.ref }}
+  group: pr4-uiux-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -20,7 +20,7 @@ permissions:
 jobs:
   area-review:
     name: "UIUX / ${{ matrix.area }}"
-    if: (github.event_name == 'pull_request' && github.event.pull_request.number == 4) || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/impl/m01-s00-scaffold' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
