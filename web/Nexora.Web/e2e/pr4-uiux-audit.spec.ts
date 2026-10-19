@@ -81,6 +81,40 @@ async function trySeed(page: Page, records: string[]) {
     records.push('Snippets: synthetic real SQL UI creation confirmed');
   } catch { records.push('Snippets: UI seeding unverified/blocked'); }
   try {
+    await page.goto('/modules/FX11');
+    await page.locator('#project-name').fill('Synthetic UIUX Project');
+    await page.locator('#project-description').fill('Synthetic isolated QA project for populated screenshots');
+    await page.locator('#project-start').fill('2026-10-20T09:00');
+    await page.locator('#project-end').fill('2026-11-20T18:00');
+    await page.getByRole('button', { name: 'Tạo Project', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Synthetic UIUX Project' })).toBeVisible({ timeout: 5_000 });
+    records.push('Projects: synthetic real SQL UI creation confirmed');
+  } catch { records.push('Projects: UI seeding unverified/blocked'); }
+  try {
+    await page.goto('/modules/FX12');
+    await page.locator('#task-project').selectOption({ label: 'Synthetic UIUX Project' });
+    await page.locator('#task-title').fill('Synthetic UIUX Task');
+    await page.locator('#task-start').fill('2026-10-21T09:00');
+    await page.locator('#task-end').fill('2026-10-22T18:00');
+    await page.getByRole('button', { name: 'Tạo Task', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Synthetic UIUX Task' })).toBeVisible({ timeout: 5_000 });
+    records.push('Tasks: synthetic real SQL UI creation confirmed');
+  } catch { records.push('Tasks: UI seeding unverified/blocked'); }
+  try {
+    await page.goto('/finance');
+    await page.getByRole('button', { name: 'Thêm category' }).click();
+    await page.locator('#finance-category-title').fill('Synthetic UIUX category');
+    await page.getByRole('dialog').getByRole('button', { name: 'Tạo category' }).click();
+    await page.getByRole('button', { name: 'Thêm record' }).click();
+    await page.locator('#finance-record-category').selectOption({ label: 'Synthetic UIUX category' });
+    await page.locator('#finance-record-amount').fill('123456.125');
+    await page.locator('#finance-record-currency').fill('VND');
+    await page.locator('#finance-record-date').fill('2026-10-19');
+    await page.getByRole('dialog').getByRole('button', { name: 'Tạo record' }).click();
+    await expect(page.getByText('123456.125', { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    records.push('Finance: synthetic category plus explicit-VND real SQL record confirmed');
+  } catch { records.push('Finance: category/record UI seeding unverified/blocked'); }
+  try {
     const op = process.env.NEXORA_E2E_SQL_OPERATOR;
     const state = await page.request.get('/api/v1/me');
     const profile = await state.json() as { id?: string };
