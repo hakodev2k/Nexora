@@ -1,5 +1,7 @@
 # FX-24 — Tags / Collections / Templates: actions
 
+> **2026-10-19 D08=A original Tag-create receipt:** A verified same-key/same-canonical-body replay may return `TagCommitted` opaque ACK after prior Tag deletion **only** under current original-write authority and namespace proof. No second create, current/removed Tag DTO, namespace substitution or legacy fallback. Conflicting/unverified receipts fail closed. [DEC-20261019-PR4](../../requirements/13-owner-decisions-20261019-pr4-blockers.md) · [contract](../../implementation/pr4-decision-contracts-20261019/05-sharing-and-tag-replay.md). Existing state/action/owner/audit gates unchanged.
+
 Catalog v1 · 2026-09-10 · FX24-S01 Tag catalog is `SLICE_IMPLEMENTED (local)` on PR #4; Collections/Templates and assignment/sharing remain gated. Source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
