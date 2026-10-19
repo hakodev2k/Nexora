@@ -125,7 +125,7 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
   page.on('pageerror', onError);
   try {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 25_000 });
-    const hasMain = await page.locator('main').first().isVisible().catch(() => false);
+    const hasMain = await page.locator('main').first().waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
     if (!hasMain) {
       out.findings.push(finding('NO_MAIN_LANDMARK', 'P1', 'No visible main; could be a modal-only route or an incomplete public error state'));
       out.screenshot = await screenshot(page, persona, route, 'missing-main').catch(() => undefined);
