@@ -21,8 +21,6 @@ const artifactRoot = join(process.cwd(), 'artifacts', 'uiux-audit');
 const screenshotRoot = join(artifactRoot, 'screenshots');
 const modules = Array.from({ length: 40 }, (_, i) => '/modules/FX' + String(i + 1).padStart(2, '0'));
 const publicRoutes = ['/login', '/register', '/verify-email', '/password/forgot', '/password/reset', '/share/synthetic-invalid-token'];
-const adminRoutes = ['/', '/admin/access', '/admin/modules', '/settings/security', '/support', '/sharing', '/notifications'];
-const restrictedRoutes = ['/', '/modules/FX11', '/modules/FX20', '/sharing', '/files', '/settings/profile'];
 const visiblePanelTriggers = /^(Thêm|Tạo|Xem|Chi tiết|Lịch sử|Chỉnh sửa|Sửa|Bộ lọc|Tùy chỉnh|Thiết lập|Cấu hình|Add |New |Create |View |Edit |Filter |History |Import |Export )/i;
 const prohibitedTriggers = /(Đăng xuất|Lưu|Gửi|Xóa|Purge|Archive|Remove|Delete|Khôi phục|Chạy|Áp dụng|Confirm|Revoke|Phê duyệt|Logout|Save|Run |Submit|Execute|Thực thi|Bật|Tắt)/i;
 
@@ -151,6 +149,12 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
       };
     });
     out.h1 = ((await page.locator('main h1').first().textContent().catch(() => '')) ?? '').trim().slice(0, 150);
+    const actualRoute = new URL(page.url()).pathname;
+    out.checks.actualRoute = actualRoute;
+    if (actualRoute !== route && !route.startsWith('/share/')) out.findings.push(finding('ROUTE_REDIRECT_OR_DENIAL', 'P2', 'Requested ' + route + ', actual ' + actualRoute + '; do not classify the requested page as observed.'));
+    const bodyTitle = out.h1.toLowerCase();
+    if (route.startsWith('/modules/') && /không khả dụng|unavailable|disabled|chưa triển khai/.test(bodyTitle)) out.findings.push(finding('MODULE_UNAVAILABLE_NOT_FEATURE_IMPLEMENTED', 'P2', 'Only the module unavailable state was observed, not the target feature.'));
+
     out.status = 'AUTO_PROBED';
     out.checks = { statusCode: response?.status() ?? 0, ...stats, jsErrors };
     if (!out.h1) out.findings.push(finding('MISSING_H1', 'P2', 'No visible <h1> in main after initial load'));
