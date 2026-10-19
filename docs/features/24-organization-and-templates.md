@@ -1,5 +1,7 @@
 # Tags, Collections và Templates
 
+> **2026-10-19 Owner decision D08=A:** Once an original Tag create (correct namespace/owner/action/receipt digest/status) is provably committed and current original-write authority remains valid, retrying its *same key and canonical body* after Tag removal yields an **opaque committed ACK** without recreating the Tag or returning stale fields. Unknown/legacy ambiguous receipts, changed intent or revoked current action fail closed. Dedicated Document Tags and Organization Tag namespaces remain separate. [Owner decision](../requirements/13-owner-decisions-20261019-pr4-blockers.md) · [SQL/API/UI/acceptance contract](../implementation/pr4-decision-contracts-20261019/05-sharing-and-tag-replay.md). This does not implement Collections/Templates or certify full FX24.
+
 FX-24 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
 **Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
