@@ -89,7 +89,9 @@ def main():
             result = subprocess.run([
                 'npm', 'run', 'test:e2e', '--prefix', str(REPO / 'web/Nexora.Web'),
                 '--', '--config=playwright.ux-audit.config.ts',
-                '--grep', '^parallel UIUX group: ' + shard + '        report = REPO / 'web/Nexora.Web/artifacts/uiux-audit/playwright-junit.xml'
+                '--grep', 'parallel UIUX group: ' + shard
+            ], cwd=REPO, env=env, stdout=log, stderr=log)
+        report = REPO / 'web/Nexora.Web/artifacts/uiux-audit/playwright-junit.xml'
         sanitize_junit(report)
         print('UIUX audit completed; sanitized route/dialog JSON and synthetic screenshots are eligible for artifact upload. Private browser logs were not published.')
         return result.returncode
