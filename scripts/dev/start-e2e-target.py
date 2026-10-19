@@ -69,11 +69,29 @@ def main():
         sanitize_junit(report)
         print('Browser tests completed; sanitized JUnit records exact outcomes. Raw browser call logs remain private.')
         return result.returncode
+    if sys.argv[1:] == ['run-uiux-audit']:
+        HARNESS_PHASE = 'run isolated synthetic UIUX audit'
+        state_path = Path(os.environ.get('NEXORA_E2E_TARGET_STATE', ''))
+        if not state_path.is_file(): raise RuntimeError('No owned browser target')
+        state = json.loads(state_path.read_text())
+        if state['identity'] != [run, attempt, job]: raise RuntimeError('Target ownership mismatch')
+        root = state_path.parent
+        env = json.loads((root / 'environment.json').read_text())
+        with (root / 'uiux-audit-private.log').open('wb') as log:
+            result = subprocess.run([
+                'npm', 'run', 'test:e2e', '--prefix', str(REPO / 'web/Nexora.Web'),
+                '--', '--config=playwright.ux-audit.config.ts'
+            ], cwd=REPO, env=env, stdout=log, stderr=log)
+        report = REPO / 'web/Nexora.Web/artifacts/uiux-audit/playwright-junit.xml'
+        sanitize_junit(report)
+        print('UIUX audit completed; sanitized route/dialog JSON and synthetic screenshots are eligible for artifact upload. Private browser logs were not published.')
+        return result.returncode
     if sys.argv[1:] == ['sanitize-evidence']:
         sanitize_junit(REPO / 'web/Nexora.Web/artifacts/playwright-junit.xml')
         sanitize_junit(REPO / 'web/Nexora.Web/artifacts/functional-junit.xml')
+        sanitize_junit(REPO / 'web/Nexora.Web/artifacts/uiux-audit/playwright-junit.xml')
         return 0
-    if sys.argv[1:]: raise RuntimeError('Use without arguments, run-browser, or sanitize-evidence')
+    if sys.argv[1:]: raise RuntimeError('Use without arguments, run-browser, run-uiux-audit, or sanitize-evidence')
     connection = os.environ.get('NEXORA_TEST_SQL_CONNECTION', '')
     if not re.fullmatch(r'Server=127\.0\.0\.1,14339;Database=Nexora_Test_[0-9a-f]{32};User Id=sa;Password=Nx!7[0-9a-f]{48};Encrypt=True;TrustServerCertificate=True;Persist Security Info=False', connection):
         raise RuntimeError('Fresh CI-owned SQL connection required')
