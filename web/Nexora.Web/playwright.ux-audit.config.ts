@@ -17,7 +17,7 @@ export default defineConfig({
   testDir: './e2e',
   testMatch: 'pr4-uiux-audit.spec.ts',
   outputDir: 'artifacts/uiux-audit/playwright-private-output',
-  timeout: 900_000,
+  timeout: 240_000,
   expect: { timeout: 10_000 },
   fullyParallel: false, workers: 1, retries: 0,
   reporter: [['line'], ['junit', { outputFile: 'artifacts/uiux-audit/playwright-junit.xml' }]],
