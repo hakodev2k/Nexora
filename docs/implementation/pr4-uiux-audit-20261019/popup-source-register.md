@@ -12,66 +12,66 @@ For every row: use synthetic correct-owner populated real SQL resource; click **
 
 | ID | Family | Enclosing screen/component | Source line | Title/trigger clue | Runtime dialog inspection |
 |---|---|---|---|---|---|
-| D-001 | `ActionDialog` | null | `App.tsx:757` | - | NOT_EXERCISED |
-| D-002 | `ActionDialog` | null | `App.tsx:798` | - | NOT_EXERCISED |
-| D-003 | `ConfirmActionButton` | null | `App.tsx:1621` | Thu hồi link chia sẻ? | NOT_EXERCISED |
-| D-004 | `ConfirmActionButton` | null | `App.tsx:1695` | Thu hồi consent ${grantRecord.moduleCode}? | NOT_EXERCISED |
-| D-005 | `ActionDialog` | null | `App.tsx:1770` | Rời upload đang chuẩn bị? | NOT_EXERCISED |
-| D-006 | `ConfirmActionButton` | null | `App.tsx:1910` | Xóa ${selectedItems.length} mục khỏi Inbox? | NOT_EXERCISED |
-| D-007 | `ResourceFormDialog` | null | `App.tsx:1924` | Rời Inbox | NOT_EXERCISED |
-| D-008 | `ActionDialog` | null | `App.tsx:2010` | - | NOT_EXERCISED |
-| D-009 | `ConfirmActionButton` | null | `App.tsx:2140` | Dừng đối chiếu tạo Tag? | NOT_EXERCISED |
-| D-010 | `ActionDialog` | null | `App.tsx:2507` | - | NOT_EXERCISED |
-| D-011 | `ActionDialog` | null | `App.tsx:2743` | - | NOT_EXERCISED |
-| D-012 | `ActionDialog` | null | `App.tsx:2867` | - | NOT_EXERCISED |
-| D-013 | `ResourceFormDialog` | null | `App.tsx:3228` | Thêm favorite | NOT_EXERCISED |
-| D-014 | `ConfirmActionButton` | null | `App.tsx:3234` | Xóa favorite? | NOT_EXERCISED |
-| D-015 | `ConfirmActionButton` | null | `App.tsx:3234` | Xóa favorite? | NOT_EXERCISED |
-| D-016 | `PromptActionButton` | null | `App.tsx:3234` | Xóa favorite? | NOT_EXERCISED |
-| D-017 | `ResourceFormDialog` | null | `App.tsx:3940` | Rời biểu mẫu hiện tại? | NOT_EXERCISED |
-| D-018 | `ActionDialog` | null | `App.tsx:3966` | - | NOT_EXERCISED |
-| D-019 | `ConfirmActionButton` | null | `App.tsx:3978` | Hoàn tất Project “${project.name}”? | NOT_EXERCISED |
-| D-020 | `PromptActionButton` | null | `App.tsx:3978` | Hoàn tất Project “${project.name}”? | NOT_EXERCISED |
-| D-021 | `PromptActionButton` | null | `App.tsx:3978` | Hoàn tất Project “${project.name}”? | NOT_EXERCISED |
-| D-022 | `ConfirmActionButton` | null | `App.tsx:3997` | Bắt đầu Task? | NOT_EXERCISED |
-| D-023 | `ConfirmActionButton` | null | `App.tsx:3998` | Hoàn thành Task? | NOT_EXERCISED |
-| D-024 | `ConfirmActionButton` | null | `App.tsx:3999` | Bỏ qua Task? | NOT_EXERCISED |
-| D-025 | `PromptActionButton` | null | `App.tsx:4001` | Chuyển Task về Chưa bắt đầu? | NOT_EXERCISED |
-| D-026 | `PromptActionButton` | null | `App.tsx:4002` | Sửa Acceptance Criteria | NOT_EXERCISED |
-| D-027 | `PromptActionButton` | null | `App.tsx:4003` | Sắp xếp Task trong cột | NOT_EXERCISED |
-| D-028 | `ConfirmActionButton` | null | `App.tsx:4005` | Xóa Task “${task.title}”? | NOT_EXERCISED |
-| D-029 | `ConfirmActionButton` | null | `App.tsx:4019` | Hủy sự kiện “${item.title}”? | NOT_EXERCISED |
-| D-030 | `ConfirmActionButton` | null | `App.tsx:4253` | Gỡ reminder cho “${source.sourceTitle}”? | NOT_EXERCISED |
-| D-031 | `ResourceFormDialog` | null | `App.tsx:4253` | Gỡ reminder cho “${source.sourceTitle}”? | NOT_EXERCISED |
-| D-032 | `ResourceFormDialog` | null | `App.tsx:4550` | - | NOT_EXERCISED |
-| D-033 | `ConfirmActionButton` | null | `App.tsx:4566` | Archive bookmark “${item.title}”? | NOT_EXERCISED |
-| D-034 | `ConfirmActionButton` | null | `App.tsx:4903` | Archive snippet “${item.title}”? | NOT_EXERCISED |
-| D-035 | `ActionDialog` | null | `App.tsx:4907` | Bỏ bản nháp Snippet? | NOT_EXERCISED |
-| D-036 | `ResourceFormDialog` | null | `App.tsx:5098` | Thêm vào Read Later | NOT_EXERCISED |
-| D-037 | `ConfirmActionButton` | null | `App.tsx:5117` | URL snapshot bất hoạt | NOT_EXERCISED |
-| D-038 | `PromptActionButton` | null | `App.tsx:5117` | URL snapshot bất hoạt | NOT_EXERCISED |
-| D-039 | `ConfirmActionButton` | null | `App.tsx:5349` | Dừng đối chiếu thao tác Tag? | NOT_EXERCISED |
-| D-040 | `ConfirmActionButton` | null | `App.tsx:5354` | Dừng đối chiếu thao tác Tag? | NOT_EXERCISED |
-| D-041 | `ResourceFormDialog` | null | `App.tsx:5354` | Dừng đối chiếu thao tác Tag? | NOT_EXERCISED |
-| D-042 | `ConfirmActionButton` | null | `App.tsx:5367` | Xóa tag “${tag.name}”? | NOT_EXERCISED |
-| D-043 | `ConfirmActionButton` | null | `App.tsx:5503` | Xóa input/output chưa lưu? | NOT_EXERCISED |
-| D-044 | `ConfirmActionButton` | null | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
-| D-045 | `ConfirmActionButton` | null | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
-| D-046 | `ConfirmActionButton` | null | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
-| D-047 | `ConfirmActionButton` | null | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
-| D-048 | `ResourceFormDialog` | null | `App.tsx:5917` | Thêm pin | NOT_EXERCISED |
-| D-049 | `ConfirmActionButton` | null | `App.tsx:5922` | Unpin Task? | NOT_EXERCISED |
-| D-050 | `ConfirmActionButton` | null | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
-| D-051 | `ConfirmActionButton` | null | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
-| D-052 | `ResourceFormDialog` | null | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
-| D-053 | `ResourceFormDialog` | null | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
-| D-054 | `ConfirmActionButton` | null | `App.tsx:6368` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
-| D-055 | `ResourceFormDialog` | null | `App.tsx:6368` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
-| D-056 | `ConfirmActionButton` | null | `App.tsx:6373` | Xóa category “${category.title}”? | NOT_EXERCISED |
-| D-057 | `ConfirmActionButton` | null | `App.tsx:6377` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
-| D-058 | `ResourceFormDialog` | null | `App.tsx:6377` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
-| D-059 | `ConfirmActionButton` | null | `App.tsx:6899` | - | NOT_EXERCISED |
-| D-060 | `ConfirmActionButton` | null | `App.tsx:6900` | - | NOT_EXERCISED |
+| D-001 | `ActionDialog` | ConfirmActionButton | `App.tsx:757` | - | NOT_EXERCISED |
+| D-002 | `ActionDialog` | PromptActionButton | `App.tsx:798` | - | NOT_EXERCISED |
+| D-003 | `ConfirmActionButton` | SharingScreen | `App.tsx:1621` | Thu hồi link chia sẻ? | NOT_EXERCISED |
+| D-004 | `ConfirmActionButton` | SupportScreen | `App.tsx:1695` | Thu hồi consent ${grantRecord.moduleCode}? | NOT_EXERCISED |
+| D-005 | `ActionDialog` | FilesScreen | `App.tsx:1770` | Rời upload đang chuẩn bị? | NOT_EXERCISED |
+| D-006 | `ConfirmActionButton` | NotificationsScreen | `App.tsx:1910` | Xóa ${selectedItems.length} mục khỏi Inbox? | NOT_EXERCISED |
+| D-007 | `ResourceFormDialog` | NotificationsScreen | `App.tsx:1924` | Rời Inbox | NOT_EXERCISED |
+| D-008 | `ActionDialog` | TrashScreen | `App.tsx:2010` | - | NOT_EXERCISED |
+| D-009 | `ConfirmActionButton` | DocumentInlineTagCreator | `App.tsx:2140` | Dừng đối chiếu tạo Tag? | NOT_EXERCISED |
+| D-010 | `ActionDialog` | ReauthenticateDialog | `App.tsx:2507` | - | NOT_EXERCISED |
+| D-011 | `ActionDialog` | AdminAccessScreen | `App.tsx:2743` | - | NOT_EXERCISED |
+| D-012 | `ActionDialog` | ModulePolicyScreen | `App.tsx:2867` | - | NOT_EXERCISED |
+| D-013 | `ResourceFormDialog` | FavoritesScreen | `App.tsx:3228` | Thêm favorite | NOT_EXERCISED |
+| D-014 | `ConfirmActionButton` | FavoritesScreen | `App.tsx:3234` | Xóa favorite? | NOT_EXERCISED |
+| D-015 | `ConfirmActionButton` | FavoritesScreen | `App.tsx:3234` | Xóa favorite? | NOT_EXERCISED |
+| D-016 | `PromptActionButton` | FavoritesScreen | `App.tsx:3234` | Xóa favorite? | NOT_EXERCISED |
+| D-017 | `ResourceFormDialog` | ProductivityScreen | `App.tsx:3940` | Rời biểu mẫu hiện tại? | NOT_EXERCISED |
+| D-018 | `ActionDialog` | ProductivityScreen | `App.tsx:3966` | - | NOT_EXERCISED |
+| D-019 | `ConfirmActionButton` | ProductivityScreen | `App.tsx:3978` | Hoàn tất Project “${project.name}”? | NOT_EXERCISED |
+| D-020 | `PromptActionButton` | ProductivityScreen | `App.tsx:3978` | Hoàn tất Project “${project.name}”? | NOT_EXERCISED |
+| D-021 | `PromptActionButton` | ProductivityScreen | `App.tsx:3978` | Hoàn tất Project “${project.name}”? | NOT_EXERCISED |
+| D-022 | `ConfirmActionButton` | ProductivityScreen | `App.tsx:3997` | Bắt đầu Task? | NOT_EXERCISED |
+| D-023 | `ConfirmActionButton` | ProductivityScreen | `App.tsx:3998` | Hoàn thành Task? | NOT_EXERCISED |
+| D-024 | `ConfirmActionButton` | ProductivityScreen | `App.tsx:3999` | Bỏ qua Task? | NOT_EXERCISED |
+| D-025 | `PromptActionButton` | ProductivityScreen | `App.tsx:4001` | Chuyển Task về Chưa bắt đầu? | NOT_EXERCISED |
+| D-026 | `PromptActionButton` | ProductivityScreen | `App.tsx:4002` | Sửa Acceptance Criteria | NOT_EXERCISED |
+| D-027 | `PromptActionButton` | ProductivityScreen | `App.tsx:4003` | Sắp xếp Task trong cột | NOT_EXERCISED |
+| D-028 | `ConfirmActionButton` | ProductivityScreen | `App.tsx:4005` | Xóa Task “${task.title}”? | NOT_EXERCISED |
+| D-029 | `ConfirmActionButton` | ProductivityScreen | `App.tsx:4019` | Hủy sự kiện “${item.title}”? | NOT_EXERCISED |
+| D-030 | `ConfirmActionButton` | RemindersScreen | `App.tsx:4253` | Gỡ reminder cho “${source.sourceTitle}”? | NOT_EXERCISED |
+| D-031 | `ResourceFormDialog` | RemindersScreen | `App.tsx:4253` | Gỡ reminder cho “${source.sourceTitle}”? | NOT_EXERCISED |
+| D-032 | `ResourceFormDialog` | BookmarksScreen | `App.tsx:4550` | - | NOT_EXERCISED |
+| D-033 | `ConfirmActionButton` | BookmarksScreen | `App.tsx:4566` | Archive bookmark “${item.title}”? | NOT_EXERCISED |
+| D-034 | `ConfirmActionButton` | SnippetsScreen | `App.tsx:4903` | Archive snippet “${item.title}”? | NOT_EXERCISED |
+| D-035 | `ActionDialog` | SnippetsScreen | `App.tsx:4907` | Bỏ bản nháp Snippet? | NOT_EXERCISED |
+| D-036 | `ResourceFormDialog` | ReadLaterScreen | `App.tsx:5098` | Thêm vào Read Later | NOT_EXERCISED |
+| D-037 | `ConfirmActionButton` | ReadLaterScreen | `App.tsx:5117` | URL snapshot bất hoạt | NOT_EXERCISED |
+| D-038 | `PromptActionButton` | ReadLaterScreen | `App.tsx:5117` | URL snapshot bất hoạt | NOT_EXERCISED |
+| D-039 | `ConfirmActionButton` | OrganizationTagsScreen | `App.tsx:5349` | Dừng đối chiếu thao tác Tag? | NOT_EXERCISED |
+| D-040 | `ConfirmActionButton` | OrganizationTagsScreen | `App.tsx:5354` | Dừng đối chiếu thao tác Tag? | NOT_EXERCISED |
+| D-041 | `ResourceFormDialog` | OrganizationTagsScreen | `App.tsx:5354` | Dừng đối chiếu thao tác Tag? | NOT_EXERCISED |
+| D-042 | `ConfirmActionButton` | OrganizationTagsScreen | `App.tsx:5367` | Xóa tag “${tag.name}”? | NOT_EXERCISED |
+| D-043 | `ConfirmActionButton` | DeveloperToolsScreen | `App.tsx:5503` | Xóa input/output chưa lưu? | NOT_EXERCISED |
+| D-044 | `ConfirmActionButton` | GoalsScreen | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
+| D-045 | `ConfirmActionButton` | GoalsScreen | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
+| D-046 | `ConfirmActionButton` | GoalsScreen | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
+| D-047 | `ConfirmActionButton` | GoalsScreen | `App.tsx:5753` | Hoàn thành goal? | NOT_EXERCISED |
+| D-048 | `ResourceFormDialog` | PlannerScreen | `App.tsx:5917` | Thêm pin | NOT_EXERCISED |
+| D-049 | `ConfirmActionButton` | PlannerScreen | `App.tsx:5922` | Unpin Task? | NOT_EXERCISED |
+| D-050 | `ConfirmActionButton` | HabitsScreen | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
+| D-051 | `ConfirmActionButton` | HabitsScreen | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
+| D-052 | `ResourceFormDialog` | HabitsScreen | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
+| D-053 | `ResourceFormDialog` | HabitsScreen | `App.tsx:6091` | Archive Habit? | NOT_EXERCISED |
+| D-054 | `ConfirmActionButton` | FinanceScreen | `App.tsx:6368` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
+| D-055 | `ResourceFormDialog` | FinanceScreen | `App.tsx:6368` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
+| D-056 | `ConfirmActionButton` | FinanceScreen | `App.tsx:6373` | Xóa category “${category.title}”? | NOT_EXERCISED |
+| D-057 | `ConfirmActionButton` | FinanceScreen | `App.tsx:6377` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
+| D-058 | `ResourceFormDialog` | FinanceScreen | `App.tsx:6377` | Dừng đối chiếu thao tác Finance? | NOT_EXERCISED |
+| D-059 | `ConfirmActionButton` | SecurityScreen | `App.tsx:6899` | - | NOT_EXERCISED |
+| D-060 | `ConfirmActionButton` | SecurityScreen | `App.tsx:6900` | - | NOT_EXERCISED |
 
 ## Specialized component files (29)
 
