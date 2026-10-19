@@ -2,6 +2,8 @@
 
 **Audit opened:** 2026-10-19. **Current disposition: AUTOMATED_AUDIT_RUNNING / NOT_FULLY_VISUALLY_ACCEPTED**. The precise PR/tested-source SHA, CI run and artifact must be recorded **after** each new run. Do not promote this document to accepted without reviewing all screenshots, all active screen states and popup transitions. No production, real provider, real user data, SQL production migration or PR merge is authorized.
 
+**Required per-worker post-test accounting:** [Nine reviewer jobs — executed route/action/dialog/render/error report](worker-execution-accountability-20261019.md), grounded in historical CI run 39216459096. Future runs must publish this level of evidence before calling a page or popup tested; the automated workers are not AI subagents.
+
 **Latest verified checkpoint:** [Nine-shard artifact findings and gaps](evidence-update-20261019.md). Knowledge route coverage from inspected run: 0/12 each viewport; Business 10/10 each viewport; partial Navigation 5/10 + one blocked each viewport. These are historical run results, not latest-head signoff.
 
 **Detailed evidence:** [Executed nine-shard findings and screenshot review](executed-findings.md) · [36-route per-screen baseline](route-evidence-register.md) · [60 shared JSX popup callsites + 29 specialized components](popup-source-register.md). All registers distinguish observed screenshots from unreviewed nested states and unresolved blockers.
