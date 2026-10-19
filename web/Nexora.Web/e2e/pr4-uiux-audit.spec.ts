@@ -282,14 +282,28 @@ for (const group of groups) {
     const seed: string[] = [];
     try {
       if (group.role !== 'Anonymous') await logIn(page, group.role);
-      if (group.seed !== 'none') await trySeed(page, seed, group.seed);
+      // Seeding must never prevent *all* route screenshots. The knowledge
+      // fixture previously left dirty editor state and yielded zero evidence.
+      if (group.seed === 'knowledge') seed.push('KNOWLEDGE_POPULATED_FIXTURE_BLOCKED: initial route coverage runs unseeded; populated CRUD follows in dedicated scenario.');
+      else if (group.seed !== 'none') {
+        try { await trySeed(page, seed, group.seed); }
+        catch { seed.push('SEED_BLOCKED: continue independent route probes'); }
+      }
       for (const route of group.routes) {
-        // Fresh tab + shared owned-session cookie per route: prevents dirty modal,
-        // beforeunload and stale draft from cascading into the following route.
-        const isolated = await page.context().newPage();
-        try { results.push(await observe(isolated, route, group.role, info)); }
-        finally { await isolated.close().catch(() => undefined); }
-        persist(info, group.role + '-' + group.group, results, seed);
+        let isolated: Page | undefined;
+        try {
+          isolated = await page.context().newPage();
+          results.push(await observe(isolated, route, group.role, info));
+        } catch {
+          results.push({route, persona: group.role, viewport: info.project.name,
+            status: 'BLOCKED_RUNTIME', findings: [{
+              code: 'ROUTE_ISOLATION_ERROR', severity: 'P1',
+              detail: 'Independent tab could not be opened or examined; no private exception published'
+            }]});
+        } finally {
+          if (isolated) await isolated.close().catch(() => undefined);
+          persist(info, group.role + '-' + group.group, results, seed);
+        }
       }
     } catch {
       seed.push('ROLE_OR_SEED_BLOCKED: no private credentials or secret exception details are logged');
