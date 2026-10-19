@@ -17,8 +17,8 @@ Current first valid screenshot-producing parallel audit: [GitHub Actions run 392
 | Restricted | 6/6 + 6/6 AUTOPROBED | Six unique images. No dialogs | Home and FX20 have small controls; full cross-role denial/source revocation not exercised |
 | Gated/Integrations | 9/9 + 9/9 AUTOPROBED | Nine unique images, zero dialogs | Some are unavailable placeholders; no real provider activation (correctly prohibited) |
 | Business | 10/10 desktop AUTOPROBED; **0/10 mobile** blocked | 13 images include 3 **desktop** dialogs. Desktop Finance Category and VND Manual Record seeded through actual UI/SQL | Mobile seeding failed then all route captures blocked (likely harness navigation/draft contamination; do not assert root cause without safe logs). All business mobile UX is NOT REVIEWED |
-| Navigation | PENDING when initially written | See run artifact when available | To be updated |
-| Knowledge | PENDING when initially written | See run artifact when available | To be updated |
+| Navigation | 5/10 + 5/10 AUTO_PROBED | Six unique images (includes one visible dialog), Home/Search/Saved/Favorites/Recents reviewed in initial state | Command Palette modal-only target has missing h1; subsequent Profile/Security/Notifications/Trash blocked by shared-page state; require one fresh tab per route |
+| Knowledge | **0/12 + 0/12** AUTO_PROBED | No visual screenshots; Bookmark/Snippet/Notification fixture preparation unverified | Shared-page dirty/seed flow contaminated whole shard. After isolation fix, rerun. Absolutely **NOT REVIEWED** |
 
 The early auth and business failures are **coverage defects, not permission to silently ignore an expected public or mobile state**. Zero violations in a sampled axe run do not imply WCAG conformance.
 
@@ -45,6 +45,10 @@ The early auth and business failures are **coverage defects, not permission to s
 - **Admin mobile:** role list and selection readable, but global header wraps and long scrolling consumes space; axe contrast violation should be repaired. **NEEDS UI/ACCESSIBILITY REFINEMENT**.
 - **Platform/module placeholders:** readable but clearly unfinished from task-completion standpoint; a generic “Available” module-entry card cannot be scored as completed feature UX. **UNIMPLEMENTED_OR_GATED_UI_STATE**.
 - **Productivity:** screenshots show a standard consistent card/form system, but a lengthy form before actionable lists and developer-facing terms reduce findability. **PARTIAL UX**, not deep CRUD signoff.
+
+## Follow-up harness correction pushed after this evidence run
+
+Source hotfix commits `c9de171` and `5b567dc` make **one fresh browser tab per route** (while sharing the scoped HttpOnly synthetic session cookie), namespace fixture labels per viewport, save screenshot paths with viewport widths and explicitly capture a blocked/no-`main` error state instead of erasing the image. They also recognize “Module chưa khả dụng” and generic `Module entry` placeholders as a UX/implementation evidence gap; a placeholder route is not a finished product feature. **These fixes are not retrospectively part of the artifacts from run 39214811832.** New nine-shard CI run [39216193606](https://github.com/hakodev2k/Nexora/actions/runs/39216193606) was queued at time of publication; record final results after it finishes. Do not claim all page/dialog coverage or pass until independent per-shard screenshots are inspected.
 
 ## Requirements for next credible full review
 
