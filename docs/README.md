@@ -18,6 +18,8 @@ Bộ tài liệu này là nguồn yêu cầu chính thức (single source of tru
 | Phạm vi Release 1 | Toàn bộ module đã có requirement hiện tại; mỗi module phải hoàn thành theo scope đã duyệt |
 | Công nghệ đã định hướng | ReactJS, .NET, SQL, Redis |
 
+**2026-10-19 PR #4 decision update:** Product Owner chose D01–D09=A. See [approved choice register](requirements/13-owner-decisions-20261019-pr4-blockers.md) and [API/DB/UX/security/acceptance contract handoff](implementation/pr4-decision-contracts-20261019/README.md). These are documentation/authorization records, not evidence of application completion, provider execution or merge.
+
 ## Bắt đầu từ đâu
 
 1. [Product charter](requirements/00-product-charter.md) — tầm nhìn, mục tiêu, nguyên tắc và ranh giới sản phẩm.
