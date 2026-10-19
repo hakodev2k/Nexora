@@ -1,5 +1,7 @@
 # Skills, Courses, Certifications, Learning Plan và Work Log
 
+> **2026-10-19 PO decision D06=A:** Learning Plan `PlanItem` references only **Goal, Task or Course**, as the current flow already specifies. Historical catalog descriptor “skill/course” and DB descriptor “Course/skill/task” must be read through [DEC-20261019-PR4](../requirements/13-owner-decisions-20261019-pr4-blockers.md) and [typed Plan API/DB/UX/security/acceptance contract](../implementation/pr4-decision-contracts-20261019/04-learning-plan.md). This does not eliminate Skills or their Evidence/Merge actions, and does not establish that Plan migration, handlers or runtime tests exist.
+
 > **Current decision amendment — 2026-09-07:** Language/internal-link rules apply; sensitive sharing remains gated and no new external LMS integration. [Normative PO decisions](../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
 
 FX-40 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
