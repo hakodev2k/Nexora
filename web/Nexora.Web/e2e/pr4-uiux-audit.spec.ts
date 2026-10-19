@@ -19,13 +19,6 @@ type Observation = {
 };
 const artifactRoot = join(process.cwd(), 'artifacts', 'uiux-audit');
 const screenshotRoot = join(artifactRoot, 'screenshots');
-const fixedRoutes = [
-  '/', '/search', '/search/saved', '/favorites', '/recent', '/command-palette',
-  '/settings/profile', '/settings/security', '/notifications', '/trash',
-  '/finance', '/bookmarks', '/snippets', '/read-later', '/organize/tags',
-  '/developer/tools', '/goals', '/planner', '/habits', '/sharing', '/support',
-  '/files', '/learning/work-log', '/admin/access', '/admin/modules',
-];
 const modules = Array.from({ length: 40 }, (_, i) => '/modules/FX' + String(i + 1).padStart(2, '0'));
 const publicRoutes = ['/login', '/register', '/verify-email', '/password/forgot', '/password/reset', '/share/synthetic-invalid-token'];
 const adminRoutes = ['/', '/admin/access', '/admin/modules', '/settings/security', '/support', '/sharing', '/notifications'];
@@ -59,8 +52,8 @@ async function logIn(page: Page, role: string) {
   await expect(page.locator('main')).toBeVisible();
   // Do not include credential/email in report or test logs.
 }
-async function trySeed(page: Page, records: string[]) {
-  try {
+async function trySeed(page: Page, records: string[], domain: string) {
+  if (domain === 'knowledge') try {
     // Each UI write goes to this run's disposable SQL, not mocked network or production.
     await page.goto('/bookmarks');
     await page.getByRole('button', { name: 'Thêm bookmark' }).click({ timeout: 5_000 });
@@ -71,7 +64,7 @@ async function trySeed(page: Page, records: string[]) {
     await page.waitForTimeout(500);
     records.push('Bookmarks: attempted one synthetic real SQL UI create (observe subsequent list)');
   } catch { records.push('Bookmarks: UI seeding unverified/blocked (do not claim populated)'); }
-  try {
+  if (domain === 'knowledge') try {
     await page.goto('/modules/FX22');
     await page.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic UIUX snippet');
     await page.getByLabel('Language', { exact: true }).fill('csharp');
@@ -80,7 +73,7 @@ async function trySeed(page: Page, records: string[]) {
     await expect(page.locator('.snippet-code code')).toBeVisible({ timeout: 5_000 });
     records.push('Snippets: synthetic real SQL UI creation confirmed');
   } catch { records.push('Snippets: UI seeding unverified/blocked'); }
-  try {
+  if (domain === 'productivity') try {
     await page.goto('/modules/FX11');
     await page.locator('#project-name').fill('Synthetic UIUX Project');
     await page.locator('#project-description').fill('Synthetic isolated QA project for populated screenshots');
@@ -90,7 +83,7 @@ async function trySeed(page: Page, records: string[]) {
     await expect(page.getByRole('heading', { name: 'Synthetic UIUX Project' })).toBeVisible({ timeout: 5_000 });
     records.push('Projects: synthetic real SQL UI creation confirmed');
   } catch { records.push('Projects: UI seeding unverified/blocked'); }
-  try {
+  if (domain === 'productivity') try {
     await page.goto('/modules/FX12');
     await page.locator('#task-project').selectOption({ label: 'Synthetic UIUX Project' });
     await page.locator('#task-title').fill('Synthetic UIUX Task');
@@ -100,7 +93,7 @@ async function trySeed(page: Page, records: string[]) {
     await expect(page.getByRole('heading', { name: 'Synthetic UIUX Task' })).toBeVisible({ timeout: 5_000 });
     records.push('Tasks: synthetic real SQL UI creation confirmed');
   } catch { records.push('Tasks: UI seeding unverified/blocked'); }
-  try {
+  if (domain === 'business') try {
     await page.goto('/finance');
     await page.getByRole('button', { name: 'Thêm category' }).click();
     await page.locator('#finance-category-title').fill('Synthetic UIUX category');
@@ -114,7 +107,7 @@ async function trySeed(page: Page, records: string[]) {
     await expect(page.getByText('123456.125', { exact: false }).first()).toBeVisible({ timeout: 5_000 });
     records.push('Finance: synthetic category plus explicit-VND real SQL record confirmed');
   } catch { records.push('Finance: category/record UI seeding unverified/blocked'); }
-  try {
+  if (domain === 'knowledge') try {
     const op = process.env.NEXORA_E2E_SQL_OPERATOR;
     const state = await page.request.get('/api/v1/me');
     const profile = await state.json() as { id?: string };
@@ -250,29 +243,38 @@ function persist(testInfo: TestInfo, name: string, results: Observation[], seed:
   };
   writeFileSync(join(artifactRoot, safeSlug(testInfo.project.name + '-' + name) + '.json'), JSON.stringify(artifact, null, 2));
 }
-test('public route and validation inventory', async ({ page }, info) => {
-  const results: Observation[] = [];
-  for (const route of publicRoutes) results.push(await observe(page, route, 'Anonymous', info));
-  persist(info, 'Anonymous', results, []);
-  // Findings are data, not pass; this test only asserts scope wasn't silently skipped.
-  expect(results).toHaveLength(publicRoutes.length);
-});
-const roleBatches: Array<{ role: string; name: string; routes: string[]; seed: boolean }> = [
-  { role: 'UserA', name: 'private-primary', routes: fixedRoutes, seed: true },
-  { role: 'UserA', name: 'modules-FX01-to-FX20', routes: modules.slice(0, 20), seed: false },
-  { role: 'UserA', name: 'modules-FX21-to-FX40', routes: modules.slice(20), seed: false },
-  { role: 'SuperAdmin', name: 'admin-flows', routes: adminRoutes, seed: false },
-  { role: 'Restricted', name: 'denied-and-basic', routes: restrictedRoutes, seed: false },
+
+// Independent GitHub Actions matrix reviewers. No shard reads another shard's SQL,
+// browser session, credential file, logs or artifacts. Unselected shards do no work.
+type AuditGroup = { group: string; role: string; routes: string[]; seed: string };
+const groups: AuditGroup[] = [
+  { group: 'auth', role: 'Anonymous', routes: publicRoutes, seed: 'none' },
+  { group: 'navigation', role: 'UserA', routes: ['/', '/search', '/search/saved', '/favorites', '/recent', '/command-palette', '/settings/profile', '/settings/security', '/notifications', '/trash'], seed: 'none' },
+  { group: 'productivity', role: 'UserA', routes: ['/goals', '/planner', '/habits', ...modules.slice(10, 19)], seed: 'productivity' },
+  { group: 'knowledge', role: 'UserA', routes: ['/bookmarks', '/snippets', '/read-later', '/organize/tags', '/files', '/learning/work-log', '/sharing', ...modules.slice(19, 24)], seed: 'knowledge' },
+  { group: 'business', role: 'UserA', routes: ['/finance', '/modules/FX27', '/modules/FX29', '/modules/FX31', '/modules/FX32', '/modules/FX36', '/modules/FX37', '/modules/FX38', '/modules/FX39', '/modules/FX40'], seed: 'business' },
+  { group: 'platform', role: 'UserA', routes: modules.slice(0, 10), seed: 'none' },
+  { group: 'gated', role: 'UserA', routes: ['/developer/tools', '/support', '/modules/FX25', '/modules/FX26', '/modules/FX28', '/modules/FX30', '/modules/FX33', '/modules/FX34', '/modules/FX35'], seed: 'none' },
+  { group: 'admin', role: 'SuperAdmin', routes: ['/','/admin/access','/admin/modules','/settings/security','/support','/sharing','/notifications'], seed: 'none' },
+  { group: 'restricted', role: 'Restricted', routes: ['/', '/modules/FX11', '/modules/FX20', '/sharing', '/files', '/settings/profile'], seed: 'none' },
 ];
-for (const batch of roleBatches) {
-  test('synthetic role UI inventory: ' + batch.role + ' ' + batch.name, async ({ page }, info) => {
-    const results: Observation[] = [], seed: string[] = [];
+for (const group of groups) {
+  test('parallel UIUX group: ' + group.group, async ({ page }, info) => {
+    const results: Observation[] = [];
+    const seed: string[] = [];
     try {
-      await logIn(page, batch.role);
-      if (batch.seed) await trySeed(page, seed);
-      for (const route of batch.routes) results.push(await observe(page, route, batch.role, info));
-    } catch { seed.push('ROLE_LOGIN_OR_DISCOVERY_BLOCKED: no private credentials logged'); }
-    finally { persist(info, batch.role + '-' + batch.name, results, seed); }
-    if (!results.length) throw new Error('UIUX_AUDIT_BLOCKED: synthetic role login/route traversal did not execute');
+      if (group.role !== 'Anonymous') await logIn(page, group.role);
+      if (group.seed !== 'none') await trySeed(page, seed, group.seed);
+      for (const route of group.routes) {
+        const observation = await observe(page, route, group.role, info);
+        results.push(observation);
+        // Persist partial evidence after EVERY route; a later bad page must not erase work.
+        persist(info, group.role + '-' + group.group, results, seed);
+      }
+    } catch {
+      seed.push('ROLE_OR_SEED_BLOCKED: no private credentials or secret exception details are logged');
+    } finally { persist(info, group.role + '-' + group.group, results, seed); }
+    if (results.length !== group.routes.length)
+      throw new Error('AUDIT_PARTIAL: group ' + group.group + ' observed ' + results.length + '/' + group.routes.length + ' routes; see sanitized JSON.');
   });
 }
