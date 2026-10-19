@@ -799,11 +799,13 @@ Ordered plan resource reference. Profile **O**. Status: **Technical decision**.
 | UpdatedByUserId | uniqueidentifier | Yes | Actual most recent actor; null only system/anonymized identity | FK UpdatedByUserId → Id; [identity.User](02-core-identity-platform.md#identity-user); NO ACTION |
 | RowVersion | rowversion | No | SQL-generated 8-byte optimistic concurrency token; not content history or clock | DB generated; exclude from inserts/updates |
 | PlanId | uniqueidentifier | No | Plan | FK (OwnerId, PlanId) → (OwnerId, Id); [learning.Plan](10-assets-career-learning.md#learning-plan); NO ACTION |
-| ResourceId | uniqueidentifier | No | Course/skill/task target | FK (OwnerId, ResourceId) → (OwnerId, Id); [platform.Resource](02-core-identity-platform.md#platform-resource); NO ACTION |
+| ResourceId | uniqueidentifier | No | Goal/Task/Course target only per owner D06=A; must be checked with source ResourceKind | FK (OwnerId, ResourceId) → (OwnerId, Id); [platform.Resource](02-core-identity-platform.md#platform-resource); NO ACTION |
 | Position | int | No | Order | No implicit default unless stated |
 | TargetOn | date | Yes | Planning target, not source reschedule | No implicit default unless stated |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). UQ OwnerId,PlanId,Position; UQ OwnerId,PlanId,ResourceId
+
+**Owner-confirmed PlanItem source discriminator — 2026-10-19 D06=A:** Current logical design previously lacked `ResourceKind` while labeling ResourceId “Course/skill/task”. The approved domain contract now permits **Goal, Task, Course** only; a **proposed additive** `ResourceKind varchar(16) NOT NULL CHECK ('Goal','Task','Course')` column and unique key `(OwnerId,PlanId,ResourceKind,ResourceId)` must be reconciled with the actual Resource registry and database owner FKs **before migration**. Existing physically deployed tables/migrations are not changed by this document. Unsupported Skill/unknown kinds must be rejected; no automatic backfill or source relabeling. [Decision](../requirements/13-owner-decisions-20261019-pr4-blockers.md) · [implementation contract](../implementation/pr4-decision-contracts-20261019/04-learning-plan.md).
 
 **Integrity / transaction:** Current source access/lifecycle rechecked; target date does not change Task Start/End.
 
