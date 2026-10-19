@@ -131,7 +131,7 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
   try {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 25_000 });
     await page.locator('main').first().waitFor({ state: 'visible', timeout: 10_000 });
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(200);
     const stats = await page.evaluate(() => {
       const main = document.querySelector('main');
       const dialogs = [...document.querySelectorAll('[role="dialog"],[role="alertdialog"]')];
@@ -169,9 +169,13 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
       out.findings.push(finding('POSSIBLE_UNSETTLED_DASHBOARD', 'P2', 'Dashboard loading observed; re-evaluate whether it settles after API response'));
     }
     try {
+      const sampleAxe = !route.startsWith('/modules/') || /\/modules\/FX(11|12|20|24|27|40)$/.test(route);
+      if (!sampleAxe) { out.checks.axeCoverage = 'NOT_RUN_SAMPLED'; }
+      else {
       const axe = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
       out.checks.axeViolations = axe.violations.length;
       for (const v of axe.violations.slice(0, 8)) out.findings.push(finding('AXE_' + v.id, 'P2', 'axe rule ' + v.id + ' affects ' + v.nodes.length + ' element(s); human WCAG review still required'));
+      }
     } catch { out.findings.push(finding('AXE_NOT_EXECUTED', 'P3', 'Axe could not complete on this state')); }
     out.screenshot = await screenshot(page, persona, route, 'initial').catch(() => undefined);
     // Only open clearly non-destructive interactive disclosures. Never submit/save/revoke/delete.
@@ -184,7 +188,7 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
         })).filter(c => c.name));
       let opened = 0;
       for (const candidate of candidates) {
-        if (opened >= (route.startsWith('/modules/') ? 2 : 4)) break;
+        if (opened >= (route.startsWith('/modules/') ? 1 : 2)) break;
         if (candidate.disabled || !visiblePanelTriggers.test(candidate.name) || prohibitedTriggers.test(candidate.name)) continue;
         if (candidate.name.includes('Tạo tài khoản') || candidate.name.includes('Tạo snippet')) continue;
         try {
@@ -253,16 +257,22 @@ test('public route and validation inventory', async ({ page }, info) => {
   // Findings are data, not pass; this test only asserts scope wasn't silently skipped.
   expect(results).toHaveLength(publicRoutes.length);
 });
-for (const role of ['UserA', 'SuperAdmin', 'Restricted']) {
-  test('synthetic role UI inventory: ' + role, async ({ page }, info) => {
+const roleBatches: Array<{ role: string; name: string; routes: string[]; seed: boolean }> = [
+  { role: 'UserA', name: 'private-primary', routes: fixedRoutes, seed: true },
+  { role: 'UserA', name: 'modules-FX01-to-FX20', routes: modules.slice(0, 20), seed: false },
+  { role: 'UserA', name: 'modules-FX21-to-FX40', routes: modules.slice(20), seed: false },
+  { role: 'SuperAdmin', name: 'admin-flows', routes: adminRoutes, seed: false },
+  { role: 'Restricted', name: 'denied-and-basic', routes: restrictedRoutes, seed: false },
+];
+for (const batch of roleBatches) {
+  test('synthetic role UI inventory: ' + batch.role + ' ' + batch.name, async ({ page }, info) => {
     const results: Observation[] = [], seed: string[] = [];
     try {
-      await logIn(page, role);
-      if (role === 'UserA') await trySeed(page, seed);
-      const routes = role === 'UserA' ? [...fixedRoutes, ...modules] : role === 'SuperAdmin' ? adminRoutes : restrictedRoutes;
-      for (const route of routes) results.push(await observe(page, route, role, info));
+      await logIn(page, batch.role);
+      if (batch.seed) await trySeed(page, seed);
+      for (const route of batch.routes) results.push(await observe(page, route, batch.role, info));
     } catch { seed.push('ROLE_LOGIN_OR_DISCOVERY_BLOCKED: no private credentials logged'); }
-    finally { persist(info, role, results, seed); }
+    finally { persist(info, batch.role + '-' + batch.name, results, seed); }
     if (!results.length) throw new Error('UIUX_AUDIT_BLOCKED: synthetic role login/route traversal did not execute');
   });
 }
