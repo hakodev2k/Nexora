@@ -32,7 +32,7 @@ async function screenshot(page: Page, persona: string, route: string, suffix: st
   const relative = 'screenshots/' + base + '.png';
   await page.screenshot({
     path: join(artifactRoot, relative), animations: 'disabled', timeout: 10_000,
-    fullPage: false, mask: page.locator('input[type="password"], input[autocomplete="current-password"], input[autocomplete="new-password"]'),
+    fullPage: false, mask: [page.locator('input[type="password"], input[autocomplete="current-password"], input[autocomplete="new-password"]')],
   });
   return relative;
 }
