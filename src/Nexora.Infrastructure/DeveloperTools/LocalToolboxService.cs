@@ -92,9 +92,9 @@ public sealed class LocalToolboxService : IToolboxService
         {
             return Failure<ToolboxRunResult>("RegexTimeout", 422, "Regex evaluation exceeded the 250 ms safety limit.");
         }
-        catch (RegexParseException exception)
+        catch (RegexParseException)
         {
-            return Failure<ToolboxRunResult>("RegexInvalid", 422, $"Regex pattern is invalid: {exception.Message}");
+            return Failure<ToolboxRunResult>("RegexInvalid", 422, "Regex pattern is invalid.");
         }
         catch (JsonException exception)
         {
@@ -103,6 +103,10 @@ public sealed class LocalToolboxService : IToolboxService
         catch (FormatException)
         {
             return Failure<ToolboxRunResult>("InputInvalid", 422, "Input is not valid for the selected operation.");
+        }
+        catch (DecoderFallbackException)
+        {
+            return Failure<ToolboxRunResult>("InputInvalid", 422, "Decoded input is not valid UTF-8.");
         }
     }
 
@@ -158,7 +162,7 @@ public sealed class LocalToolboxService : IToolboxService
             "SHA-1" or "SHA1" => SHA1.Create(),
             _ => throw new ToolFailureException("ValidationFailed", "Hash algorithm must be SHA-256, SHA-384, SHA-512, MD5 or SHA-1.")
         };
-        var warning = algorithm is "MD5" or "SHA-1" ? "Legacy checksum only; do not use for password or signature security." : null;
+        var warning = algorithm is "MD5" or "SHA-1" or "SHA1" ? "Legacy checksum only; do not use for password or signature security." : null;
         return (Convert.ToHexString(hash.ComputeHash(Encoding.UTF8.GetBytes(input))).ToLowerInvariant(), warning, null);
     }
 
@@ -203,10 +207,21 @@ public sealed class LocalToolboxService : IToolboxService
         if (string.Equals(Option(options, "ignoreCase", "false"), "true", StringComparison.OrdinalIgnoreCase))
             optionsValue |= RegexOptions.IgnoreCase;
         var regex = new Regex(pattern, optionsValue, RegexTimeout);
-        var matches = regex.Matches(input).Cast<Match>().Take(100)
+        // Enumerating Count would scan the entire sample again. Probe one extra
+        // match only, retaining the documented per-search regex timeout.
+        var budget = Stopwatch.StartNew();
+        var bounded = new List<Match>(101);
+        foreach (Match match in regex.Matches(input))
+        {
+            if (budget.Elapsed >= RegexTimeout)
+                throw new RegexMatchTimeoutException();
+            bounded.Add(match);
+            if (bounded.Count == 101) break;
+        }
+        var matches = bounded.Take(100)
             .Select(match => new { index = match.Index, length = match.Length, value = match.Value })
             .ToArray();
-        var output = JsonSerializer.Serialize(new { count = matches.Length, truncated = regex.Matches(input).Count > matches.Length, matches },
+        var output = JsonSerializer.Serialize(new { count = matches.Length, truncated = bounded.Count > matches.Length, matches },
             new JsonSerializerOptions { WriteIndented = true });
         return (output, null, null);
     }
