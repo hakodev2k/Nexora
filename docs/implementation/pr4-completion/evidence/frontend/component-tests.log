@@ -1,0 +1,21 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.0 /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web
+
+ ✓ src/App.surface.test.tsx (34 tests) 3420ms
+   ✓ Toolbox removes the previous success when changed options fail and retains correction input 468ms
+   ✓ Toolbox clear requires confirmation and cancellation preserves pasted input 408ms
+   ✓ Finance category draft is locked while save is in flight and survives recoverable failure 340ms
+ ✓ src/App.test.tsx (47 tests | 1 skipped) 4971ms
+   ✓ Snippet create-only capability never requests private list and clears a committed draft without retry 544ms
+   ✓ Snippet unknown save freezes input and retains the exact key through discard cancellation and reconciliation 559ms
+
+ Test Files  2 passed (2)
+      Tests  80 passed | 1 skipped (81)
+   Start at  16:50:04
+   Duration  12.28s (tests 70%, transform 13%, environment 11%, import 3%, setup 3%)
+
+    Isolate  2 workers spawned · ~778ms startup each (spawn + environment, per file)
+             at least ~778ms faster with isolate: false — reuses workers across files instead of one per file
+
+JUNIT report written to /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web/artifacts/vitest-junit.xml

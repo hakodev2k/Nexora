@@ -1,0 +1,420 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="185" failures="0" errors="0" time="19.484869423">
+    <testsuite name="src/App.surface.test.tsx" timestamp="2026-10-22T13:55:00.021Z" hostname="af70526c9728" tests="34" failures="0" errors="0" skipped="0" time="3.45514488">
+        <testcase classname="src/App.surface.test.tsx" name="Toolbox removes the previous success when changed options fail and retains correction input" time="0.494466613">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Toolbox clear requires confirmation and cancellation preserves pasted input" time="0.409764347">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled home surface has a settled empty state and named interactive controls" time="0.186603442">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled search surface has a settled empty state and named interactive controls" time="0.081307274">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled favorites surface has a settled empty state and named interactive controls" time="0.051454603">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled profile surface has a settled empty state and named interactive controls" time="0.072096096">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled security surface has a settled empty state and named interactive controls" time="0.054886711">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled notifications surface has a settled empty state and named interactive controls" time="0.070176999">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled trash surface has a settled empty state and named interactive controls" time="0.050530019">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled sharing surface has a settled empty state and named interactive controls" time="0.088527183">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled support surface has a settled empty state and named interactive controls" time="0.064698169">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled files surface has a settled empty state and named interactive controls" time="0.085641743">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled projects surface has a settled empty state and named interactive controls" time="0.090608806">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled tasks surface has a settled empty state and named interactive controls" time="0.102022062">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled calendar surface has a settled empty state and named interactive controls" time="0.092148819">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled documents surface has a settled empty state and named interactive controls" time="0.182989764">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled reminders surface has a settled empty state and named interactive controls" time="0.047910079">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled bookmarks surface has a settled empty state and named interactive controls" time="0.065585416">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled snippets surface has a settled empty state and named interactive controls" time="0.084421248">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled read later surface has a settled empty state and named interactive controls" time="0.061205373">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled tags surface has a settled empty state and named interactive controls" time="0.050268765">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled developer tools surface has a settled empty state and named interactive controls" time="0.058263177">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled goals surface has a settled empty state and named interactive controls" time="0.078247696">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled planner surface has a settled empty state and named interactive controls" time="0.054784032">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled habits surface has a settled empty state and named interactive controls" time="0.087051358">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="the enabled finance surface has a settled empty state and named interactive controls" time="0.062918676">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Files keeps a functional form visible alongside its API error state" time="0.071781698">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Files exposes a clear loading state before its empty state resolves" time="0.037522228">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="a revoked module entry reports unavailability instead of claiming a grant" time="0.009734796">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Home settles once and retains its layout when equivalent profile objects rerender" time="0.090139995">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Malformed Dashboard layout settles to an actionable error instead of a permanent spinner" time="0.040971393">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Finance create dialogs have one heading and a form-associated shared footer" time="0.083419422">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Account disclosure Escape closes the menu and restores focus to its summary" time="0.032065567">
+        </testcase>
+        <testcase classname="src/App.surface.test.tsx" name="Finance category draft is locked while save is in flight and survives recoverable failure" time="0.254824722">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/App.test.tsx" timestamp="2026-10-22T13:55:00.027Z" hostname="af70526c9728" tests="47" failures="0" errors="0" skipped="1" time="4.603078369">
+        <testcase classname="src/App.test.tsx" name="shared Project renders approved nullable Task details and literal ordered checklist without legacy Due" time="0.220646964">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Snippet create-only capability never requests private list and clears a committed draft without retry" time="0.480006289">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Snippet capability revocation clears private editor and disables unauthorized commands" time="0.208148067">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Snippet unknown save freezes input and retains the exact key through discard cancellation and reconciliation" time="0.595507758">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Snippet readonly edit retains a safe Cancel path and returns to independently allowed Create" time="0.229682703">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Snippet unknown transition exposes metadata-only reconciliation and reuses the original command after 502" time="0.142902435">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Task edit uses generic fields and clears protected state on acknowledgement without resubmitting" time="0.135439106">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Task edit uses generic fields and clears protected state on denied without resubmitting" time="0.116530045">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="a denied Productivity reload clears the previously authorized Project editor and private draft" time="0.124783207">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="registration renders English copy and exposes inline validation through accessible controls" time="0.028129008">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="registration keeps one idempotency request while submit is pending" time="0.233383309">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="destructive controls require an accessible in-app confirmation before acting" time="0.074085039">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="a failed destructive confirmation stays open, explains the failure, and returns focus safely on cancel" time="0.033147508">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct search routes render the FX25 unavailable state without mounting a protected screen" time="0.007744822">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct favorites routes render the FX25 unavailable state without mounting a protected screen" time="0.008344761">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct sharing routes render the FX04 unavailable state without mounting a protected screen" time="0.010136072">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct support routes render the FX05 unavailable state without mounting a protected screen" time="0.006494177">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct files routes render the FX07 unavailable state without mounting a protected screen" time="0.006581618">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct finance routes render the FX27 unavailable state without mounting a protected screen" time="0.006588688">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct bookmarks routes render the FX21 unavailable state without mounting a protected screen" time="0.007071874">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct snippets routes render the FX22 unavailable state without mounting a protected screen" time="0.009629086">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct readLater routes render the FX23 unavailable state without mounting a protected screen" time="0.011044039">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct tags routes render the FX24 unavailable state without mounting a protected screen" time="0.006438974">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct tools routes render the FX32 unavailable state without mounting a protected screen" time="0.006367617">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct goals routes render the FX16 unavailable state without mounting a protected screen" time="0.007626675">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct planner routes render the FX15 unavailable state without mounting a protected screen" time="0.007518232">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="direct habits routes render the FX17 unavailable state without mounting a protected screen" time="0.00895725">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="the shell hides an unavailable admin route and provides an explicit permission state" time="0.01751498">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="an Admin cannot reveal a SUPER-only access route even if a stale client profile contains a capability flag" time="0.013605498">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="a SuperAdmin reviews a signed access preview before committing a role mutation" time="0.130336858">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="a stale access preview (409) keeps the review dialog open and prevents a blind retry" time="0.192919572">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="a stale access preview (412) keeps the review dialog open and prevents a blind retry" time="0.163025777">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="a recent-auth challenge reauthenticates without losing the intended access change, then requests a fresh preview" time="0.176175747">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="module policy exposes dependency context and commits only after a policy preview" time="0.088536302">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="mobile navigation exposes state through an accessible toggle" time="0.071699639">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="the profile dirty-state dialog traps focus, defaults to keep editing, and restores focus on Escape" time="0.164980443">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="navigation labels are concise for assistive technology and unavailable modules stay hidden" time="0.052652637">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Files exposes the installed private subset and hides dormant lifecycle controls" time="0.072956352">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Files binds each action capability and clears protected rows on authority loss" time="0.080270368">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Files clears the native file input after upload so the same file can be selected again" time="0.107105878">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="global Trash previews restore and permanent deletion, with a deliberate in-dialog PURGE gate" time="0.17010775">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="Notifications keeps ETags from the list projection for read state and selected-item deletion" time="0.168349294">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="an authenticated share link resumes after sign-in without placing its capability token in a login URL or browser storage" time="0.161124722">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="the HTTP boundary refreshes CSRF once and retains a single idempotency key after a pre-handler rejection" time="0.003812146">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="session metadata uses the profile IANA zone rather than the browser default" time="0.027742534">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="time helpers preserve a normal IANA instant and all-day date boundary" time="0.00177365">
+        </testcase>
+        <testcase classname="src/App.test.tsx" name="R2-10: DST valid-after-gap and fold disambiguation require the approved post-M01 time policy" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/CalendarExportScreen.test.tsx" timestamp="2026-10-22T13:55:00.033Z" hostname="af70526c9728" tests="4" failures="0" errors="0" skipped="0" time="0.466345216">
+        <testcase classname="src/CalendarExportScreen.test.tsx" name="Calendar export authorization and recovery &gt; allows Task-only selection when Manual read is unavailable without choosing a source automatically" time="0.289619134">
+        </testcase>
+        <testcase classname="src/CalendarExportScreen.test.tsx" name="Calendar export authorization and recovery &gt; clears a selected report on Reload when its individual source is no longer listed" time="0.045028879">
+        </testcase>
+        <testcase classname="src/CalendarExportScreen.test.tsx" name="Calendar export authorization and recovery &gt; clears protected cards when a source report becomes unavailable" time="0.026201337">
+        </testcase>
+        <testcase classname="src/CalendarExportScreen.test.tsx" name="Calendar export authorization and recovery &gt; retains the confirmed command key after a lost acknowledgment and uses explicit retry" time="0.101292748">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/CreatedShareLink.test.tsx" timestamp="2026-10-22T13:55:00.034Z" hostname="af70526c9728" tests="6" failures="0" errors="0" skipped="0" time="0.224364468">
+        <testcase classname="src/CreatedShareLink.test.tsx" name="checks current authority before copying a complete same-origin URL" time="0.147171943">
+        </testcase>
+        <testcase classname="src/CreatedShareLink.test.tsx" name="clears the creation result when authority is unavailable (401)" time="0.020587501">
+        </testcase>
+        <testcase classname="src/CreatedShareLink.test.tsx" name="clears the creation result when authority is unavailable (403)" time="0.012987204">
+        </testcase>
+        <testcase classname="src/CreatedShareLink.test.tsx" name="clears the creation result when authority is unavailable (404)" time="0.016658091">
+        </testcase>
+        <testcase classname="src/CreatedShareLink.test.tsx" name="does not copy after the creation result has unmounted while authority is pending" time="0.011098948">
+        </testcase>
+        <testcase classname="src/CreatedShareLink.test.tsx" name="reports clipboard rejection without showing a success or exposing the browser error" time="0.011678605">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/DocumentHistory.test.tsx" timestamp="2026-10-22T13:55:00.035Z" hostname="af70526c9728" tests="1" failures="0" errors="0" skipped="0" time="0.295231794">
+        <testcase classname="src/DocumentHistory.test.tsx" name="changing a version selector clears the previous comparison instead of mislabelling old content" time="0.290459339">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/DocumentImportPanel.test.tsx" timestamp="2026-10-22T13:55:00.035Z" hostname="af70526c9728" tests="2" failures="0" errors="0" skipped="0" time="0.368208856">
+        <testcase classname="src/DocumentImportPanel.test.tsx" name="late Markdown preview is discarded when the editor switches to Block" time="0.331976859">
+        </testcase>
+        <testcase classname="src/DocumentImportPanel.test.tsx" name="mode mismatch detaches import provenance through onClear without applying or replacing the draft" time="0.022075745">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/DocumentVersionDiff.test.tsx" timestamp="2026-10-22T13:55:00.035Z" hostname="af70526c9728" tests="3" failures="0" errors="0" skipped="0" time="0.178439923">
+        <testcase classname="src/DocumentVersionDiff.test.tsx" name="differences and full snapshots remain inert text and never create active media" time="0.157774579">
+        </testcase>
+        <testcase classname="src/DocumentVersionDiff.test.tsx" name="unchanged body is identified even when metadata changed" time="0.007831216">
+        </testcase>
+        <testcase classname="src/DocumentVersionDiff.test.tsx" name="large source explicitly reports simplified comparison" time="0.007187155">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/FileRestoreDialog.test.tsx" timestamp="2026-10-22T13:55:00.035Z" hostname="af70526c9728" tests="1" failures="0" errors="0" skipped="0" time="0.247838673">
+        <testcase classname="src/FileRestoreDialog.test.tsx" name="a historical committed restore acknowledgement clears private preview and never replays another cohort" time="0.24252804">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/KnowledgeFinanceRecovery.test.tsx" timestamp="2026-10-22T13:55:00.036Z" hostname="af70526c9728" tests="12" failures="0" errors="0" skipped="0" time="2.787262377">
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Bookmarks seeks, deduplicates and resets the cursor when changing query" time="0.41458687">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="denied Bookmark save removes private detail and draft without empty-success feedback" time="0.217145218">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="committed Bookmark ACK removes private payload without repeating mutation or detail reload" time="0.125665328">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance preserves conflict draft and reviews exact-ID revision before explicitly reapplying" time="0.377648528">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance continuation denial removes prior records, amounts and summaries" time="0.090236401">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance freezes an uncertain command and retries its original body, revision and idempotency key" time="0.339418546">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance explicit uncertain-outcome abandonment restores the interactive background after nested confirmation" time="0.192193864">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance clears private editor and values when mutation detects ModuleUnavailable with HTTP409" time="0.259354606">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance clears private editor and values when mutation detects DependencyUnavailable with HTTP409" time="0.244837432">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance exact-ID resource revocation clears the conflicting draft and prior values" time="0.183208632">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance defaults to owner date in America/Los_Angeles and requires explicit currency" time="0.161910906">
+        </testcase>
+        <testcase classname="src/KnowledgeFinanceRecovery.test.tsx" name="Finance defaults to owner date in Pacific/Kiritimati and requires explicit currency" time="0.174856696">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/MonitoringScreen.test.tsx" timestamp="2026-10-22T13:55:00.038Z" hostname="af70526c9728" tests="6" failures="0" errors="0" skipped="0" time="0.927944215">
+        <testcase classname="src/MonitoringScreen.test.tsx" name="Monitoring authority and command recovery &gt; does not fetch protected rows after unmount while capability lookup is pending" time="0.038834983">
+        </testcase>
+        <testcase classname="src/MonitoringScreen.test.tsx" name="Monitoring authority and command recovery &gt; serializes real cursor loading and appends the next page without duplicating a request" time="0.242420178">
+        </testcase>
+        <testcase classname="src/MonitoringScreen.test.tsx" name="Monitoring authority and command recovery &gt; freezes metadata and reuses the exact command after an unknown save outcome" time="0.328260516">
+        </testcase>
+        <testcase classname="src/MonitoringScreen.test.tsx" name="Monitoring authority and command recovery &gt; clears protected records and drafts when an edited source becomes unavailable" time="0.07406816">
+        </testcase>
+        <testcase classname="src/MonitoringScreen.test.tsx" name="Monitoring authority and command recovery &gt; requires comparison of a newer revision before explicitly retaining and saving the draft" time="0.210189097">
+        </testcase>
+        <testcase classname="src/MonitoringScreen.test.tsx" name="Monitoring authority and command recovery &gt; removes saved metadata when refreshed read authority disappears" time="0.0288127">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/NewsCategoryScreen.test.tsx" timestamp="2026-10-22T13:55:00.039Z" hostname="af70526c9728" tests="16" failures="0" errors="0" skipped="0" time="1.524331602">
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; retains a dirty draft when Escape discard is cancelled and removes unload protection after confirmed discard" time="0.348540387">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; does not load private rows after a pending capability lookup resolves following unmount" time="0.004753447">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; serializes cursor fetches and deduplicates overlapping IDs" time="0.043520256">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; freezes and exactly retries an uncertain update with status 0" time="0.142397612">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; freezes and exactly retries an uncertain update with status 503" time="0.127596538">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; freezes and exactly retries an uncertain update with status 409" time="0.123368154">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; warns about possible server commit before discarding an uncertain save" time="0.056988446">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; exactly retries uncertain creation with status 0 without creating a fresh command" time="0.122855451">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; exactly retries uncertain creation with status 503 without creating a fresh command" time="0.119529637">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; exactly retries uncertain creation with status 409 without creating a fresh command" time="0.110807042">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; clears private records and editor on current save denial 401" time="0.034597524">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; clears private records and editor on current save denial 403" time="0.034346195">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; clears private records and editor on current save denial 404" time="0.034999655">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; requires comparison again when the current revision changes before explicit reapply" time="0.125017596">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; creates with an opaque acknowledgement without requesting hidden read authority" time="0.084384988">
+        </testcase>
+        <testcase classname="src/NewsCategoryScreen.test.tsx" name="News category authority and recovery &gt; distinguishes unavailable capabilities from an authorized empty list" time="0.005433181">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/NotificationPrivacy.test.tsx" timestamp="2026-10-22T13:55:00.042Z" hostname="af70526c9728" tests="3" failures="0" errors="0" skipped="0" time="0.558658286">
+        <testcase classname="src/NotificationPrivacy.test.tsx" name="Notification single ACK clears private detail without an automatic read or a false empty state" time="0.326297308">
+        </testcase>
+        <testcase classname="src/NotificationPrivacy.test.tsx" name="Notification all ACK clears private detail without an automatic read or a false empty state" time="0.095386524">
+        </testcase>
+        <testcase classname="src/NotificationPrivacy.test.tsx" name="Notification current module denial clears cached private rows, selections and counts" time="0.130640404">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/OrganizationTagsScreen.test.tsx" timestamp="2026-10-22T13:55:00.042Z" hostname="af70526c9728" tests="3" failures="0" errors="0" skipped="0" time="1.227978817">
+        <testcase classname="src/OrganizationTagsScreen.test.tsx" name="Tag pagination requests 25 rows, appends without duplicates and resets filters to a fresh page" time="0.512227514">
+        </testcase>
+        <testcase classname="src/OrganizationTagsScreen.test.tsx" name="A denied continuation clears private Tags and shows a failed fetch instead of an empty catalog" time="0.130180994">
+        </testcase>
+        <testcase classname="src/OrganizationTagsScreen.test.tsx" name="Conflict recovery fetches the exact later-page Tag and preserves the edited draft" time="0.581155791">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/ProductivityRecovery.test.tsx" timestamp="2026-10-22T13:55:00.043Z" hostname="af70526c9728" tests="10" failures="0" errors="0" skipped="0" time="0.846252985">
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Time dirty Cancel preserves draft until explicit discard" time="0.398467837">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Time invalid date shows accessible error and does not write" time="0.090096655">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Time fields lock while save is unresolved" time="0.090393411">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="late Time history cannot reopen after read capability is revoked" time="0.041114158">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Time History grant revocation clears history even when entry read remains allowed" time="0.037205355">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="new Time history selection wins over an earlier response" time="0.044069078">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Focus preference Escape preserves changed input" time="0.05982395">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Focus read capability revocation clears open private preference draft" time="0.035164764">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Focus preference action loss clears draft independently from session read" time="0.03754969">
+        </testcase>
+        <testcase classname="src/ProductivityRecovery.test.tsx" name="Focus does not start a second poll while the first is pending" time="0.00751495">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/ResourceFormDialog.test.tsx" timestamp="2026-10-22T13:55:00.046Z" hostname="af70526c9728" tests="6" failures="0" errors="0" skipped="0" time="0.618080493">
+        <testcase classname="src/ResourceFormDialog.test.tsx" name="ResourceFormDialog &gt; retains dirty text on Escape, discards explicitly, and restores trigger focus" time="0.367809724">
+        </testcase>
+        <testcase classname="src/ResourceFormDialog.test.tsx" name="ResourceFormDialog &gt; traps keyboard focus and blocks Escape/cancel while a request is busy" time="0.047426609">
+        </testcase>
+        <testcase classname="src/ResourceFormDialog.test.tsx" name="ResourceFormDialog &gt; focuses the first field when initial asynchronous loading finishes" time="0.021014001">
+        </testcase>
+        <testcase classname="src/ResourceFormDialog.test.tsx" name="protects a dirty dialog from navigation and reload until explicitly discarded" time="0.136952654">
+            <system-err>
+A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:
+
+await act(() =&gt; ...)
+
+            </system-err>
+        </testcase>
+        <testcase classname="src/ResourceFormDialog.test.tsx" name="blocks navigation during a pending command and announces the reason" time="0.014959999">
+        </testcase>
+        <testcase classname="src/ResourceFormDialog.test.tsx" name="retains unresolved commands even when the draft is clean and not actively sending" time="0.023403432">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/ShareLinkEditor.test.tsx" timestamp="2026-10-22T13:55:00.047Z" hostname="af70526c9728" tests="5" failures="0" errors="0" skipped="0" time="0.621155722">
+        <testcase classname="src/ShareLinkEditor.test.tsx" name="keeps an uncertain save frozen and retries the exact key, body and ETag" time="0.329903532">
+        </testcase>
+        <testcase classname="src/ShareLinkEditor.test.tsx" name="requires comparison again if the current version changes before explicit reapply" time="0.153818906">
+        </testcase>
+        <testcase classname="src/ShareLinkEditor.test.tsx" name="clears editor authority after a module denial" time="0.041831009">
+        </testcase>
+        <testcase classname="src/ShareLinkEditor.test.tsx" name="keeps missing successful ACK recoverable instead of silently closing" time="0.070284325">
+        </testcase>
+        <testcase classname="src/ShareLinkEditor.test.tsx" name="ignores the first StrictMode GET after the current generation permits editing" time="0.018716362">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/ShellAccessibility.test.tsx" timestamp="2026-10-22T13:55:00.049Z" hostname="af70526c9728" tests="3" failures="0" errors="0" skipped="0" time="0.50553389">
+        <testcase classname="src/ShellAccessibility.test.tsx" name="offers the first keyboard shortcut and moves focus after changing a route" time="0.355426493">
+        </testcase>
+        <testcase classname="src/ShellAccessibility.test.tsx" name="public navigation has a focusable content destination" time="0.077756983">
+        </testcase>
+        <testcase classname="src/ShellAccessibility.test.tsx" name="shows existing module entries with disabled modules unavailable" time="0.062603121">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/courseApi.test.ts" timestamp="2026-10-22T13:55:00.049Z" hostname="af70526c9728" tests="2" failures="0" errors="0" skipped="0" time="0.007721129">
+        <testcase classname="src/courseApi.test.ts" name="owner percentage at SQL decimal boundary &gt; preserves smallest supported value and an eight-place fraction without binary floating point" time="0.001805541">
+        </testcase>
+        <testcase classname="src/courseApi.test.ts" name="owner percentage at SQL decimal boundary &gt; rejects a value that would round and progress outside owner range" time="0.001218907">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/documentVersionDiff.test.ts" timestamp="2026-10-22T13:55:00.050Z" hostname="af70526c9728" tests="12" failures="0" errors="0" skipped="0" time="0.009433001">
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 0" time="0.001741195">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 1" time="0.000722229">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 2" time="0.000410609">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 3" time="0.000277298">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 4" time="0.000253582">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 5" time="0.000176086">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 6" time="0.000248504">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 7" time="0.000214213">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 8" time="0.000310859">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="source can be reconstructed byte-for-character from chunks 9" time="0.000195565">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="untrusted very long source uses bounded replacement without losing content" time="0.000217608">
+        </testcase>
+        <testcase classname="src/documentVersionDiff.test.ts" name="many short lines cannot cause an unbounded quadratic diff" time="0.000725594">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/newsCategoryApi.test.ts" timestamp="2026-10-22T13:55:00.052Z" hostname="af70526c9728" tests="9" failures="0" errors="0" skipped="0" time="0.011864727">
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; keeps a missing or invalid ACK outcome unknown" time="0.003494388">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; keeps a missing or invalid ACK outcome unknown" time="0.00047786">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; keeps a missing or invalid ACK outcome unknown" time="0.000435467">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; keeps a missing or invalid ACK outcome unknown" time="0.000458951">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; keeps JSON decoding failure recoverable with the same update request" time="0.001085376">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; preserves known HTTP failure 403" time="0.000381244">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; preserves known HTTP failure 412" time="0.000259391">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; preserves known HTTP failure 503" time="0.000183016">
+        </testcase>
+        <testcase classname="src/newsCategoryApi.test.ts" name="category save acknowledgement recovery &gt; accepts a canonical ACK without exposing extra response fields" time="0.00047771">
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -2048,3 +2048,7 @@ progress::-moz-progress-bar {
 
 .admin-user-row span, .admin-module-row small, .grant-list span { color: #516079; }
 :root[data-theme="dark"] .admin-user-row span, :root[data-theme="dark"] .admin-module-row small, :root[data-theme="dark"] .grant-list span { color: #b5c6de; }
+[aria-label="Bố cục Dashboard"] .resource-card { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); align-items: start; }
+[aria-label="Bố cục Dashboard"] .resource-card > label { display: grid; gap: .25rem; min-width: 0; }
+[aria-label="Bố cục Dashboard"] .resource-card select { width: 100%; min-width: 0; }
+[aria-label="Bố cục Dashboard"] .resource-card .resource-actions { flex-wrap: wrap; }

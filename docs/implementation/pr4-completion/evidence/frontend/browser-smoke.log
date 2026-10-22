@@ -1,0 +1,16 @@
+
+Running 4 tests using 1 worker
+
+(node:42) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/4] [ui-desktop] › e2e/ui-smoke.spec.ts:23:1 › public responsive forms, keyboard shortcut, validation and API unavailable state
+[2/4] [ui-desktop] › e2e/ui-smoke.spec.ts:35:1 › authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK
+(node:167) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[3/4] [ui-mobile] › e2e/ui-smoke.spec.ts:23:1 › public responsive forms, keyboard shortcut, validation and API unavailable state
+[4/4] [ui-mobile] › e2e/ui-smoke.spec.ts:35:1 › authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK
+  4 passed (17.6s)

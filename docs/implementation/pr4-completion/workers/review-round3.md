@@ -56,7 +56,7 @@ Re-read App.tsx, DashboardLayoutEditor, ResourceFormDialog and styles.css after 
 | `web/Nexora.Web/src/App.tsx` | `b77019833b12ece2dc04c8de2a5384ac740faa7408dde758410b39e52295eb2e` |
 | `web/Nexora.Web/src/DashboardLayoutEditor.tsx` | `e0180c0c48de8f37f54026e4494c6f9883178d6cc3bac43419a46f32a871c975` |
 | `web/Nexora.Web/src/ResourceFormDialog.tsx` | `fbd6d5e265d8ed43d0e0cb9ed6594505b81ea7e06fa349791a7df5ffae3b8d36` |
-| `web/Nexora.Web/src/styles.css` | `7199cecebefa2983e5bd732a221f88293a3a31f4ba5f606210cf00da18ceff03` |
+| `web/Nexora.Web/src/styles.css` | `43d80da2ffb48d70a71311d600168f79de9ff21d4af88b48d30014e7089dfe56` |
 
 ## Final remediation reread
 
@@ -69,3 +69,9 @@ IR-R5: Time/Focus capability-loss cleanup originally waited for unrelated allowe
 | `web/Nexora.Web/src/FocusScreen.tsx` | `d9d1108dd92e59069f0070abecb5be80444c158ddfba7fa0bda18ce029844438` |
 | `web/Nexora.Web/src/TimeTrackingScreen.tsx` | `ddabd490ef9494c850c024fa8133490dc3fbac28c4baca320771c0937e548cb9` |
 | `web/Nexora.Web/src/ProductivityRecovery.test.tsx` | `a7353e5a25c4db6ba6a0567547275766d4d839379f1a611ff0e67cbd4433aa38` |
+
+## Final four-line Dashboard CSS delta
+
+Independently re-read the final four scoped `[aria-label="Bố cục Dashboard"]` rules: shrinkable auto-fit card columns, grid labels with gap, full-width shrinkable selects, and wrapping action groups. They affect layout only and do not change authorization, data access, request generation or security behavior. No blocking finding in this final delta. CSS hash above updated to the final bytes. Focus/Time/test hashes also match the author's final frozen values.
+
+Root reports final integrated component suite184passed/1existing skipped, buildpass, and controlled browser widths320/768/1440pass after this CSS adjustment. These are parent/author evidence, not additional reviewer-executed tests. This remains bounded independent source review; full R1, real SQL/browser E2E, Windows principals and Product Owner acceptance remain pending.

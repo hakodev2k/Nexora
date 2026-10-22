@@ -36,7 +36,7 @@ separate from persistence proof.
 - Locked .NET10.0.100 unit restore PASS (-m:1 -nr:false).
 - dotnet test tests/Nexora.UnitTests/Nexora.UnitTests.csproj --no-restore
   -m:1 -nr:false --logger trx:54passed/0failed/0skipped,150ms test duration.
-- Integration locked restore PASS; build and SQL execution pending at checkpoint.
+- Integration locked restore/build PASS,0warnings/0errors. Fresh CI738f528 merge6e2c08c SQL262pass/0fail/0skip; final later head requires separate checks.
 - Independent reviewer: review_round3, source contracts checked; see review report.
 - No new grants, provider calls, SQL migration changes or merge performed.
 

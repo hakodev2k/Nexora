@@ -1,0 +1,35 @@
+{
+  "boundary": "CONTROLLED_HTTP_NOT_SQL",
+  "results": [
+    {
+      "width": 320,
+      "status": "PASS",
+      "actions": [
+        "Home one QuickCreate, settled layout, no overflow",
+        "account disclosure Escape/focus",
+        "Finance one title/form-associated footer, dirty Cancel preserves draft, no overflow",
+        "Record one heading, explicit empty currency, no overflow"
+      ]
+    },
+    {
+      "width": 768,
+      "status": "PASS",
+      "actions": [
+        "Home one QuickCreate, settled layout, no overflow",
+        "account disclosure Escape/focus",
+        "Finance one title/form-associated footer, dirty Cancel preserves draft, no overflow",
+        "Record one heading, explicit empty currency, no overflow"
+      ]
+    },
+    {
+      "width": 1440,
+      "status": "PASS",
+      "actions": [
+        "Home one QuickCreate, settled layout, no overflow",
+        "account disclosure Escape/focus",
+        "Finance one title/form-associated footer, dirty Cancel preserves draft, no overflow",
+        "Record one heading, explicit empty currency, no overflow"
+      ]
+    }
+  ]
+}
