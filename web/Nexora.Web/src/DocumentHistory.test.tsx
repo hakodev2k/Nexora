@@ -1,0 +1,20 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { expect, test, vi } from 'vitest';
+import { DocumentHistory } from './DocumentHistory';
+const mock = vi.hoisted(() => ({ list: vi.fn(), compare: vi.fn() }));
+vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), listDocumentVersions: mock.list, compareDocumentVersions: mock.compare }));
+const snapshots = [1, 2].map(n => ({ id: String(n), pageId: 'p', versionNumber: n, title: `Title${n}`, documentType: 'Note', editorMode: 'Markdown', savedStatus: 'Draft', changeNote: null, createdAt: '2026-10-22T00:00:00Z', createdByUserId: null, tagSnapshotCaptured: true, tagId: null, tagName: null }));
+test('changing a version selector clears the previous comparison instead of mislabelling old content', async () => {
+  const user = userEvent.setup(); mock.list.mockResolvedValue({ items: snapshots, nextCursor: null });
+  mock.compare.mockResolvedValue({ before: { snapshot: snapshots[0], body: 'old' }, after: { snapshot: snapshots[1], body: 'new' } });
+  render(<DocumentHistory pageId="p" revision="rev" disabled={false} onAuthLost={vi.fn()} formatTime={x => x} />);
+  await user.click(screen.getByRole('button', { name: 'Đọc lịch sử' }));
+  await screen.findByRole('combobox', { name: 'Phiên bản trước' });
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Phiên bản trước' }), '1');
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Phiên bản sau' }), '2');
+  await user.click(screen.getByRole('button', { name: 'So sánh hai phiên bản' }));
+  await screen.findByRole('region', { name: 'Khác biệt hai phiên bản' });
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Phiên bản sau' }), '1');
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'Khác biệt hai phiên bản' })).toBeNull());
+});
