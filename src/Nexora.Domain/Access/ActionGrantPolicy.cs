@@ -433,7 +433,8 @@ public static class ActionGrantPolicy
     {
         "planner.plan.read", "planner.plan.pin", "planner.plan.unpin", "planner.plan.reorder", "planner.plan.reschedule", "planner.plan.notes",
         "goals.goal.read", "goals.goal.create", "goals.goal.update", "goals.goal.start", "goals.goal.complete", "goals.goal.abandon", "goals.goal.reopen",
-        "goals.target.read", "goals.target.create", "goals.target.record_progress",
+        "goals.goal.history", "goals.goal.archive", "goals.goal.unarchive",
+        "goals.target.read", "goals.target.create", "goals.target.record_progress", "goals.target.update", "goals.target.remove",
         "habits.habit.read", "habits.streak.read", "habits.habit.create", "habits.habit.update", "habits.habit.schedule",
         "habits.habit.set_reminder", "habits.habit.pause", "habits.habit.resume", "habits.habit.archive", "habits.habit.unarchive",
         "habits.checkin.record", "habits.checkin.correct"

@@ -74,7 +74,34 @@ public sealed class M01PolicyAndCaptureContractTests
                 "20261012_0055_productivity_dedicated_actions.sql",
                 "20261015_0056_documents_tag_catalog.sql",
                 "20261015_0057_document_tag_version_snapshots.sql",
-                "20261015_0058_document_history_read.sql"
+                "20261015_0058_document_history_read.sql",
+                "20261017_0059_document_version_restore.sql",
+                "20261017_0060_saved_search.sql",
+                "20261017_0061_dashboard_layout.sql",
+                "20261017_0062_career_calendar_links.sql",
+                "20261017_0063_skill_evidence.sql",
+                "20261017_0064_notification_source_open.sql",
+                "20261017_0065_dashboard_refresh.sql",
+                "20261017_0066_news_stored_reader.sql",
+                "20261017_0067_news_read_history.sql",
+                "20261017_0068_reading_news_reference.sql",
+                "20261017_0069_documents_topology.sql",
+                "20261017_0070_documents_topology_actions.sql",
+                "20261017_0071_document_visibility_projection.sql",
+                "20261018_0072_document_export_jobs.sql",
+                "20261018_0073_document_import_jobs.sql",
+                "20261018_0074_dashboard_quick_create.sql",
+                "20261018_0075_discovery_recents.sql",
+                "20261018_0076_discovery_commands.sql",
+                "20261018_0077_goals_progress_history.sql",
+                "20261018_0078_goals_target_management.sql",
+                "20261018_0079_goals_archive.sql",
+                "20261018_0080_worklog_manual.sql",
+                "20261018_0081_worklog_history.sql",
+                "20261018_0082_goals_state_history.sql",
+                "20261018_0083_worklog_trash.sql",
+                "20261018_0084_goals_metadata_history.sql",
+                "20261018_0085_goals_target_history.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);
@@ -117,16 +144,30 @@ public sealed class M01PolicyAndCaptureContractTests
         Assert.Equal("ActionNotGrantable", ActionGrantPolicy.CanGrantAllow("identity.account.register").Code);
         Assert.Equal("ActionNotGrantable", ActionGrantPolicy.CanGrantAllow("access.role.set").Code);
         Assert.False(ActionGrantPolicy.IsAdminGrantable("notifications.dispatch.deliver"));
-        foreach (var action in new[] { "finance.manual_category.create", "notifications.inbox.mark_read", "documents.page.history", "documents.tag.read", "organization.tag.rename", "discovery.search.query" })
+        foreach (var action in new[] { "finance.manual_category.create", "notifications.inbox.mark_read", "documents.page.history", "documents.tag.read", "organization.tag.rename", "discovery.search.query", "documents.page.restore_version", "notifications.source.open", "goals.goal.history", "goals.goal.archive", "goals.goal.unarchive", "goals.target.update", "goals.target.remove" })
         {
             Assert.True(ActionGrantPolicy.IsAdminGrantable(action), action);
             Assert.True(ActionGrantPolicy.CanGrantAllow(action).Allowed, action);
         }
-        foreach (var action in new[] { "documents.page.restore_version", "organization.tag.assign", "notifications.source.open", "notifications.dispatch.publish" })
+        foreach (var action in new[] { "organization.tag.assign", "notifications.dispatch.publish" })
         {
             Assert.False(ActionGrantPolicy.IsAdminGrantable(action), action);
             Assert.False(ActionGrantPolicy.CanGrantAllow(action).Allowed, action);
         }
+    }
+
+    [Theory]
+    [InlineData("goals.goal.history")]
+    [InlineData("goals.goal.archive")]
+    [InlineData("goals.goal.unarchive")]
+    [InlineData("goals.target.update")]
+    [InlineData("goals.target.remove")]
+    public void Installed_goal_actions_are_eligible_without_approving_unshipped_actions(string action)
+    {
+        Assert.True(ActionGrantPolicy.IsApprovedForLocalAction(action));
+        Assert.True(ActionGrantPolicy.IsAdminGrantable(action));
+        Assert.True(ActionGrantPolicy.CanGrantAllow(action).Allowed);
+        Assert.False(ActionGrantPolicy.CanGrantAllow("goals.target.link_task").Allowed);
     }
 
     [Fact]

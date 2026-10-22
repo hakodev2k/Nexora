@@ -546,8 +546,10 @@ public sealed class SqlApiIntegrationTests
             csrf,
             Guid.NewGuid(),
             owner.RawSessionHandle);
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, unsafeDocument.StatusCode);
-        await AssertProblemCodeAsync(unsafeDocument, "UnsafeMarkup");
+        // FX20 Markdown stores literal source; the safe renderer treats HTML as
+        // inert text. Persistence acceptance is separate from renderer XSS proof.
+        Assert.Equal(HttpStatusCode.Created, unsafeDocument.StatusCode);
+        await AssertStringPropertyAsync(unsafeDocument, "body", "<script>alert('x')</script>");
 
         using var createdDocument = await _fixture.SendJsonAsync(
             HttpMethod.Post,

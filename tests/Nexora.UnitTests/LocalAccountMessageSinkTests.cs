@@ -336,6 +336,10 @@ internal static class LocalAccountMessageSinkTests
             RedirectStandardError = true,
             CreateNoWindow = true
         };
+        if (string.Equals(Path.GetFileNameWithoutExtension(processPath), "dotnet", StringComparison.OrdinalIgnoreCase))
+        {
+            startInfo.ArgumentList.Add(typeof(LocalAccountMessageSinkTests).Assembly.Location);
+        }
         startInfo.ArgumentList.Add("--hold-capture");
         startInfo.ArgumentList.Add(path);
 
@@ -349,7 +353,6 @@ internal static class LocalAccountMessageSinkTests
                 .GetResult();
             if (!string.Equals(ready, "ready", StringComparison.Ordinal))
             {
-                process.Dispose();
                 throw new InvalidOperationException("The active-writer probe did not acquire its file lock.");
             }
 

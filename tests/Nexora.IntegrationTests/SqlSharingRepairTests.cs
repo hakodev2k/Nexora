@@ -403,9 +403,13 @@ public sealed class SqlSharingRepairTests
         await fixture.ExecuteAsync("UPDATE [security].[ShareLink] SET ExpiresAt=DATEADD(day,-1,SYSUTCDATETIME()) WHERE Id=@Id", Id("@Id", I(links[0])));
         using (var revoke = await Send(owner, HttpMethod.Delete, $"{Links}/{I(links[1])}", new { }, E(links[1]))) Assert.Equal(HttpStatusCode.NoContent, revoke.StatusCode);
         var expired = await Get(owner, Links + filter + "&state=Expired"); Assert.Single(expired.GetProperty("items").EnumerateArray()); Assert.Equal(I(links[0]), I(expired.GetProperty("items")[0]));
-        // Current PO invalidation deletes the link permanently. Older revoked
-        // diagnostics wording cannot revive it in owner active management.
-        var revoked = await Get(owner, Links + filter + "&state=Revoked"); Assert.Empty(revoked.GetProperty("items").EnumerateArray());
+        // D07 permits owner diagnostic metadata only. It cannot revive the token
+        // or authorize viewer resolution, detail reads or the active list.
+        var revoked = await Get(owner, Links + filter + "&state=Revoked");
+        var revokedItem = Assert.Single(revoked.GetProperty("items").EnumerateArray());
+        Assert.Equal(I(links[1]), I(revokedItem));
+        Assert.False(revokedItem.GetProperty("isActive").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, revokedItem.GetProperty("token").ValueKind);
         Assert.Equal(1, await fixture.ScalarIntAsync("SELECT COUNT(*) FROM [security].[ShareLink] WHERE OwnerId=@Owner AND Id=@Id AND IsDeleted=1 AND RevokedAt IS NOT NULL;", Id("@Owner", owner.OwnerId), Id("@Id", I(links[1]))));
         using (var invalidated = await fixture.SendAuthenticatedAsync(HttpMethod.Get, $"{Links}/{I(links[1])}", owner.RawSessionHandle)) Assert.Equal(HttpStatusCode.NotFound, invalidated.StatusCode);
         using (var invalidatedViewer = await Resolve(links[1])) Assert.Equal(HttpStatusCode.NotFound, invalidatedViewer.StatusCode);
