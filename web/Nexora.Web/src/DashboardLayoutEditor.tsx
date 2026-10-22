@@ -45,6 +45,8 @@ export function DashboardLayoutEditor({ onLayout, onCommit, onUnavailable, onAut
     const stamp = ++epoch.current, controller = new AbortController(); setBusy(true); setError(null); setLoaded(false);
     getDashboardLayout(controller.signal).then(result => {
       if (!mounted.current || stamp !== epoch.current) return;
+      if (!result || !Object.prototype.hasOwnProperty.call(result, 'layout') || result.layout === undefined)
+        throw new NexoraApiError('Phản hồi bố cục không hợp lệ. Hãy tải lại Dashboard.', 502, 'InvalidResponse');
       const next = result.layout ? result.layout.widgets.map(draft) : providers.map(provider => newWidget(provider.key));
       baseline.current = JSON.stringify(next.map(({ localId: _localId, ...widget }) => widget));
       setCurrent(result.layout); setWidgets(next); setLoaded(true); callbacks.current.onLayout(result.layout);

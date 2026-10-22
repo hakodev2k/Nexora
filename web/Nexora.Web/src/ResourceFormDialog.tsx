@@ -18,13 +18,13 @@ export function useResourceDialog<T>(value: T, restore?: (baseline: T) => void) 
 
 export function ResourceFormDialog(props: {
   open: boolean; title: string; busy: boolean; dirty: boolean; closeBlocked?: boolean;
-  onClose: () => void; children: ReactNode;
+  onClose: () => void; children: ReactNode; footer?: ReactNode;
 }) {
   return props.open ? <OpenFormDialog {...props} /> : null;
 }
 
-function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, children }: {
-  title: string; busy: boolean; dirty: boolean; closeBlocked?: boolean; onClose: () => void; children: ReactNode;
+function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, children, footer }: {
+  title: string; busy: boolean; dirty: boolean; closeBlocked?: boolean; onClose: () => void; children: ReactNode; footer?: ReactNode;
 }) {
   const titleId = useId();
   const layer = useRef<HTMLDivElement>(null);
@@ -86,7 +86,7 @@ function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, chi
       {discard ? <div role="alert"><p>Bỏ thay đổi chưa lưu?</p><div className="dialog-actions">
         <button ref={resume} type="button" className="secondary-button" onClick={() => { continuation.current = null; setDiscard(false); }}>Tiếp tục sửa</button>
         <button type="button" className="danger-button" disabled={busy || closeBlocked} onClick={() => { if (state.current.busy || state.current.closeBlocked) return; const proceed = continuation.current; continuation.current = null; onClose(); proceed?.(); }}>Bỏ bản nháp</button>
-      </div></div> : <div className="dialog-actions"><button className="secondary-button" type="button" disabled={busy || closeBlocked} onClick={requestClose}>Hủy</button></div>}
+      </div></div> : <div className="dialog-actions"><button className="secondary-button" type="button" disabled={busy || closeBlocked} onClick={requestClose}>Hủy</button>{footer}</div>}
     </div>
   </div>, document.body);
 }

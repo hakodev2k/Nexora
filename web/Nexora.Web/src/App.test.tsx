@@ -787,9 +787,11 @@ test('Notifications keeps ETags from the list projection for read state and sele
   };
   let items = [unread, read];
   let markReadCalls = 0;
+  let listCalls = 0;
   let deleteCalls = 0;
   server.use(
     http.get('*/api/v1/notifications', ({ request }) => {
+      listCalls += 1;
       const unreadOnly = new URL(request.url).searchParams.get('unreadOnly') === 'true';
       const visible = unreadOnly ? items.filter((item) => item.readAt === null) : items;
       return HttpResponse.json({
@@ -805,7 +807,7 @@ test('Notifications keeps ETags from the list projection for read state and sele
       expect(await request.json()).toEqual({ read: true });
       unread.readAt = '2026-09-01T02:00:00.000Z';
       unread.etag = '"ERITFBUWFxg="';
-      return HttpResponse.json(unread);
+      return HttpResponse.json({ id: unread.id, committed: true, detailAvailable: false });
     }),
     http.post('*/api/v1/notifications/delete', async ({ request }) => {
       deleteCalls += 1;
@@ -820,7 +822,11 @@ test('Notifications keeps ETags from the list projection for read state and sele
   expect(await screen.findByRole('heading', { name: 'Notifications' })).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Đánh dấu đã đọc' }));
   await waitFor(() => expect(markReadCalls).toBe(1));
-  expect(screen.getAllByRole('button', { name: 'Đánh dấu chưa đọc' })).toHaveLength(2);
+  await screen.findByRole('heading', { name: 'Chi tiết Inbox hiện không khả dụng' });
+  expect(screen.queryByText(unread.title)).not.toBeInTheDocument();
+  expect(listCalls).toBe(1);
+  await user.click(screen.getByRole('button', { name: 'Tải lại' }));
+  await waitFor(() => expect(screen.getAllByRole('button', { name: 'Đánh dấu chưa đọc' })).toHaveLength(2));
   expect(screen.getByText('Chỉ chưa đọc (0)')).toBeInTheDocument();
 
   await user.click(screen.getByRole('checkbox', { name: 'Chọn Read synthetic notice' }));
@@ -830,8 +836,9 @@ test('Notifications keeps ETags from the list projection for read state and sele
   const deleteDialog = screen.getByRole('dialog', { name: 'Xóa 1 mục khỏi Inbox?' });
   await user.click(within(deleteDialog).getByRole('button', { name: 'Xóa mục đã chọn' }));
   await waitFor(() => expect(deleteCalls).toBe(1));
-  expect(screen.queryByText(read.title)).not.toBeInTheDocument();
-  expect(screen.getByText(unread.title)).toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByText(read.title)).not.toBeInTheDocument());
+  expect(screen.queryByText(unread.title)).not.toBeInTheDocument();
+  expect(listCalls).toBe(2);
 });
 
 test('an authenticated share link resumes after sign-in without placing its capability token in a login URL or browser storage', async () => {

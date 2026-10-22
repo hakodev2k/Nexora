@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HttpResponse, http } from 'msw';
 import { afterEach, expect, test, vi } from 'vitest';
@@ -55,6 +55,8 @@ function emptyReadModel({ request }: { request: Request }) {
       return HttpResponse.json({ 'reading.queue.read': true, ...Object.fromEntries(['save','mark_read','mark_unread','update_position','remove'].map(action => ['reading.item.' + action, true])) });
     case '/api/v1/files/capabilities':
       return HttpResponse.json({ 'files.file.read': true, 'files.file.upload': true, 'files.file.download': true });
+    case '/api/v1/dashboard/layout':
+      return HttpResponse.json({ layout: null });
     case '/api/v1/dashboard':
       return HttpResponse.json({ timeZoneId: 'Etc/UTC', generatedAt: '2026-09-29T00:00:00.000Z', widgets: [] });
     case '/api/v1/search':
@@ -196,4 +198,65 @@ test('a revoked module entry reports unavailability instead of claiming a grant'
   }));
   expect(await screen.findByRole('heading', { name: 'Module unavailable' })).toBeVisible();
   expect(screen.queryByText(/Server đã cấp module này/)).not.toBeInTheDocument();
+});
+
+
+test('Home settles once and retains its layout when equivalent profile objects rerender', async () => {
+  let layouts = 0;
+  server.use(http.get('*/api/v1/dashboard/layout', () => { layouts += 1; return HttpResponse.json({ layout: null }); }), http.get(/\/api\/v1\/.*/, emptyReadModel));
+  const profile = enabledProfile();
+  const props = { profile, location: { screen: 'home' } as LocationState, navigate: vi.fn(), onLogout: async () => undefined, onProfileUpdated: vi.fn(), onThemeChanged: vi.fn(), onAuthLost: async () => undefined };
+  const view = render(<Shell {...props} />);
+  await waitFor(() => expect(screen.queryByText('Đang tải các widget…')).not.toBeInTheDocument());
+  expect(screen.getAllByRole('heading', { name: 'Tạo mới' })).toHaveLength(1);
+  view.rerender(<Shell {...props} profile={{ ...profile, modules: profile.modules.map(module => ({ ...module })) }} onAuthLost={async () => undefined} />);
+  await waitFor(() => expect(screen.queryByText('Đang tải các widget…')).not.toBeInTheDocument());
+  expect(layouts).toBe(1);
+});
+
+test('Malformed Dashboard layout settles to an actionable error instead of a permanent spinner', async () => {
+  server.use(http.get('*/api/v1/dashboard/layout', () => HttpResponse.json({ items: [] })), http.get(/\/api\/v1\/.*/, emptyReadModel));
+  renderEnabledShell({ screen: 'home' });
+  expect(await screen.findByRole('alert')).toHaveTextContent('Phản hồi bố cục không hợp lệ');
+  await waitFor(() => expect(screen.queryByText('Đang tải các widget…')).not.toBeInTheDocument());
+});
+
+test('Finance create dialogs have one heading and a form-associated shared footer', async () => {
+  const user = userEvent.setup(); server.use(http.get(/\/api\/v1\/.*/, emptyReadModel));
+  renderEnabledShell({ screen: 'finance' });
+  await user.click(await screen.findByRole('button', { name: 'Thêm category' }));
+  const dialog = screen.getByRole('dialog', { name: 'Category mới' });
+  expect(within(dialog).getAllByRole('heading', { name: 'Category mới' })).toHaveLength(1);
+  const submit = within(dialog).getByRole('button', { name: 'Tạo category' });
+  expect(submit).toHaveAttribute('form', 'finance-category-form');
+  expect(within(dialog).getByRole('button', { name: 'Hủy' })).toBeEnabled();
+});
+
+test('Account disclosure Escape closes the menu and restores focus to its summary', async () => {
+  const user = userEvent.setup(); server.use(http.get(/\/api\/v1\/.*/, emptyReadModel));
+  const { container } = renderEnabledShell({ screen: 'finance' });
+  const summary = container.querySelector('details.account-menu summary') as HTMLElement;
+  await user.click(summary);
+  expect(summary.closest('details')).toHaveAttribute('open');
+  await user.keyboard('{Escape}');
+  expect(summary.closest('details')).not.toHaveAttribute('open');
+  expect(summary).toHaveFocus();
+});
+
+test('Finance category draft is locked while save is in flight and survives recoverable failure', async () => {
+  const user = userEvent.setup(); let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  server.use(http.get(/\/api\/v1\/.*/, emptyReadModel),
+    http.post('*/api/v1/finance/categories', async () => { await pending; return HttpResponse.json({ code: 'ValidationFailed', title: 'Please correct category.' }, { status: 422 }); }),
+    http.get('*/api/v1/auth/csrf', () => HttpResponse.json({ requestToken: 'synthetic-component-csrf', tokenType: 'csrf', expiresInSeconds: 60 })));
+  renderEnabledShell({ screen: 'finance' });
+  await user.click(await screen.findByRole('button', { name: 'Thêm category' }));
+  const title = screen.getByRole('textbox', { name: 'Tên category' });
+  await user.type(title, 'Pending category');
+  await user.click(screen.getByRole('button', { name: 'Tạo category' }));
+  await waitFor(() => expect(title).toBeDisabled());
+  release();
+  await waitFor(() => expect(title).toBeEnabled());
+  expect(title).toHaveValue('Pending category');
+  expect(within(screen.getByRole('dialog', { name: 'Category mới' })).getByRole('alert')).toHaveTextContent('Please correct category.');
 });

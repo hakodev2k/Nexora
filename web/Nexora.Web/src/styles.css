@@ -2023,3 +2023,28 @@ progress::-moz-progress-bar {
 .skip-link:focus { top: .5rem; }
 .dashboard-widget-wide { grid-column: span 2; }
 @media (max-width: 640px) { .dashboard-widget-wide { grid-column: span 1; } }
+
+/* Reflow at the actual component boundaries rather than clipping the page. */
+.app-shell, .shell-main, .content-section, .module-grid, .resource-layout,
+.module-grid > *, .resource-layout > *, .resource-card, .resource-card > *,
+.form-panel, .form-panel fieldset { min-width: 0; }
+.form-panel fieldset { max-width: 100%; }
+.module-card h3, .content-heading h1, .resource-card p { overflow-wrap: anywhere; }
+.form-panel input:not([type="checkbox"]), .form-panel select, .form-panel textarea { max-width: 100%; min-width: 0; }
+.account-menu { position: relative; margin-inline-start: auto; min-width: 0; }
+.account-menu > summary { cursor: pointer; padding: .6rem .8rem; border: 1px solid var(--border-color, #c9d3e3); border-radius: .6rem; font-weight: 600; }
+.account-menu-panel { position: absolute; right: 0; z-index: 25; background: var(--surface, #fff); border: 1px solid var(--border-color, #c9d3e3); border-radius: .75rem; padding: 1rem; width: min(20rem, calc(100vw - 2rem)); box-shadow: 0 12px 32px #0002; }
+.account-menu-panel .signed-in { overflow-wrap: anywhere; }
+.account-menu summary:focus-visible { outline: 3px solid #4078e8; outline-offset: 3px; }
+@media (max-width: 768px) {
+  .shell-header { align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .shell-header > .secondary-button { flex: 1 1 11rem; white-space: normal; padding: .55rem; }
+  .account-menu { flex: 0 0 auto; }
+  .account-menu-panel { max-width: calc(100vw - 2rem); }
+  .module-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+:root[data-theme="dark"] .account-menu-panel { background: #17243b; border-color: #344661; }
+
+.admin-user-row span, .admin-module-row small, .grant-list span { color: #516079; }
+:root[data-theme="dark"] .admin-user-row span, :root[data-theme="dark"] .admin-module-row small, :root[data-theme="dark"] .grant-list span { color: #b5c6de; }
