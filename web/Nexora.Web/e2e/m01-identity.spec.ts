@@ -1,3 +1,4 @@
+import { safeStep } from './safe-step';
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import AxeBuilder from '@axe-core/playwright';
@@ -89,66 +90,83 @@ test('M01 register, local capture, verify, login, and keyboard-visible controls'
   const result = await new AxeBuilder({ page }).include('main').analyze();
   expect(result.violations).toEqual([]);
 
-  await registerVerifyAndLogin(page);
-  await expect(page.getByText('PERSONAL SPACE')).toBeVisible();
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
-  await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true });
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-
-  await page.goto('/search');
-  await expect(page.getByRole('heading', { name: 'Bắt đầu tìm kiếm', level: 2 })).toBeVisible();
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-
-  await page.goto('/modules/FX22');
-  await page.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic contrast regression');
-  await page.getByLabel('Language', { exact: true }).fill('javascript');
-  await page.getByLabel('Source code / text', { exact: true }).fill('const answer = 42;');
-  await page.getByRole('button', { name: 'Tạo snippet', exact: true }).click();
-  await expect(page.locator('.snippet-code code')).toHaveText('const answer = 42;');
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-
-  await page.goto('/settings/security');
-  await expect(page.locator('table tbody tr')).toHaveCount(1);
-  await page.setViewportSize({ width: 360, height: 800 });
-  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  for (const { route, width, height } of [
-    { route: '/modules/FX24', width: 320, height: 568 },
-    { route: '/modules/FX11', width: 768, height: 1024 },
-    { route: '/modules/FX12', width: 768, height: 1024 },
-    { route: '/modules/FX13', width: 768, height: 1024 }
-  ]) {
-    await page.setViewportSize({ width, height });
-    await page.goto(route);
-    await expect(page.locator('main h1')).toBeVisible();
+  await safeStep('IDENTITY_REGISTER_VERIFY_LOGIN', () => registerVerifyAndLogin(page));
+  await safeStep('IDENTITY_HOME', async () => {
+    await expect(page.locator('main #home-title')).toBeVisible();
+    const profile = await page.request.get('/api/v1/me');
+    expect(profile.ok()).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath('home.png'), fullPage: true });
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+  await safeStep('IDENTITY_SEARCH', async () => {
+    await page.goto('/search');
+    await expect(page.getByRole('heading', { name: 'Bắt đầu tìm kiếm', level: 2 })).toBeVisible();
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+  await safeStep('IDENTITY_SNIPPET', async () => {
+    await page.goto('/modules/FX22');
+    await page.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic contrast regression');
+    await page.getByLabel('Language', { exact: true }).fill('javascript');
+    await page.getByLabel('Source code / text', { exact: true }).fill('const answer = 42;');
+    await page.getByRole('button', { name: 'Tạo snippet', exact: true }).click();
+    await expect(page.locator('.snippet-code code')).toHaveText('const answer = 42;');
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+  await safeStep('IDENTITY_SECURITY', async () => {
+    await page.goto('/settings/security');
+    await expect(page.locator('table tbody tr')).toHaveCount(1);
+    await page.setViewportSize({ width: 360, height: 800 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  }
+    expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+  });
+  await safeStep('IDENTITY_REFLOW', async () => {
+    for (const { route, width, height } of [
+      { route: '/modules/FX24', width: 320, height: 568 },
+      { route: '/modules/FX11', width: 768, height: 1024 },
+      { route: '/modules/FX12', width: 768, height: 1024 },
+      { route: '/modules/FX13', width: 768, height: 1024 }
+    ]) {
+      await page.setViewportSize({ width, height });
+      await page.goto(route);
+      await expect(page.locator('main h1')).toBeVisible();
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+  });
 });
 
 test('M01 password reset uses the local operator boundary and does not auto-login', async ({ page }) => {
-  const account = await registerVerifyAndLogin(page);
+  const account = await safeStep('IDENTITY_REGISTER_VERIFY_LOGIN', () => registerVerifyAndLogin(page));
+  await safeStep('RESET_LOGOUT', async () => {
+    const accountMenu = page.locator('details.account-menu');
+    await accountMenu.locator('summary').click();
+    await expect(accountMenu).toHaveAttribute('open', '');
+    await accountMenu.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
+    await expect(page).toHaveURL('/login');
+  });
+  const resetCode = await safeStep('RESET_REQUEST', async () => {
+    await page.goto('/password/forgot');
+    await page.getByLabel('Email').fill(account.email);
+    const previousCodes = new Set(readSyntheticCodes('PasswordReset'));
+    await page.getByRole('button', { name: 'Gửi yêu cầu reset' }).click();
+    await expect(page.getByText('Đã tiếp nhận yêu cầu')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Đăng xuất', exact: true }).click();
-  await expect(page).toHaveURL('/login');
+    const resetCode = await waitForSyntheticCode('PasswordReset', previousCodes);
+    await page.getByRole('button', { name: 'Nhập mã reset' }).click();
+    return resetCode;
+  });
+  await safeStep('RESET_COMMIT_LOGIN', async () => {
+    const replacementPassword = syntheticPassword(true);
+    await page.getByLabel('Mã reset').fill(resetCode);
+    await page.getByLabel('Mật khẩu mới', { exact: true }).fill(replacementPassword);
+    await page.getByLabel('Nhập lại mật khẩu mới').fill(replacementPassword);
+    await page.getByRole('button', { name: 'Đặt mật khẩu mới' }).click();
 
-  await page.goto('/password/forgot');
-  await page.getByLabel('Email').fill(account.email);
-  const previousCodes = new Set(readSyntheticCodes('PasswordReset'));
-  await page.getByRole('button', { name: 'Gửi yêu cầu reset' }).click();
-  await expect(page.getByText('Đã tiếp nhận yêu cầu')).toBeVisible();
-
-  const resetCode = await waitForSyntheticCode('PasswordReset', previousCodes);
-  await page.getByRole('button', { name: 'Nhập mã reset' }).click();
-  const replacementPassword = syntheticPassword(true);
-  await page.getByLabel('Mã reset').fill(resetCode);
-  await page.getByLabel('Mật khẩu mới', { exact: true }).fill(replacementPassword);
-  await page.getByLabel('Nhập lại mật khẩu mới').fill(replacementPassword);
-  await page.getByRole('button', { name: 'Đặt mật khẩu mới' }).click();
-
-  await expect(page).toHaveURL('/login');
-  await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
-  await page.getByLabel('Email').fill(account.email);
-  await page.getByLabel('Mật khẩu').fill(replacementPassword);
-  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
-  await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL('/login');
+    await expect(page.getByRole('heading', { name: 'Đăng nhập' })).toBeVisible();
+    await page.getByLabel('Email').fill(account.email);
+    await page.getByLabel('Mật khẩu').fill(replacementPassword);
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+    await expect(page).toHaveURL('/');
+  });
 });

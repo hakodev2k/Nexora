@@ -8,6 +8,13 @@ on:
       - 'web/Nexora.Web/e2e/pr4-uiux-audit.spec.ts'
       - 'web/Nexora.Web/playwright.ux-audit.config.ts'
       - 'scripts/dev/start-e2e-target.py'
+      - 'scripts/dev/stop-e2e-target.py'
+      - 'web/Nexora.Web/src/**'
+      - 'web/Nexora.Web/package*.json'
+      - 'web/Nexora.Web/playwright.config.ts'
+      - 'src/**'
+      - 'database/migrations/**'
+      - 'tests/Nexora.FunctionalTestOperator/**'
   workflow_dispatch:
 
 concurrency:

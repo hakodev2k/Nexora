@@ -1527,10 +1527,10 @@ export function SharedResourceScreen({ token, onLogin }: { token?: string; onLog
   }, [token]);
 
   return (
-    <div className="full-page-state shared-resource-page">
+    <main className="full-page-state shared-resource-page">
       <div className="loading-mark" aria-hidden="true">N</div>
       {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p>{onLogin ? <button className="secondary-button" type="button" onClick={onLogin}>Đăng nhập để kiểm tra quyền</button> : <p className="field-help">Nếu đây là link yêu cầu tài khoản, hãy đăng xuất rồi đăng nhập bằng account có quyền truy cập.</p>}</> : resource ? <SharedProjectionContent resource={resource} dateTime={dateTime} sharedCriteriaText={sharedCriteriaText} /> : <><h1>Không có nội dung</h1></>}
-    </div>
+    </main>
   );
 }
 

@@ -50,7 +50,17 @@ def sanitize_junit(path):
         for child in list(node):
             if child.tag in ('system-out', 'system-err', 'properties', 'attachments'): node.remove(child)
         if node.tag in ('failure', 'error', 'skipped'):
-            node.clear(); node.text = 'Browser assertion failed. Secret-bearing call logs are excluded from uploaded evidence.'
+            # Retain only source-owned stage codes, never arbitrary call-log text.
+            allowed = {'IDENTITY_REGISTER_VERIFY_LOGIN', 'IDENTITY_HOME', 'IDENTITY_SEARCH',
+                       'IDENTITY_SNIPPET', 'IDENTITY_SECURITY', 'IDENTITY_REFLOW',
+                       'RESET_LOGOUT', 'RESET_REQUEST', 'RESET_COMMIT_LOGIN', 'GOAL_LOGIN',
+                       'GOAL_CREATE', 'GOAL_PROGRESS', 'GOAL_LIFECYCLE', 'GOAL_PERSISTENCE'}
+            raw = ''.join(node.itertext())
+            codes = re.findall(r'NEXORA_E2E_STEP\[([A-Z_]+)\]', raw)
+            codes += re.findall(r'^Safe failing stage: ([A-Z_]+) Secret-bearing call logs are excluded from uploaded evidence\.$', raw)
+            stage = next((code for code in codes if code in allowed), None)
+            node.clear()
+            node.text = ('Safe failing stage: ' + stage if stage else 'Browser assertion failed.') + ' Secret-bearing call logs are excluded from uploaded evidence.'
     tree.write(path, encoding='utf-8', xml_declaration=True)
 
 def main():

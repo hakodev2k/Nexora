@@ -31,6 +31,8 @@ if (
 
 export default defineConfig({
   testDir: './e2e',
+  // The nine mandatory area shards use playwright.ux-audit.config.ts (240s each).
+  testIgnore: '**/pr4-uiux-audit.spec.ts',
   outputDir: 'artifacts/playwright-output',
   timeout: 45_000,
   expect: { timeout: 10_000 },

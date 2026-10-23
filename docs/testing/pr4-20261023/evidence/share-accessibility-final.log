@@ -1,0 +1,12 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.0 /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web
+
+ ✓ src/SharedResourceAccessibility.test.tsx (3 tests) 364ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  23:37:46
+   Duration  2.91s (transform 54%, environment 20%, tests 13%, import 7%, setup 6%)
+
+JUNIT report written to /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web/artifacts/vitest-junit.xml

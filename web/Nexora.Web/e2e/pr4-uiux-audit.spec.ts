@@ -125,6 +125,27 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
   page.on('pageerror', onError);
   try {
     const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 25_000 });
+    // FX25-S02 is a dialog surface; its empty inert background is not a page.
+    if (route === '/command-palette') {
+      const dialog = page.getByRole('dialog', { name: 'Command Palette', exact: true });
+      const query = dialog.getByRole('combobox', { name: 'Tìm lệnh hoặc nguồn', exact: true });
+      await expect(dialog).toBeVisible();
+      await expect(query).toBeFocused();
+      await expect(query).toHaveAttribute('aria-expanded', 'true');
+      await expect(dialog.getByRole('listbox', { name: 'Lệnh và nguồn khả dụng' })).toBeAttached();
+      const axe = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+      for (const v of axe.violations) out.findings.push(finding('AXE_' + v.id, 'P2', 'Dialog axe rule ' + v.id + ' affects ' + v.nodes.length + ' elements'));
+      out.screenshot = await screenshot(page, persona, route, 'dialog');
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(page).toHaveURL('/');
+      await expect(page.locator('main #home-title')).toBeVisible();
+      const focusOutsideClosedDialog = await page.evaluate(() => !!document.activeElement && !document.activeElement.closest('[role="dialog"]'));
+      expect(focusOutsideClosedDialog).toBe(true);
+      out.checks = { statusCode: response?.status() ?? 0, modalContract: true, namedCombobox: true, initialFocus: true, escapeCloses: true, homeRestored: true, focusOutsideClosedDialog, axeViolations: axe.violations.length, jsErrors };
+      out.status = 'AUTO_PROBED';
+      return out;
+    }
     const hasMain = await page.locator('main').first().waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
     if (!hasMain) {
       out.findings.push(finding('NO_MAIN_LANDMARK', 'P1', 'No visible main; could be a modal-only route or an incomplete public error state'));
