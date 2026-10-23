@@ -213,7 +213,7 @@ Reviewed checkpoint SHA256:
 | web/Nexora.Web/src/App.tsx | 8df8ac7d552a83e32ceb21d3617ca2ee33a302500fc060f0906e0f87e1b10db1 |
 | web/Nexora.Web/src/SharedResourceAccessibility.test.tsx | d6b9eea5130ccb9fee85421aa240231e422001509353964cd5a48fddf921a66a |
 | tests/Nexora.IntegrationTests/SqlReleaseCoverageTests.cs | af66816d2c3ba30cbc296df17426dea18f88b7e6fbf3ae44b93e09a183ddea3c |
-| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 06455e2e1319ded76b870765b6b45351a32dacd2f00aec5b5351e5598e2a5e95 |
+| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 24c318e37b4770296924edacb44257c174463967f7ac2181193eb4d36de267b0 |
 | tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs | 98850cc4a5721a0af27d665d34c950fb7d00f969ae3710b90b5476260aa707d5 |
 
 Hashes bind source review only and must be refreshed if author changes it. No SQL,
@@ -257,3 +257,17 @@ Reviewer suggested watching UnsafeFileRestore: unmodified FileSecurity snapshot
 may have no dirty sections to persist; force owned original ACL restoration if
 confirmed. This is a source hypothesis awaiting exact runtime failure stage.
 Current Windows source hash above includes diagnostics, not an acceptance pass.
+
+### W08 restoration follow-up — source-resolved, rerun pending
+
+Parent reports actual7832 job120607343377 failed specifically at
+reject-insecure/UnsafeFileRestore, confirming the suspected unchanged-descriptor
+fixture issue. Reviewer reread73951b correction: original DACL SDDL is explicitly
+set with AccessControlSections.Access on the captured FileSecurity before
+SetAccessControl. This marks only the owned fixture DACL for restoration; the
+strict final CheckPrivatePolicy remains. No capture policy, foreign denial or
+expected rejection assertion is weakened. Tiny test-fixture fix source-approved.
+Windows SHA256 above refreshed to24c318e37b4770296924edacb44257c174463967f7ac2181193eb4d36de267b0.
+LatestCI40010021330 is underway per parent; actual full Windows runtime outcome
+remains pending. Parent reports local git object/metadata repair and passing
+diff whitespace check; reviewer did not mutate git or implementation source.

@@ -34,3 +34,7 @@ Discovery and build are not browser execution. Updated real SQL browser runtime 
 Baseline 28 = 10 non-audit cases + 18 scanner cases. Updated suites contain 12 non-audit + 18 dedicated scanner cases = 30 planned distinct executions. Removing duplicate discovery from the wrong configuration is not improved coverage or a passing result. Six of the 12 non-audit cases are real identity/reset/Goals journeys; bootstrap and smoke cases use controlled dependency fixtures. Scanner route probes are not full CRUD/business acceptance.
 
 Project/Task, Docs, Finance and Tags still need additional populated real browser workflows; this bounded change does not claim those features' complete E2E acceptance. Goals cross-owner/revocation/concurrency/receipt security, Boolean target management, target removal/preview and all lifecycle variants are not exercised by this browser scenario. Existing backend/API evidence must be reported separately. Full logic/E2E coverage and R1 completion remain unproven.
+
+## Parent execution follow-up
+
+See [continued-20261024.md](continued-20261024.md) for actual CI execution after this source checkpoint. Original pending/blocked statements above describe the author checkpoint and are retained as history.

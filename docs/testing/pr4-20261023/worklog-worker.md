@@ -29,3 +29,7 @@ New file: `tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs`, **9 SQL/HT
 ## Limits
 
 This is a bounded manual WorkLog suite, not complete FX40 coverage. Cursor pagination/tamper, preview expiry/reference changes and multiwriter lock schedules, legacy HistoryStarted baseline, injected rollback failures, and UI focus/dirty/uncertainty remain separate evidence gaps. No claim of TimeEntry/source-link deduplication, global Trash registration, learning plans, certifications, or complete Release1 acceptance.
+
+## Parent execution follow-up
+
+See [continued-20261024.md](continued-20261024.md) for actual CI execution after this source checkpoint. Original pending/blocked statements above describe the author checkpoint and are retained as history.

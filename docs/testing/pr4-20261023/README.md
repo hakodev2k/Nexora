@@ -61,3 +61,7 @@ as failures; overlapping focused suites are not additive coverage. Synthetic rea
 SQL/API/browser and controlled HTTP component evidence remain distinct.
 Every source popup/page not exercised stays explicitly unverified. AllR1 scope
 and completion remains separate from this testing continuation.
+
+## Continued execution
+
+See [continued-20261024.md](continued-20261024.md) for subsequent actual CI outcomes, failures and fixes. This starting report and the40FX matrix bind the original baseline, not a complete final coverage certification. [windows-worker.md](windows-worker.md) records the actual Windows process workstream.

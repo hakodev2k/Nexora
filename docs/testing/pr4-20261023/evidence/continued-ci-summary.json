@@ -1,0 +1,58 @@
+{
+  "source": "73951b869a0bf1eaa32a7ddd52b63d401b56f9b3",
+  "merge": "79579dbb07f9f513f6a6d6c159255b5b947acba0",
+  "run": 40010021330,
+  "jobs": [
+    {
+      "id": 120607685352,
+      "name": "frontend-unit",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 120607685364,
+      "name": "sql-api-integration",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 120607685592,
+      "name": "browser-e2e",
+      "status": "in_progress",
+      "conclusion": null
+    },
+    {
+      "id": 120607685680,
+      "name": "filesystem-windows-acl",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 120607685690,
+      "name": "backend-unit",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 120607685691,
+      "name": "filesystem-linux",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "sql": {
+    "passed": 283,
+    "failed": 0,
+    "skipped": 0,
+    "summary": [
+      "2026-10-23T19:19:57.4021554Z Passed!  - Failed:     0, Passed:   283, Skipped:     0, Total:   283, Duration: 2 m 34 s - Nexora.IntegrationTests.dll (net10.0)"
+    ]
+  },
+  "browserEarlier": {
+    "source": "f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "mainRun": 39907458765,
+    "passed": 12,
+    "uiuxRun": 39907453019,
+    "uiuxPassed": 18
+  }
+}

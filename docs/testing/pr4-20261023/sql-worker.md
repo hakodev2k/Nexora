@@ -25,3 +25,7 @@ The existing `SqlTagPaginationTests.Completed_Tag_mutations_replay_without_a_sec
 ## Remaining coverage
 
 This bounded addition is not complete feature coverage. It does not establish every Goal prior archive state, legacy missing prior, target preview expiry/tamper/cross-owner/stale token, target history rollback/pagination, all SQL provider/content/version/import/stored-reader branches, or every implemented feature's logic/UI/E2E matrix. Those remain separate evidence gaps unless other suites supply executed evidence. D01–D09 semantics remain unchanged.
+
+## Parent execution follow-up
+
+See [continued-20261024.md](continued-20261024.md) for actual CI execution after this source checkpoint. Original pending/blocked statements above describe the author checkpoint and are retained as history.
