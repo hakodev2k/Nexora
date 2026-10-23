@@ -192,7 +192,7 @@ public sealed class SqlReleaseCoverageTests(SqlApiFixture fixture)
         var path = $"/api/v1/goals/{id}/targets/{targetId}";
         var etag = GoalEtag(detail);
         object change = mode == "Update"
-            ? new { mode, title = "Changed synthetic target", initialValue = (decimal?)0m, targetValue = (decimal?)20m }
+            ? new { mode, title = (string?)"Changed synthetic target", initialValue = (decimal?)0m, targetValue = (decimal?)20m }
             : new { mode, title = (string?)null, initialValue = (decimal?)null, targetValue = (decimal?)null };
         using (var unset = await Send(session, HttpMethod.Post, path + "/change-preview", change, etag: etag))
             await Problem(unset, "ModuleUnavailable");

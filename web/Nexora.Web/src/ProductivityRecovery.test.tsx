@@ -79,7 +79,7 @@ test('Focus read capability revocation clears open private preference draft', as
 });
 test('Focus preference action loss clears draft independently from session read', async () => {
   const user = userEvent.setup(); render(<FocusScreen onAuthLost={vi.fn()} />); await user.click(await screen.findByRole('button', { name: 'Edit focus preferences' }));
-  vi.mocked(focus.focusCapabilities).mockResolvedValue({ ...focusCaps, 'focus.preference.update': false }); const pending = deferred<{ items: focus.FocusSession[]; nextCursor: string | null }>(); vi.mocked(focus.focusList).mockReturnValue(pending.promise); fireEvent.click(screen.getByText('Tải lại')); await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument()); expect(screen.getByRole('heading', { name: 'Active phase' })).toBeInTheDocument(); await act(async () => { pending.resolve({ items: [], nextCursor: null }); });
+  vi.mocked(focus.focusCapabilities).mockResolvedValue({ ...focusCaps, 'focus.preference.update': false }); const pending = deferred<{ items: focus.FocusSession[]; nextCursor: string | null }>(); vi.mocked(focus.focusList).mockReturnValue(pending.promise); fireEvent.click(screen.getByText('Tải lại')); await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument()); expect(await screen.findByRole('heading', { name: 'Active phase' })).toBeInTheDocument(); await act(async () => { pending.resolve({ items: [], nextCursor: null }); });
 });
 test('Focus does not start a second poll while the first is pending', async () => {
   vi.useFakeTimers();

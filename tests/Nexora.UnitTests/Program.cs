@@ -13,6 +13,11 @@ if (args.Length == 2 && string.Equals(args[0], "--hold-capture", StringCompariso
     return LocalAccountMessageSinkTests.HoldCaptureProcess(args[1]);
 }
 
+if (args.Length == 2 && string.Equals(args[0], "--windows-capture-probe", StringComparison.Ordinal))
+{
+    return WindowsCaptureProcessTests.Probe(args[1]);
+}
+
 var runner = new TestRunner();
 ModulePolicyStoreTests.Register(runner);
 LocalAccountMessageSinkTests.Register(runner);

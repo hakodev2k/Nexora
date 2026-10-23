@@ -15,10 +15,7 @@ internal static class LocalAccountMessageSinkTests
     {
         runner.AddWindows("local capture retains stable configured runtime and operator ACL policy", RunWindowsAclPolicyAssertionsIfSupported);
 
-        runner.Skip(
-            "local capture verifies Windows A/B/C with actual process identities",
-            "requires a configured runtime process, operator process, and foreign principal; a SID argument in one process is not evidence of this boundary.",
-            "windows");
+        runner.AddWindows("local capture verifies Windows A/B/C with actual process identities", WindowsCaptureProcessTests.Run);
 
         runner.Add("local capture removes only old malformed owned JSON and keeps foreign names", () =>
         {
