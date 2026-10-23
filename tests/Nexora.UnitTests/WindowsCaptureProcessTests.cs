@@ -192,7 +192,7 @@ internal static class WindowsCaptureHarness
                 if (process.HasExited)
                 {
                     var diagnostic = stderr.GetAwaiter().GetResult().Trim();
-                    var stage = new[] { "Configuration", "Identity", "Control", "Scenario", "Report" }.FirstOrDefault(x => diagnostic == "NEXORA_ACL_STAGE:" + x) ?? "Unknown";
+                    var stage = SafeStage(diagnostic);
                     throw new ProbeFailureException(ProbeFailureKind.Protocol, "Native probe scenario=" + config.Scenario + " handshake stage=" + stage + " failed.");
                 }
                 Require(startup.Elapsed < TimeSpan.FromSeconds(30), "W02 child identity handshake missing.");
@@ -209,7 +209,7 @@ internal static class WindowsCaptureHarness
             if (process.ExitCode != 0)
             {
                 var diagnostic = stderr.GetAwaiter().GetResult().Trim();
-                var stage = new[] { "Configuration", "Identity", "Control", "Scenario", "Report" }.FirstOrDefault(x => diagnostic == "NEXORA_ACL_STAGE:" + x) ?? "Unknown";
+                var stage = SafeStage(diagnostic);
                 throw new ProbeFailureException(ProbeFailureKind.Protocol, "Native probe scenario=" + config.Scenario + " stage=" + stage + " failed.");
             }
             phase = "report";
@@ -233,6 +233,13 @@ internal static class WindowsCaptureHarness
             _ = stdout.GetAwaiter().GetResult(); _ = stderr.GetAwaiter().GetResult();
             File.Delete(configPath); File.Delete(config.Report + ".ready"); File.Delete(config.Report + ".ready.tmp");
         }
+    }
+
+    private static string SafeStage(string diagnostic)
+    {
+        string[] allowed = ["Configuration", "Identity", "Control", "Scenario", "Report", "ExplicitCreate", "ExplicitInitialize", "ExplicitRead", "ExplicitCleanup", "InheritedCreate", "InheritedInitialize", "InheritedRead", "InheritedCleanup", "UnsafeFileSetup", "UnsafeFileRead", "UnsafeFileRestore"];
+        var lines = diagnostic.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+        return allowed.FirstOrDefault(x => lines.Contains("NEXORA_ACL_STAGE:" + x, StringComparer.Ordinal)) ?? "Unknown";
     }
 
     private static void ValidateReport(ProbeReport report, Config config, Account account, int pid, DateTime created)
@@ -321,7 +328,7 @@ internal static class WindowsCaptureHarness
                 case "deny-pending": NativeDeny(capture, pending, sid, checks); break;
                 case "deny-final": NativeDeny(capture, final, sid, checks); break;
                 case "reject-insecure":
-                    InsecureFixtures(c); break;
+                    InsecureFixtures(c, value => stage = value); break;
                 case "hang":
                     Thread.Sleep(Timeout.Infinite); break;
                 case "sweep-crashed-temporary":
@@ -377,24 +384,29 @@ internal static class WindowsCaptureHarness
         Require(allowed.Count == 0, "W03 runtime/operator FullControl entries missing.");
     }
 
-    private static void InsecureFixtures(Config c)
+    private static void InsecureFixtures(Config c, Action<string> stage)
     {
         foreach (var inherited in new[] { false, true })
         {
+            stage(inherited ? "InheritedCreate" : "ExplicitCreate");
             var path = Path.Combine(c.Root, inherited ? "unsafe-inherited" : "unsafe-explicit"); Directory.CreateDirectory(path);
             if (!inherited) SetDirectoryAcl(path, [(new SecurityIdentifier(c.RuntimeSid), FileSystemRights.FullControl), (new SecurityIdentifier(c.OperatorSid), FileSystemRights.FullControl), (new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null), FileSystemRights.ReadAndExecute)]);
             var before = new DirectoryInfo(path).GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access);
+            stage(inherited ? "InheritedInitialize" : "ExplicitInitialize");
             var rejected = false;
             try { _ = new LocalAccountMessageSink(path, c.Root, NullLogger<LocalAccountMessageSink>.Instance, c.OperatorSid, c.RuntimeSid); }
             catch (InvalidOperationException) { rejected = true; }
             Require(rejected && before == new DirectoryInfo(path).GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access), "W08 insecure directory was accepted or silently repaired.");
+            stage(inherited ? "InheritedRead" : "ExplicitRead");
             rejected = false;
             try { _ = LocalAccountMessageSink.ReadCaptured(path, operatorSid: c.OperatorSid, runtimeSid: c.RuntimeSid); }
             catch (InvalidOperationException) { rejected = true; }
             Require(rejected && before == new DirectoryInfo(path).GetAccessControl(AccessControlSections.Access).GetSecurityDescriptorSddlForm(AccessControlSections.Access), "W08 insecure directory read was accepted or repaired.");
             // A created these fixtures and owns deletion rights even where B intentionally has read only.
+            stage(inherited ? "InheritedCleanup" : "ExplicitCleanup");
             RejectReparseTree(path); Directory.Delete(path, true);
         }
+        stage("UnsafeFileSetup");
         var final = Path.Combine(c.Root, "capture", $"{c.MessageId:N}.json");
         var info = new FileInfo(final);
         var original = info.GetAccessControl();
@@ -402,8 +414,10 @@ internal static class WindowsCaptureHarness
         insecure.AddAccessRule(new FileSystemAccessRule(new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null), FileSystemRights.Read, AccessControlType.Allow));
         info.SetAccessControl(insecure);
         var beforeFile = Snapshot(Path.GetDirectoryName(final)!);
+        stage("UnsafeFileRead");
         Require(LocalAccountMessageSink.ReadCaptured(Path.GetDirectoryName(final)!, operatorSid: c.OperatorSid, runtimeSid: c.RuntimeSid).Count == 0, "W08 insecure owned file exposed a token.");
         Require(beforeFile == Snapshot(Path.GetDirectoryName(final)!), "W08 insecure owned file was silently repaired.");
+        stage("UnsafeFileRestore");
         info.SetAccessControl(original);
         CheckPrivatePolicy(final, c);
     }
