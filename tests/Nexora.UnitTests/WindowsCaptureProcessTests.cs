@@ -418,6 +418,8 @@ internal static class WindowsCaptureHarness
         Require(LocalAccountMessageSink.ReadCaptured(Path.GetDirectoryName(final)!, operatorSid: c.OperatorSid, runtimeSid: c.RuntimeSid).Count == 0, "W08 insecure owned file exposed a token.");
         Require(beforeFile == Snapshot(Path.GetDirectoryName(final)!), "W08 insecure owned file was silently repaired.");
         stage("UnsafeFileRestore");
+        // GetAccessControl returns an unmodified descriptor; explicitly mark the captured DACL for restoration.
+        original.SetSecurityDescriptorSddlForm(original.GetSecurityDescriptorSddlForm(AccessControlSections.Access), AccessControlSections.Access);
         info.SetAccessControl(original);
         CheckPrivatePolicy(final, c);
     }

@@ -213,8 +213,8 @@ Reviewed checkpoint SHA256:
 | web/Nexora.Web/src/App.tsx | 8df8ac7d552a83e32ceb21d3617ca2ee33a302500fc060f0906e0f87e1b10db1 |
 | web/Nexora.Web/src/SharedResourceAccessibility.test.tsx | d6b9eea5130ccb9fee85421aa240231e422001509353964cd5a48fddf921a66a |
 | tests/Nexora.IntegrationTests/SqlReleaseCoverageTests.cs | af66816d2c3ba30cbc296df17426dea18f88b7e6fbf3ae44b93e09a183ddea3c |
-| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 8070c4cd5e3e20b71693bd6d32aa9bb3f7d4ed69c395778dd5de1b57366d26c0 |
-| tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs | 10facf456879c2b282f46d42e4bddce146405ee79bf8253bea85b719adf547d3 |
+| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 06455e2e1319ded76b870765b6b45351a32dacd2f00aec5b5351e5598e2a5e95 |
+| tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs | 98850cc4a5721a0af27d665d34c950fb7d00f969ae3710b90b5476260aa707d5 |
 
 Hashes bind source review only and must be refreshed if author changes it. No SQL,
 full browser, actual Windows or complete R1 pass is claimed at this checkpoint.
@@ -243,4 +243,17 @@ scoped real SuperAdmin module preview/commit before creating test sessions, then
 awaited restoration of original system/registration booleans. It preserves the
 production/module default and normative403 tests. Reviewer requested retaining
 bounded status assertions rather than copying raw preview-response failure logs.
-Corrected fixture source/rerun review remains pending at this checkpoint.
+Corrected scoped fixture source reread: await-using Enable precedes every
+case session, real Admin preview/commit asserts blockers empty and exact success,
+awaited disposal restores original booleans, and no raw preview-body assertion
+logs were introduced. Source-approved; corrected runtime rerun remains pending.
+
+Parent later reports Windows df7 fails at reject-insecure; earlier A/B/C publish,
+seven native deny probes and restart ran before W08. This is partial failed-run
+evidence, never full W01–W10 pass. Reviewer read extended W08 static substage
+literals and exact individual-line stderr allowlist: unrelated warning lines
+are discarded, no raw exception/payload printed, and all assertions retained.
+Reviewer suggested watching UnsafeFileRestore: unmodified FileSecurity snapshot
+may have no dirty sections to persist; force owned original ACL restoration if
+confirmed. This is a source hypothesis awaiting exact runtime failure stage.
+Current Windows source hash above includes diagnostics, not an acceptance pass.
