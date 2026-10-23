@@ -234,6 +234,8 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
         await Create(session, Body("Literal % work second", 90, "Focus"));
         await Create(session, Body("Literal other", 200, "Focus"));
         await Create(session, Body("Literal % other category", 300, "Focus extended"));
+        await Create(session, Body("Literal % outside before", 400, "Focus", "2026-10-17"));
+        await Create(session, Body("Literal % outside after", 500, "Focus", "2026-10-19"));
         var query = "?from=2026-10-18&to=2026-10-18&category=Focus&query=%25";
         using (var list = await fixture.SendAuthenticatedAsync(HttpMethod.Get, Root + query, session.RawSessionHandle))
         {
@@ -254,11 +256,16 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
             await Ack(trash, HttpStatusCode.OK);
         using var after = await fixture.SendAuthenticatedAsync(HttpMethod.Get, Root + "/report" + query, session.RawSessionHandle);
         Assert.Equal(HttpStatusCode.OK, after.StatusCode);
-        Assert.Equal(90, (await Json(after)).GetProperty("grossMinutes").GetInt64());
+        var remaining = await Json(after);
+        Assert.Equal(90, remaining.GetProperty("grossMinutes").GetInt64());
+        Assert.Equal(1, remaining.GetProperty("entries").GetInt64());
+        using var afterList = await fixture.SendAuthenticatedAsync(HttpMethod.Get, Root + query, session.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, afterList.StatusCode);
+        Assert.Equal(1, (await Json(afterList)).GetProperty("items").GetArrayLength());
     }
 
-    private static object Body(string title, int minutes, string category = "Synthetic category") => new
-    { title, recordedOn = "2026-10-18", minutes, notes = "Synthetic private notes", category, employer = "Synthetic employer" };
+    private static object Body(string title, int minutes, string category = "Synthetic category", string recordedOn = "2026-10-18") => new
+    { title, recordedOn, minutes, notes = "Synthetic private notes", category, employer = "Synthetic employer" };
     private async Task<Guid> Create(SyntheticSession session, object body)
     {
         using var created = await Send(session, HttpMethod.Post, Root, body);

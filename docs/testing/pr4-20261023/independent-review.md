@@ -99,7 +99,7 @@ application changes eligible for fresh audits rather than reuse historical shots
 | Public share semantic main + regressions | root | Source reviewed; reviewer independently3/3 Vitest PASS |
 | Browser failures + real SQL journeys | qa_browser_oct23 | Current source reviewed; final real browser evidence pending |
 | SQL owner/receipt/Goals regression | qa_sql_oct23 | 12 cases reviewed; realSQL execution pending |
-| Windows real principals | qa_windows_oct23 | Current source reviewed; findings below pending author remediation and Windows runtime |
+| Windows real principals | qa_windows_oct23 | Corrected source reviewed; findings source-resolved; actual Windows runtime pending |
 
 ### SQL assertion review
 
@@ -112,7 +112,8 @@ three-field ACK, no ETag, no resurrection and no additional succeeded audit.
 Reviewer requested whole owner/namespace/name counts to detect a second resource
 under a different id; author added these (deleted=0, concurrent=1). Concurrent
 Task.WhenAll submits both requests; it does not prove a forced SQL lock schedule.
-Current source is suitable for compilation/realSQL execution without weakened
+Root nullable anonymous title branch compile correction was reread and preserves
+request payload/expected results. Current source is suitable for compilation/realSQL execution without weakened
 expected outcomes; no runtime result is inferred from source review.
 
 ### Browser assertion review
@@ -134,7 +135,7 @@ This is inventory evidence, not browser pass. Expanded workflow triggers and
 unchanged contents:read permissions are appropriate. Full9-shard outcomes remain
 required separately from base browser suite.
 
-### Windows findings sent to author (open)
+### Windows findings sent to author (resolved in source; runtime pending)
 
 - IR-QA-02: cleanup-capture runs operatorB, but intentionally insecure inherited
   fixture givesB only ReadAndExecute and no parent DELETE_CHILD. Cleanup should
@@ -155,10 +156,40 @@ unsafe owned file is skipped per current ReadCaptured contract); W09 injected
 ownership-manifest mismatch refuses destructive cleanup. Guard source alone is
 not an executed negative case.
 
+Author corrected all three source findings: runtimeA deletes its inherited fixture;
+expected fault enum is accepted only after an atomic child identity-ready report,
+with A proving actual crashed-temp content and ACL; Account.Create wraps post-add
+initialization with native USER_INFO_23 SID/comment verification and guarded rollback.
+W03 now invokes actual ReconcilePending then promotion replay. W08 checks both
+unsafe directory init/read rejection and an unsafe owned final file skipped without
+repair, restoring only the owned fixture afterward. W09 explicitly injects and
+restores a manifest mismatch. Reviewer reread these corrections, including root
+RawToken compile fix: no remaining source review blocker. Native Windows runtime
+is still required; compile/source review does not prove any W01–W10 runtime pass.
+
 Reviewed native C probes require error5 for enumerate/read/create/overwrite/delete/
 DACL/owner and snapshot preservation; distinct actual child SID/PID/creation-time/
 nonce and absence of bypass privileges are checked. No password is placed on CLI
 or reported. These strengths do not waive the findings or actual Windows gate.
+
+### Additional WorkLog9 source review
+
+Read the manual, filter/history and trash contracts dated2026-10-18 and current
+SqlWorkLogService. New SqlWorkLogCoverageTests uses real HTTP for all business
+writes; direct SQL only configures disposable Admin policy or reads independent
+counts/tombstone. Expected opaque ACK,403current authority,404owner,412revision,
+428missing revision, readonly Archived and exact Active/Archived restore agree
+with those contracts. Receipt replay asserts history/audit once; purge asserts
+source/private history absent and minimal Purged registry retained. No test-only
+business state insertion or weakened production guard was introduced.
+
+IR-QA-05: date-filter scenario initially created every source on the same day;
+its result could pass with ignored date predicates. Requested matching entries
+on the day before/after to prove exclusion, plus post-Trash list/count agreement.
+Author correction pending at this report checkpoint. This is a bounded test gap,
+not a production defect claim. Preview expiry/tamper/foreign source, retained
+references, cursor scope/pagination, transaction rollback and browser uncertainty
+remain unproven by these9 cases and must stay residual.
 
 ## Independently executed current checks
 
@@ -179,7 +210,15 @@ Reviewed checkpoint SHA256:
 |---|---|
 | web/Nexora.Web/src/App.tsx | 8df8ac7d552a83e32ceb21d3617ca2ee33a302500fc060f0906e0f87e1b10db1 |
 | web/Nexora.Web/src/SharedResourceAccessibility.test.tsx | d6b9eea5130ccb9fee85421aa240231e422001509353964cd5a48fddf921a66a |
-| tests/Nexora.IntegrationTests/SqlReleaseCoverageTests.cs | 29c19f03bbcffba7c2aba73ba58fbe9104b8a09a142c53fcb8d4142a806f3dcd |
+| tests/Nexora.IntegrationTests/SqlReleaseCoverageTests.cs | af66816d2c3ba30cbc296df17426dea18f88b7e6fbf3ae44b93e09a183ddea3c |
+| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 905bc2d434c80534ded57786f93caa8a907c598e0b7d0dc03cc57f01ad5415d3 |
+| tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs (before IR-QA-05 correction) | 75aa0e96c8b36896bd946af7a9108810c63cfe967d366260a81dc35169c7aafb |
 
 Hashes bind source review only and must be refreshed if author changes it. No SQL,
 full browser, actual Windows or complete R1 pass is claimed at this checkpoint.
+
+Root reports pushed3489f594 and runningCI40008957176; current CI is pending,
+not reviewer-verified pass. Local reviewer git object lookup subsequently failed
+because an alternate object path was unavailable; source fingerprints above
+were calculated directly from readable files. Parent notified; no git repair or
+implementation mutation was made by reviewer.

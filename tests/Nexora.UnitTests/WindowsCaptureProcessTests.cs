@@ -183,6 +183,7 @@ internal static class WindowsCaptureHarness
         using var process = Process.Start(info) ?? throw new InvalidOperationException("W02 native credentialed process did not start.");
         var pid = process.Id; var created = process.StartTime.ToUniversalTime();
         var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
+        var phase = "handshake";
         try
         {
             var startup = Stopwatch.StartNew();
@@ -193,12 +194,19 @@ internal static class WindowsCaptureHarness
             }
             var ready = JsonSerializer.Deserialize<ProbeReport>(File.ReadAllText(config.Report + ".ready"), Json) ?? throw new InvalidOperationException("W02 invalid ready handshake.");
             ValidateReport(ready, config, account, pid, created);
+            phase = "execute";
             using var timeout = new CancellationTokenSource(deadline);
             using var combined = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, cancellation);
             try { process.WaitForExitAsync(combined.Token).GetAwaiter().GetResult(); }
             catch (OperationCanceledException) { throw new ProbeFailureException(cancellation.IsCancellationRequested ? ProbeFailureKind.Cancelled : ProbeFailureKind.Timeout, "W09 owned verified child deadline/cancellation reached."); }
             if (process.ExitCode == 17 && config.Scenario == "crash-temporary") throw new ProbeFailureException(ProbeFailureKind.Crash, "W09 verified owned child crashed as injected.");
-            Require(process.ExitCode == 0, "W02 child returned a nonzero result.");
+            if (process.ExitCode != 0)
+            {
+                var diagnostic = stderr.GetAwaiter().GetResult().Trim();
+                var stage = new[] { "Configuration", "Identity", "Control", "Scenario", "Report" }.FirstOrDefault(x => diagnostic == "NEXORA_ACL_STAGE:" + x) ?? "Unknown";
+                throw new ProbeFailureException(ProbeFailureKind.Protocol, "Native probe scenario=" + config.Scenario + " stage=" + stage + " failed.");
+            }
+            phase = "report";
             Require(File.Exists(config.Report), "W02 missing native child report.");
             var report = JsonSerializer.Deserialize<ProbeReport>(File.ReadAllText(config.Report), Json) ?? throw new InvalidOperationException("W02 invalid child report.");
             ValidateReport(report, config, account, pid, created);
@@ -206,7 +214,7 @@ internal static class WindowsCaptureHarness
             return report;
         }
         catch (ProbeFailureException) { throw; }
-        catch (Exception ex) { throw new ProbeFailureException(ProbeFailureKind.Protocol, "Native probe failed: " + ex.GetType().Name); }
+        catch (Exception ex) { throw new ProbeFailureException(ProbeFailureKind.Protocol, "Native probe scenario=" + config.Scenario + " phase=" + phase + " failed: " + ex.GetType().Name); }
         finally
         {
             // Compare live owned handle, PID and creation time before termination. Never kill by image name.
@@ -231,6 +239,7 @@ internal static class WindowsCaptureHarness
 
     internal static int Probe(string configPath)
     {
+        var stage = "Configuration";
         try
         {
             Require(new FileInfo(configPath).Length <= 65536, "Probe config exceeds bound.");
@@ -238,17 +247,20 @@ internal static class WindowsCaptureHarness
             ValidateOwnedRoot(c.Root, c.Nonce);
             Require(Path.GetDirectoryName(Path.GetFullPath(configPath)) == Path.Combine(c.Root, c.Role), "Private config is outside its role directory.");
             Require(Path.GetDirectoryName(Path.GetFullPath(c.Report)) == Path.Combine(c.Root, c.Role), "Report is outside its role directory.");
+            stage = "Identity";
             using var identity = WindowsIdentity.GetCurrent();
             var sid = identity.User ?? throw new InvalidOperationException("Child SID unavailable.");
             var principal = new WindowsPrincipal(identity);
             var admin = principal.IsInRole(WindowsBuiltInRole.Administrator) || principal.IsInRole(WindowsBuiltInRole.BackupOperator);
             var privileged = HasBypassPrivileges(identity);
             Require(sid.Value == c.ExpectedSid && !admin && !privileged, "Child is not the configured nonprivileged principal.");
+            stage = "Control";
             Require(File.ReadAllText(Path.Combine(c.Root, "control.txt"), Encoding.UTF8) == c.Control, "C could not reach the stage control boundary.");
             using var childProcess = Process.GetCurrentProcess();
             var ready = new ProbeReport(c.Nonce, c.Role, c.Scenario, sid.Value, childProcess.Id, childProcess.StartTime.ToUniversalTime(), admin, privileged, true, false, null, []);
             File.WriteAllText(c.Report + ".ready.tmp", JsonSerializer.Serialize(ready, Json));
             File.Move(c.Report + ".ready.tmp", c.Report + ".ready");
+            stage = "Scenario";
             var capture = Path.Combine(c.Root, "capture"); var temp = Path.Combine(capture, $".{c.TempId:N}.{c.Fence:N}.tmp");
             var pending = Path.Combine(capture, $".{c.MessageId:N}.{c.Fence:N}.pending"); var final = Path.Combine(capture, $"{c.MessageId:N}.json");
             string? digest = null; var checks = new List<string>();
@@ -314,12 +326,13 @@ internal static class WindowsCaptureHarness
                 default: throw new InvalidOperationException("Unknown allowlisted probe scenario.");
             }
             using var process = Process.GetCurrentProcess();
+            stage = "Report";
             var report = new ProbeReport(c.Nonce, c.Role, c.Scenario, sid.Value, process.Id, process.StartTime.ToUniversalTime(), admin, privileged, true, true, digest, checks.ToArray());
             File.WriteAllText(c.Report, JsonSerializer.Serialize(report, Json)); return 0;
         }
         catch
         {
-            Console.Error.WriteLine("Actual-token probe failed; private payload and exception details withheld."); return 1;
+            Console.Error.WriteLine("NEXORA_ACL_STAGE:" + stage); return 1;
         }
     }
 
