@@ -14,7 +14,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Manual_create_and_update_replay_stay_opaque_and_append_each_snapshot_once()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync();
         var key = Guid.NewGuid();
         var body = Body("Original private work", 60);
@@ -48,7 +48,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Manual_minutes_accept_exact_bounds_and_reject_outside_without_creating_entries()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync();
         foreach (var minutes in new[] { 0, 1441 })
         {
@@ -68,7 +68,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Archive_requires_confirmation_preserves_readonly_metadata_and_unarchive_restores_Active()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync();
         var id = await Create(session, Body("Archive lifecycle", 45));
         var original = await Get(session, id);
@@ -96,7 +96,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [InlineData(true, "Archived")]
     public async Task Trash_and_restore_preserve_actual_prior_state_and_exact_history(bool archiveFirst, string expected)
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync();
         var id = await Create(session, Body("Exact prior state", 75));
         if (archiveFirst)
@@ -137,7 +137,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Purge_disposes_private_history_and_retains_only_completed_opaque_replay_and_registry_tombstone()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync();
         var id = await Create(session, Body("Disposable purge source", 20));
         var active = await Get(session, id);
@@ -168,7 +168,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Foreign_owner_and_stale_revision_commands_leave_current_source_and_history_unchanged()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var owner = await fixture.CreateActiveSessionAsync();
         var foreign = await fixture.CreateActiveSessionAsync();
         var id = await Create(owner, Body("Own private work", 30));
@@ -197,7 +197,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Current_Admin_grants_gate_update_replay_and_preview_commit_and_private_history()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync("Admin");
         foreach (var action in new[] { "create", "read" }) await Permission(session, "learning.worklog." + action, "Allow");
         var id = await Create(session, Body("Admin source", 30));
@@ -228,7 +228,7 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
     [Fact]
     public async Task Category_literal_title_and_inclusive_date_filters_match_gross_report_and_exclude_Trash()
     {
-        fixture.RequireAvailable();
+        await using var policy = await Enable();
         var session = await fixture.CreateActiveSessionAsync();
         var first = await Create(session, Body("Literal % work", 60, "Focus"));
         await Create(session, Body("Literal % work second", 90, "Focus"));
@@ -263,6 +263,41 @@ public sealed class SqlWorkLogCoverageTests(SqlApiFixture fixture)
         Assert.Equal(HttpStatusCode.OK, afterList.StatusCode);
         Assert.Equal(1, (await Json(afterList)).GetProperty("items").GetArrayLength());
     }
+
+    // Match the installed FX40 policy contract: opt in through Admin APIs and restore prior flags.
+    private async Task<PolicyScope> Enable()
+    {
+        fixture.RequireAvailable();
+        var super = await fixture.CreateActiveSessionAsync("SuperAdmin");
+        var module = await Module(super);
+        Assert.Equal("Ready", module.GetProperty("state").GetString());
+        var scope = new PolicyScope(this, super, module.GetProperty("id").GetGuid(),
+            module.GetProperty("systemEnabled").GetBoolean(), module.GetProperty("registrationEnabled").GetBoolean());
+        await Policy(scope, true, true);
+        return scope;
+    }
+    private async Task<JsonElement> Module(SyntheticSession super)
+    {
+        using var response = await fixture.SendAuthenticatedAsync(HttpMethod.Get, "/api/v1/admin/modules?limit=100", super.RawSessionHandle);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await Json(response)).GetProperty("items").EnumerateArray().Single(m => m.GetProperty("code").GetString() == "FX40").Clone();
+    }
+    private async Task Policy(PolicyScope scope, bool system, bool registration)
+    {
+        var current = await Module(scope.Super);
+        if (current.GetProperty("systemEnabled").GetBoolean() == system && current.GetProperty("registrationEnabled").GetBoolean() == registration) return;
+        using var previewResponse = await Send(scope.Super, HttpMethod.Post, $"/api/v1/admin/modules/{scope.Module}/preview",
+            new { systemEnabled = system, registrationEnabled = registration });
+        Assert.Equal(HttpStatusCode.OK, previewResponse.StatusCode);
+        var preview = await Json(previewResponse);
+        Assert.Empty(preview.GetProperty("blockers").EnumerateArray());
+        using var commit = await Send(scope.Super, HttpMethod.Put, $"/api/v1/admin/modules/{scope.Module}/policy",
+            new { systemEnabled = system, registrationEnabled = registration, previewToken = preview.GetProperty("previewToken").GetString() },
+            etag: preview.GetProperty("etag").GetString());
+        Assert.Equal(HttpStatusCode.OK, commit.StatusCode);
+    }
+    private sealed record PolicyScope(SqlWorkLogCoverageTests Tests, SyntheticSession Super, Guid Module, bool System, bool Registration) : IAsyncDisposable
+    { public ValueTask DisposeAsync() => new(Tests.Policy(this, System, Registration)); }
 
     private static object Body(string title, int minutes, string category = "Synthetic category", string recordedOn = "2026-10-18") => new
     { title, recordedOn, minutes, notes = "Synthetic private notes", category, employer = "Synthetic employer" };

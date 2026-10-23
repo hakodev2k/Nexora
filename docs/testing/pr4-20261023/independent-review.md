@@ -183,10 +183,12 @@ with those contracts. Receipt replay asserts history/audit once; purge asserts
 source/private history absent and minimal Purged registry retained. No test-only
 business state insertion or weakened production guard was introduced.
 
-IR-QA-05: date-filter scenario initially created every source on the same day;
+IR-QA-05 (source-resolved): date-filter scenario initially created every source on the same day;
 its result could pass with ignored date predicates. Requested matching entries
 on the day before/after to prove exclusion, plus post-Trash list/count agreement.
-Author correction pending at this report checkpoint. This is a bounded test gap,
+Root added matching400/500minute sources on2026-10-17/19 and post-Trash
+report/list entries1 checks. Reviewer reread: ignored bounds now fail the
+expected2entries/150minutes. This was a bounded test gap,
 not a production defect claim. Preview expiry/tamper/foreign source, retained
 references, cursor scope/pagination, transaction rollback and browser uncertainty
 remain unproven by these9 cases and must stay residual.
@@ -211,8 +213,8 @@ Reviewed checkpoint SHA256:
 | web/Nexora.Web/src/App.tsx | 8df8ac7d552a83e32ceb21d3617ca2ee33a302500fc060f0906e0f87e1b10db1 |
 | web/Nexora.Web/src/SharedResourceAccessibility.test.tsx | d6b9eea5130ccb9fee85421aa240231e422001509353964cd5a48fddf921a66a |
 | tests/Nexora.IntegrationTests/SqlReleaseCoverageTests.cs | af66816d2c3ba30cbc296df17426dea18f88b7e6fbf3ae44b93e09a183ddea3c |
-| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 905bc2d434c80534ded57786f93caa8a907c598e0b7d0dc03cc57f01ad5415d3 |
-| tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs (before IR-QA-05 correction) | 75aa0e96c8b36896bd946af7a9108810c63cfe967d366260a81dc35169c7aafb |
+| tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs | 8070c4cd5e3e20b71693bd6d32aa9bb3f7d4ed69c395778dd5de1b57366d26c0 |
+| tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs | 10facf456879c2b282f46d42e4bddce146405ee79bf8253bea85b719adf547d3 |
 
 Hashes bind source review only and must be refreshed if author changes it. No SQL,
 full browser, actual Windows or complete R1 pass is claimed at this checkpoint.
@@ -222,3 +224,23 @@ not reviewer-verified pass. Local reviewer git object lookup subsequently failed
 because an alternate object path was unavailable; source fingerprints above
 were calculated directly from readable files. Parent notified; no git repair or
 implementation mutation was made by reviewer.
+
+Parent later reports actual Windows CI failed generic Protocol/InvalidOperationException;
+this remains a runtime failure, regardless of source findings closed above. Reviewer
+read new diagnostic delta: static child5stage allowlist and exact parent parser
+publish no raw stderr/payload. No guard was relaxed. Reviewer noted that failures
+before ready handshake need the same strict stage parser in handshake exit branch
+to be useful; current phase-only output is safe but incomplete. CI SQL outcome
+remains pending as reported by parent. Root subsequently added the same exact allowlist parser on child exit before
+handshake; reviewer reread it and updated Windows hash above. Diagnostic changes
+are source-approved only; they do not fix or reinterpret the actual Windows failure.
+
+Parent reports SQL run at3489:274passed/9failed; the12 new SqlReleaseCoverage
+cases passed, while all9 WorkLog cases failed at initial create403 because
+disposable fixture preserves FX40 disabled policy. This is a real failed run,
+not feature acceptance. Proposed correction reuses existing Course test pattern:
+scoped real SuperAdmin module preview/commit before creating test sessions, then
+awaited restoration of original system/registration booleans. It preserves the
+production/module default and normative403 tests. Reviewer requested retaining
+bounded status assertions rather than copying raw preview-response failure logs.
+Corrected fixture source/rerun review remains pending at this checkpoint.
