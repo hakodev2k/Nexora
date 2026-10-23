@@ -189,7 +189,13 @@ internal static class WindowsCaptureHarness
             var startup = Stopwatch.StartNew();
             while (!File.Exists(config.Report + ".ready"))
             {
-                Require(!process.HasExited && startup.Elapsed < TimeSpan.FromSeconds(30), "W02 child identity handshake missing.");
+                if (process.HasExited)
+                {
+                    var diagnostic = stderr.GetAwaiter().GetResult().Trim();
+                    var stage = new[] { "Configuration", "Identity", "Control", "Scenario", "Report" }.FirstOrDefault(x => diagnostic == "NEXORA_ACL_STAGE:" + x) ?? "Unknown";
+                    throw new ProbeFailureException(ProbeFailureKind.Protocol, "Native probe scenario=" + config.Scenario + " handshake stage=" + stage + " failed.");
+                }
+                Require(startup.Elapsed < TimeSpan.FromSeconds(30), "W02 child identity handshake missing.");
                 Thread.Sleep(20);
             }
             var ready = JsonSerializer.Deserialize<ProbeReport>(File.ReadAllText(config.Report + ".ready"), Json) ?? throw new InvalidOperationException("W02 invalid ready handshake.");
