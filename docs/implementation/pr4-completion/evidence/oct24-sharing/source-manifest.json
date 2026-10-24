@@ -1,8 +1,8 @@
 {
-  "base": "7c5b9e3fe0deead50e18102c3af5456bb5e46193",
+  "base": "64c1161c964e1af304a6fe84eecd724de3d87b0d",
   "branch": "impl/m01-s00-scaffold",
   "normalization": "UTF8 text, CRLF normalized to LF",
-  "sourceDigest": "7f3dbe1b4267d31c4aca01e6a9d96242a19c0848b8e34ad577a0209a0c60b508",
+  "sourceDigest": "b6e2bf3ffe3f13e1735243f72e4ab7339ca3a29a6a1ee284810e62c416f54d4e",
   "files": [
     {
       "path": ".github/workflows/agent-baseline.yml",
@@ -1838,7 +1838,7 @@
     },
     {
       "path": "src/Nexora.Infrastructure/Sharing/SqlSharingService.cs",
-      "sha256": "f9ed2d9a53a9e723746e03509579c3eb303cad35ec37c9d4fc18422488dcce73"
+      "sha256": "710a53b108f1f2854d8e7e4611a989a0295c7760ec39689cb252b375ff02aa06"
     },
     {
       "path": "src/Nexora.Infrastructure/Shopping/SqlWishlistService.cs",

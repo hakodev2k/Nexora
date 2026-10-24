@@ -87,6 +87,18 @@ public sealed class SqlSharingService : ISharingService
 
     public IdentityOperationResult<ShareLinkPage> List(IdentityPrincipal actor, int? limit = null, ShareLinkListQuery? query = null)
     {
+        var cutoff = DateTime.UtcNow;
+        // A selected source/link can change before definitive proof. Restart
+        // the complete read once, with fresh authority and a fresh transaction;
+        // never drop a candidate and misstate page density or continuation.
+        var result = ListOnce(actor, limit, query, cutoff, out var changed);
+        return changed ? ListOnce(actor, limit, query, cutoff, out _) : result;
+    }
+
+    private IdentityOperationResult<ShareLinkPage> ListOnce(IdentityPrincipal actor, int? limit,
+        ShareLinkListQuery? query, DateTime cutoff, out bool candidateChanged)
+    {
+        candidateChanged = false;
         if (!ModuleAvailable(actor,"FX04","sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();
         query ??= new();
         static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -95,7 +107,6 @@ public sealed class SqlSharingService : ISharingService
             query.State is not (null or "Active" or "Expired" or "Revoked") || query.ResourceType is not (null or "Project" or "Document") || query.ResourceId == Guid.Empty)
             return Failure<ShareLinkPage>("ValidationFailed", 422, "Check share filters; page size is fixed at 25.");
         var filters = $"{query.Mode}|{query.State}|{query.ResourceType}|{query.ResourceId?.ToString("N")}";
-        var cutoff = DateTime.UtcNow;
         using var connection = _connections.Create(); connection.Open();
         if (!SqlCurrentActor.IsLive(connection, null, actor)) return ModuleUnavailable<ShareLinkPage>();
         var initialModule = ReadSharingModule(connection, null, forUpdate: false);
@@ -131,7 +142,13 @@ public sealed class SqlSharingService : ISharingService
                      .OrderBy(item => item.ResourceType, StringComparer.Ordinal).ThenBy(item => item.ResourceId))
         {
             if (!OwnerSourceAllowed(connection, transaction, actor, source.ResourceType, source.ResourceId, creating: false))
-                return Missing<ShareLinkPage>(); // Concurrent source change; never return a partial/false-empty page.
+            {
+                // A caller-supplied anchor that loses source authority is invalid,
+                // rather than a boundary to advance past on a fresh attempt.
+                candidateChanged = cursorAnchor is null || cursorAnchor.ResourceType != source.ResourceType
+                    || cursorAnchor.ResourceId != source.ResourceId;
+                return Missing<ShareLinkPage>();
+            }
         }
 
         // Revalidate the anchor link itself AFTER source locks, in the same
@@ -159,10 +176,11 @@ public sealed class SqlSharingService : ISharingService
             {
                 var link = ReadLink(reader); var candidate = eligible[link.Id];
                 if (link.ResourceType != candidate.ResourceType || link.ResourceId != candidate.ResourceId ||
-                    link.CreatedAt.UtcDateTime != candidate.CreatedAt) return Missing<ShareLinkPage>();
+                    link.CreatedAt.UtcDateTime != candidate.CreatedAt)
+                { candidateChanged = true; return Missing<ShareLinkPage>(); }
                 links.Add(link);
             }
-            if (links.Count != candidates.Count) return Missing<ShareLinkPage>();
+            if (links.Count != candidates.Count) { candidateChanged = true; return Missing<ShareLinkPage>(); }
         }
         // Neither denied candidates nor their cardinality may affect the public
         // continuation. Its anchor is the last definitive authorized result.

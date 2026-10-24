@@ -92,3 +92,49 @@ No speculative architecture replacement or additional product patch is requested
 Executed only repository reads/searches, local read-only Git inspection/diff and SHA256 file hashing, plus creation of this report. Initial Git inspection hit ownership protection; subsequent commands used a command-local `-c safe.directory=<this workspace>` override. No global Git configuration was written. The local CI merge object lookup failed and is recorded above rather than assumed verified.
 
 Tests/build/runtime/SQL execution, data creation and provider calls by this reviewer: **0**. Source writes and commits by this reviewer: **0**. This report is the sole authorized deliverable. Source fingerprints must be checked again if the author changes the frozen patch before publication.
+
+## Follow-up — bounded stale-candidate restart — 2026-10-24
+
+**Disposition: no concrete blocking source defect identified in the bounded restart patch. Proceed to regression CI; acceptance remains pending.** This addendum supersedes no historical result above and adds no runtime passing claim.
+
+### Baseline and supplied evidence
+
+- Observed local HEAD: `64c1161c964e1af304a6fe84eecd724de3d87b0d`.
+- Only tracked working-copy diff at review: `SqlSharingService.cs`, 22 insertions / 4 deletions. Its frozen SHA256 is `9328807D401FE276A420E95268212AA56AC49EBC7F16F3B356F181B3BCD3623A`.
+- Project and Document helper hashes remain exactly those in the initial review. The source-driven query and explicit LOOP/order hints are unchanged.
+- Requester-supplied run [40066918835](https://github.com/hakodev2k/Nexora/actions/runs/40066918835), source `64c1161`: **289 pass / 1 fail**; the same controlled List case now returns **404 rather than 503**, while its expected result remains 200 with an empty collection. The reviewer did not retrieve or execute this run.
+- The changed outcome is consistent with the existing fail-closed stale-candidate path. It does not independently prove removal of every deadlock schedule or identify a historical SQL exception number.
+
+### Inspected control flow
+
+At `SqlSharingService.cs:88–101`, public `List` captures one UTC cutoff and calls `ListOnce`; it makes exactly one further call only when the first call explicitly reports `candidateChanged`. The second result is returned directly, including failure. There is no recursion, retry loop, sleep, exception retry or synthetic-success branch.
+
+Each `ListOnce` creates its own connection and Serializable transaction. C# using-declaration cleanup completes on method exit before control returns to the wrapper; an unsuccessful attempt disposes its reader/transaction/connection before the second attempt starts. No locks or mutable candidate/DTO collections are carried into that attempt.
+
+Both attempts repeat input normalization/validation, current sharing capability, live-actor checks, module state and epoch reads, signed cursor decoding, transaction-local current rights, type authority, source eligibility, definitive source/link proofs, allowed-user projection and final actor/action checks. The retry does not reuse the first transaction's grant/source proof. The shared cutoff fixes Active/Expired classification across this single logical request; it does not pin authority or create a cross-request snapshot guarantee.
+
+### Retry classification and fail-closed behavior
+
+| Condition | Inspected behavior | Review result |
+| --- | --- | --- |
+| Non-anchor candidate's source proof fails | `candidateChanged=true`, then Missing; wrapper may perform a full fresh read | Appropriate bounded restart; source denial/deletion is not converted directly to success |
+| Failed source is also the cursor anchor's typed source | `candidateChanged=false`, Missing | No retry past a known invalid source anchor, including when several links share that source |
+| Definitive candidate typed identity/CreatedAt differs, or definitive count differs | `candidateChanged=true`, Missing | Discards the entire attempt rather than dropping individual candidates or emitting a misleading partial page |
+| Advisory anchor invalid, cursor decode fails, or `ListAnchorCurrent` fails | Missing with flag left false | Existing invalid-anchor 404 retained; no invented continuation |
+| Validation, actor/module denial, epoch mismatch or final authority denial | Original failure with flag false | Retry is not a general authorization/error bypass |
+| Second attempt encounters another stale candidate | Its Missing result is returned; second flag is ignored | At most two attempts; no fake empty result, refill scan or unbounded retry |
+| SQL/timeout exception | No new catch in wrapper | Not silently hidden as a successful page |
+
+A failed non-anchor proof may be encountered before a concurrently invalid anchor is examined, because proofs are ordered by typed source. Such an attempt can restart, but the next attempt revalidates the original cursor and anchor; it does not advance beyond them or manufacture validity. This is not a confirmed authorization defect. The no-retry rule applies when anchor invalidity has actually been established.
+
+For the controlled single deletion, the intended source path is coherent: first attempt selects a source/link which becomes unavailable before definitive proof; the non-anchor failure requests one restart; the second attempt observes committed deletion/invalidation and obtains no eligible links. Only that normally completed, fully authorized second read can produce 200/empty. If deletion was already visible during the first advisory read, the first attempt can instead complete normally. Neither path special-cases the test or returns an empty page merely because proof failed.
+
+Denied-source filtering remains before TOP(26), and nextCursor still comes only from definitive authorized rows. D07's OwnerRevoked-only diagnostic exception, null-token list projection, owner/epoch/filter cursor binding and viewer refusal remain unchanged. The wrapper introduces no mutation, audit write, receipt operation, permission grant, source-helper change or weakened isolation.
+
+### Handoff and remaining evidence
+
+**Confirmed blocking source findings: 0. Required source patch from this addendum: none.** Source review supports publishing this bounded read-restart change for regression; it does not close the failing case.
+
+Root/SQL CI should rerun the existing controlled five-operation theory and Sharing privacy/paging/D07 regressions on the exact final patch. Required List outcome remains 200/empty after the controlled committed single delete, with invalidated link and permanent viewer 404. Retain checks that an invalid/deleted/denied cursor anchor still returns 404. Exercise or inspect evidence for a second candidate change yielding failure after two attempts, and a current authority change between attempts being re-evaluated. Query-plan/locking verification from the original review remains pending; a new 404 or 503 must be diagnosed without weakening those assertions.
+
+This follow-up used only read-only Git diff/revision inspection, source reads/searches and file hashes, followed by appending this report. Reviewer tests, build, runtime, fixtures, source edits and commits: **0**. Keep PR Draft and Learning Plan readiness false. The report covers this exact frozen source patch only.

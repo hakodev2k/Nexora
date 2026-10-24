@@ -82,3 +82,27 @@ the new source; source/denied/D07/paging/cursor regressions retained, with no hi
 row influence. Broader concurrency/query-plan schedules remain separate gates.
 Rollback is a source-only revert preserving persisted links/receipts/audit; such
 a revert reintroduces this known regression and is not a release recommendation.
+
+## Second execution and bounded boundary restart
+
+[CI40066918835](https://github.com/hakodev2k/Nexora/actions/runs/40066918835)
+tested64c1161 through mergef269969837e514bfafe9a033a48e42ff78233bc2.
+SQL remained289PASS/1FAIL/0SKIP: the same controlled List case now returned404
+in123ms, not the previous503. Backend/frontend/Linux/Windows/browser jobs passed.
+The failed expectation remains200/empty; no assertion is changed or failure hidden.
+
+An advisory candidate can be valid when read and unavailable by definitive proof.
+Returning404 is safe denial but does not fulfill this ordinary collection-refresh
+schedule. `List` now permits exactly **two complete read attempts**, with the same
+request cutoff and original filters/cursor, and fresh connection/transaction/current
+authority each time. Only observed candidate source-proof or definitive identity/
+count changes request that restart. An invalid/revoked caller cursor anchor still
+fails404 immediately. A second unstable attempt also remains unavailable; no
+unbounded retry, row-dropping false success, hidden-row refill or continuation
+threshold is added. The first transaction is disposed before the second starts.
+
+This is a bounded concurrency repair, not a guarantee that every independent
+mutation must produce a successful collection read. Source/action/module/session
+denial is re-evaluated on the fresh attempt and cannot borrow prior authority.
+Build evidence and the source map are updated for this wrapper; runtime closure
+still requires the unchanged real SQL case on its newly pushed revision.
