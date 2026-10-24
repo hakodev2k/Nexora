@@ -71,6 +71,33 @@ public sealed class SqlSharingRepairTests
         using var commit=await Send(super,HttpMethod.Put,$"/api/v1/admin/users/{actor.UserId}/access/permissions",new{kind="permissions",changes,previewToken=preview.GetProperty("previewToken").GetString()},current.Headers.ETag?.Tag);await Json(commit);
     }
 
+    [Fact]
+    public async Task Denied_sources_cannot_determine_public_pagination_or_validate_a_cursor_anchor()
+    {
+        await using var scope = await Enable();
+        var owner = await fixture.CreateActiveSessionAsync();
+        var project = await Project(owner);
+        for (var index = 0; index < 26; index++) await Create(owner, I(project));
+        var visible = await Get(owner, Links);
+        Assert.Equal(25, visible.GetProperty("items").GetArrayLength());
+        var cursor = visible.GetProperty("nextCursor").GetString()!;
+        Assert.NotNull(cursor);
+        await fixture.SetModuleEnabledAsync(owner.UserId, "FX11", false);
+        var denied = await Get(owner, Links);
+        Assert.Empty(denied.GetProperty("items").EnumerateArray());
+        Assert.Equal(JsonValueKind.Null, denied.GetProperty("nextCursor").ValueKind);
+        using (var stale = await fixture.SendAuthenticatedAsync(HttpMethod.Get, Links + "?cursor=" + cursor, owner.RawSessionHandle))
+            Assert.Equal(HttpStatusCode.NotFound, stale.StatusCode);
+        var document = await Document(owner);
+        // Background source fixture only; this case does not certify Publish.
+        await fixture.ExecuteAsync("UPDATE [documents].[Page] SET Status='Published' WHERE OwnerId=@Owner AND Id=@Id", Id("@Owner", owner.OwnerId), Id("@Id", I(document)));
+        for (var index = 0; index < 3; index++) await Create(owner, I(document), "Document");
+        var mixed = await Get(owner, Links);
+        Assert.Equal(3, mixed.GetProperty("items").GetArrayLength());
+        Assert.All(mixed.GetProperty("items").EnumerateArray(), row => Assert.Equal("Document", row.GetProperty("resourceType").GetString()));
+        Assert.Equal(JsonValueKind.Null, mixed.GetProperty("nextCursor").ValueKind);
+    }
+
     [Fact] public async Task Project_projection_is_live_nullable_and_exactly_excludes_legacy_due_and_private_fields()
     {
         await using var scope=await Enable();var owner=await fixture.CreateActiveSessionAsync();var project=await Project(owner);

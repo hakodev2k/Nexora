@@ -101,7 +101,9 @@ public sealed class M01PolicyAndCaptureContractTests
                 "20261018_0082_goals_state_history.sql",
                 "20261018_0083_worklog_trash.sql",
                 "20261018_0084_goals_metadata_history.sql",
-                "20261018_0085_goals_target_history.sql"
+                "20261018_0085_goals_target_history.sql",
+                "20261021_0086_learning_plans.sql",
+                "20261021_0087_toolbox_extra_offline.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);
@@ -149,7 +151,7 @@ public sealed class M01PolicyAndCaptureContractTests
             Assert.True(ActionGrantPolicy.IsAdminGrantable(action), action);
             Assert.True(ActionGrantPolicy.CanGrantAllow(action).Allowed, action);
         }
-        foreach (var action in new[] { "organization.tag.assign", "notifications.dispatch.publish" })
+        foreach (var action in new[] { "organization.tag.assign", "notifications.dispatch.publish", "vault.item.reveal", "unregistered.action" })
         {
             Assert.False(ActionGrantPolicy.IsAdminGrantable(action), action);
             Assert.False(ActionGrantPolicy.CanGrantAllow(action).Allowed, action);

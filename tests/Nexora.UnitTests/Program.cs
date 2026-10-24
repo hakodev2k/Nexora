@@ -18,6 +18,12 @@ if (args.Length == 2 && string.Equals(args[0], "--windows-capture-probe", String
     return WindowsCaptureProcessTests.Probe(args[1]);
 }
 
+// Separate optional manual helper; the required CI gate remains canonical.
+if (args.Length == 7 && string.Equals(args[0], "--windows-capture-principal-probe", StringComparison.Ordinal))
+{
+    return WindowsCapturePrincipalTests.RunProbe(args);
+}
+
 var runner = new TestRunner();
 ModulePolicyStoreTests.Register(runner);
 LocalAccountMessageSinkTests.Register(runner);

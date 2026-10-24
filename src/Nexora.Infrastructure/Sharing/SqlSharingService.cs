@@ -106,21 +106,42 @@ public sealed class SqlSharingService : ISharingService
             if (!_cursors.TryDecode(query.Cursor, actor.OwnerId, initialModule.Value.Epoch, filters, out var time, out var id)) return Missing<ShareLinkPage>();
             cursorAt = time; cursorId = id;
         }
-        var candidates = ReadListAdvisories(connection, actor.OwnerId, query, cutoff, cursorAt, cursorId, out var cursorValid);
-        if (!cursorValid) return Missing<ShareLinkPage>();
-        var hasMore = candidates.Count > 25; var advisory = candidates.Take(25).ToList();
         using var transaction = connection.BeginTransaction(IsolationLevel.Serializable);
         var module = ReadSharingModule(connection, transaction, forUpdate: false);
         if (!SqlCurrentActor.IsLive(connection, transaction, actor) || module is null || !module.Value.Available ||
             !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();
         if (module.Value.Epoch != initialModule.Value.Epoch) return Missing<ShareLinkPage>();
-        var eligible = new Dictionary<Guid, ShareLinkAdvisory>();
-        // Source locks precede definitive link locks, matching source-delete triggers.
-        foreach (var candidate in advisory.OrderBy(item => item.ResourceType, StringComparer.Ordinal).ThenBy(item => item.ResourceId))
-            if (OwnerSourceAllowed(connection, transaction, actor, candidate.ResourceType, candidate.ResourceId, creating: false)) eligible[candidate.Id] = candidate;
-        var links = new List<ShareLinkRecord>();
-        if (eligible.Count != 0)
+
+        // Type-wide authority is proved once and held in this transaction. SQL
+        // filters denied types and unavailable sources BEFORE TOP(26), so hidden
+        // rows cannot consume a page or cause a scan-until-full application loop.
+        var projectAllowed = OwnerSourceTypeAllowed(connection, transaction, actor, "Project");
+        var documentAllowed = OwnerSourceTypeAllowed(connection, transaction, actor, "Document");
+        var candidates = ReadListAdvisories(connection, transaction, actor.OwnerId, query, cutoff,
+            cursorAt, cursorId, projectAllowed, documentAllowed, out var cursorValid, out var cursorAnchor);
+        if (!cursorValid) return Missing<ShareLinkPage>();
+
+        // Advisory reads use statement-scoped READ COMMITTED locks on this SAME
+        // connection/transaction. No candidate link locks are retained while
+        // acquiring source/container proofs. At most 26 rows plus the anchor
+        // enter the definitive source-before-link phase; no second connection,
+        // hidden-row budget, continuation loop or growing authority cache.
+        var proofs = cursorAnchor is null ? candidates : candidates.Append(cursorAnchor);
+        foreach (var source in proofs.Select(item => (item.ResourceType, item.ResourceId)).Distinct()
+                     .OrderBy(item => item.ResourceType, StringComparer.Ordinal).ThenBy(item => item.ResourceId))
         {
+            if (!OwnerSourceAllowed(connection, transaction, actor, source.ResourceType, source.ResourceId, creating: false))
+                return Missing<ShareLinkPage>(); // Concurrent source change; never return a partial/false-empty page.
+        }
+
+        // Revalidate the anchor link itself AFTER source locks, in the same
+        // transaction and with exactly the list's owner/epoch/state filters.
+        if (cursorAnchor is not null && !ListAnchorCurrent(connection, transaction, actor.OwnerId,
+                query, cutoff, cursorAnchor)) return Missing<ShareLinkPage>();
+        var links = new List<ShareLinkRecord>();
+        if (candidates.Count != 0)
+        {
+            var eligible = candidates.ToDictionary(item => item.Id);
             using var command = connection.CreateCommand(); command.Transaction = transaction;
             var parameters = eligible.Keys.Select((id, index) => { var name = "@Link" + index; Add(command, name, SqlDbType.UniqueIdentifier, id); return name; }).ToArray();
             command.CommandText = $"""
@@ -137,13 +158,21 @@ public sealed class SqlSharingService : ISharingService
             while (reader.Read())
             {
                 var link = ReadLink(reader); var candidate = eligible[link.Id];
-                if (link.ResourceType == candidate.ResourceType && link.ResourceId == candidate.ResourceId) links.Add(link);
+                if (link.ResourceType != candidate.ResourceType || link.ResourceId != candidate.ResourceId ||
+                    link.CreatedAt.UtcDateTime != candidate.CreatedAt) return Missing<ShareLinkPage>();
+                links.Add(link);
             }
+            if (links.Count != candidates.Count) return Missing<ShareLinkPage>();
         }
+        // Neither denied candidates nor their cardinality may affect the public
+        // continuation. Its anchor is the last definitive authorized result.
+        var hasMore = links.Count > 25;
+        if (hasMore) links.RemoveRange(25, links.Count - 25);
         var allowed = ReadAllowedUsers(connection, transaction, actor.OwnerId, links.Select(link => link.Id).ToArray());
         links = links.Select(link => link with { AllowedUserIds = allowed.TryGetValue(link.Id, out var users) ? users : Array.Empty<Guid>() }).ToList();
-        if (!SqlCurrentActor.IsLive(connection, transaction, actor)) return ModuleUnavailable<ShareLinkPage>();
-        var next = hasMore ? _cursors.Encode(actor.OwnerId, module.Value.Epoch, filters, advisory[^1].CreatedAt, advisory[^1].Id) : null;
+        if (!SqlCurrentActor.IsLive(connection, transaction, actor)
+            || !ModuleAvailable(connection, transaction, actor, "FX04", "sharing.link.read")) return ModuleUnavailable<ShareLinkPage>();
+        var next = hasMore ? _cursors.Encode(actor.OwnerId, module.Value.Epoch, filters, links[^1].CreatedAt.UtcDateTime, links[^1].Id) : null;
         transaction.Commit(); return IdentityOperationResult<ShareLinkPage>.Success(new(links, next));
     }
 
@@ -155,24 +184,63 @@ public sealed class SqlSharingService : ISharingService
              OR (@State='Active' AND sl.RevokedAt IS NULL AND (sl.ExpiresAt IS NULL OR sl.ExpiresAt>@Cutoff)))
         """;
     private sealed record ShareLinkAdvisory(Guid Id, string ResourceType, Guid ResourceId, DateTime CreatedAt);
-    private static List<ShareLinkAdvisory> ReadListAdvisories(SqlConnection connection, Guid owner, ShareLinkListQuery query,
-        DateTime cutoff, DateTime? cursorAt, Guid? cursorId, out bool cursorValid)
+    private static List<ShareLinkAdvisory> ReadListAdvisories(SqlConnection connection, SqlTransaction transaction,
+        Guid owner, ShareLinkListQuery query, DateTime cutoff, DateTime? cursorAt, Guid? cursorId,
+        bool projectAllowed, bool documentAllowed, out bool cursorValid, out ShareLinkAdvisory? cursorAnchor)
     {
-        var selected = $"SELECT sl.Id,sl.ResourceType,sl.ResourceId,sl.CreatedAt FROM [security].[ShareLink] sl JOIN [platform].[Module] m ON m.Code='FX04' WHERE sl.OwnerId=@Owner AND (sl.IsDeleted=0 OR (sl.RevokedAt IS NOT NULL AND sl.InvalidationReason='OwnerRevoked')) AND sl.IssuedSharingEpoch=m.SharingEpoch AND {ListFilter}";
-        cursorValid = true;
+        // Source-owned predicates mirror owner diagnostics, not public viewer
+        // projection. READCOMMITTED is deliberate: advisory link/source locks
+        // must end with the statement, before definitive source proofs below.
+        var selected = $"""
+            SELECT sl.Id,sl.ResourceType,sl.ResourceId,sl.CreatedAt
+            FROM [security].[ShareLink] sl WITH(READCOMMITTED)
+            JOIN [platform].[Module] m ON m.Code='FX04'
+            WHERE sl.OwnerId=@Owner
+              AND (sl.IsDeleted=0 OR (sl.RevokedAt IS NOT NULL AND sl.InvalidationReason='OwnerRevoked'))
+              AND sl.IssuedSharingEpoch=m.SharingEpoch AND {ListFilter}
+              AND ((@ProjectAllowed=1 AND sl.ResourceType='Project' AND {SqlProjectSharedSource.OwnerListEligibility})
+                OR (@DocumentAllowed=1 AND sl.ResourceType='Document' AND {SqlDocumentSharedSource.OwnerListEligibility}))
+            """;
+        void Parameters(SqlCommand command)
+        {
+            command.Transaction = transaction;
+            AddListParameters(command, owner, query, cutoff, cursorAt, cursorId);
+            Add(command, "@ProjectAllowed", SqlDbType.Bit, projectAllowed);
+            Add(command, "@DocumentAllowed", SqlDbType.Bit, documentAllowed);
+        }
+        cursorValid = true; cursorAnchor = null;
         if (cursorId is not null)
         {
-            using var anchor = connection.CreateCommand(); anchor.CommandText = $"WITH selected AS ({selected}) SELECT 1 FROM selected WHERE Id=@CursorId AND CreatedAt=@CursorAt;";
-            AddListParameters(anchor, owner, query, cutoff, cursorAt, cursorId);
-            cursorValid = anchor.ExecuteScalar() is not null;
+            using var anchor = connection.CreateCommand();
+            anchor.CommandText = $"WITH selected AS ({selected}) SELECT Id,ResourceType,ResourceId,CreatedAt FROM selected WHERE Id=@CursorId AND CreatedAt=@CursorAt;";
+            Parameters(anchor);
+            using var anchorReader = anchor.ExecuteReader(); cursorValid = anchorReader.Read();
+            if (cursorValid) cursorAnchor = new(anchorReader.GetGuid(0), anchorReader.GetString(1), anchorReader.GetGuid(2), anchorReader.GetDateTime(3));
             if (!cursorValid) return [];
         }
         using var command = connection.CreateCommand();
         command.CommandText = $"WITH selected AS ({selected}) SELECT TOP(26) Id,ResourceType,ResourceId,CreatedAt FROM selected WHERE @CursorId IS NULL OR CreatedAt<@CursorAt OR (CreatedAt=@CursorAt AND Id<@CursorId) ORDER BY CreatedAt DESC,Id DESC;";
-        AddListParameters(command, owner, query, cutoff, cursorAt, cursorId);
+        Parameters(command);
         var items = new List<ShareLinkAdvisory>(); using var reader = command.ExecuteReader();
         while (reader.Read()) items.Add(new(reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2), reader.GetDateTime(3)));
         return items;
+    }
+
+    private static bool ListAnchorCurrent(SqlConnection connection, SqlTransaction transaction, Guid owner,
+        ShareLinkListQuery query, DateTime cutoff, ShareLinkAdvisory anchor)
+    {
+        using var command = connection.CreateCommand(); command.Transaction = transaction;
+        command.CommandText = $"""
+            SELECT 1 FROM [security].[ShareLink] sl JOIN [platform].[Module] m ON m.Code='FX04'
+            WHERE sl.OwnerId=@Owner AND sl.Id=@CursorId AND sl.CreatedAt=@CursorAt
+              AND sl.ResourceType=@AnchorType AND sl.ResourceId=@AnchorSource
+              AND (sl.IsDeleted=0 OR (sl.RevokedAt IS NOT NULL AND sl.InvalidationReason='OwnerRevoked'))
+              AND sl.IssuedSharingEpoch=m.SharingEpoch AND {ListFilter};
+            """;
+        AddListParameters(command, owner, query, cutoff, anchor.CreatedAt, anchor.Id);
+        Add(command, "@AnchorType", SqlDbType.VarChar, anchor.ResourceType, 32);
+        Add(command, "@AnchorSource", SqlDbType.UniqueIdentifier, anchor.ResourceId);
+        return command.ExecuteScalar() is not null;
     }
     private static void AddListParameters(SqlCommand command, Guid owner, ShareLinkListQuery query, DateTime cutoff, DateTime? cursorAt, Guid? cursorId)
     {
@@ -725,16 +793,21 @@ public sealed class SqlSharingService : ISharingService
     private bool OwnerSourceAllowed(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor,
         string type, Guid id, bool creating)
     {
-        var module=type=="Project"?"FX11":"FX20";
-        var prefix=type=="Project"?"projects.project":"documents.page";
-        if (!ModuleAvailable(connection,transaction,actor,module,prefix+".read") ||
-            !ModuleAvailable(connection,transaction,actor,module,prefix+".share") ||
-            !SourceModuleAvailable(connection,transaction,actor.OwnerId,module)) return false;
+        if (!OwnerSourceTypeAllowed(connection, transaction, actor, type)) return false;
         var sharing=ReadSharingModule(connection,transaction,forUpdate:false);
         if (sharing is null || !sharing.Value.Available) return false;
         var source=ReadSource(connection,transaction,type,id,actor.OwnerId);
         return source is not null && source.Value.Status!="Deleted" &&
             (!creating || type!="Document" || source.Value.Status=="Published");
+    }
+
+    private bool OwnerSourceTypeAllowed(SqlConnection connection, SqlTransaction transaction, IdentityPrincipal actor, string type)
+    {
+        if (type is not ("Project" or "Document")) return false;
+        var module = type == "Project" ? "FX11" : "FX20";
+        var prefix = type == "Project" ? "projects.project" : "documents.page";
+        return ModuleAvailable(connection, transaction, actor, module, prefix + ".read", prefix + ".share")
+            && SourceModuleAvailable(connection, transaction, actor.OwnerId, module);
     }
 
     private static bool LinkEpochCurrent(SqlConnection connection, SqlTransaction transaction, Guid id, Guid owner)

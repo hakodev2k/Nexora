@@ -242,6 +242,16 @@ internal sealed class SqlRequestReceiptStore
                 return ReceiptClaim.InProgress;
             }
 
+            // Compatibility namespaces are alternative proofs of ONE original
+            // outcome. Equal request digests alone cannot disambiguate two
+            // successful identities, statuses or projections. Conservative exact
+            // envelope equality also refuses unknown legacy reinterpretation.
+            if (active.Any(receipt => receipt.State != "Succeeded"
+                || receipt.ResultStatusCode != succeeded.ResultStatusCode
+                || !string.Equals(receipt.ResultCode, succeeded.ResultCode, StringComparison.Ordinal)
+                || !string.Equals(receipt.ResultJson, succeeded.ResultJson, StringComparison.Ordinal)))
+                return ReceiptClaim.Conflict;
+
             return new ReceiptClaim(
                 false,
                 true,

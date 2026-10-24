@@ -17,7 +17,9 @@ type Observation = {
   tabs?: Array<{ title: string; accessible: boolean; screenshot?: string }>;
   findings: Finding[];
 };
-const artifactRoot = join(process.cwd(), 'artifacts', 'uiux-audit');
+const localWorker = process.env.NEXORA_UIUX_WORKER_ID ?? '';
+if (localWorker && !/^[a-z-]{1,32}$/.test(localWorker)) throw new Error('Invalid UIUX evidence worker ID');
+const artifactRoot = join(process.cwd(), 'artifacts', 'uiux-audit', localWorker);
 const screenshotRoot = join(artifactRoot, 'screenshots');
 const modules = Array.from({ length: 40 }, (_, i) => '/modules/FX' + String(i + 1).padStart(2, '0'));
 const publicRoutes = ['/login', '/register', '/verify-email', '/password/forgot', '/password/reset', '/share/synthetic-invalid-token'];
@@ -146,7 +148,8 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
       out.status = 'AUTO_PROBED';
       return out;
     }
-    const hasMain = await page.locator('main').first().waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
+    const subject = page.locator('main').first();
+    const hasMain = await subject.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
     if (!hasMain) {
       out.findings.push(finding('NO_MAIN_LANDMARK', 'P1', 'No visible main; could be a modal-only route or an incomplete public error state'));
       out.screenshot = await screenshot(page, persona, route, 'missing-main').catch(() => undefined);
@@ -180,12 +183,15 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
         dialogs: dialogs.length, unlabeledControls, smallTargets: badTargets,
       };
     });
-    out.h1 = ((await page.locator('main h1').first().textContent().catch(() => '')) ?? '').trim().slice(0, 150);
+    // Modal routes have a named dialog heading; an absent page h1 must not
+    // consume the route timeout or pretend the modal was a full page.
+    out.h1 = ((await page.locator('main h1').first().textContent({ timeout: 5_000 }).catch(() => '')) ?? '').trim().slice(0, 150);
     const actualRoute = new URL(page.url()).pathname;
     // Initialize check data before assigning bound actual route metadata.
     if (actualRoute !== route && !route.startsWith('/share/')) out.findings.push(finding('ROUTE_REDIRECT_OR_DENIAL', 'P2', 'Requested ' + route + ', actual ' + actualRoute + '; do not classify the requested page as observed.'));
     const bodyTitle = out.h1.toLowerCase();
-    const shellText = (await page.locator('main').innerText().catch(() => '')).slice(0, 1200);
+    const mainText = await subject.innerText().catch(() => '');
+    const shellText = mainText.slice(0, 1200);
     if (/module entry|feature CRUD.*chưa nằm|chưa có dữ liệu hiển thị/i.test(shellText)) out.findings.push(finding('PLACEHOLDER_NOT_FEATURE_UX', 'P2', 'Rendered page is a generic module placeholder, not a working feature'));
     if (route.startsWith('/modules/') && /không khả dụng|chưa khả dụng|unavailable|disabled|chưa triển khai/.test(bodyTitle)) out.findings.push(finding('MODULE_UNAVAILABLE_NOT_FEATURE_IMPLEMENTED', 'P2', 'Only the module unavailable state was observed, not the target feature.'));
 
@@ -196,7 +202,7 @@ async function observe(page: Page, route: string, persona: string, testInfo: Tes
     if (stats.unlabeledControls) out.findings.push(finding('UNNAMED_CONTROLS', 'P2', String(stats.unlabeledControls) + ' visible input/button controls lack a programmatic name'));
     if (stats.smallTargets > 3) out.findings.push(finding('SMALL_INTERACTIVE_TARGETS', 'P3', String(stats.smallTargets) + ' visible controls under 28px in one dimension; manual overlap/spacing review needed'));
     if (jsErrors) out.findings.push(finding('BROWSER_RUNTIME_ERRORS', 'P1', String(jsErrors) + ' uncaught JS exceptions; raw messages redacted'));
-    if ((await page.locator('main').innerText()).includes('Đang tải các widget')) {
+    if (mainText.includes('Đang tải các widget')) {
       out.findings.push(finding('POSSIBLE_UNSETTLED_DASHBOARD', 'P2', 'Dashboard loading observed; re-evaluate whether it settles after API response'));
     }
     try {

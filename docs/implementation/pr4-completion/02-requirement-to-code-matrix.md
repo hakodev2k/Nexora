@@ -30,3 +30,15 @@ The token inventory supplies candidates for code→catalog review. Full orphaned
 endpoint/unreachableUI/unregisteredaction and acceptance mapping are IN_PROGRESS,
 not completed by regexsearch. Current runtime registration is Program.cs Map*
 endpoints; each candidate still needs service/SQL/UI and authority analysis.
+
+## Oct23 integration delta
+
+See [current source/requirement trace](09-continuation-20261023.md) and the module-owned
+[Learning handoff](../../../src/Nexora.Application/Learning/LearningPlanImplementation.md).
+FX40 Plan read/create/update/link/unlink/reorder/complete now have central API/DI,
+SQL0086 and native list/detail routing; still gated, not Verified. D06 excludes Skill.
+FX32 XML/datetime/CSV/JWT bindings now have API authority, bounded processing and
+UI options; SQL0087 inserts missing definitions only. FX04/FX24 privacy repairs
+have source changes and independent review; final SQL acceptance remains pending.
+The recovered02-requirement-to-code-matrix.csv is an earlier lexical checkpoint,
+not an executed coverage matrix or semantic proof on current source.

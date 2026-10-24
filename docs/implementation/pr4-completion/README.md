@@ -1,5 +1,10 @@
 # PR4 implementation checkpoint — 2026-10-22
 
+**Current continuation:** [Oct23 integrated-code/build-only checkpoint](09-continuation-20261023.md).
+Latest integration: [Oct24 preserved QA history and conflict reconciliation](10-integration-20261024.md).
+Its latest code-only authorization and verification limits supersede any attempt
+to apply the historical runtime results below to the new source.
+
 **R1 remains incomplete. PR4 stays Draft. No merge, production or live providers.**
 
 Code persisted in Toolbox94fac58, backendccbc64d, Documents053b015,

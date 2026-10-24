@@ -7,6 +7,15 @@ namespace Nexora.Infrastructure.Documents;
 
 internal static class SqlDocumentSharedSource
 {
+    // Owner diagnostics intentionally include Draft (unlike viewer resolution).
+    // Keep topology visibility owned here; the committed proof uses ReadState.
+    internal const string OwnerListEligibility = """
+        EXISTS (SELECT 1 FROM [documents].[Page] p WITH(READCOMMITTED)
+                WHERE p.[OwnerId]=sl.[OwnerId] AND p.[Id]=sl.[ResourceId] AND p.[Status]<>'Deleted'
+                  AND EXISTS(SELECT 1 FROM [documents].[VisiblePageV1] visible WITH(READCOMMITTED)
+                             WHERE visible.OwnerId=p.OwnerId AND visible.Id=p.Id))
+        """;
+
     internal static (Guid OwnerId,string Status)? ReadState(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid resourceId)
     {
         using var command=connection.CreateCommand(); command.Transaction=transaction;

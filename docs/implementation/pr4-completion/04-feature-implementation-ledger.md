@@ -67,3 +67,13 @@ These deltas do not complete all lifecycle/source/negative/race/UX requirements.
 FX24 Collections/Templates, FX33 storedDiscovery, FX31 Orders/Sellers/Warranty,
 FX39 Resume and FX40 Plans/Certifications remain genuine implementation backlog.
 Do not treat absent endpoints alone as proof that all related behavior is absent.
+
+## Oct23 current-code delta
+
+The table above is historical and is not overwritten as acceptance. Current
+increment: FX04 bounded authorized pagination, FX24 ambiguous replay fail-closed,
+FX32 four offline tools, FX40 typed gated Plan vertical plus list/detail routing,
+and FX07 real-principal Windows verification harness. States are CODE_IMPLEMENTED
+subsets / VERIFICATION_PENDING. Plan readiness remains false. FX01–FX40 as whole
+modules remain IN_PROGRESS; none becomes VERIFIED/ACCEPTED from these builds.
+Current limitations and ordinary unfinished code are in [09](09-continuation-20261023.md).

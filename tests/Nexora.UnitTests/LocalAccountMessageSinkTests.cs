@@ -450,7 +450,7 @@ internal static class LocalAccountMessageSinkTests
             AssertEx.True(allowedSids.Any(sid => sid.Value == currentSid), "The runtime identity must be in the capture ACL");
             AssertEx.True(allowedSids.Any(sid => sid.Value == operatorSid), "The operator identity must be in the capture ACL");
 
-            var foreignSid = CreateSiblingSid(currentSid);
+            var foreignSid = new SecurityIdentifier(WellKnownSidType.BuiltinGuestsSid, null).Value;
             AssertEx.Throws<InvalidOperationException>(
                 () => LocalAccountMessageSink.ReadCaptured(
                     captureDirectory,
@@ -487,16 +487,4 @@ internal static class LocalAccountMessageSinkTests
         });
     }
 
-    [SupportedOSPlatform("windows")]
-    private static string CreateSiblingSid(string sid)
-    {
-        var parts = sid.Split('-');
-        if (parts.Length < 2 || !long.TryParse(parts[^1], out var rid) || rid == long.MaxValue)
-        {
-            throw new InvalidOperationException("The Windows test identity SID cannot produce a sibling SID.");
-        }
-
-        parts[^1] = (rid + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-        return string.Join('-', parts);
-    }
 }

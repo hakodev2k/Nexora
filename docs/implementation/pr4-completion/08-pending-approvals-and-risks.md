@@ -58,3 +58,18 @@ dependency. Keep ordinary missing work explicit and keepPRDraft until acceptance
 Rollback for current changes is a code revert on the Draftbranch; no migration,
 historical-data reinterpretation, grant mutation or destructive operation was
 introduced. Preserve revocation tombstones and receipt proofs on any rollback.
+
+## Oct23 remaining gates and resumable work
+
+Current progress in [09](09-continuation-20261023.md) does not finish R1. Learning
+readiness stays false until source-owner/security/DB and actual SQL acceptance;
+missing Plan actions remain Gated, no user grants enabled. Source participant lock
+ordering, registry enrollment, migration clean-upgrade/crash-gap/replay and rollback
+need real SQL evidence. Sharing hints/query plans/concurrency and receipt ambiguity
+regressions likewise remain pending. Elevated genuine Windows A/B/C, full browser
+journeys, every popup/state/viewport and semantic AC mapping remain required.
+Latest AGENTS code-only scope leaves these runtime checks to the owner; compilation
+is not a substitute. Plan lifecycle/progress/source opening, certifications and
+other ordinary authorized gaps still need implementation, not invented approvals.
+D01 Vault, advanced Finance/Tasks, sensitive field allowlists, live providers and
+production remain specifically blocked by their existing decisions/security gates.

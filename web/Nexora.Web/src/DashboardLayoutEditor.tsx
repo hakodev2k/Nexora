@@ -5,8 +5,8 @@ import { registerDirtyLeaveGuard } from './navigationGuard';
 import { ResourceFormDialog } from './ResourceFormDialog';
 
 const providers = [
-  { key: 'tasks-due', title: 'Tasks due and overdue' }, { key: 'calendar-today', title: 'Calendar today' },
-  { key: 'documents-recent', title: 'Recent Documents' }, { key: 'notifications-unread', title: 'Unread Notifications' }
+  { key: 'tasks-due', title: 'Công việc đến hạn và quá hạn' }, { key: 'calendar-today', title: 'Lịch hôm nay' },
+  { key: 'documents-recent', title: 'Tài liệu gần đây' }, { key: 'notifications-unread', title: 'Thông báo chưa đọc' }
 ];
 type DraftWidget = DashboardWidgetConfig & { localId: string };
 function draft(widget: DashboardWidgetConfig): DraftWidget { return { ...widget, localId: widget.id ?? createIdempotencyKey() }; }
@@ -62,7 +62,7 @@ export function DashboardLayoutEditor({ onLayout, onCommit, onUnavailable, onAut
       pending.current = null; setUncertain(false);
       if (isProductivityAcknowledgement(result)) { setCurrent(null); setWidgets([]); setLoaded(false); callbacks.current.onCommit(false); }
       else { baseline.current = JSON.stringify(result.widgets); setCurrent(result); setWidgets(result.widgets.map(draft)); callbacks.current.onLayout(result); callbacks.current.onCommit(true); }
-      setNotice('Bố cục đã được lưu; source payload vẫn được kiểm tra quyền riêng.');
+      setNotice('Đã lưu bố cục.');
     } catch (value) {
       if (!mounted.current || pending.current !== intent) return; const apiError = failure(value);
       const unknown = apiError.status === 0 || apiError.status >= 500 || apiError.status === 408 || ['RequestInProgress', 'IdempotencyConflict'].includes(apiError.code ?? '');
@@ -80,12 +80,12 @@ export function DashboardLayoutEditor({ onLayout, onCommit, onUnavailable, onAut
     setWidgets(previous => { const copy = [...previous]; [copy[index], copy[next]] = [copy[next], copy[index]]; return copy; });
   }
   const blocked = busy || uncertain || !loaded;
-  return <section className="form-panel" aria-label="Bố cục Dashboard"><div className="section-heading"><h2>Bố cục Dashboard</h2><span>{current ? `Revision ${current.layoutVersion}` : 'Chưa có bố cục đã lưu'}</span></div>
+  return <section className="form-panel dashboard-layout-editor" aria-label="Bố cục Dashboard"><div className="section-heading"><h2>Bố cục Dashboard</h2><span>{current ? `Phiên bản ${current.layoutVersion}` : 'Chưa có bố cục đã lưu'}</span></div>
     {error && <div className="notice notice-error" role="alert">{error}</div>}{notice && <p role="status">{notice}</p>}{busy && <p role="status">Đang xử lý bố cục…</p>}
     {uncertain && <div role="alert">Kết quả chưa rõ; các thay đổi đang được giữ nguyên.<button type="button" disabled={busy} onClick={() => void execute()}>Thử lại thao tác cũ</button></div>}
     <fieldset disabled={blocked}><legend>Widget đã đăng ký</legend><ol className="resource-cards">{widgets.map((widget, index) => <li className="resource-card" key={widget.localId}>
-      <label>Nguồn<select value={widget.key} onChange={event => setWidgets(old => old.map(row => row.localId === widget.localId ? { ...row, key: event.target.value } : row))}>{!providers.some(provider => provider.key === widget.key) && <option value={widget.key}>Provider không tương thích</option>}{providers.map(provider => <option key={provider.key} value={provider.key}>{provider.title}</option>)}</select></label>
-      <label>Kích thước<select value={widget.widthUnits} onChange={event => setWidgets(old => old.map(row => row.localId === widget.localId ? { ...row, widthUnits: Number(event.target.value) } : row))}><option value={1}>Một cột</option><option value={2}>Hai cột</option></select></label>
+      <label className="field-group">Nguồn<select value={widget.key} onChange={event => setWidgets(old => old.map(row => row.localId === widget.localId ? { ...row, key: event.target.value } : row))}>{!providers.some(provider => provider.key === widget.key) && <option value={widget.key}>Provider không tương thích</option>}{providers.map(provider => <option key={provider.key} value={provider.key}>{provider.title}</option>)}</select></label>
+      <label className="field-group">Kích thước<select value={widget.widthUnits} onChange={event => setWidgets(old => old.map(row => row.localId === widget.localId ? { ...row, widthUnits: Number(event.target.value) } : row))}><option value={1}>Một cột</option><option value={2}>Hai cột</option></select></label>
       <label className="check-row"><input type="checkbox" checked={widget.enabled} onChange={event => setWidgets(old => old.map(row => row.localId === widget.localId ? { ...row, enabled: event.target.checked } : row))} />Hiển thị</label>
       <div className="resource-actions"><button type="button" disabled={index === 0} aria-label={`Đưa widget ${index + 1} lên`} onClick={() => move(index, -1)}>↑</button><button type="button" disabled={index === widgets.length - 1} aria-label={`Đưa widget ${index + 1} xuống`} onClick={() => move(index, 1)}>↓</button><button type="button" onClick={() => setWidgets(old => old.filter(row => row.localId !== widget.localId))}>Gỡ widget</button></div>
     </li>)}</ol><button type="button" disabled={widgets.length >= 24} onClick={() => setWidgets(old => [...old, newWidget(providers[0].key)])}>Thêm widget</button><button type="button" className="primary-button" onClick={save}>Lưu bố cục</button></fieldset>

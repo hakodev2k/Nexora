@@ -56,3 +56,11 @@ Run successive permitted implementation/verification cycles. The full Release1
 scope remains committed. A checkpoint is not successful R1 completion. Remaining
 ordinary work is NOT_STARTED/IN_PROGRESS; genuine approval/runtime dependencies
 remain explicit and resumable in08-pending-approvals-and-risks.md.
+
+## Current Oct23 execution amendment
+
+The latest user-supplied AGENTS restores code-only execution for this continuation.
+Do not apply the earlier QA authorization paragraph above to new Oct23 work.
+Actual integration, worker ownership, build-only evidence, preserved dirty work and
+rollback are recorded in [the current continuation](09-continuation-20261023.md).
+Baseline fbafbaa; default-false Plan readiness, all D01–D09 and Draft gates retained.

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { DocumentVersionPreview } from './api';
-import { compareDocumentText } from './documentVersionDiff';
+import { compareDocumentText } from './documentTextDiff';
 
 const sourceStyle = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxWidth: '100%' } as const;
 export function DocumentVersionDiff({ before, after }: { before: DocumentVersionPreview; after: DocumentVersionPreview }) {
