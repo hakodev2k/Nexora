@@ -9,10 +9,10 @@ internal static class SqlProjectSharedSource
 {
     // Advisory eligibility only. The Sharing participant proves/locks each
     // selected source through ReadState before taking definitive link locks.
-    internal const string OwnerListEligibility = """
-        EXISTS (SELECT 1 FROM [productivity].[Project] sourceProject WITH(READCOMMITTED)
-                WHERE sourceProject.[OwnerId]=sl.[OwnerId] AND sourceProject.[Id]=sl.[ResourceId]
-                  AND sourceProject.[Status]<>'Deleted')
+    internal const string OwnerListSources = """
+        SELECT sourceProject.[OwnerId],sourceProject.[Id]
+        FROM [productivity].[Project] sourceProject WITH(READCOMMITTED)
+        WHERE sourceProject.[OwnerId]=@Owner AND sourceProject.[Status]<>'Deleted'
         """;
 
     internal static (Guid OwnerId,string Status)? ReadState(SqlConnection connection, SqlTransaction? transaction, Guid ownerId, Guid resourceId)

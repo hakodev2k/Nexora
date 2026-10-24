@@ -188,18 +188,26 @@ public sealed class SqlSharingService : ISharingService
         Guid owner, ShareLinkListQuery query, DateTime cutoff, DateTime? cursorAt, Guid? cursorId,
         bool projectAllowed, bool documentAllowed, out bool cursorValid, out ShareLinkAdvisory? cursorAnchor)
     {
-        // Source-owned predicates mirror owner diagnostics, not public viewer
-        // projection. READCOMMITTED is deliberate: advisory link/source locks
-        // must end with the statement, before definitive source proofs below.
+        // Drive the advisory join from eligible sources, never ShareLink. A
+        // link-first nested source probe can retain its transient link lock
+        // while waiting on a source deletion whose trigger invalidates links.
+        // Explicit loop/order hints below also cover this advisory phase; final
+        // source/link proofs remain separate and retain normal isolation.
         var selected = $"""
             SELECT sl.Id,sl.ResourceType,sl.ResourceId,sl.CreatedAt
-            FROM [security].[ShareLink] sl WITH(READCOMMITTED)
+            FROM (
+                SELECT CONVERT(varchar(32),'Project') AS ResourceType,sourceProject.OwnerId,sourceProject.Id
+                FROM ({SqlProjectSharedSource.OwnerListSources}) sourceProject WHERE @ProjectAllowed=1
+                UNION ALL
+                SELECT CONVERT(varchar(32),'Document'),sourceDocument.OwnerId,sourceDocument.Id
+                FROM ({SqlDocumentSharedSource.OwnerListSources}) sourceDocument WHERE @DocumentAllowed=1
+            ) eligibleSource
+            INNER LOOP JOIN [security].[ShareLink] sl WITH(READCOMMITTED)
+                ON sl.OwnerId=eligibleSource.OwnerId AND sl.ResourceType=eligibleSource.ResourceType AND sl.ResourceId=eligibleSource.Id
             JOIN [platform].[Module] m ON m.Code='FX04'
             WHERE sl.OwnerId=@Owner
               AND (sl.IsDeleted=0 OR (sl.RevokedAt IS NOT NULL AND sl.InvalidationReason='OwnerRevoked'))
               AND sl.IssuedSharingEpoch=m.SharingEpoch AND {ListFilter}
-              AND ((@ProjectAllowed=1 AND sl.ResourceType='Project' AND {SqlProjectSharedSource.OwnerListEligibility})
-                OR (@DocumentAllowed=1 AND sl.ResourceType='Document' AND {SqlDocumentSharedSource.OwnerListEligibility}))
             """;
         void Parameters(SqlCommand command)
         {
@@ -212,14 +220,14 @@ public sealed class SqlSharingService : ISharingService
         if (cursorId is not null)
         {
             using var anchor = connection.CreateCommand();
-            anchor.CommandText = $"WITH selected AS ({selected}) SELECT Id,ResourceType,ResourceId,CreatedAt FROM selected WHERE Id=@CursorId AND CreatedAt=@CursorAt;";
+            anchor.CommandText = $"WITH selected AS ({selected}) SELECT Id,ResourceType,ResourceId,CreatedAt FROM selected WHERE Id=@CursorId AND CreatedAt=@CursorAt OPTION(FORCE ORDER,LOOP JOIN);";
             Parameters(anchor);
             using var anchorReader = anchor.ExecuteReader(); cursorValid = anchorReader.Read();
             if (cursorValid) cursorAnchor = new(anchorReader.GetGuid(0), anchorReader.GetString(1), anchorReader.GetGuid(2), anchorReader.GetDateTime(3));
             if (!cursorValid) return [];
         }
         using var command = connection.CreateCommand();
-        command.CommandText = $"WITH selected AS ({selected}) SELECT TOP(26) Id,ResourceType,ResourceId,CreatedAt FROM selected WHERE @CursorId IS NULL OR CreatedAt<@CursorAt OR (CreatedAt=@CursorAt AND Id<@CursorId) ORDER BY CreatedAt DESC,Id DESC;";
+        command.CommandText = $"WITH selected AS ({selected}) SELECT TOP(26) Id,ResourceType,ResourceId,CreatedAt FROM selected WHERE @CursorId IS NULL OR CreatedAt<@CursorAt OR (CreatedAt=@CursorAt AND Id<@CursorId) ORDER BY CreatedAt DESC,Id DESC OPTION(FORCE ORDER,LOOP JOIN);";
         Parameters(command);
         var items = new List<ShareLinkAdvisory>(); using var reader = command.ExecuteReader();
         while (reader.Read()) items.Add(new(reader.GetGuid(0), reader.GetString(1), reader.GetGuid(2), reader.GetDateTime(3)));

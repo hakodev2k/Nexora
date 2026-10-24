@@ -1,0 +1,11 @@
+  Nexora.Domain -> D:\Projects\ASP_NET_Core_Developer_2026\Nexora\src\Nexora.Domain\bin\Debug\net10.0\Nexora.Domain.dll
+  Nexora.Application -> D:\Projects\ASP_NET_Core_Developer_2026\Nexora\src\Nexora.Application\bin\Debug\net10.0\Nexora.Application.dll
+  Nexora.Infrastructure -> D:\Projects\ASP_NET_Core_Developer_2026\Nexora\src\Nexora.Infrastructure\bin\Debug\net10.0\Nexora.Infrastructure.dll
+  Nexora.Api -> D:\Projects\ASP_NET_Core_Developer_2026\Nexora\src\Nexora.Api\bin\Debug\net10.0\Nexora.Api.dll
+  Nexora.IntegrationTests -> D:\Projects\ASP_NET_Core_Developer_2026\Nexora\tests\Nexora.IntegrationTests\bin\Debug\net10.0\Nexora.IntegrationTests.dll
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:17.42

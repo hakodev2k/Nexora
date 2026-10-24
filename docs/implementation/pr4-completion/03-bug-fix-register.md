@@ -49,3 +49,11 @@ was weakened to make it green. All unexecuted cases remain unverified.
 
 No current functional PASS count is inferred from compilation. Existing prepared
 regressions belong to the prior authorized QA work and were not executed here.
+
+## CI follow-up SQL-SHARE-01
+
+Controlled source deletion/List returned503 rather than200 in CI40066173203
+(289PASS/1FAIL). Source-first eligible relation plus explicit LOOP/FORCE ORDER
+now covers the advisory query as well as definitive proof. Tests/assertions are
+unchanged. Independent source review has no blocker; final-source SQL rerun is
+required. See [reproduction, evidence and closure](11-sharing-concurrency-20261024.md).

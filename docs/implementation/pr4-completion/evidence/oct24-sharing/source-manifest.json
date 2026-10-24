@@ -1,0 +1,2660 @@
+{
+  "base": "7c5b9e3fe0deead50e18102c3af5456bb5e46193",
+  "branch": "impl/m01-s00-scaffold",
+  "normalization": "UTF8 text, CRLF normalized to LF",
+  "sourceDigest": "7f3dbe1b4267d31c4aca01e6a9d96242a19c0848b8e34ad577a0209a0c60b508",
+  "files": [
+    {
+      "path": ".github/workflows/agent-baseline.yml",
+      "sha256": "e32c9fa9b687e4ba47683578c9fc77c741333bc7a3e8dbee0ba40eed9ea9cce5"
+    },
+    {
+      "path": ".github/workflows/m01-ci.yml",
+      "sha256": "778e4df143e7baf8272342b8020931d81f31d8730d75ae3a0a0eafff2f9b9aed"
+    },
+    {
+      "path": ".github/workflows/pr4-uiux-sharded.yml",
+      "sha256": "112ac5ee49c256bf7b97efc39b9b1c8bf80845f5c8d596afb66dbab6cf88fab1"
+    },
+    {
+      "path": "database/migrations/20260909_0001_m01_identity_platform.sql",
+      "sha256": "f8ce53563ad5db444911185b6c81ba5352ae16d9284d3de6f77975fe12219001"
+    },
+    {
+      "path": "database/migrations/20260909_0002_bootstrap_closure.sql",
+      "sha256": "d60b12fbe7f3a0f8145c3ebfddd13d8cc5ea2f03f118115cce0019bc3b17dba3"
+    },
+    {
+      "path": "database/migrations/20260910_0002_r1_catalog_and_productivity.sql",
+      "sha256": "48834b312ba5e6565b7191f5855bfc5ff1fa2ea6aa284e32c90a91c9b744d57b"
+    },
+    {
+      "path": "database/migrations/20260910_0003_productivity_lifecycle.sql",
+      "sha256": "0258c0c1fe879d7fae8b927f47b9a39f707be541903bdb9f3ae963e075a27a9c"
+    },
+    {
+      "path": "database/migrations/20260910_0004_notifications_inbox.sql",
+      "sha256": "c2e9950f37edb12ac1f6408584607b49709405fa9c8295d0f33c5fb138489156"
+    },
+    {
+      "path": "database/migrations/20260910_0005_preferences.sql",
+      "sha256": "162357dcb3f5ce0c9a9615291aae421b1cd93894b44f25ee56e98d25541ac6dd"
+    },
+    {
+      "path": "database/migrations/20260910_0006_documents_pages.sql",
+      "sha256": "5c3373d4a308f1edb47f6716961507a3fc9b7d7fca82f9d5d2fefd5391755e5a"
+    },
+    {
+      "path": "database/migrations/20260910_0007_action_catalog_alignment.sql",
+      "sha256": "5bafd709cb732bab1add64986db41d4435f86bfa12ae4822385fb6d0b0558d37"
+    },
+    {
+      "path": "database/migrations/20260910_0008_finance_manual_records.sql",
+      "sha256": "ada1056afd420de7b20d13a06a91461ef5b5879209b2f40dfa1cba7a2465c6df"
+    },
+    {
+      "path": "database/migrations/20260910_0009_bookmarks_manual.sql",
+      "sha256": "ed302b0538cf505ab7ec6dbc16d53d08ad66d897fba0fc5e8ad47a4f04e72755"
+    },
+    {
+      "path": "database/migrations/20260910_0010_snippets_manual.sql",
+      "sha256": "9f2b29331e2e0cc30eef658f64286d366682e7b9f02adb378a4f6e372bfb3f0c"
+    },
+    {
+      "path": "database/migrations/20260910_0011_reading_queue_bookmarks.sql",
+      "sha256": "2b2e98a62c8274db983331105f36e9f4169d0661d7c642c0c4ddf5ac0bcdcc25"
+    },
+    {
+      "path": "database/migrations/20260910_0012_organization_tags.sql",
+      "sha256": "6ef0cbfef5debed8b1a17dd7fe96ae718b538fc72f90f4b33e7fc50c40a2e8c7"
+    },
+    {
+      "path": "database/migrations/20260910_0013_developer_toolbox_pure.sql",
+      "sha256": "3fefbd8fd460fd0a07cf39e91ba60449f59220fcbb9d2855e6191e710c74c231"
+    },
+    {
+      "path": "database/migrations/20260910_0014_goals_numeric.sql",
+      "sha256": "141f629f04ac71e1805e6ffe6205fb5828b14af6aed1abf269361f5beee67173"
+    },
+    {
+      "path": "database/migrations/20260910_0015_dashboard_attention.sql",
+      "sha256": "b1efe80f5c99b9e3f2adbc761f1b893b5c0fd43befec8676a1061b7853def16f"
+    },
+    {
+      "path": "database/migrations/20260910_0016_global_search_source_query.sql",
+      "sha256": "2f0e16e8c185ce3b1ea9fc5362671dbf879a714592176950067c4f1b1f85c8b9"
+    },
+    {
+      "path": "database/migrations/20260910_0017_favorites_refs.sql",
+      "sha256": "2a8b27128308876c29b087e0dfcbf314d623321fff83f84c051c270f6a7e654d"
+    },
+    {
+      "path": "database/migrations/20260910_0018_local_runtime_catalog_gate.sql",
+      "sha256": "2219d66331ba45ab16b8b61569c83e2023d9a15d3cf52dd8892e6007dde8f658"
+    },
+    {
+      "path": "database/migrations/20260910_0019_productivity_contract_alignment.sql",
+      "sha256": "b9051e1e0683f1f65bc49851f31174d82ae3dbc6f9d35b98aec8adf30524ccb0"
+    },
+    {
+      "path": "database/migrations/20260910_0020_task_calendar_projection.sql",
+      "sha256": "c8e3a5ab04679ef45a8f17a2a4b75ec9608edb4c81844f81c60f5804aaa90472"
+    },
+    {
+      "path": "database/migrations/20260911_0021_core_sharing_support_files.sql",
+      "sha256": "74c93b9c8256738a57e5c486b5e61519ccd770099228dfe5a21da4783e9643bf"
+    },
+    {
+      "path": "database/migrations/20260911_0022_reminders_scheduling.sql",
+      "sha256": "7edf4ac2d079d751e2aaca114cf7986a79bcce14566564229ff476e941d42f2f"
+    },
+    {
+      "path": "database/migrations/20260911_0023_planner_habits.sql",
+      "sha256": "732d02bc98aa0db6c5afd19700fd428166a4b6a3e13f498f3099d90f1ea14200"
+    },
+    {
+      "path": "database/migrations/20260912_0024_planner_habits_owner_integrity.sql",
+      "sha256": "7997786b987c5c8eedc0cc556576c3c8667bcd9cd2521647268169c2c9c2ecce"
+    },
+    {
+      "path": "database/migrations/20260913_0025_review_hardening.sql",
+      "sha256": "3a76cf3b76907baf1ed81c44a89866df507a0d68386352492fbc2f93f2b61ca5"
+    },
+    {
+      "path": "database/migrations/20260913_0026_identity_local_delivery.sql",
+      "sha256": "bffc7267dc5b3e3c253e3be51a1d2a255ac38f8f65307f3a4766b33ab7298f74"
+    },
+    {
+      "path": "database/migrations/20260922_0027_sanitize_session_device_labels.sql",
+      "sha256": "d07d09e603a3c468c49e3fa32ce1b03e25d05aaa67c26db90f90c5fbcce04cf6"
+    },
+    {
+      "path": "database/migrations/20260928_0028_bootstrap_ready_module_grants.sql",
+      "sha256": "530faeca8450945a23bb2a13012a896928b9c3a4573495d5921b083957994a48"
+    },
+    {
+      "path": "database/migrations/20260929_0029_habit_trash_consistency.sql",
+      "sha256": "a2d6bf3e11e0e21e07a4df5fb1bf5d737008f8f66afd74db7b16bda228afda9e"
+    },
+    {
+      "path": "database/migrations/20260930_0030_access_preview_action.sql",
+      "sha256": "be31855b439f9037fe279feccd96351257a6a19db9aec6d12677e3fcb3cb2338"
+    },
+    {
+      "path": "database/migrations/20261001_0031_trash_source_permissions.sql",
+      "sha256": "ad40bc02db10a7257eae7233d1a8e6d207e9155b94ded40fff67bc9b53f32513"
+    },
+    {
+      "path": "database/migrations/20261001_0032_time_tracking_local.sql",
+      "sha256": "064c98c4af9b72779adafad8e61945819c047285be0beee2c2b0fec4c71163c9"
+    },
+    {
+      "path": "database/migrations/20261001_0033_focus_local.sql",
+      "sha256": "7afda08674f5f84da6b9cad1e4a7f84f738fba79accdcb1fcea082bad8fdda5f"
+    },
+    {
+      "path": "database/migrations/20261002_0034_focus_conversion_time_purge.sql",
+      "sha256": "10faa4fe92502245600c6bb83db410f296213fac76b22ca71dc4e4a03c0b2c42"
+    },
+    {
+      "path": "database/migrations/20261002_0035_wishlist_local.sql",
+      "sha256": "32c3c3ba563f609257ff343f9d8269d48cb3482941c99ce7b19821304b55d4c9"
+    },
+    {
+      "path": "database/migrations/20261003_0036_learning_skills_local.sql",
+      "sha256": "ea4fbe2f6baa12066bacd030fa8c100a7d1d898a1b6d9342c23499e52b17d591"
+    },
+    {
+      "path": "database/migrations/20261003_0037_learning_courses_local.sql",
+      "sha256": "89fecc6152f5fa6ea2413e526c95b1a9d583c7be24182fe8680fd8be692582ec"
+    },
+    {
+      "path": "database/migrations/20261003_0038_personal_assets_local.sql",
+      "sha256": "b0d7f507273cd5bb25390eb3a771f12a9220013464677059c4c4678716ac22e8"
+    },
+    {
+      "path": "database/migrations/20261003_0039_digital_assets_local.sql",
+      "sha256": "56e1c49718fb51260735854dd0950f9e87ba4ef315552d6ef6d1236b66b23c15"
+    },
+    {
+      "path": "database/migrations/20261003_0040_career_manual.sql",
+      "sha256": "e0f45d7926ffa91a4d09df345acdfede30b00eb6362d95bb3131dddb3eb09c20"
+    },
+    {
+      "path": "database/migrations/20261003_0041_calendar_ics_import.sql",
+      "sha256": "04204d975e936ac2a95df1c7dbc563619f2be5960befa07b2483878196431ae4"
+    },
+    {
+      "path": "database/migrations/20261004_0042_calendar_ics_export.sql",
+      "sha256": "ddd256a2b8899ae76c54d5e09c3f263e49a9efe0caacaf1c2959f40b7af36d82"
+    },
+    {
+      "path": "database/migrations/20261004_0043_sharing_policy_authority.sql",
+      "sha256": "a7acac1763cb061dab0e99f7ab553f05076bca366ef363f7adb7064921430aae"
+    },
+    {
+      "path": "database/migrations/20261004_0044_sharing_subset_readiness.sql",
+      "sha256": "6c77e8c4fee8c4ab7e4588777056dc5a395e3f234db1a9c5273ffa5c79022947"
+    },
+    {
+      "path": "database/migrations/20261004_0045_monitoring_http_config.sql",
+      "sha256": "e670038a1595cddfaf353798f69ae8489915fc99592e1a144545d4b5487f1d4e"
+    },
+    {
+      "path": "database/migrations/20261005_0046_news_categories.sql",
+      "sha256": "60e6e88920dd6cb3b6d934b579b7ff52a1810aefe223b1d9e127df6905a5c15c"
+    },
+    {
+      "path": "database/migrations/20261011_0047_automation_definitions.sql",
+      "sha256": "49c478e526c1c61230546d34e2771222defc2074ec775394eec41a299a3a1152"
+    },
+    {
+      "path": "database/migrations/20261011_0048_automation_lifecycle.sql",
+      "sha256": "d9bf325acf4045af082830b76b8c9c15a31be6ea3b07ae0dfd2e0b97b375c7e3"
+    },
+    {
+      "path": "database/migrations/20261011_0049_automation_manual_runs.sql",
+      "sha256": "a4217e172ac9dd8df23bb533675489a67e65e496b7b09427b08a83e0f68173e5"
+    },
+    {
+      "path": "database/migrations/20261011_0050_automation_retry_step.sql",
+      "sha256": "92c3819557843e9f540e984003cbdd968308ccaaa6ee331059833c544ff36357"
+    },
+    {
+      "path": "database/migrations/20261011_0051_automation_schedule_configuration.sql",
+      "sha256": "696e735b59b912b666dc69234a81f8382e53e8621ad9a8d4de11742250f1bf69"
+    },
+    {
+      "path": "database/migrations/20261011_0052_automation_schedule_occurrences.sql",
+      "sha256": "5af4202e59c41a60742493f1fbf2c889f5b5ca71e1c2461b8374fd121832fd70"
+    },
+    {
+      "path": "database/migrations/20261011_0053_automation_purge_action.sql",
+      "sha256": "7e2efc1a2f4ead7f14f14a270e1ada90c865252227b642cd8a96bf7d32e90c51"
+    },
+    {
+      "path": "database/migrations/20261011_0054_integration_connection_configuration.sql",
+      "sha256": "5d2dca317d0cd8e8a8039a78edf33c7f1f8f83b4d782742d210e5889769822a8"
+    },
+    {
+      "path": "database/migrations/20261012_0055_productivity_dedicated_actions.sql",
+      "sha256": "81ad4bf6449a637d4377d286d611dfda04287bdda12c33da9a847a497af05c6e"
+    },
+    {
+      "path": "database/migrations/20261015_0056_documents_tag_catalog.sql",
+      "sha256": "19b06461f3e3860b3994bd249cc1e0f0a9616819ccd3425c0a516fa2b4cf22e4"
+    },
+    {
+      "path": "database/migrations/20261015_0057_document_tag_version_snapshots.sql",
+      "sha256": "c301c74b582277caab9e7f2b965f2eeb8aae7d593aac033e328069d89fd6197f"
+    },
+    {
+      "path": "database/migrations/20261015_0058_document_history_read.sql",
+      "sha256": "08db303eecb0a93aa5ffeb7b23edf3d227c59923749b5745f011e41931ed361b"
+    },
+    {
+      "path": "database/migrations/20261017_0059_document_version_restore.sql",
+      "sha256": "d856552565f8144f997310738e75fb8c228954e39c9b29fdc00fbfb39b1cbc7a"
+    },
+    {
+      "path": "database/migrations/20261017_0060_saved_search.sql",
+      "sha256": "7863741e1d403c053f9d2fca8599c7e9709a3307538b4a2090b0d09f77f4dd3a"
+    },
+    {
+      "path": "database/migrations/20261017_0061_dashboard_layout.sql",
+      "sha256": "968b5ea47bf4fed69d90add752e47b14cec5bc42ad1258112061e4ea85355fc3"
+    },
+    {
+      "path": "database/migrations/20261017_0062_career_calendar_links.sql",
+      "sha256": "df9b961a480b3ab97d5a0ae9d89123359e52326b1fee29781f26e5aba8e14230"
+    },
+    {
+      "path": "database/migrations/20261017_0063_skill_evidence.sql",
+      "sha256": "5b160bc0561d500e49ff5548cf4333e3a05c541bb419bc16cf94799bf7fa44a8"
+    },
+    {
+      "path": "database/migrations/20261017_0064_notification_source_open.sql",
+      "sha256": "6bebca09aaa03c9feac2ee6244d0b45664b0658112c487644b8fccc64c5012c7"
+    },
+    {
+      "path": "database/migrations/20261017_0065_dashboard_refresh.sql",
+      "sha256": "9a53a341147507cc96d385cfca4bdbe3d5ad5f8243bb49bc145c095150973666"
+    },
+    {
+      "path": "database/migrations/20261017_0066_news_stored_reader.sql",
+      "sha256": "49962499bfc1516f5f89424f3ce51e77a55925e1631bdd184aafdc45d454c186"
+    },
+    {
+      "path": "database/migrations/20261017_0067_news_read_history.sql",
+      "sha256": "3430a672c381f8d29c8fade386a1ffe3cc73c13af4eb9f75b84204cdbddbe2ed"
+    },
+    {
+      "path": "database/migrations/20261017_0068_reading_news_reference.sql",
+      "sha256": "a08d234e36883c14c3232f71d69d42b7b93ee955998d124a5e571643a459c446"
+    },
+    {
+      "path": "database/migrations/20261017_0069_documents_topology.sql",
+      "sha256": "c36aba806dd5406c66e1257fa9a009e25bd10b2f19d74c7343e878a07c16d110"
+    },
+    {
+      "path": "database/migrations/20261017_0070_documents_topology_actions.sql",
+      "sha256": "8e22695971bff01c65bd7f7a33c75cdfd93ec55585a498a46c32c930b0e9242b"
+    },
+    {
+      "path": "database/migrations/20261017_0071_document_visibility_projection.sql",
+      "sha256": "e7c3cc9fdbf91d7f01b3c18ae6ace672a994e1c4c0195b2fe055f065485297b3"
+    },
+    {
+      "path": "database/migrations/20261018_0072_document_export_jobs.sql",
+      "sha256": "20151dd2805b562ea56cc31f43801afe98772a144b7b48658240aa96a4f476c0"
+    },
+    {
+      "path": "database/migrations/20261018_0073_document_import_jobs.sql",
+      "sha256": "5a7e75f96cfe452b16ccf6f3273fc4404ee4b1e004ee15e73e6130ebe407c7ac"
+    },
+    {
+      "path": "database/migrations/20261018_0074_dashboard_quick_create.sql",
+      "sha256": "c77b28b75c8af62339e4843c6206c794bda25917b0482d6097eaa7a4fc345ac8"
+    },
+    {
+      "path": "database/migrations/20261018_0075_discovery_recents.sql",
+      "sha256": "bd1ab8e45624803cbfd661be5ec19554ddb8b7cf49e0e784cd77d9ac8d58da50"
+    },
+    {
+      "path": "database/migrations/20261018_0076_discovery_commands.sql",
+      "sha256": "47eb40869ebccb1ae1a944293e26b9f480599392464460a0e22b5991b1b0e231"
+    },
+    {
+      "path": "database/migrations/20261018_0077_goals_progress_history.sql",
+      "sha256": "d9da7bc7066552c559e2a179a00c75696f208d21bbc2cc23d9029db6efe86899"
+    },
+    {
+      "path": "database/migrations/20261018_0078_goals_target_management.sql",
+      "sha256": "9e1d6240246bbd1c0f80ea803cbef0853d07f3ed5f13bf6a3e2b25d8b3b2b300"
+    },
+    {
+      "path": "database/migrations/20261018_0079_goals_archive.sql",
+      "sha256": "350318435010d9e8eb85f6c00fc30c6ba100c7ff9b47d3cb41b290cd3ac1bcc6"
+    },
+    {
+      "path": "database/migrations/20261018_0080_worklog_manual.sql",
+      "sha256": "acd16eb50203f37e107669ee21100a6eb94e881bc82c06032c9f766fc7819d0a"
+    },
+    {
+      "path": "database/migrations/20261018_0081_worklog_history.sql",
+      "sha256": "a0517c3ee1c04b7687a310422b346db1f03b81baed819b82296af05c2d3c4a0d"
+    },
+    {
+      "path": "database/migrations/20261018_0082_goals_state_history.sql",
+      "sha256": "e917951b41d3263473f0a0edd783d7b2a23748c55c3feed743954b643e4aa93f"
+    },
+    {
+      "path": "database/migrations/20261018_0083_worklog_trash.sql",
+      "sha256": "1dec702382e177a78a0345417f38f385cdd0aea4d91832d53f1e2043efe9e4ad"
+    },
+    {
+      "path": "database/migrations/20261018_0084_goals_metadata_history.sql",
+      "sha256": "87ceb084b621e588b942edc539291b3a362c4df89205ca5142d292292732c42a"
+    },
+    {
+      "path": "database/migrations/20261018_0085_goals_target_history.sql",
+      "sha256": "4b108edd9e511bcd58f0f4dfd161ae0b7c4c2168bb1ce3506c3a69604c4b7247"
+    },
+    {
+      "path": "database/migrations/20261021_0086_learning_plans.sql",
+      "sha256": "a2896a458be03b1293b1d469962abd6868778b0704b358a2399b3140428ff8b6"
+    },
+    {
+      "path": "database/migrations/20261021_0087_toolbox_extra_offline.sql",
+      "sha256": "31cbcaaa5326b7709696808379bf144a78fec1f17c15cf05bd90db3a8f517e07"
+    },
+    {
+      "path": "scripts/dev/bootstrap-superadmin.ps1",
+      "sha256": "16f3f5c989bd2195cc84e27b45235a2a99fe2ebbbd4269a01c6f1e7a2f60a575"
+    },
+    {
+      "path": "scripts/dev/bootstrap-superadmin.sh",
+      "sha256": "a74f06eb2af6dec4ab7a79943cae3959f5c73dc011f7775ad9ef456122375abc"
+    },
+    {
+      "path": "scripts/dev/build.ps1",
+      "sha256": "abe98ef08b91568f24a9df03aa68f29ba955574f1c762c0b0e8c89d3a3aa329c"
+    },
+    {
+      "path": "scripts/dev/build.sh",
+      "sha256": "a5a3ed44542f576049ce6cee4460ba5f93aba0d74c6b8f4f0dc5cee88a1a4be1"
+    },
+    {
+      "path": "scripts/dev/doctor.ps1",
+      "sha256": "0af3167056f2809bc61adc51337d021eb72d32be2d05c0b766f0d7c28ee55530"
+    },
+    {
+      "path": "scripts/dev/doctor.sh",
+      "sha256": "fe067ac9d60eb0654c3d5ea4498eb46ef0fa0fc6120a405bb7aa3d5c955f2bc6"
+    },
+    {
+      "path": "scripts/dev/migrate.ps1",
+      "sha256": "b16eba01acfcfa8d41bf6be8ca9ef62a5ded4bc873d71098a9370f02cf83e7e6"
+    },
+    {
+      "path": "scripts/dev/migrate.sh",
+      "sha256": "0488067c7bf1875af08bc54be96afdb3c5b4f1bac24085c13948c5b48f0e8123"
+    },
+    {
+      "path": "scripts/dev/run-sql-native.sh",
+      "sha256": "da791dfec7a235e7e87af7d938e7cffed4d76803ebc25b20dae72456d9265673"
+    },
+    {
+      "path": "scripts/dev/run.ps1",
+      "sha256": "490ab6e35aa2724a8cb36edb2078656e988b372791fc7936bd7785a46f17ef0d"
+    },
+    {
+      "path": "scripts/dev/run.sh",
+      "sha256": "63fbbb26c6d609aeafbd552dab3746f701771a7b6a6eea72b646eb0f34af6fdd"
+    },
+    {
+      "path": "scripts/dev/start-ci-sql.sh",
+      "sha256": "436f4feece2b946d501daae75b38d6a925d44f3ef8a92378bfa806e16487dcb7"
+    },
+    {
+      "path": "scripts/dev/start-e2e-target.py",
+      "sha256": "f687e4b03115eae2f0f9ee62e044fcbc645115e741f28f27bbbfcadedd1123aa"
+    },
+    {
+      "path": "scripts/dev/start-isolated-browser.ps1",
+      "sha256": "d0dacc930e90742c1f28cffaa3d463fd2ce4b5e09161dd9f8f4f4dd65b1b1af5"
+    },
+    {
+      "path": "scripts/dev/stop-ci-sql.sh",
+      "sha256": "a24f55a4a1e2da0aaae7205537b8d73ff87ad8ea232af4072d48fb8cc8d21e81"
+    },
+    {
+      "path": "scripts/dev/stop-e2e-target.py",
+      "sha256": "71f5d5590ee60f413fd4a364397ff9eaa38b98b81b5ef3c1c03c9c07f08ca3fe"
+    },
+    {
+      "path": "scripts/dev/stop-isolated-browser.ps1",
+      "sha256": "245dfad7dc518e89a986312d6c4c763e4d03a538afd593b8e66458541f43462f"
+    },
+    {
+      "path": "scripts/dev/test-e2e-sanitizer.py",
+      "sha256": "38b7b88fa890d4e6cc86bbc45df4da447aa83c5b0e1a3628912cd93e415ff1ac"
+    },
+    {
+      "path": "scripts/dev/test-e2e.ps1",
+      "sha256": "a7b1ab348486c9b44ef1f47cd9ff20eda296c3fb8e548a6a3d85c6b4b8a919ea"
+    },
+    {
+      "path": "scripts/dev/test-e2e.sh",
+      "sha256": "7d36fcbd35b168cdf00c8c015c9a304e63f2017adfee1be1e9c79d708341bc18"
+    },
+    {
+      "path": "scripts/dev/test-filesystem-windows-principals.md",
+      "sha256": "46ae6121a3a15597e8400d4ce841650ceca2972268e230cfdd18f64c2c3b6a73"
+    },
+    {
+      "path": "scripts/dev/test-filesystem-windows-principals.ps1",
+      "sha256": "a9c640f6f08b1e57df2b4de1670b3806b3e85310babcf6f9ac771c9fff26fcba"
+    },
+    {
+      "path": "scripts/dev/test-filesystem.ps1",
+      "sha256": "c2439f43402649804c2593cf3ade1ed021fdc9919218e180053886d04cb26276"
+    },
+    {
+      "path": "scripts/dev/test-filesystem.sh",
+      "sha256": "4fa6a159ebabac19accc28e63cc6a54c218c01a94751207a50261523888b9281"
+    },
+    {
+      "path": "scripts/dev/test-functional.sh",
+      "sha256": "635c426411869c66429fb11f24e4b122bc60e24a203cbf305f898b9ed7c44734"
+    },
+    {
+      "path": "scripts/dev/test-sql-ephemeral.sh",
+      "sha256": "015366910ec4a1239f631a90a9cb46e7eddcca0215a1d68185c0c05474745185"
+    },
+    {
+      "path": "scripts/dev/test-sql.ps1",
+      "sha256": "c7f59aa3660137a54c0d5651f9d18cc0f79ef643b0cd600f677ea03177a632c7"
+    },
+    {
+      "path": "scripts/dev/test-sql.sh",
+      "sha256": "6108efba1ef8520c53ad79957e0dbf3d9b76808b13c23e5de212c917f6af4fc0"
+    },
+    {
+      "path": "scripts/dev/test.ps1",
+      "sha256": "f901ad653d669154e134beb0070287618cbab15c57f95b64dce1bc0773b44fc7"
+    },
+    {
+      "path": "scripts/dev/test.sh",
+      "sha256": "a49bbd374ac087b4c8ed97dcc77f2a0ae8bd4921791f0dc83513d27a54bd3054"
+    },
+    {
+      "path": "scripts/dev/verify-s00.py",
+      "sha256": "a2add8084487c669c17326953a31158b4756af86d1b703d93ae8c9a905e0beb8"
+    },
+    {
+      "path": "scripts/dev/verify.ps1",
+      "sha256": "67b25cb1fee1342ce1319d9b1d7f05336a6a0020de8ebf91caea59f97ede35ef"
+    },
+    {
+      "path": "scripts/dev/verify.sh",
+      "sha256": "7bc55279bbf7f1b15c5dd330c89ac935dcfb368864290a87d7a606e228207224"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Access/AdminAccessContracts.cs",
+      "sha256": "09d71ce54d0b753898a089a2d8e0f1f87a3fc96bdafc0ca056ee11c0542a3a92"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Access/AdminAccessEndpoints.cs",
+      "sha256": "18ea23896dcbc83495ed5cf50a16ea78ceb980f88043dfa20f397b89e0df7fe4"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Assets/DigitalAssetEndpoints.cs",
+      "sha256": "1077b45ef6e8fb19e5963922f2d4592509ba60d5fd58fc9891889ba7bf5d1c5d"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Assets/PersonalAssetEndpoints.cs",
+      "sha256": "a3e870f997826a6c7cf9f16522021512f70ad848bcddedf40374626ffb161caa"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Automation/AutomationDefinitionEndpoints.cs",
+      "sha256": "be18833bc5763c272e26220afff1fbeb961c8e036fed5fe3c5b7acf4f98e3f1c"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Automation/AutomationRunEndpoints.cs",
+      "sha256": "d64d3511f609b26ca9f0b0b15d50e42f3738f080406f5a78993acd514744000f"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Automation/AutomationTaskWorker.cs",
+      "sha256": "edf27922e8520922baa8f1ee896cc1d9ef4db534b031a5c8197bfc58641728ba"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Bookmarks/BookmarkContracts.cs",
+      "sha256": "cb41d4d74271ed7c72b885cc7d62270df2087877498c8e7865e6ac9dcef0d071"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Bookmarks/BookmarkEndpoints.cs",
+      "sha256": "28ef7d35622fc6c9720f05c5ee1315191152cf90e3f58e3756fce9ca01201177"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Career/AppointmentEndpoints.cs",
+      "sha256": "d270a62a9704a9bc029424a126209992137c585db85b4308e3ac68d18105cb73"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Career/CareerEndpoints.cs",
+      "sha256": "2825a65304e60e17c7c826e7f9894551bf4d5951bb9063fd0e7ed3a3f7b50f2d"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Dashboard/DashboardContracts.cs",
+      "sha256": "f3f863d5ed41ffcd1f2e69e8c9e864ec2fbb684a6f16fec40600bda696d10f64"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Dashboard/DashboardEndpoints.cs",
+      "sha256": "afc62fe393787c7398ae317091ada2ddca17354bf35db87558fdae598159f334"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Dashboard/DashboardLayoutEndpoints.cs",
+      "sha256": "a7c8d909650635d35a182a3fd710458ec60fae6bb9dbd9c241a31e2fade9ead5"
+    },
+    {
+      "path": "src/Nexora.Api/Features/DeveloperTools/DeveloperToolsContracts.cs",
+      "sha256": "c70fb69ac1a537d55504ceb26a0762151ab03dbe2a8a07d43ae6286a9bc42100"
+    },
+    {
+      "path": "src/Nexora.Api/Features/DeveloperTools/DeveloperToolsEndpoints.cs",
+      "sha256": "f73abd91fc9c9e74d9c420dcc57783b8c3167af9a37c0fe7f883941bf96775c3"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/CommandPaletteEndpoints.cs",
+      "sha256": "ed497e2f6e85f8f774e9f2b26a3de8b978cf3ae8b77216dd829a91ee7c55928b"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/FavoriteContracts.cs",
+      "sha256": "3fcb9a77a6156f6e9bde7626a2649ebd16e471e24ef6eb57f0c2ba79e622814d"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/FavoriteEndpoints.cs",
+      "sha256": "58d8071c6860d4dc863708ac11a44ae05172f3b53fc0469aa9b3d90e47b57d30"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/RecentEndpoints.cs",
+      "sha256": "d7be470555725b96a3d672c5d9bb28c153cf02afc7c51eebab40044bcf30b850"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/SavedSearchEndpoints.cs",
+      "sha256": "f1fc25c9640eee6e47696a2958249d4db20d4b0725056330115511195ac5643b"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/SearchContracts.cs",
+      "sha256": "819e391e14690accccf5d42eed4caa7250f35a691e335bbe69c3d6205ca1f556"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/SearchEndpoints.cs",
+      "sha256": "e26799650fa9115d05088310d0891602099aae4745591a0206a27494fe62d389"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentContracts.cs",
+      "sha256": "71b95eedf2018b2dfae529ab9618e023fadc0570174efef4c3fe7e54aa6e878c"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentEndpoints.cs",
+      "sha256": "42dd208dd037979d2763b4bde8e4f256ebe00e133935cb100ac315a9759922e3"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentTagEndpoints.cs",
+      "sha256": "9fbe2dd6eea70b0332536577990924324b12e0890c26d25924ea38bd8602656d"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Documents/DocumentTopologyEndpoints.cs",
+      "sha256": "63ff80785ba841c74e943672dbc437de4dae5a0ee09899034cbdf8e7708154a1"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Files/FileCleanupWorker.cs",
+      "sha256": "6d059fc86b2bdc36422a9415b0595ed4e25979fbd41482935306caf3a70b3121"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Files/FileContracts.cs",
+      "sha256": "229011d73d12f74c74c21cb9d1ac9e7fdca4a2852e59dda8d6b66013ae9189c4"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Files/FileEndpoints.cs",
+      "sha256": "09f25454580aa6ed4a5a3371fda2994928b8100da2172a76135bc0d6f3902090"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Finance/FinanceContracts.cs",
+      "sha256": "35ee7ea00d11c1d1d8f4512a4d60edb6cf406a9b456fca40998af08645b516a3"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Finance/FinanceEndpoints.cs",
+      "sha256": "8743a1887b2069b01e4affe919644f1590c9f2cd71dedd71fb216edb3f20fe4f"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Focus/FocusEndpoints.cs",
+      "sha256": "965eebb830a1bc60f526264f5a4238ecf89a3a1b8a571b1f73b671e05983c9f1"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Focus/FocusPhaseWorker.cs",
+      "sha256": "62f01c9a6e6f91d4d95487ab227f379df303eea746a24424199553560297c3c0"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Goals/GoalsContracts.cs",
+      "sha256": "6537169886e9f484f6a532a7260c8626d8d8def194cdec178e05b0560f8e349a"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Goals/GoalsEndpoints.cs",
+      "sha256": "c7edb88eb38a2804c861eee73bcc1e3f99dac149b38e6f00ba3f853f5de90303"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Habits/HabitContracts.cs",
+      "sha256": "d00e83f4ae2309e89a5b9f63913d13e0e8f373e47df0e07fe54d283a0e6ad968"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Habits/HabitEndpoints.cs",
+      "sha256": "33d42fe16ec9ee040423507f9351285e2b3a3287dabec05f762af5e0b762411c"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Identity/DevelopmentIdentityStore.cs",
+      "sha256": "70cda0216c13664a44581191355d7303d503a9826614f5cafb2b233b8e2feee6"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Identity/IdentityContracts.cs",
+      "sha256": "3b3765852dc8a6cd38d4db509aa8ab414b20339328cde9fec1a478c4ff1f9190"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Identity/IdentityEndpoints.cs",
+      "sha256": "ea6421160e637ad156ddd5bae585791fdefa42c78a819f7f876cc63db00f84ef"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Integrations/IntegrationConnectionEndpoints.cs",
+      "sha256": "935b89db30d5f499f1013ff182665dfd9572eb9a57d28e4babb90a6b0c2507aa"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Learning/CourseEndpoints.cs",
+      "sha256": "56880973a95bffb46de992d1edf774e8c508a4a0df364ecd83cccacd5013799e"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Learning/LearningPlanEndpoints.cs",
+      "sha256": "dc20d0af32f51ff45d6971ec30ebf43aaf518e0c7d836e580a7dc3de27fd72b6"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Learning/SkillEndpoints.cs",
+      "sha256": "155675dbad690f9a4af6077040dbd8e01ee266f15d168888639a548c78562b69"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Learning/WorkLogEndpoints.cs",
+      "sha256": "8183ea943cc2e30d821effdf28564d3371cd5c3e398da40dd88353c9b3b1e079"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Modules/DevelopmentModuleStore.cs",
+      "sha256": "77d41afefc93f4893283a1f85a16c5d26f68d8a5b057d686cafbf33d8ec48710"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Modules/ModuleContracts.cs",
+      "sha256": "0e989644634af70a758faac660749dde5749ba5772f2a161da71e1006b12d401"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Modules/ModuleEndpoints.cs",
+      "sha256": "9d599f9dd90a23ee66f9fc0b015de555d73b62937e9c35265967344cf744f67b"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Monitoring/MonitoringEndpoints.cs",
+      "sha256": "1214cddc8c64ce418b411d2d9599081966bd4955956388228ac7bf79c1937690"
+    },
+    {
+      "path": "src/Nexora.Api/Features/News/NewsCategoryEndpoints.cs",
+      "sha256": "5a5f09e8d995f9cf28cf7a695dc57ccf0cb37deb1b2a0ce5aff37faa65f97593"
+    },
+    {
+      "path": "src/Nexora.Api/Features/News/NewsReaderEndpoints.cs",
+      "sha256": "6ea4d3c5d72816ad54d59b765aa9f146adbb42301d2012ac582e631fa4aad3f8"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Notifications/NotificationContracts.cs",
+      "sha256": "3b2f1dfaf669830a1a21a5a10d068e12ae99c47df90fccf92083ea9d771474d0"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Notifications/NotificationEndpoints.cs",
+      "sha256": "a9441efd18487a8b99719fc0c2aa14fe6bef5e9cec68d0da65215ce352ca758b"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Organization/OrganizationContracts.cs",
+      "sha256": "e4ae48001ce62e5348dd2570d2732fd383d5aae7aaf848faa82a2a706be34f34"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Organization/OrganizationEndpoints.cs",
+      "sha256": "129c530b3049a3164e70916f40eca050dbde5bfd1f662293dda4133685dbc987"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Planner/PlannerContracts.cs",
+      "sha256": "51c52751f9bb1ca74366706e0cff87fdfdca5216e94a382b02f23dbd5647c8c2"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Planner/PlannerEndpoints.cs",
+      "sha256": "3f4908502cdf33044ea8f9ac9d32af23bad7946e6f009bd83a18c7b192a5de64"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Productivity/ProductivityContracts.cs",
+      "sha256": "d7bd927783ae161b3bd8720a9bac63bd5fb837ec43393d67b6968e1415804c7b"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Productivity/ProductivityEndpoints.cs",
+      "sha256": "03897fd99178340c2961e499e80963457f9ab4446e73799cd3ca496eb6da504e"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reading/ReadingContracts.cs",
+      "sha256": "126efe286ca0436f9159c315f53db2f1526876448b388af4c3456b887b4d29c8"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reading/ReadingEndpoints.cs",
+      "sha256": "e14fb648ad9e4a01131754c9879ad9ec296a71bb3afec7e16cdbee38bab091e9"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reminders/ReminderContracts.cs",
+      "sha256": "c3e5923412b8a2aea31dca5fdd683143ebf94715db873e78156a80416329aeae"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reminders/ReminderDispatchWorker.cs",
+      "sha256": "b9a1f52511fd5acdf0f7bd47c041947bbfbcf2bc765d15b25883ed460222b237"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reminders/ReminderEndpoints.cs",
+      "sha256": "af84140c8290aec75fb50082c2108e813af1ecfee0dd8a7bc6ce56d81466c004"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Settings/SettingsContracts.cs",
+      "sha256": "69eeb5d9214c2c50822d4ff80a5491b8e836666c8be9cf37f78052b72e2b645f"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Settings/SettingsEndpoints.cs",
+      "sha256": "0236e86ee81a5ae6cf9dc06cde870f8e3fce37136e1172cbce772ee9bb508f0d"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Sharing/SharingContracts.cs",
+      "sha256": "9e3c00be0c46c1ad340085a91e845df2e4c33f88e16f09d03c1489441b9eeffe"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Sharing/SharingEndpoints.cs",
+      "sha256": "78e1ff2585d5fc7313ebe8da8b160d011a2986475b175c8b1752172eb6d4562e"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Shopping/WishlistEndpoints.cs",
+      "sha256": "860e909f4014f24d8d0a6ab9eabb64c89ad8ecc078eefbf84506bef53d9fae83"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Snippets/SnippetContracts.cs",
+      "sha256": "9ab44060b599b379e5b0f63dbfcc553c6002be4bcaebb764be25148fddda81ae"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Snippets/SnippetEndpoints.cs",
+      "sha256": "b880d68a0b949f02f7dc3534fed0c383e0f769eda31230dd77f00b18fb9106e3"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Support/SupportContracts.cs",
+      "sha256": "5daf3075a7f4528e4fee4c77c2db9272de9b1111d9dbd27d95f392d0be8ebc84"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Support/SupportEndpoints.cs",
+      "sha256": "86457172c0a6ce605d7361f6f53de97407b86e5aca14e1afa9bf7e633c2cec69"
+    },
+    {
+      "path": "src/Nexora.Api/Features/TimeTracking/TimeTrackingEndpoints.cs",
+      "sha256": "c24323476fe802a9031f2bceffba4b93c85c5ec3fe3892c8ff089d3fee027663"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Transfer/CalendarExportEndpoints.cs",
+      "sha256": "047f8eb2052f83d8aebe43144477035f148a11301c6be25bbeb0e9c972d77d20"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Transfer/CalendarImportEndpoints.cs",
+      "sha256": "5b4aeae4af1afd58804f9cff1123064f748fd73311c748a1feb2930bb2cb8aef"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Transfer/DocumentExportEndpoints.cs",
+      "sha256": "0f1c365eb105cc27411a40eb11f8c339911eea36d7997430a83b023d666d23c8"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Transfer/DocumentImportEndpoints.cs",
+      "sha256": "5658dd809956b2529eecb3f3e5eb0a1f54f3265cbdb5046e0c75ece5f49f3255"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Trash/TrashContracts.cs",
+      "sha256": "5dd099777b0a69eb8ccd60eb31dea0e4d46796211cf0735510ce0e0985b53b77"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Trash/TrashEndpoints.cs",
+      "sha256": "11d5c88f467ef4e3a0ec94a283117586f890b2bd41cbdff087956f0ecd3aac9c"
+    },
+    {
+      "path": "src/Nexora.Api/Http/ApiResult.cs",
+      "sha256": "18ef0938485f77bfe90999e6311093eef9f1419a968783ba1f5bb956fa031646"
+    },
+    {
+      "path": "src/Nexora.Api/Http/ExplicitInstantJsonConverter.cs",
+      "sha256": "8b7d385e5c1c80200fc04f1a93dddfcb62348d62e322200f010021d0e91cc1c9"
+    },
+    {
+      "path": "src/Nexora.Api/Http/NexoraJsonNamingPolicy.cs",
+      "sha256": "cd067f5dc12417338a6d722da9e2b463845be101285046f84380af3f5f5be7ec"
+    },
+    {
+      "path": "src/Nexora.Api/Nexora.Api.csproj",
+      "sha256": "8b0a66836a2815947c6ecd140da0b6c117163fa000679a9c4cc6a7c4e43dbb62"
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "a04ddd249892158d379f1572c03ac0f5367289a85cf4a6c6bdf86e862cb5ac58"
+    },
+    {
+      "path": "src/Nexora.Api/Properties/launchSettings.json",
+      "sha256": "e1632d0269611dcd4e3b8fecba4fe24602a09be76e8804b12e45e0a487217b65"
+    },
+    {
+      "path": "src/Nexora.Api/Security/CsrfTokenService.cs",
+      "sha256": "fe49224e3952493e8a83a07c90e7a9e35bedf54ed3ff7dff0655b7b3c588bd09"
+    },
+    {
+      "path": "src/Nexora.Api/Security/EndpointSecurityFilters.cs",
+      "sha256": "8af4bbfa3dd54dbd8acaf83c1790e8dc509d23842adb9e0166cd9b04e87c6bba"
+    },
+    {
+      "path": "src/Nexora.Api/Security/PasswordHashService.cs",
+      "sha256": "b3170e2f97cd72caeabe56791122af796b745c8da49d3008d663c480868e2772"
+    },
+    {
+      "path": "src/Nexora.Api/Security/SecurityHeadersMiddleware.cs",
+      "sha256": "d8ac046409e8f35c5cba62dab81514e292967074042127c8fc5abd360a8f8f93"
+    },
+    {
+      "path": "src/Nexora.Api/Security/SessionCookieService.cs",
+      "sha256": "69ac401d04a9aa4e14ace2aa05ad8aecbe00c939310f6d418f991bdb21740227"
+    },
+    {
+      "path": "src/Nexora.Api/appsettings.Development.json",
+      "sha256": "ab25244dd1ea008dcbd08fe9220282aeeb9d64a12c0e2926e71955174f3bb857"
+    },
+    {
+      "path": "src/Nexora.Api/appsettings.json",
+      "sha256": "02b3cf5d5eeae5a7fd8d93f7fab3286f847308f95a2bc364dbe05e40c37abc2d"
+    },
+    {
+      "path": "src/Nexora.Api/packages.lock.json",
+      "sha256": "855de114c89e2a98fd85225bb032ac15fa850757bf7e6d2bd858d9146740aacf"
+    },
+    {
+      "path": "src/Nexora.Application/Access/AdminAccessServiceContracts.cs",
+      "sha256": "ff06851eb40fe87ed72085f24f9a829d408d54a6ccec436a11b63c182be387d2"
+    },
+    {
+      "path": "src/Nexora.Application/Assets/DigitalAssetContracts.cs",
+      "sha256": "d5e71cb085c1fc23f5640bb0c61e43ab3a0cdb9ff0d54284b549dc6dc544ef48"
+    },
+    {
+      "path": "src/Nexora.Application/Assets/PersonalAssetContracts.cs",
+      "sha256": "6d9e5d9b25eb54c03f01218b48123050c44e8e66a8add1cf8100125f45cdcae0"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/AutomationContractRegistry.cs",
+      "sha256": "bf1f43c29da2439dd322b2a87a6a6a2866c3ac740c8d215bd49a30c3a65ada69"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/AutomationCronExpression.cs",
+      "sha256": "24a935171beb5961279da3f09411e798e11fe0a29203c735e3176e297a423dd3"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/AutomationDefinitionContract.cs",
+      "sha256": "cd2cd026426113a0128a3bfa627032dd464ef3a62a24ffe53a69cca9d1720f7a"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/AutomationLocalExecutionLimits.cs",
+      "sha256": "996054424375b73129704dc5c1594e9c639c668d4af6cef91ca34bc3f72401d0"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/AutomationScheduleContract.cs",
+      "sha256": "a81639423b00751093a15292f1feb1a6aa2efd9d778b2a52fd31f6f524c4b5ae"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/IAutomationDefinitionService.cs",
+      "sha256": "bb3f5e78620a83da946437685f99bfe62b7faefa0f656144714b18e8a21dc3fd"
+    },
+    {
+      "path": "src/Nexora.Application/Automation/IAutomationRunService.cs",
+      "sha256": "03461607a2e75acbd66217163bc2d3170f91311dae33f5283183b7c51e855da6"
+    },
+    {
+      "path": "src/Nexora.Application/Bookmarks/BookmarkServiceContracts.cs",
+      "sha256": "62e93748d9be7075c690b10c79c5833873e23dc283be57d71a3c9c8f04f1fc1d"
+    },
+    {
+      "path": "src/Nexora.Application/Career/AppointmentContracts.cs",
+      "sha256": "c217ecb63c16dd9d28a446ecd85be10a73a938357e1ee28106b1d2b127de6ac1"
+    },
+    {
+      "path": "src/Nexora.Application/Career/CareerContracts.cs",
+      "sha256": "81a83492b4a6e4284f1e6d26a4b3a59e3eab282be756de512f80205de5273fe0"
+    },
+    {
+      "path": "src/Nexora.Application/Dashboard/DashboardLayoutContracts.cs",
+      "sha256": "4816aa6b2434100649bbcd822b19b19effb620f829547bbef741e8447e3b284e"
+    },
+    {
+      "path": "src/Nexora.Application/Dashboard/DashboardServiceContracts.cs",
+      "sha256": "55ea2cf125de6f90b2556eb573e33b7db665a2152865f5add88ea86454658c7e"
+    },
+    {
+      "path": "src/Nexora.Application/DeveloperTools/ToolboxServiceContracts.cs",
+      "sha256": "6782eddae10d2f422141af0afa5de526a6c0a7cf2081c919d6958dc5137ded1a"
+    },
+    {
+      "path": "src/Nexora.Application/Discovery/CommandContracts.cs",
+      "sha256": "78c8eca0c9ba3ded92bac7475f77d13538b9467c4050f5d015ee23a3d50aa07b"
+    },
+    {
+      "path": "src/Nexora.Application/Discovery/FavoriteServiceContracts.cs",
+      "sha256": "eae2bff33627b3f4618cb4959b960c2983fcd44b70f50029af1d3e0354fd27e0"
+    },
+    {
+      "path": "src/Nexora.Application/Discovery/RecentContracts.cs",
+      "sha256": "396859bb57739b3da0b54d4cdfad565389567543795aabfe47124d762c808f91"
+    },
+    {
+      "path": "src/Nexora.Application/Discovery/SavedSearchContracts.cs",
+      "sha256": "822f1e58ad17dc93ec866fdddd064b6f86ea3fdd9036c3b7d1de97349e3e280a"
+    },
+    {
+      "path": "src/Nexora.Application/Discovery/SearchServiceContracts.cs",
+      "sha256": "d4c735759aa18c508be38c0839dfbcab5c9568cfad5df611db9a09e3678d5ced"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentFolderContracts.cs",
+      "sha256": "e0dece826d42b44c5e8fda2d9f62507a4d904b3f46b88ab9f942e2f3882b2b22"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentServiceContracts.cs",
+      "sha256": "eeb256ddce8ab4f5f0d4c8e577a39787f2e3665ec9cf651e133a8a2beb38f492"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentTagServiceContracts.cs",
+      "sha256": "e2100ac50c46843cd2848c6d5414e0340adf8ac9779c3eb5da99734f2dfcd0e4"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentTreeContracts.cs",
+      "sha256": "c97ec660fc84ba387d1c1bfb3376b507d8bfff402291e97efbf77fc2cf7a696e"
+    },
+    {
+      "path": "src/Nexora.Application/Documents/DocumentVersionContracts.cs",
+      "sha256": "7d0b9f2432a2ac3ca76bb35c18a0a413854de54e0e84cc175423628aee9ebdbd"
+    },
+    {
+      "path": "src/Nexora.Application/Files/FileServiceContracts.cs",
+      "sha256": "6875fdccb448a4852dc3acaecb4db11b03a3f2443278f877c138e52dcdaf6a10"
+    },
+    {
+      "path": "src/Nexora.Application/Finance/FinanceServiceContracts.cs",
+      "sha256": "3236cfabbd997e4d05c82a3624f111b24c38750106462b8d0dd6a2366a504e74"
+    },
+    {
+      "path": "src/Nexora.Application/Focus/FocusContracts.cs",
+      "sha256": "c3f717c2ecb9d6ad333e5b4668ec1a53462522c473b385e9fdfa0c506257f942"
+    },
+    {
+      "path": "src/Nexora.Application/Goals/GoalServiceContracts.cs",
+      "sha256": "2e6ff8731e36172cfccae6d8099ec1c610aec27ab9953a2e579c9a37bb4fa6f5"
+    },
+    {
+      "path": "src/Nexora.Application/Habits/HabitPolicy.cs",
+      "sha256": "13866674b7a2a7af503fa81bfc2a7e5021d388aba34370d248fe053aadc4207c"
+    },
+    {
+      "path": "src/Nexora.Application/Habits/HabitServiceContracts.cs",
+      "sha256": "75df680061fec6608c66b4c4cd2f4299552dfff320b67003fad11a50e2a41253"
+    },
+    {
+      "path": "src/Nexora.Application/Identity/IBootstrapSuperAdmin.cs",
+      "sha256": "06a670108f70c515920b271b002346aaeb660d8186688232e8dc51a3fe3a2ab9"
+    },
+    {
+      "path": "src/Nexora.Application/Identity/IdentityServiceContracts.cs",
+      "sha256": "698c2753d3dab2310e653f3ef5b27c87c08a3e55466604c49c4a33a2915b3a37"
+    },
+    {
+      "path": "src/Nexora.Application/Identity/RegistrationCommand.cs",
+      "sha256": "24d95a80b1ce6920cc298f737d0ed17b80c81590ef5fe81b7fc4cb6fcfda5e70"
+    },
+    {
+      "path": "src/Nexora.Application/Integrations/IntegrationConnectionContracts.cs",
+      "sha256": "abd7f7eef05cd3be392f9fb3453a22d3ab78ce88b5b9acc2dfd13592ceba4a86"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/CourseContracts.cs",
+      "sha256": "101fa6fcb43c5912e30622a09e3e8008ab39406e450031febd50865dc8058319"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/LearningPlanContracts.cs",
+      "sha256": "5f0f8ddf6796dd5529206dc71963a96976c1b6c8a8f29cba6babadcd57dd7242"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/LearningPlanImplementation.md",
+      "sha256": "30c1b7451feb938f2c2e59769f6364493f5527baadd5886411dccb31d289041d"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/SkillContracts.cs",
+      "sha256": "2a61b2dae4ad05913e7fc1a12ecee2714552d7ad31980a114e7d6399dbc22987"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/SkillEvidenceContracts.cs",
+      "sha256": "9ee96d7544c5ef31cccb0b5a0fffb0b8e44b491e1079e2fe63604e8e0df52a9f"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/WorkLogContracts.cs",
+      "sha256": "87f81be20e1af0cf0254146d26769881a429d2c513a08fdb568abf6db7c436cc"
+    },
+    {
+      "path": "src/Nexora.Application/Modules/ModulePolicyServiceContracts.cs",
+      "sha256": "1edbd525ca8379920a8e83639d1ae4d8f397c94edbb8747ad30eb6704b9186ac"
+    },
+    {
+      "path": "src/Nexora.Application/Monitoring/MonitorContracts.cs",
+      "sha256": "a4c05a91bf991b8236140cc7c9d7f742d7fccbe51c6905b3a3d05409fe5f5840"
+    },
+    {
+      "path": "src/Nexora.Application/News/NewsContracts.cs",
+      "sha256": "971f2c697ae5d6f6a7582cdfbf9ac9ee023e16059e15f3caa4f86e149408fdb3"
+    },
+    {
+      "path": "src/Nexora.Application/News/NewsReaderContracts.cs",
+      "sha256": "bc4abc5a2b7c295c28e92d1109ba967e3147c50434df52e5a81ee8d218e12c92"
+    },
+    {
+      "path": "src/Nexora.Application/Nexora.Application.csproj",
+      "sha256": "7d4314ab90d4e86d997302e217653f32857aa87c161d82e1a1ae24bddb99c701"
+    },
+    {
+      "path": "src/Nexora.Application/Notifications/NotificationServiceContracts.cs",
+      "sha256": "46738e943db369a1b20db698b4a65e9cae0adadc2aa0691144eae55772bc9d92"
+    },
+    {
+      "path": "src/Nexora.Application/Organization/TagServiceContracts.cs",
+      "sha256": "e5d3ec0ead33b048de8f83503b11a05a3a51c06b48f3ec35156f9c5d2b151f17"
+    },
+    {
+      "path": "src/Nexora.Application/Planner/PlannerPolicy.cs",
+      "sha256": "5dfa3bfd2aeeacd994766500526c73c3ae6e112a7d1c9c8290ac20643de16df3"
+    },
+    {
+      "path": "src/Nexora.Application/Planner/PlannerServiceContracts.cs",
+      "sha256": "8ddf62a96dfba1b6b76a828f4dc08d67bd48bdd24e3c2a27443bd2568e8b27fb"
+    },
+    {
+      "path": "src/Nexora.Application/Productivity/ProductivityServiceContracts.cs",
+      "sha256": "598f22ad6de5f8d97a215f9331919228533f94971c0cb80b01a084b96ed1ec6d"
+    },
+    {
+      "path": "src/Nexora.Application/Reading/ReadingServiceContracts.cs",
+      "sha256": "f4fed1c6c3165b18e7e556e4ed362f1d1b4beb484caa1280d3de12ca3643ceef"
+    },
+    {
+      "path": "src/Nexora.Application/Reminders/ReminderPolicy.cs",
+      "sha256": "76e63dc9dec9ec9b06d0e123ec04d2fd900025ffef441a571460abcacca4f88f"
+    },
+    {
+      "path": "src/Nexora.Application/Reminders/ReminderServiceContracts.cs",
+      "sha256": "e5e7059d71930be604caef352923cb72a63f8a7cf8a4fcb4e1d70bee385e8ead"
+    },
+    {
+      "path": "src/Nexora.Application/Security/IdempotencyDigest.cs",
+      "sha256": "a3c1747e0895c19cc0f4f0dda09c4c0b9d5128f3ef17b39070525995fd159800"
+    },
+    {
+      "path": "src/Nexora.Application/Settings/SettingsServiceContracts.cs",
+      "sha256": "dc809dd80ccba3f754de7ea734bec16640a5490387ba4874c50be2cbd5754b88"
+    },
+    {
+      "path": "src/Nexora.Application/Sharing/SharingServiceContracts.cs",
+      "sha256": "95a87c9f1b35db06b60caffbdd6a72ba8cf18e48cfdfb3ebc559a9303cba2bc5"
+    },
+    {
+      "path": "src/Nexora.Application/Shopping/WishlistContracts.cs",
+      "sha256": "dd6594467a1a5a46145f532711ec6abe75e2a843fb5b6184bf1fcb3415a44e2a"
+    },
+    {
+      "path": "src/Nexora.Application/Snippets/SnippetServiceContracts.cs",
+      "sha256": "2abefaf93b055850b94b08b3930c9580211046633d7b78aee82d012329a430cc"
+    },
+    {
+      "path": "src/Nexora.Application/Support/SupportServiceContracts.cs",
+      "sha256": "153f62f951892d4c7b8f878d96092529a41d9b5ad34c66132a087f27977f4210"
+    },
+    {
+      "path": "src/Nexora.Application/TimeTracking/TimeTrackingContracts.cs",
+      "sha256": "78f3d6695ac779ade144eef0712061ddac81fcf170744a1af636b0febef385aa"
+    },
+    {
+      "path": "src/Nexora.Application/Transfer/CalendarExportContracts.cs",
+      "sha256": "f7bfbcdced4cf0c0f9cae680e1e11a02d366573951f85c4bfcd7bc226ce23d16"
+    },
+    {
+      "path": "src/Nexora.Application/Transfer/CalendarImportContracts.cs",
+      "sha256": "21b4ec7d7ea5063f78c4c38d0fd195a392afa25c57a526db8d22541f186d3629"
+    },
+    {
+      "path": "src/Nexora.Application/Transfer/DocumentExportContracts.cs",
+      "sha256": "219cfaaf8f35e053cd2e507f00e684d6b857cc52a105e619234316e1c79e5130"
+    },
+    {
+      "path": "src/Nexora.Application/Transfer/DocumentImportContracts.cs",
+      "sha256": "277acefa4400ff5fdb3abe3155dffc16d74a71522f0247c78b28c642fd77c1e4"
+    },
+    {
+      "path": "src/Nexora.Application/Trash/TrashServiceContracts.cs",
+      "sha256": "ddc83f280f1eb1b5e506b86859ee877f8fda94bd0e2814f52503e1010d0ef7c4"
+    },
+    {
+      "path": "src/Nexora.Application/packages.lock.json",
+      "sha256": "f1c7ede08288fb0b0e1944ef48e8def398dc5942425e2b99ceeee9ddb0bb85db"
+    },
+    {
+      "path": "src/Nexora.Bootstrap/Nexora.Bootstrap.csproj",
+      "sha256": "2197c5a936d5fa472f40eb309982b746a45e3aa16df793d925281fc7763a224b"
+    },
+    {
+      "path": "src/Nexora.Bootstrap/Program.cs",
+      "sha256": "c11043b42e68cd709cb4ca594e524fa5b8dae287d66ce7876b6df6c70f3e6131"
+    },
+    {
+      "path": "src/Nexora.Bootstrap/packages.lock.json",
+      "sha256": "8d2ea21eac52b49127e5429eb2fad3cdf5f7563f109220639ac5a4cc0675e025"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "7bb992548343785b106db4ebc4dbdd0b9b3c6239b7acc0658171a50b95d9312d"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/SuperAdminSafetyPolicy.cs",
+      "sha256": "cdcba87064e5c90b12b72363f990efb28e1f2af288e7c714c7b9a7c47b7e560a"
+    },
+    {
+      "path": "src/Nexora.Domain/Automation/AutomationDefinition.cs",
+      "sha256": "d836bed259049b7879965e995a97d7d9f3c3a2e27d561535524b4f4f5bb2d43d"
+    },
+    {
+      "path": "src/Nexora.Domain/Common/PolicyDecision.cs",
+      "sha256": "f5b553c252034bec687f0c8c0ece235890c64da445d092d82657155bb883eff2"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/AccountAccessPolicy.cs",
+      "sha256": "71d07af072be2c0d1eb5ac90faaba6b3b5292716105067440335dbb8f1dd1837"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/EmailNormalizer.cs",
+      "sha256": "702428d509358511762886fccb11810ca1b95a7ed018967d3abd68b2834f3715"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/PasswordPolicy.cs",
+      "sha256": "8dc55d7d01469cc9185fcad307568cbdd8e58de523993572feb814f16f8834f6"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/ProfilePatchPolicy.cs",
+      "sha256": "116c815fe3c4c4067f5f073b8f038f71694487ae1bbc34d7789dc81816f08a3f"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/RegistrationPolicy.cs",
+      "sha256": "d14946780fab1e599119fa577c9d7d6d268984d78b8a01418d38424b100dbefb"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/UserLoginSnapshot.cs",
+      "sha256": "4768c3850ff296166aa5188a779c032dd4aa0213921094c43e8b159ac5e1c17e"
+    },
+    {
+      "path": "src/Nexora.Domain/Identity/UserState.cs",
+      "sha256": "cfd4ba7ace898843ae45e6753b6c13aec0ad486367b4941a14828498566073fb"
+    },
+    {
+      "path": "src/Nexora.Domain/Modules/ModulePolicy.cs",
+      "sha256": "42216b4c9327c4b82f11339a1a4778df0bcae356fe19944fe131dfb924bc536e"
+    },
+    {
+      "path": "src/Nexora.Domain/Modules/ModuleRuntimeState.cs",
+      "sha256": "21cc6d020ef0e28e959cfa271032781e0c4ea394fadecc584965be515a9f27ca"
+    },
+    {
+      "path": "src/Nexora.Domain/Nexora.Domain.csproj",
+      "sha256": "dac98d9409fa98835f5a09eb004ee8d22e9535ad66365c720558c184909fed10"
+    },
+    {
+      "path": "src/Nexora.Domain/packages.lock.json",
+      "sha256": "a29c6aa8cfb81874ff8bb78dc369d7416f28c9b8cc47e99592bfc019b20c41eb"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Access/SqlAdminAccessService.cs",
+      "sha256": "ec973f1e88c3cb6e52d05260ff581089b62c8ae42afebde3a5ff042681be6226"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Assets/DigitalAssetInput.cs",
+      "sha256": "9e4a29f2dfb26eafaf4a703d61df374be7c9c63d725cd5d6ce1d4303ede769a5"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Assets/SqlDigitalAssetService.cs",
+      "sha256": "446a748322778f29f5c60d4d498c14b2c7361db0a86fd66a161e921efc743ee4"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Assets/SqlPersonalAssetService.cs",
+      "sha256": "9244b6fe95b94bda2dd1462794020878b164dee2d584eb36f362c11dc2ebcab4"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlCurrentActor.cs",
+      "sha256": "d907a5e54cffd7dc52000320b5358cf4677e30e4c731fc899ff0cff64f3e446d"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlImportAuthority.cs",
+      "sha256": "c32c6c36a2f2d2d6dc4373f1cdb3a956b926daf0cf607cb3e60fe278f40843cf"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlManualEventRegistry.cs",
+      "sha256": "8507e9bffa5a4d4a2043cb73f2f607bbe726599d54ced0471c970cee3488bc4f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlSelfCapability.cs",
+      "sha256": "93cc897bbc87a4d6b2f80e04f47671fc1e0fbccc0bf3c7f3520662a309062958"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/AutomationDefinitionCursor.cs",
+      "sha256": "348bb5d731b0fb929a0079d550e181df43d0a05370c086a2e1e6ce9d689fbb3c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationDefinitionLifecycle.cs",
+      "sha256": "ad65fc86e11c52f77ae27987996c2fe994e76d23bd38b01a2f98d5ca2edf90af"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationDefinitionService.cs",
+      "sha256": "d9033491e87171b562642797feca9cf4537c5f3c12c0cd378bb624fac10af365"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationManualRuns.cs",
+      "sha256": "90a0fc962e008dfd07740b361e2bf239a6f885a577e8f4d5765ce29347664d01"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationPurge.cs",
+      "sha256": "9a0d8f041dbd02a2978ab61d1bfefab4535fc2a27c9d5147c2e9d04fd93afbd6"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationRetryStep.cs",
+      "sha256": "46ba3d0a771a9594dc4bd444374a2d79386c6180aff7c0089ecb98ca347e4c86"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationSchedule.cs",
+      "sha256": "97fa9afd4850bd7a7de9ec8dab881353494e6fc19d8619c31d0497e91d6f3335"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationScheduler.cs",
+      "sha256": "7c18e25123f7db9fc27e555a1d0533f61c571577ed7f18ec78d37041e19853d8"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Automation/SqlAutomationTaskWorker.cs",
+      "sha256": "ef431b4d2e1be5bc58689221857dd2cb5440d961d2bef6ae17c33f92f2b45f02"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Bookmarks/BookmarkListCursor.cs",
+      "sha256": "5ad60118c1f526add824e57ef59670d30bbe4c440f86ad23ca22efe8a3ae6593"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Bookmarks/SqlBookmarkRecentSource.cs",
+      "sha256": "714a9f7e98b1ecb63f5aa5a20864b15344ad2ec9499d035e153bfb1019e3224e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Bookmarks/SqlBookmarkService.cs",
+      "sha256": "ccc4fd8148383e28881b39bb458cd2312e5e5c83d4b1884eab7f152a075948ff"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Career/CareerInput.cs",
+      "sha256": "ac52c5781a021539f6188ab8e4819834a3353f40efac10bf803b3ece8792edf7"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Career/SqlCareerAppointmentService.cs",
+      "sha256": "39476ea3276f9eef5ef20250418124299818c90d682f7ec09719658b3654f63f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Career/SqlCareerService.cs",
+      "sha256": "271e3c5091cfd2e5cd4f5c2f5f01f79b0c27b731a4ed9807732e9fafd77bd209"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Dashboard/DashboardDrilldownCursor.cs",
+      "sha256": "c513221e8b8b1501fce2a7e08ac55a6f90a84a978ea32ef7116149eb8f128d76"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Dashboard/SqlDashboardDrilldown.cs",
+      "sha256": "91e597aaa019f2256f15b7dc64d0d517f95ca4b98e091eaeb40bf200e347439a"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Dashboard/SqlDashboardLayoutService.cs",
+      "sha256": "461977a333edb4aa7cef1afeca32756285b704e01537b56e6f3363606bc87dd9"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Dashboard/SqlDashboardService.cs",
+      "sha256": "7c54e1ebfd51f939320c03e3c0e3e3a9f07517853b32c573911b95104c20b78e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.Offline.cs",
+      "sha256": "1762e6bf141efd86857ffee1489624e43320c1a14cbbf854a180146e13438bca"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.cs",
+      "sha256": "691017b9f736b9f3e77f31b523c28378964c3b452471624a87baf498d2434664"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/RecentTokens.cs",
+      "sha256": "c1b510d127912055d5481eef45f33d6f967a33f7ea803b2e5986549f756ed354"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SearchCursor.cs",
+      "sha256": "28cfb25a1d0043dbcae6445995daf3d5a6b7a12eb59329c10959e56900bd7e9e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlCommandPaletteService.cs",
+      "sha256": "a33cdb23a54f6e32d8cb84229ae0ca80de27c3438a4ed15ebef7078b37279963"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlDiscoverySources.cs",
+      "sha256": "00349864de4a3de1fa1d3b8ece07bb911d592a31cb4544cf452458653e06dc23"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlFavoriteService.cs",
+      "sha256": "7c2029f57853d7d02389f0702344ca388f0a51c795c49680a3e790eb2b7ed22f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlRecentActivity.cs",
+      "sha256": "e1f1a2e4a99d815b6ee6508748f8802ea99e07630d335f8d8c117d932e917627"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlRecentService.cs",
+      "sha256": "3264163d46c4421324651e1c09ff81527deb63acce9dd1cbc2df69a852aa6a9a"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlRecentSourceQuery.cs",
+      "sha256": "098ae8fceedfec9113e71c88cd8d8443fc701f23e0cdb81a37733fe730fc31bd"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlSavedSearchService.cs",
+      "sha256": "ff42b6f005479e5b51f5829c5da8fd8d638e4c619a3c5cd9a664c85344804df3"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlSearchService.cs",
+      "sha256": "65bac9a3b5daec0184c60400fc8fea8869ab9cf740b7760d8ddbf695bd71171c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentBlockSchema.cs",
+      "sha256": "2e14b7ab5e3714f98979e171d5a459d96108fd1680b1b9a137ae0d5aeff1ccc1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentExportCodec.cs",
+      "sha256": "44fee0c406e39cf11eee22618bc9802ba805ca590939408b70391f74b2f758d1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentFolderCursor.cs",
+      "sha256": "2d5bbe99c4b1ce37ac7a9d5103acc2b75c9d8d4f53bfadbedb6cda2c5cb92868"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentHistoryCursor.cs",
+      "sha256": "058bff5852741f27c53c7e9b4b4e8839e10a18b9d492a1147b3564150377d95c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentImportBlocks.cs",
+      "sha256": "85c481562189cd4b9ebf420f75d0c42b4c6d2d7b9753f3b2ce4ef8deaaf7f9b5"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentImportCodec.cs",
+      "sha256": "ec564413a91f5c54dfd85bfe712f766a9a752de32376442ac99a1e21ddc2c394"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentListCursor.cs",
+      "sha256": "7242ba0d505e881c8bc3835efd4c8ea5c581a97537937c07b37923a33cc1e942"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentArchiveCohorts.cs",
+      "sha256": "e2e6cf4d4181842a72708913a04f2d1d4f7d03ffc90e6f9a524e6de499194dcd"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentExportSource.cs",
+      "sha256": "2ff8c3777dfc9cd4c33aecf0f792b34eaf2ce3dcf4ca976696fc70ee036c3d92"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentFolderService.cs",
+      "sha256": "c887b95eb31db5e5633c9e6d75aa438e26678d142a0808d060e3a485a244a9dd"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentHistory.cs",
+      "sha256": "4ac390d3425fd820388122b711335e24f89b249b86334bc172e6dc3d49537927"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentImportTarget.cs",
+      "sha256": "468f0b36428da63e972397593383940214b454b38701a1aa9235267b6d0b1527"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentPurgeCohorts.cs",
+      "sha256": "257661b0ecef16f528ceb94cee366b4deb94319d8ba63fb77526fc96e66a78ce"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentRecentSource.cs",
+      "sha256": "ee08e3e0e985524a86b1c318ac640f2fef7f4e328cdc09fc4f9c641f08b15225"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentRegistry.cs",
+      "sha256": "ebac9aa0057cf03e4175600be60524b0b273be941d8488b649c35dca8743a519"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentScopeLock.cs",
+      "sha256": "e8d19584007e6723e634917f05910128f84bd18b7069394b6e28cd585532df55"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentService.cs",
+      "sha256": "dbaf1087f17e360d682c6af44086d488ab146f3f7367c7bfd09ab21397275884"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentSharedSource.cs",
+      "sha256": "cf3c844c2683e15fba0aa3c8daed7b04418bfd112f3a001116317cc531ba3e7e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTagService.cs",
+      "sha256": "3f8862eb2ffe8b5f3c10259c5b5c138d50456fabab8c33f20643cbc336b126a5"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTopology.cs",
+      "sha256": "63ab57d5fa41ce76dcc7e003fab75ef1c6b96f730bd293ebac445fffb09fc44b"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTrashCohorts.cs",
+      "sha256": "e377b260db93b6253dfaeb9290686059160083c39328323b9270fbe4f592369c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTreeCommands.cs",
+      "sha256": "18ef05871db9f018d3d30d1ac8d83c827b8abd5c0fa3e2242411a1a3d8956956"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTreeQueries.cs",
+      "sha256": "baf682acb7583d6356e818829619a7fdafc71403c65090877ccdfb5bf55c52ce"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentTreeService.cs",
+      "sha256": "cc9dd1f83244a48ca3be41ee95dd6d7337082f447ac843b56f60bd6af2b44a03"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentVersionRestore.cs",
+      "sha256": "5e5812443562697251ac2203a332da5ec7690b6affabc4b649d5ca5e5e3eae0c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Files/FileListCursor.cs",
+      "sha256": "0fe2ba3d10174e1bf9e26a2a9204544462fcdba80b04116222575d4741976bbe"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Files/SqlDocumentFilePins.cs",
+      "sha256": "dbe209c518a0998d68243c3e8f86a9c7a2cbd9be25633eb2ae8422bf6e7f7af3"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Files/SqlDocumentImportFile.cs",
+      "sha256": "f9dd6140728975eeca96fe813f76966adb1c82b21c55e0327f4600bfd5e6318c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Files/SqlFileImportSource.cs",
+      "sha256": "4a5713c9e57ff161921f60801b5ae4d920de507225cf0fcf48fd59f63a4f4f0e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Files/SqlFileService.cs",
+      "sha256": "ec45224a53dfb7a048a3eb11a03ce3aea954b824abe302a93a9d666902587512"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Finance/FinanceListCursor.cs",
+      "sha256": "5be8bd401a6526664fccefd648050bf399d4f6006bd14c57650f8c65c0378952"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Finance/SqlFinanceService.cs",
+      "sha256": "bd8d29dc1c493aafcb4997d1a89677fe11db4be637dc0b929c61438a271df5f2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Focus/SqlFocusService.cs",
+      "sha256": "40c1e3ab7fe086d86b61a611085ecb9c67276262daace706aed6b6dfdc651f96"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/GoalProgressCursor.cs",
+      "sha256": "d8a442c42bb8a44f329fda512f3b3f81db67c2dcab14d9974e5d845c7cb4987c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/GoalTargetPreviewCodec.cs",
+      "sha256": "f159cc92096263a06fead5672bc873500b8205d96c9a66659288a658add47224"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlBooleanTargets.cs",
+      "sha256": "777459913778aaea1075e97aace49ce08f40d8072b42303219bf920cf176d959"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalArchive.cs",
+      "sha256": "62e5139ccd30df38f6811ecc90ac584993500e219f80d586c431a8b16f3696e4"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalMetadataHistory.cs",
+      "sha256": "7b9eb8043097ec0df88f0b153378c9db96592f0dee78149743ef3edb177fbd48"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalProgressHistory.cs",
+      "sha256": "3853cf77c5901fa24e16697f23836d1c1c4dbd78fa0098eed00404dc206ebf57"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalRecentSource.cs",
+      "sha256": "50bd4849ceae746825c03f213157f9f9f3b6f82ff59efade366fb76a886acf31"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalService.cs",
+      "sha256": "d546f04e15b334c7b48a71080e3b6ec3dd3277fee6a65ea4929307fe783ba750"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalStateHistory.cs",
+      "sha256": "6b4291d9d34d3e054e31ebecc4827e0ee16ed8f477e5cb5f34987e6b66fad280"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalTargetHistory.cs",
+      "sha256": "fff792090319ea282715080eb8b4ce3478da3bb3df08f187d39215eff8794680"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlGoalTargetManagement.cs",
+      "sha256": "3b5b506dc33a87eddd4a94aeebca8bffe0087793e7fc63e5bf5e04d67c3ee89f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Goals/SqlLearningPlanGoalSource.cs",
+      "sha256": "57ce26e14743c190d15c4fee05f28796ee8dd38dde6eed829bf3577873cc883f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Habits/SqlHabitService.cs",
+      "sha256": "bb5690c6e9c28892a65382cfbc1cf1935fd73e10c5f6ac80f2435a3af9b865ca"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/AccountMessageDeliveryWorker.cs",
+      "sha256": "6eb918e278c5827c3994aae5dfa315bbff64ad26df2dafb8ff3cc319bf8038d5"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/LocalAccountMessageEnvelopeProtector.cs",
+      "sha256": "cfa395a648bd1a1813aa71e5a1d48ab48a8bd310f4d085b414f92939404cde3e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/LocalAccountMessageSink.cs",
+      "sha256": "389646b2cbfa0943dfe5ee04c0aaa4c2b60d93b21ecdcd1c9fdc245d3fa292ea"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/Pbkdf2PasswordHasher.cs",
+      "sha256": "3b356d67d0852d3becbb5ac5add88f828abffb7ca7db48b1fdffa83a5f7b64ab"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/SqlBootstrapSuperAdmin.cs",
+      "sha256": "ce65df2aca5cbb194afb31a810e32208f0f5487fb35e481c9e57f77f5f2c9369"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/SqlIdentityService.cs",
+      "sha256": "3876dc72d0006d39e36af8f1ae6bdcb9b5fb8bc5463f5079c88a59f8b91d90ee"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/SqlOwnerLocalDateRange.cs",
+      "sha256": "31c3e44f043c3d4a3f21f2b3926b3aea6960d2f469d0d3556f5dcf21bba94c8f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Identity/SqlRequestReceiptStore.cs",
+      "sha256": "c94ac927ec0585dbf10c5d60c7ce34c2e0893444f3185b58a635af006ec7b8a2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Integrations/IntegrationConnectionCursor.cs",
+      "sha256": "dfcb7bc1e74088519b11e31159a5912ed0bcc27ff210563b1868547ea6fb0cee"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Integrations/IntegrationConnectionInput.cs",
+      "sha256": "59647d1ed525af26ff291db7b09bc2416fe328be61fac8ffffc30f38ff8f2062"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Integrations/SqlIntegrationConnectionService.cs",
+      "sha256": "b1d8ac472ea591396973518f390dff19bc58b800dd2ecda1d2a31f4396ab4890"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/LearningPlanCursor.cs",
+      "sha256": "c85eb541bddb72e50f0d8a75f02f0073f38518dbff34e0f4947affd69c0173ba"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlCourseEvidenceSource.cs",
+      "sha256": "48f6236ed28b6cd006e1c6d0b8bba86d6f221317deff0b3c61cb6a81ea3ea1c6"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlCourseService.cs",
+      "sha256": "02f2662523f37f27428a1436ce7b26162d212d4f2808cc5d2e04b5db27026ffd"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlLearningPlanCourseSource.cs",
+      "sha256": "b45c6b6f7be542d54f8ab2da91f0ab7c511a4aa132048e5484697270046ca924"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlLearningPlanService.cs",
+      "sha256": "9731d6297dcde2cafafb8e0131a45831a3b50687d9bff4f3a5f8286a021cae33"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlLearningPlanSource.cs",
+      "sha256": "8fdcee1caea33b4e5534ea7c847ddb5c97ac7882c768eddbe4027f6d72807fbe"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlSkillEvidenceService.cs",
+      "sha256": "94f6c1181b535bf70f94eabd67ca3e41d65d66853b660cbe1fb75bfd39f3e4b2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlSkillService.cs",
+      "sha256": "0903b516fd73098c5646323756e2d53ef582e0612acf05864edf4440eedd63c7"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlWorkLogHistory.cs",
+      "sha256": "0ce0ff682c641f6f328733bdfaabb245822af3d999f9e33142a1ed8d6201fb25"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlWorkLogLifecycle.cs",
+      "sha256": "e308949bd8e73682de031429fbd28adb2bd7df19f74b4d9d05c2df551480bae1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlWorkLogService.cs",
+      "sha256": "a015ced9f010d3b540ff4e90f5639274b5a3131a4fc0a44cf30d4ed489944e01"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/WorkLogCursor.cs",
+      "sha256": "ca6e3bb1136ea10ab1189882c985f1e3a1bde14857e89fa342218e40939ad285"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/WorkLogHistoryCursor.cs",
+      "sha256": "671ed91323af85b4467f51046e79225b0de68b1e2d1d598ce0b615e638eb8a41"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/WorkLogLifecycleCodec.cs",
+      "sha256": "e11028c4c3ad625bbbb123898187099b981fc4e232b8322579c3830666e3b95f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/LocalSqlTarget.cs",
+      "sha256": "a6aeec6d31d08223d7ad8e7cdb311cf7e309e418f2f86046d913107e4b965260"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "aeb5f2bad2b5506298f0434e203adc5140bb481dce9523b7c60e7b9d140527e9"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/SqlMigrationRunner.cs",
+      "sha256": "84c443ab5315ddb9a5aa510e11c84608d3f415f0a980d77c9507c13f55f837eb"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Modules/SqlModulePolicyService.cs",
+      "sha256": "175cde67443cd36f675eb46fcae24e5144d324aa72583549815f49dcb1734bde"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Monitoring/MonitorInput.cs",
+      "sha256": "d3b70e3d0f9d9a28ce4f353591ddd38bd1a9d9d9b4dbeadd9e6aa403569a987d"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "sha256": "3beb0879003851a58fa7ff0ab67e2ee2ecb648ad9987fcfd9f680524511e7ff1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/NewsArticleCursor.cs",
+      "sha256": "5ef8d9c2f249411f9995366414f101387b6375a0fe0fdf938662dd2509132619"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/NewsCategoryInput.cs",
+      "sha256": "6b5a4f9bec81869817611d47ea5bf75bf5ac14066ede893e11c38de14ad0c171"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsArticles.cs",
+      "sha256": "3731f3a2802737c4f89ef5c3d4defe6979f13e2294aca3cf0e0004c22b121471"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsCategoryService.cs",
+      "sha256": "34980639e8da3ae9dc4d391280e43d28f2e41402bf884d9348b21d44bb751a44"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsHistory.cs",
+      "sha256": "aff0698bb85339c413cdbcaa405b939de627cde4b7ac9793ac793f9622114c11"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsNotificationSource.cs",
+      "sha256": "bbf6e3a4295656c97b977964e449d2e51331003c2f506c9a5ae3f97c6d16ec2b"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsOwnerInitializer.cs",
+      "sha256": "32770806b7462da14a5ffc22888d26fba9677dad1f7ae56d41c4dae4b9ab72a3"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsReaderService.cs",
+      "sha256": "b0d8d4d0db7f471450c12ef240d545cb9f9d5792870d418fd17a2409c1fc163e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsReadingParticipant.cs",
+      "sha256": "c133748734937dfa52d48726920372c2578f0ee53110de62096ab668188bf42f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/News/SqlNewsSubscriptions.cs",
+      "sha256": "ed1d82f2174033ef3db0a0798fc706478efa0c36905088d81b498aa6dfe6dc2b"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
+      "sha256": "755eadecb5d3e5392b12fb26681eff01770913b92b07082b788dda674ad5e7c2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Notifications/LocalModuleNotificationWriter.cs",
+      "sha256": "afc7402b871affd99c17a0da8c6f21582772c888e8b2619f63db7e30f838074f"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Notifications/NotificationListCursor.cs",
+      "sha256": "5cfc6ea1b5daea1deef4f622234ecab06c73be8957d67f3199dd7369366383b1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Notifications/SqlNotificationService.cs",
+      "sha256": "7578db0b12b977b1b77f04048fac578664a87ee02a82c58133699c9af76cadf2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Organization/SqlTagService.cs",
+      "sha256": "9701557763522c39a7d5b3102e3e86526c3269a167378bdbe188a7838112d3c4"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Organization/TagListCursor.cs",
+      "sha256": "85cac0f5146f54a6ab89e3ceac05ffad50b15c79dd1c8f35986aba18ea62a2e8"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Persistence/IFileRetentionParticipant.cs",
+      "sha256": "f5c109573e2569abb16868d757add7ceef8c4d53fac5ff3b8ecfd744a71f30eb"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Persistence/SqlConnectionFactory.cs",
+      "sha256": "322cd31b32a567f0dddf3219ea8412bf3fd8d55905f9307cdbea1a5d95e27ce5"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Persistence/SqlReadinessProbe.cs",
+      "sha256": "865e063999ecc406d3b2fc04c58458453da4eb2112bed324529082a4e0327234"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Planner/SqlPlannerService.cs",
+      "sha256": "2d200bc0e0f2ec1643641645f9095ef665995e8bb7f13c605c9ecb35dd123a7e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/CalendarDateMigration.cs",
+      "sha256": "4485e6ad126832769c4a82744317541ce4bc0609e4d251dcf1c8ab056b315bd6"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlCalendarExportParticipant.cs",
+      "sha256": "4c233f7fc41e5cf6f4b022faf0c13e3a52a55fe7ddf19e2dd7afb98ad5852a3e"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlCalendarImportParticipant.cs",
+      "sha256": "7b6f66d1eb5d253543edfb46cc84d5d76c2dd02619fe09f93c31251d97f63a8d"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlLearningPlanTaskSource.cs",
+      "sha256": "4de33b713c508deca9ade1a8644071d6e649dea6a2a52460c767fa95a79f387c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlNotificationSource.cs",
+      "sha256": "02ffe7598f9fb14d793420056581f2e19f92ad10f2493f1710e2759c1d283c25"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlPlannerTaskSource.cs",
+      "sha256": "c68e0d62da771360b363cb54d1ea5421da31bc020cd4cd93bdedd3ad6e2c9cc9"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlProductivityService.cs",
+      "sha256": "dc1f846f5c7ba6ac04d3299ff8bb9752cfa5522a2a64c72bc083aab18838faac"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlProjectSharedSource.cs",
+      "sha256": "671bf1e8864f48b96c1bd8c432d645af18ce71be57649bdd564e3b5ff044343a"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlRecentSource.cs",
+      "sha256": "f97aa87f31ff03c41b06c332621347ea80206df86d014931c46b9ec5e97ee662"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reading/ReadingListCursor.cs",
+      "sha256": "5e26fa2653de907128fbe2bfc63986bfbaf13681fea4eb893fd780ff65e7816c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reading/SqlNewsReadingService.cs",
+      "sha256": "b0b38fd733f485fac0177d33fbfb1920a77f2349bce2d172d3616f649855d8dc"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reading/SqlReadingService.cs",
+      "sha256": "ecd2c5523d9b9c266b9f38915bc91b70acf697373c1e13779e48f6d069750b82"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reminders/SqlReminderService.cs",
+      "sha256": "d8151e42505db240963d4170ec8cad83678d006e43c3ee2ca267e0ed4003c92c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Settings/SqlSettingsService.cs",
+      "sha256": "25a043844cd16e763089625a8db2e2e1c7e9c7ffaaa859ee2db4e5722a37f9f1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SharingListCursor.cs",
+      "sha256": "4c3e014999d6b83e25ab77452fe1eedad3f292f2d34cbdb2127ef4ae826d6600"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SqlSharedLinkAuthority.cs",
+      "sha256": "ce8c3edd3fe6e6d01cb87f34141dbe2d6c08d47ba655e4ce41860e32872d1e72"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SqlSharingPolicyImpact.cs",
+      "sha256": "c90ed1c8f844d15a1be43bbc072cdb0a416b020af03836ae4b2d4a8f7d38434c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Sharing/SqlSharingService.cs",
+      "sha256": "f9ed2d9a53a9e723746e03509579c3eb303cad35ec37c9d4fc18422488dcce73"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Shopping/SqlWishlistService.cs",
+      "sha256": "8d5e6cb8ddcd7f5fa10ef4a5c4d7490dbaed4b7dc52d755a02afc91c293ab818"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Snippets/SnippetListCursor.cs",
+      "sha256": "195e9f5d46d22181be75278af9da52519bcc2b1175f6a395c913a11c4d02c76d"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Snippets/SqlSnippetRecentSource.cs",
+      "sha256": "931083d9d441f557699b4d18699ce0c317a396cb81e5c86fc75d1aa84d9e80a0"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Snippets/SqlSnippetService.cs",
+      "sha256": "cd6b36b0fb04e49b65ee0d80a36736a78e084e0323b6436a130410db562a5960"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Support/SqlSupportService.cs",
+      "sha256": "eb86bc487a4c6ba0943925e66628255a84360385a2775cacef1439003e9b96a9"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/TimeTracking/SqlTimeTrackingService.cs",
+      "sha256": "2f21fd0304a2a955189246cf542767142bc12d06bfb1931628d4d22543ce02e2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarExportPreviewToken.cs",
+      "sha256": "7eb10c561749aa0031b42f75b1fedfc0ab9c866590c3a97b0e149e391fed95e1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarExportSelection.cs",
+      "sha256": "51307b38efb884e3b6b5e1deb11e915531ccc20f135eebe7d27ddbebd3152f8b"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarIcsParser.cs",
+      "sha256": "1ff4abb60559326c47b211f2a5361c7c3a6b03ed03396f9b636e0e265b155294"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/CalendarIcsSerializer.cs",
+      "sha256": "5f183c48ff415119bfd21138444ca9a9887ed30e220952842a50e9c13e9016be"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlCalendarExportService.cs",
+      "sha256": "3d34bb6d1e3670b77bff9d34d424cda55ee9a1219fe446c017f899703d2ea701"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlCalendarImportService.cs",
+      "sha256": "adb5717dd28423c31a15c08187da3fb51a76965a3a34b986e4297252fae52e17"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlDocumentExportService.cs",
+      "sha256": "efdbf8b4574e0fc5a689b14fd576dc119a4d4c4cf67fda0d529aabf0c216bf17"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlDocumentImportService.cs",
+      "sha256": "3f6ba9fbb52862f1f2e21b1709b281129c1cd9f15e728309ac295f264e6e3ed9"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlExportJobStore.cs",
+      "sha256": "bb3df65c433853c3251c5157a684b64673c6df59928ea2fbed2a26086d1aa262"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlImportBatchStore.cs",
+      "sha256": "e37ea3f2420ac6b8b3dbf72bbedbf1cc72523e1506e8f2d8e3c4fb5bc118fed7"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlImportFileRetention.cs",
+      "sha256": "4eb731e020daa562eb81ec4f4c9c19350052d8b09c7f044592363dc4a5e59a33"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Transfer/SqlImportUnit.cs",
+      "sha256": "594c1566260a9528c21fd44df42b62f7e037e05faaf57869ff2bd06df09ea919"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Trash/SqlTrashService.cs",
+      "sha256": "44f353dca5bdb98498104382babfb869e606f763fd35e9e55cced4dd4204feb0"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/packages.lock.json",
+      "sha256": "39dfd4fb2cc163d62e178a95ee277255b6ca48502cb19a4c82da8a61cd0e787f"
+    },
+    {
+      "path": "src/Nexora.Local/Nexora.Local.csproj",
+      "sha256": "ac3fabf428f4707f0cda125593a4674427989f73e649880a60b6d78e809e5ec7"
+    },
+    {
+      "path": "src/Nexora.Local/Program.cs",
+      "sha256": "85fe119aa01ee4a5d569486aa9cb555d91b30ca28a03363eccfdc09dc59a82a4"
+    },
+    {
+      "path": "src/Nexora.Local/packages.lock.json",
+      "sha256": "8d2ea21eac52b49127e5429eb2fad3cdf5f7563f109220639ac5a4cc0675e025"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj",
+      "sha256": "11bfe3c9d08117356c84a4dbd058d74f2a6d05038978b669e9dd96717b7a865b"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/Program.cs",
+      "sha256": "2b765e70586062155683cda86cfbd03508b01ead4101340ebde5954c3c54b288"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/SharingBackupProof.cs",
+      "sha256": "fb1bc0c9dace31740bb407c133c7b16756d449b0e26bb56d0d3623cfbac14b50"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/packages.lock.json",
+      "sha256": "8d2ea21eac52b49127e5429eb2fad3cdf5f7563f109220639ac5a4cc0675e025"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/Nexora.IntegrationTests.csproj",
+      "sha256": "fb825b6e437dd759e014ef216d956644d5835068d3aba967325aeda434339956"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/Program.cs",
+      "sha256": "9afd4c4a25af5098520e629bf7453cba6f51d2832ebb0f69c2a175c4348a06d6"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlApiFixture.cs",
+      "sha256": "261104f43e4319c955b281a06be4ca3739b6fcb27bbab0e9bbbeb9aa9f74d08e"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs",
+      "sha256": "af6306338b16e723ab5606bd675ae9433307ec7931504715cfb5b85772a67894"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlBookmarkReadingAuthorityTests.cs",
+      "sha256": "9bc77475e82ace4575276fd88999122dac651e4058861c6d073b2d2a5ef65db1"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCalendarExportTests.cs",
+      "sha256": "3695e405a1f3d77286eb8292a694db53b7ca0acd8505e4b047ef4088ed6f7e5a"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs",
+      "sha256": "72efcc5ad0bf168d7379cdf164a8692e48600a3f7dd1bcb2f77ed9e99e7e4323"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCareerTests.cs",
+      "sha256": "81a5353081411b6190922a018d8b776b6b7d159dfcc2f306fe43546b3a9235cf"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCompositeCapabilityTests.cs",
+      "sha256": "a59d30c2b055bfa053015c0004b4a1d54d5f3f35d134cd1af2332d96cb1a82d8"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlCourseTests.cs",
+      "sha256": "ddfd2eba8dfdca0f50458e73433ff3836ed9fee605c97c61be13e35c833268b7"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlDigitalAssetTests.cs",
+      "sha256": "d30918997d966da216b79ddc26534aa7b91e3ada94f29d4677d8c5631524e2c4"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlDocumentReplayProjectionTests.cs",
+      "sha256": "bac9a690d9d76ae5cab1b6faf19b3146bd06dd4bdf28e9e124e5c2e48923c666"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlFinanceAuthorityTests.cs",
+      "sha256": "0b0242e8238c0a6e084b5362750faeab182d04ab3cbbf42b85d9fd6910d8e39c"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlIntegrationConnectionTests.cs",
+      "sha256": "3501bc2999d5b26527d24553f2a7e35377b2a7838ae7f1602babee2bd05cc905"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlLearningPlanTests.cs",
+      "sha256": "81875120faaf29b6ca6e45cc91da40d78005eae29f42d0e4f02bd564d618685d"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs",
+      "sha256": "4fd0d84c05f7657d7412043656b95a02acd26547854114c4aef26f18936abee8"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlNewsCategoryTests.cs",
+      "sha256": "f8b7d048a46a3cc75b7862a85a84af3089f4c1b2816b78d6ae579a675360f9fe"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlNewsLegacyBootstrapTests.cs",
+      "sha256": "2cf98d3a3f0f4929f1e7b2f8c237e8a344fbcd121182237853e087e7c0926657"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlNewsMigrationTests.cs",
+      "sha256": "0985350335a3415f8b1f40021b95ebb119c206cd226332f3d7aa0ed71500d9df"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlNotificationAuthorityTests.cs",
+      "sha256": "6f17a90dc3d433d4de817c2ff8e5dada54cca30afceab34473ddc70bb3c61286"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlPersonalAssetTests.cs",
+      "sha256": "1c60e539a162a34e81684dbc0a82a0171a2dfaffcc10a21dc0eae30283e5cae1"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs",
+      "sha256": "3dfe55a12c3d1f5396181f05f78b3c3c5b0342e166abc87ec998f242eff093a6"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlReceiptCompatibilityTests.cs",
+      "sha256": "515cf9a4ed46b39739a32e16d1f29e9471114b4924ae5d6b604fa4ee99516798"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlReleaseCoverageTests.cs",
+      "sha256": "af66816d2c3ba30cbc296df17426dea18f88b7e6fbf3ae44b93e09a183ddea3c"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlSearchPaginationAuthorityTests.cs",
+      "sha256": "814170e4e7d8889f3dae2cee89d3ebc29eb38232a2210f12fdf47dbb34a74788"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs",
+      "sha256": "4e9ae35713c231cef5b3193019851dece87d390d5747d915dad00212bd80ecfd"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs",
+      "sha256": "006505e1b02f698e2d0425dc93c352767d26b18126c20d419b8d741b14b99eb7"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlSkillTests.cs",
+      "sha256": "2dd4204a6a8cb040f5a958d638d41e69185b8b235562f5022cc8ea807c7f134a"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs",
+      "sha256": "e4c9907f33f4bbb959642fee59a8b06b8a5392982ae137f9243087a481b43930"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs",
+      "sha256": "fcaa95f5d262d54ec386a492fe6a8499a178040edd3ed15804c2da7f754acc65"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlTimeFocusCompletionTests.cs",
+      "sha256": "4af554e539766d9fbed5a1b89ea13a5b4aeb221c2da7253a3dc433a3d214e43e"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlTimeQueryTests.cs",
+      "sha256": "b4d7ff6a8dd1acbaf795f18a64f82b5a82b3e7d52d0ff647934fa97a25160403"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlToolboxExtraTests.cs",
+      "sha256": "8b8be4851ebf8920f00fbb94c59dc34f9464e310a17ad0401a4522efb5b731cb"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlToolboxSafetyTests.cs",
+      "sha256": "410c64783dcbcb3621fe59c12daa4a124fc311fb8adaf224ad868fa6303d2ad3"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlWishlistTests.cs",
+      "sha256": "a027f5004d9fd84c41522a5d0b651ba349081f7a53b2e2e65490cb0f377a68a5"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlWorkLogCoverageTests.cs",
+      "sha256": "98850cc4a5721a0af27d665d34c950fb7d00f969ae3710b90b5476260aa707d5"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/packages.lock.json",
+      "sha256": "8ea6daba7e7394f4fdd39cba1095e9ea48ad98f7e2273d8be63d82a856f6d989"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/CalendarIcsParserTests.cs",
+      "sha256": "b8b8c44362e533ff81f6b0ac738f43ce5427c996a2c9a0150341883dafcff033"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/CalendarIcsSerializerTests.cs",
+      "sha256": "f8ff5d90a28b2a1ff52b239d4623d46848e22257e97471d19074734451077317"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/LearningPlanContractTests.cs",
+      "sha256": "0cf115a39af64d60183a63405d68f381ce6448ee7fa635b3c0dfe2b0118cedf9"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/LocalAccountMessageSinkTests.cs",
+      "sha256": "81155d5babdcc813663f6765f4d4a86532892c2a4e0df9d51c40495736959b3b"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256": "dc24763da104e872cc5ed1cef66c295cb1e1ca989d6987f67a36799d471bd334"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/ModulePolicyStoreTests.cs",
+      "sha256": "df3572c3ae4226af672a61b301da1c4cb8848a92e730dc0ece2151bfbc19a62e"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/MonitorInputTests.cs",
+      "sha256": "9ab6a1f0d56c6491aee2b19ac0d1cd3c0b9c886ce28e89be66682b527fec31bb"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/Nexora.UnitTests.csproj",
+      "sha256": "386fe6684a7c9a9fa789986430fd2d2415bfcd1dfa1e702e13913d1683f159e0"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/Program.cs",
+      "sha256": "7000524df79ee53adb12c49d49802129b647a49a189f8acbb103a121125e17c4"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/TagListCursorTests.cs",
+      "sha256": "eae83847fa62aac7a5befcce9029213ffe59e3e4809b05eeaa6baabe57d18a77"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/TestRunner.cs",
+      "sha256": "a1177a18d425d22a6bce378dca3ed3e1d3f0e22c735c035dcff9bd5f66a59d11"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/ToolboxExtraOfflineTests.cs",
+      "sha256": "448de2de213feaba08c9f00d0fde8685eaa871267461294c0631a17b14d2ce5e"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/WindowsCapturePrincipalTests.cs",
+      "sha256": "6865d8377a9feefbea8df411230c51f8e8ea73d7e0480a5fd48f1631c0627142"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/WindowsCaptureProcessTests.cs",
+      "sha256": "24c318e37b4770296924edacb44257c174463967f7ac2181193eb4d36de267b0"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/packages.lock.json",
+      "sha256": "909adb93a47bfde38a7b3ea66c4464b37e2aa2d0f6b3f1525dfe8b3884e4ab52"
+    },
+    {
+      "path": "web/Nexora.Web/functional.config.ts",
+      "sha256": "f35f057bd0529e1a428d244905922c8f41a7be24018451345c4f53d5bc852964"
+    },
+    {
+      "path": "web/Nexora.Web/package-lock.json",
+      "sha256": "bb0731f7afbccfb5704a07298212b68ad432960a8c070f7c21eda428ae0bac0d"
+    },
+    {
+      "path": "web/Nexora.Web/package.json",
+      "sha256": "61b08f44032cf725394e37717f7a9e913bc23c2e4110966cf515b6106d16cfe1"
+    },
+    {
+      "path": "web/Nexora.Web/playwright.config.ts",
+      "sha256": "81779278c565fa9ceb71d88271e44223149723899bebca2055635a2c4ffe51e7"
+    },
+    {
+      "path": "web/Nexora.Web/playwright.ui-smoke.config.ts",
+      "sha256": "0abdbea93ce5f88f81319f32545b0254f541fbf670539477e6ecc995fe10a9e0"
+    },
+    {
+      "path": "web/Nexora.Web/playwright.ux-audit.config.ts",
+      "sha256": "9eb6ef1569596a518e892f0f3ad29d8369a277d1ae91b6097f83db9173538287"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.surface.test.tsx",
+      "sha256": "e2621d332917a5d53767aefad3cdb273181fbcbfb622820f288c8afb99f153aa"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.test.tsx",
+      "sha256": "b1288bde436b28681e3b40595d99761192eeb96c42cc11070cf56c8b0069ad00"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "49f0ccb5078f6919e0c3d9bf9eff61038d86e114266f00d110a3914c1301e63b"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationExecutionDialog.tsx",
+      "sha256": "894109fb685607b206751970d7e48f7ba88b349aded421ee65624bfd7f0b421e"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationLifecycleDialog.tsx",
+      "sha256": "1dd28a7543e6bc79fd7b75b338fa936609abd5dcd3d02561a119a85bb69b53ae"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationProjectPicker.tsx",
+      "sha256": "8fed63d81c624289a1b14695fe90e427766ed5fbc32f1b369bb64504720c0f04"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationPurgeDialog.tsx",
+      "sha256": "76a88e4a38c6eb811db3622611238e4e2c015f067a2ebff0ee887cfdca59450b"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationRunPanel.tsx",
+      "sha256": "aed9da80a7f3b8bc93c6633a2eff861fd328568d7daa7b8232b4778775ce6e55"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationScheduleDialog.tsx",
+      "sha256": "d4fc9a13c9120ff8a3ef2634c56d3f936e01f08f2a7819673bc1763f0c0310b3"
+    },
+    {
+      "path": "web/Nexora.Web/src/AutomationScreen.tsx",
+      "sha256": "3805ed03b282bc061b9da39aba6e20497d3bea4b7c2030298398e61cf1f6a1a1"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarExportScreen.test.tsx",
+      "sha256": "7a29c17ac8e96d2651a9b94c55e126225e83f291813d05ffe572fd1b11cce548"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarExportScreen.tsx",
+      "sha256": "4c063001a050a2fc24bd1d093464d8057e7f6083a9b1958fcd6232fc46ad282c"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarImportScreen.tsx",
+      "sha256": "63363f9a23c57595233b799009817cb4c67fa46a65f90279e6b57e817f8762c9"
+    },
+    {
+      "path": "web/Nexora.Web/src/CalendarTransferScreen.tsx",
+      "sha256": "3067bbdd3de363ffba317debbf199eff2dcb9ea0c85520a6364ff66a11a11504"
+    },
+    {
+      "path": "web/Nexora.Web/src/CareerAppointments.tsx",
+      "sha256": "82162712c60b51c16077e55de4248662c090512dcaa46b3517905765b7b3b485"
+    },
+    {
+      "path": "web/Nexora.Web/src/CareerScreen.tsx",
+      "sha256": "e9e072a049a91842ce9f60644492a989beceaf031ee8aff564d941621051f750"
+    },
+    {
+      "path": "web/Nexora.Web/src/CommandPalette.tsx",
+      "sha256": "62a4ff62eea4bb3e82a552a75abfff55eda71042def864a1c1060473db47bb77"
+    },
+    {
+      "path": "web/Nexora.Web/src/CourseScreen.tsx",
+      "sha256": "5e0b8fb99f3b18afed9e9e6a8bba1101b70dacb4e67156005748376ff396412d"
+    },
+    {
+      "path": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+      "sha256": "b686ba93dda97c1ad34c27a178cd76aea59d6fe7f5e7aafd378e95f3bfad5160"
+    },
+    {
+      "path": "web/Nexora.Web/src/CreatedShareLink.tsx",
+      "sha256": "9fbc5c68dfacd87e435fd9aee0c119bcfea4588320936130224d8196a8d54ceb"
+    },
+    {
+      "path": "web/Nexora.Web/src/DashboardDrilldownDialog.tsx",
+      "sha256": "616434c4fe27101d0e18481f17601564d7c76de8e1ddee950906ebe37adc345a"
+    },
+    {
+      "path": "web/Nexora.Web/src/DashboardLayoutEditor.tsx",
+      "sha256": "a55fb3ae27bb9856450964e978d4db16605556cee03243822a55fec683017213"
+    },
+    {
+      "path": "web/Nexora.Web/src/DashboardQuickCreate.tsx",
+      "sha256": "48eabb2cc82d9bfd87172ceef351de84d74b327c946184664fb112a7871cf782"
+    },
+    {
+      "path": "web/Nexora.Web/src/DigitalAssetScreen.tsx",
+      "sha256": "ff04472f8727eded023ab952dc4d93b9a5a902384d124fa2fd8b534642175937"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentBodyEditor.tsx",
+      "sha256": "bd3615b76af46ed87f470ce1144c1a75db4487439cb931ef2aa0e6fcbf92cfa4"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentExportDialog.tsx",
+      "sha256": "d99e319ef117d4b5cf648a71476d6c6a80652f883da88435ab2f381ad52212d0"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentHistory.test.tsx",
+      "sha256": "6e49b11fa2a52a0d6f28af7ad30f3d37a06497e23e56dfb26c68fb402de483b0"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentHistory.tsx",
+      "sha256": "e32ec111b68ca1d02a826b0c99f1caee0c706385649cebe7188f159cc0a84fdd"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentImportPanel.test.tsx",
+      "sha256": "3683da29fadcd69e68337322ec57b820f3ba620249f0b5be2d9a2f7ee5a0add9"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentImportPanel.tsx",
+      "sha256": "1a84b709e5150baa0e7c29b58fb1493a065383706136a2050fd711e5aff7a1f9"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentMarkdownPreview.tsx",
+      "sha256": "9931cd928553583402c0da1a06ad3d8329306ff602b1e55a4bee921a37874842"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentNavigation.tsx",
+      "sha256": "11f1f1ec639bae316e5f2d19d50c8dd58b9a263e1ef4b076225b6df388007f16"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentTreeDialog.tsx",
+      "sha256": "20f7e2b1b46142813ceeb4e492112f0f24ee1c5fcc6b4c13657f7b2fb795ee1a"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentVersionDiff.test.tsx",
+      "sha256": "ed7dc798a12dddfbfc13bb2c1f6169e9c6b2b1b00982f036620372c647ae4e7a"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentVersionDiff.tsx",
+      "sha256": "6ff005accddd7e4dfc51c604a8c7849112df2159d34ef0b5da635ade2dff5c46"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileListFilters.tsx",
+      "sha256": "4d61651dfe9445ae4c2713d6e5dde972a73acc15c0ac29abefbf70a0ed98d954"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileMetadataDialog.tsx",
+      "sha256": "9b37161fd8376bc1a982d2d4d5abecb7875d65a2715ddca5dfeca948fca274b0"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileRenameDialog.tsx",
+      "sha256": "00071b3af86f4f504e494c2995a33fe0f0b1b87c2219ba0961713e5ece7d8c38"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileRestoreDialog.test.tsx",
+      "sha256": "fd1de7c49c2702eec14b20436fa81202f11e254a89d323513482db06eb6bf3fe"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileRestoreDialog.tsx",
+      "sha256": "6dc865e0f6f434f0c506222826d56bdad292a20e65606f098b357c50a159eec1"
+    },
+    {
+      "path": "web/Nexora.Web/src/FileTrashDialog.tsx",
+      "sha256": "d843ddef77ae7a056e18c221afc7330f21bb85ca8c2d64119a91b6fe8b913df9"
+    },
+    {
+      "path": "web/Nexora.Web/src/FocusScreen.tsx",
+      "sha256": "d9d1108dd92e59069f0070abecb5be80444c158ddfba7fa0bda18ce029844438"
+    },
+    {
+      "path": "web/Nexora.Web/src/GoalMetadataHistory.tsx",
+      "sha256": "eb0d600f79a88955e308edc94eb0624828403432789ca1cd1105af94df650c1b"
+    },
+    {
+      "path": "web/Nexora.Web/src/GoalProgressHistory.tsx",
+      "sha256": "6f6e6b786c3163c4ce65b975debabee18c528a386ebe0915df9ffca94b3585fd"
+    },
+    {
+      "path": "web/Nexora.Web/src/GoalStateHistory.tsx",
+      "sha256": "f83f1abcd365e9f572402ed564723eadc4b9c087247550219488d5b98d91e57b"
+    },
+    {
+      "path": "web/Nexora.Web/src/GoalTargetDefinitionHistory.tsx",
+      "sha256": "3a72d7ce049cc01f0f4351279f6d062a1d52f11a53d72f3da453c51d09a39ff3"
+    },
+    {
+      "path": "web/Nexora.Web/src/GoalTargetManager.tsx",
+      "sha256": "2be61d46ca17c5da0620903a6953347bed96ce1ded8caf294604ef21ef45a510"
+    },
+    {
+      "path": "web/Nexora.Web/src/IntegrationConnectionsScreen.tsx",
+      "sha256": "bb725b95055e7e855de77bdad14c02643c141e84a71aa4ed501465d86091e639"
+    },
+    {
+      "path": "web/Nexora.Web/src/KnowledgeFinanceRecovery.test.tsx",
+      "sha256": "a954e20aa9ffff264ae82bb828555d343756d7532339630bda70514a601da42a"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningPlanApi.test.ts",
+      "sha256": "f631ff74c6ce3e5476de20c003a907aefcf5db3ba0402ebf16912f32f06c2b1d"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningPlanApi.ts",
+      "sha256": "99dff2d6cdfd23cb1a0997ccc80c5f0b8776c67b2d6d4e13191117275fd15448"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningPlanScreen.test.tsx",
+      "sha256": "49b863f9aa9e707b5ff91b45c645277d3bc0be5c3b18a145f41a6f416df53b9f"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningPlanScreen.tsx",
+      "sha256": "4f8e2f12470941fc2da3b097e002dc6b1167ef368fc71bbe58774eb63346708e"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningScreen.tsx",
+      "sha256": "261a6d81318537df0c9f0865fb5e02fff3e72bbe5f769abf2f4c756cc15b41fa"
+    },
+    {
+      "path": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+      "sha256": "7f10ae1b789cb7ae5f843b1cab6230b4f4a7bce7657ccb3540a6bafe1dc0e73e"
+    },
+    {
+      "path": "web/Nexora.Web/src/MonitoringScreen.tsx",
+      "sha256": "498e19fcf74fd3c14bfd6dcc5dc3be85e81dbf11c65245eec78d20bd1c80015e"
+    },
+    {
+      "path": "web/Nexora.Web/src/NewsArticleDialog.tsx",
+      "sha256": "9d70cd5d0032acf24f69c7a3864ad2be11bcd09cf2417b68216d16fbffc96841"
+    },
+    {
+      "path": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+      "sha256": "fd895e00679d649496bb871a678dc8bcaa0d42ee24f3a5bc19aa8ba216e5b45f"
+    },
+    {
+      "path": "web/Nexora.Web/src/NewsCategoryScreen.tsx",
+      "sha256": "b502802d6c803c2745a4a708434f1794d984a6cd5034b2dc5168bab862f15411"
+    },
+    {
+      "path": "web/Nexora.Web/src/NewsReaderScreen.tsx",
+      "sha256": "5b4f9b3741e10458110a186a1510c9af0cc17cab835b243eb8607a0350104758"
+    },
+    {
+      "path": "web/Nexora.Web/src/NotificationPrivacy.test.tsx",
+      "sha256": "e993874e2ad06f2ebd2baa8ab9bb1b71f57914b3c93fd98169536f3e42854384"
+    },
+    {
+      "path": "web/Nexora.Web/src/OrganizationTagsScreen.test.tsx",
+      "sha256": "4ad6d0b43fac36b9ef065ee22e4f01b1063d1a65943cb61e7b1da8d3a29d3554"
+    },
+    {
+      "path": "web/Nexora.Web/src/PersonalAssetScreen.tsx",
+      "sha256": "31586a01c600872549eab2d733174a20e25f150a7550da4b1c92f7545a242354"
+    },
+    {
+      "path": "web/Nexora.Web/src/ProductivityRecovery.test.tsx",
+      "sha256": "98c4d15c52ae693e6a0761fd09b0b950a5a4bbd4781f371a044db20b2436b0c2"
+    },
+    {
+      "path": "web/Nexora.Web/src/RecentsScreen.tsx",
+      "sha256": "d4fef9753830ed6535096ea58a0aeaef077153b4e38fd1a79c60bddc236d4dff"
+    },
+    {
+      "path": "web/Nexora.Web/src/ResourceFormDialog.test.tsx",
+      "sha256": "130ef2a744595b8ae4b1357e62916844bc65b07d3615a06fb7d28b826b14842a"
+    },
+    {
+      "path": "web/Nexora.Web/src/ResourceFormDialog.tsx",
+      "sha256": "fbd6d5e265d8ed43d0e0cb9ed6594505b81ea7e06fa349791a7df5ffae3b8d36"
+    },
+    {
+      "path": "web/Nexora.Web/src/SavedSearches.tsx",
+      "sha256": "276b986a9002033500e13c39d36a4a401f7a84507f253b594778d6e20e86c1da"
+    },
+    {
+      "path": "web/Nexora.Web/src/ShareDisclosurePreview.tsx",
+      "sha256": "2aa982292878aa6d52b7db4d03653260030e31913ded713acfc504fdeb4392be"
+    },
+    {
+      "path": "web/Nexora.Web/src/ShareLinkEditor.test.tsx",
+      "sha256": "bdc4b5fc7cea8123adf84fde9a5e21d5fce0f9e1d7716d692124dc8021bd7aa5"
+    },
+    {
+      "path": "web/Nexora.Web/src/ShareLinkEditor.tsx",
+      "sha256": "537251aeb915edaff2257d14008fed377ede4121a1b64a9b78f420c95b15c779"
+    },
+    {
+      "path": "web/Nexora.Web/src/SharedProjectionContent.tsx",
+      "sha256": "79627cbfe9aa0fed9707a0231b489dfed528899889d9f2a8c2c6b242e7b893a6"
+    },
+    {
+      "path": "web/Nexora.Web/src/SharedResourceAccessibility.test.tsx",
+      "sha256": "d6b9eea5130ccb9fee85421aa240231e422001509353964cd5a48fddf921a66a"
+    },
+    {
+      "path": "web/Nexora.Web/src/ShellAccessibility.test.tsx",
+      "sha256": "0ecbc8e566f365d27296e144a38ef90cf9e17e53774a0b73e1bb645b74f12a7e"
+    },
+    {
+      "path": "web/Nexora.Web/src/SkillEvidence.tsx",
+      "sha256": "44d90bd70235cea66a1f2462ff791dcec4b41955ae7bb351667b9681c0f95498"
+    },
+    {
+      "path": "web/Nexora.Web/src/SkillScreen.tsx",
+      "sha256": "784fd66b79f2871a223fd1c6786af0eefa8071b846104bc588cb092af60a6669"
+    },
+    {
+      "path": "web/Nexora.Web/src/TimeTrackingScreen.tsx",
+      "sha256": "ddabd490ef9494c850c024fa8133490dc3fbac28c4baca320771c0937e548cb9"
+    },
+    {
+      "path": "web/Nexora.Web/src/ToolboxBrowserJwt.test.ts",
+      "sha256": "c5f1dd6f26ebac579fbccf027252945721e77be2c1525c18c5019f081cbc27bc"
+    },
+    {
+      "path": "web/Nexora.Web/src/ToolboxBrowserJwt.ts",
+      "sha256": "f95f5953c6bb5120e61b83a3e8bab68ddd627228b01b402065d1ec0969ed591a"
+    },
+    {
+      "path": "web/Nexora.Web/src/ToolboxExtraOptions.tsx",
+      "sha256": "648596f41ce9197dd081049389ef5a22d2c668ffa010666d3a8b68666005e8df"
+    },
+    {
+      "path": "web/Nexora.Web/src/UiRepairRegression.test.tsx",
+      "sha256": "e307a5b56752b5168a55e6f32501500963b95b97ec4e36f9168c9d7c4dec1ad0"
+    },
+    {
+      "path": "web/Nexora.Web/src/WishlistScreen.tsx",
+      "sha256": "80e3d6a723f4dd92f503566d203c23edfad8e451b981d168132b0465a0c31d41"
+    },
+    {
+      "path": "web/Nexora.Web/src/WorkLogHistory.tsx",
+      "sha256": "f1a4da5a9dec0c8daa5135a83bd98b46a3adddb7654d949b8fa1147ff9d954f0"
+    },
+    {
+      "path": "web/Nexora.Web/src/WorkLogScreen.tsx",
+      "sha256": "d597f44c1665081e38abcb50c9a77045622089b6c9a5348529507f8cfe47926b"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "c4941455243229d2208f2024face9f37593694e23cb38a38e1200e00d2214a4c"
+    },
+    {
+      "path": "web/Nexora.Web/src/automationApi.ts",
+      "sha256": "6444263148353cd07aa73342632151b359027042ec768fdc154150fc7a4cb5d9"
+    },
+    {
+      "path": "web/Nexora.Web/src/calendarExportApi.ts",
+      "sha256": "eb52fcad2476b64914cb473c2b691d17f27a032f81859ce1571a6fa001085e7f"
+    },
+    {
+      "path": "web/Nexora.Web/src/calendarImportApi.ts",
+      "sha256": "f34a5151064e4f757d5764d79950a1438f4762147e9a9d241b84b8396f1d6dec"
+    },
+    {
+      "path": "web/Nexora.Web/src/careerApi.ts",
+      "sha256": "552eb8350dad79e1a7f580c1cbb3bae90452dd32179190858783bf9c78116d88"
+    },
+    {
+      "path": "web/Nexora.Web/src/commandApi.ts",
+      "sha256": "66766dc4bab6f81d4bb45faba4d78aaf740589447076a2d6b51245f903e0a767"
+    },
+    {
+      "path": "web/Nexora.Web/src/courseApi.test.ts",
+      "sha256": "106d1bc07b7b7881971d5e7610142bceac6c35285e5913bafcc55769c443afdc"
+    },
+    {
+      "path": "web/Nexora.Web/src/courseApi.ts",
+      "sha256": "29b2c2ef3f118cedcfe1057bc445f1722188370e86c4376f3ccc8cc837e18d1c"
+    },
+    {
+      "path": "web/Nexora.Web/src/digitalAssetApi.ts",
+      "sha256": "d0956ae5d207dce5112c360d6b1fa163faa794b5714c9fd1be48721e4b52f5e6"
+    },
+    {
+      "path": "web/Nexora.Web/src/documentTextDiff.test.ts",
+      "sha256": "09b194237d022bd56321f4632683160bcbcefffcc17c9b98f3583d5b76963815"
+    },
+    {
+      "path": "web/Nexora.Web/src/documentTextDiff.ts",
+      "sha256": "5186a5bef81458812408e77c9de81ef267853275404bacf02b5b347bc3f96d7f"
+    },
+    {
+      "path": "web/Nexora.Web/src/documentTopologyApi.ts",
+      "sha256": "f79ac061999884f48ba51908c3261f58c72172e2f1a897ef1a787c3b96a5f749"
+    },
+    {
+      "path": "web/Nexora.Web/src/focusApi.ts",
+      "sha256": "631ceb1549a53dac4247cca7c09fb7236c474b98c569fccf99de34c567135bf9"
+    },
+    {
+      "path": "web/Nexora.Web/src/goalNumbers.ts",
+      "sha256": "7b3872f28698793b8798e0ad8f5a28cab74a78017879439eb7174a472bc66f0b"
+    },
+    {
+      "path": "web/Nexora.Web/src/i18n.ts",
+      "sha256": "6ce14b7ac7c0bd0022dfb1b60ce9e5bef761367ce55e7fd85e001d6a2b84f93b"
+    },
+    {
+      "path": "web/Nexora.Web/src/integrationApi.ts",
+      "sha256": "d093f097dcb1c14a7bcbdacdc2a7bc6571d545c3c4b410b2089ffc8509471fac"
+    },
+    {
+      "path": "web/Nexora.Web/src/main.tsx",
+      "sha256": "7bce53c46ec8749ad9a9fd5a288efafdf50b2a18ed235b8f77f027c8ebdf40c1"
+    },
+    {
+      "path": "web/Nexora.Web/src/modalIsolation.ts",
+      "sha256": "ea44d31a1aaa720dca67275b5853477cc76f5352e78688ccc9087111276094a9"
+    },
+    {
+      "path": "web/Nexora.Web/src/monitorApi.ts",
+      "sha256": "807d54401d0d702eb590da636cec6dcff2ada52fdb3fd9fe710c26e2d7b9514a"
+    },
+    {
+      "path": "web/Nexora.Web/src/navigationGuard.ts",
+      "sha256": "28b2d3a375900230ea322ce47f1956407e92133935ed742ee1e9806a9ed2d651"
+    },
+    {
+      "path": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+      "sha256": "8dd538365c396ac12bbee0362bf8986f23d6d54d8535ce00ba19febf47dcdf91"
+    },
+    {
+      "path": "web/Nexora.Web/src/newsCategoryApi.ts",
+      "sha256": "278a4e2df733c5fc4129f214671979989fc6f66dc8875d6d60f0c3dda519399b"
+    },
+    {
+      "path": "web/Nexora.Web/src/newsReaderApi.ts",
+      "sha256": "6bcd6b724d6a17e5f332ba376fc8f66f62671419b87a9114b414432f2d6ada0f"
+    },
+    {
+      "path": "web/Nexora.Web/src/personalAssetApi.ts",
+      "sha256": "e5c1a7f1e060d9dd4a93bbe5bd54268c2a19254b9ea407e38803e2fefc423312"
+    },
+    {
+      "path": "web/Nexora.Web/src/recentApi.ts",
+      "sha256": "2a8fa988f9e8551f2a46834cf0ac94926ec73bc3e087c635d47d477fcf5a622b"
+    },
+    {
+      "path": "web/Nexora.Web/src/skillApi.ts",
+      "sha256": "b03178f8f280d5d6d42a31ff9cb30ddcef66a88770e40c4634edbcb18578ca39"
+    },
+    {
+      "path": "web/Nexora.Web/src/styles.css",
+      "sha256": "72664f068f993ca21a7f7c7b169e896a209afa3cccc6d0448ed4dfab6d1a0b16"
+    },
+    {
+      "path": "web/Nexora.Web/src/test/server.ts",
+      "sha256": "993ad17becf517a496fb8ece6df63a9e00f6b9e8ca0fc39e215e5b45b9758490"
+    },
+    {
+      "path": "web/Nexora.Web/src/test/setup.ts",
+      "sha256": "41c48741e5a9d525b1ab7b740303937739a338f2c7d9a90d7bf5fb1966f2fe15"
+    },
+    {
+      "path": "web/Nexora.Web/src/timeApi.ts",
+      "sha256": "82b30aed0eff9984cc9809cbb6e1fe71ecd25d622ec76072b90dc344aceb17bd"
+    },
+    {
+      "path": "web/Nexora.Web/src/wishlistApi.ts",
+      "sha256": "31e772325fa2bc3c148949fe7b1fc9f20667327984c6ce5dab6bd106b6e8a997"
+    },
+    {
+      "path": "web/Nexora.Web/src/workLogApi.ts",
+      "sha256": "0ba7e52b485ebd99f6256baa435544ee996a06f4817646798f1490742a0f1626"
+    },
+    {
+      "path": "web/Nexora.Web/tsconfig.json",
+      "sha256": "2b7af2464bf56c36f9119ec98da0d4ffb8d86f71d2e2e82cc88ccf2952c07b43"
+    },
+    {
+      "path": "web/Nexora.Web/vite.config.ts",
+      "sha256": "c4cd5c5a804bce9a75ef533c51f7c7cf3d1ea2a5c9c8739866088a29a8da58c5"
+    },
+    {
+      "path": "web/Nexora.Web/vitest.config.ts",
+      "sha256": "d47346aeb3766cde726cdf8d8f88ce37e4cb21c5dc568449f0e0baa7003fab75"
+    }
+  ]
+}

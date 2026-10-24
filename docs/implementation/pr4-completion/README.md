@@ -2,6 +2,7 @@
 
 **Current continuation:** [Oct23 integrated-code/build-only checkpoint](09-continuation-20261023.md).
 Latest integration: [Oct24 preserved QA history and conflict reconciliation](10-integration-20261024.md).
+Latest CI/fix: [controlled ShareLink concurrency regression](11-sharing-concurrency-20261024.md).
 Its latest code-only authorization and verification limits supersede any attempt
 to apply the historical runtime results below to the new source.
 
