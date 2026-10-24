@@ -49,3 +49,15 @@ integration,browser-e2e. First3passed,Windowsfailed,SQLcompleted262pass/0fail/0s
 still running at the latest observation. Separate AgentBaseline39791037583passed. This is one observed
 run, not an invented count for all automatically triggered/canceled intermediate
 runs. Final source/run status and tested PR merge SHA are tracked in07verification.
+
+## Oct23 continuation: exact additional workers
+
+Two new agents: Descartes01a164a3-5aaa-7a00-bf32-68cb455ea55a (Sharing code/build),
+Plato01a164a5-865d-72e1-a409-2c4bee044dea (independent Learning/Toolbox source review).
+One earlier reviewer resumed: Lorentz01a15eba-cd13-7f93-8291-c066114afb94 (Sharing/receipt).
+No new CI or Playwright workers, synthetic data or browser actions in this continuation.
+See [actual per-worker steps/status](09-continuation-20261023.md),
+[Sharing handoff](sharing-pagination-review.md), [Learning/Toolbox review](review-oct23-learning-toolbox.md)
+and [Sharing independent review](independent-review.md). Earlier upstream16-attempt
+history above and the six recovered local direct-worker reports are separate
+execution groups; no global aggregate is invented across reset/interleaved work.

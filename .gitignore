@@ -39,6 +39,7 @@ Thumbs.db
 
 # Private implementation snapshots and local file-storage contents
 /.remediation-work/
+/.worktrees/
 **/.local-files/
 
 # Recreated test runner output (curated evidence under docs is retained)

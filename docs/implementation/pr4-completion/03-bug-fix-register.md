@@ -35,3 +35,17 @@ D08 native Tag replay implementation was not changed in this continuation;
 expanded deletion/replay/current-authority acceptance remains tracked work.
 Windows actual A/B/C gate remains failing; no assertion or security protection
 was weakened to make it green. All unexecuted cases remain unverified.
+
+## Oct23 source repairs — runtime verification pending
+
+| ID | Reproduction / root cause | Change | Evidence / closure gate |
+|---|---|---|---|
+| IR-01/IR-03 | Denied source rows affected pagination; scan-until-full repair had unbounded batches/retained state | Source-owned eligibility before TOP26; bounded definitive source/link proof and cursor revalidation on one connection | sharing-pagination-review.md; independent-review.md; SQL NOT_RUN |
+| IR-02 | Compatible request digests could select divergent successful receipt identities | Require exact active success status/code/JSON agreement; ambiguity conflicts | Independent source review; final SQL NOT_RUN |
+| BUILD-23-01 P1 | npm build on Windows resolved DocumentVersionDiff to similarly named algorithm .ts; TS2305/1261/1149 | Rename algorithm and existing test stem to documentTextDiff; preserve component/algorithm behavior | Reproduced compile failure, subsequent tsc/Vite PASS; no functional test execution |
+| BUILD-23-02 P2 | Stash/remote integration duplicated listCalls declaration | Remove duplicate declaration without changing assertion behavior | TypeScript build PASS |
+| R23-LT-01 P2 | Post-ACK navigation occurred while flight/modal busy guard still held | Queue committed destination; normal guarded navigation after settled render | review-oct23-learning-toolbox.md; source re-review required; runtime NOT_RUN |
+| R23-LT-02 P2 | Toolbox catalog denial retained prior input/output and stale catalog | Shared authority cleanup, response generations and private-state clearing | review-oct23-learning-toolbox.md; source re-review required; runtime NOT_RUN |
+
+No current functional PASS count is inferred from compilation. Existing prepared
+regressions belong to the prior authorized QA work and were not executed here.

@@ -51,3 +51,14 @@ Historical screenshots are not current full-page acceptance. Module-unavailable
 cards and generic ModuleEntry are unimplemented/gated states, not completed UX.
 Full page/pop-up/per-persona SQL-backed review, screen-reader checks, and full
 keyboard/error/conflict/mobile matrices remain IN_PROGRESS.
+
+## Oct23 UI integration — no new runtime visual review
+
+Learning now has native list/detail paths, owner-context remount, create/edit
+form, typed picker, order/unlink/complete controls and an explicit pending-gate
+message. Browser usability and all states/popups remain NOT_EXERCISED on this source.
+Toolbox uses XML/CSV/epoch options and browser-only unverified JWT, with denial
+cleanup. Post-ACK navigation and catalog-denial findings were source-reviewed;
+this is not desktop/mobile visual acceptance. The Document diff naming repair is
+compile-only. No new screenshot, axe, viewport, performance or screen-reader claim.
+Existing89-popup dispositions remain in force until actual runtime verification.

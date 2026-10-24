@@ -40,3 +40,28 @@ The actual checkout was merge6e2c08c of738f528 into main8782f46; this is not
 a literal branch-HEAD checkout. This closes the two old SQL oracle failures
 for that tested source, including the10Toolbox regression cases in the suite.
 It does not certify all733actions or final later CSS/documentation commit.
+
+## Oct23 current-source checkpoint supersedes older runtime claims
+
+Baseline fbafbaa plus current edits; latest instruction is code-only. Actual checks:
+API Debug build PASS; unit-test project compile PASS; integration-test project
+compile PASS, each0 warnings/errors. npm run build (tsc -b + vite build) PASS after
+Windows module-stem collision repair, with retained >500kB bundle advisory.
+Curated logs/source fingerprint are under evidence/oct23. No functional tests,
+SQL migrations, browser, performance or Windows ACL runtime executed in this
+continuation: **0 functional cases executed; all those gates pending**. Old CI,
+worker/focused/full-suite counts above do not certify this source. See09 for
+exact environment/authorization and current independent source-review disposition.
+
+Final implementation source digest (658 code/config/test/migration/script files,
+UTF-8 with CRLF normalized to LF):
+`491f559b1228f42d1986fdac2ef9f624728e5fb605c4b0c2ddc067c4447e35de`.
+File map: [source-manifest.json](evidence/oct23/source-manifest.json).
+
+| Exact command | Exit / result | Evidence |
+|---|---|---|
+| `dotnet build tests/Nexora.IntegrationTests/Nexora.IntegrationTests.csproj --no-restore --nologo -m:1 -nr:false` | 0; includes Domain/Application/Infrastructure/API,0 warnings/errors | [integration compile](evidence/oct23/integration-build.txt) |
+| `dotnet build tests/Nexora.UnitTests/Nexora.UnitTests.csproj --no-restore --nologo -m:1 -nr:false` | 0;0 warnings/errors; no assertions executed | [unit project compile](evidence/oct23/unit-project-build.txt) |
+| `npm run build` in `web/Nexora.Web` | 0; TypeScript/Vite,373 modules; existing bundle advisory | [frontend build](evidence/oct23/frontend-build.txt) |
+
+No lockfiles/dependencies upgraded and no runtime/migration execution implied.
