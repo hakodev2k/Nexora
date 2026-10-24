@@ -16,7 +16,7 @@ namespace Nexora.Infrastructure.DeveloperTools;
 /// user code, contacts a provider, persists input/output or reads the browser
 /// clipboard. Network tools remain a separate, disabled capability.
 /// </summary>
-public sealed class LocalToolboxService : IToolboxService
+public sealed partial class LocalToolboxService : IToolboxService
 {
     private const int MaxInputBytes = 1024 * 1024;
     private const int MaxOutputBytes = 2 * 1024 * 1024;
@@ -34,7 +34,11 @@ public sealed class LocalToolboxService : IToolboxService
         new("uuid", "UUID", "Generators", "Generate UUID v4 values with the platform CSPRNG.", "Local", "toolbox.uuid.run", true),
         new("password", "Password", "Generators", "Generate a memory-only random password.", "Local", "toolbox.password.run", true),
         new("json", "JSON formatter", "Data", "Validate and indent JSON without execution.", "Local", "toolbox.json.run", true),
-        new("regex", "Regex tester", "Text", "Bounded regex matching against pasted text.", "Local", "toolbox.regex.run", true)
+        new("regex", "Regex tester", "Text", "Bounded regex matching against pasted text.", "Local", "toolbox.regex.run", true),
+        new("xml", "XML formatter", "Data", "Bounded XML formatting; DTD and external entities prohibited.", "Local", "toolbox.xml.run", true),
+        new("datetime", "UTC epoch converter", "Date/time", "Explicit integer seconds or milliseconds to UTC.", "Local", "toolbox.datetime.run", true),
+        new("csv", "CSV viewer", "Data", "Bounded CSV as JSON arrays; formulas remain text.", "Local", "toolbox.csv.run", true),
+        new("jwt", "JWT decoder (Unverified)", "Security", "Browser-only decode; never verifies signatures or sends tokens.", "Browser", "toolbox.jwt.run", false)
     ];
 
     public LocalToolboxService(SqlConnectionFactory connections)
@@ -57,6 +61,13 @@ public sealed class LocalToolboxService : IToolboxService
             return Failure<ToolboxRunResult>("ToolUnavailable", 404, "Tool is not available in the local toolbox slice.");
         if (!Allowed(actor, tool.ActionKey))
             return ModuleUnavailable<ToolboxRunResult>();
+        return ExecutePure(command with { ToolCode = code });
+    }
+
+    // Pure implementation seam for parser tests; HTTP callers must use Run's SQL authority gate.
+    internal static IdentityOperationResult<ToolboxRunResult> ExecutePure(ToolboxRunCommand command)
+    {
+        var code = command.ToolCode;
         if (command.Input is null)
             return Failure<ToolboxRunResult>("ValidationFailed", 422, "Tool input is required.");
         if (Encoding.UTF8.GetByteCount(command.Input) > MaxInputBytes)
@@ -75,6 +86,7 @@ public sealed class LocalToolboxService : IToolboxService
                 "password" => RunPassword(command.Options),
                 "json" => RunJson(command.Input, command.Options),
                 "regex" => RunRegex(command.Input, command.Options),
+                "xml" or "datetime" or "csv" or "jwt" => RunOffline(code, command.Input, command.Options),
                 _ => throw new ToolFailureException("ToolUnavailable", "Tool is not available in the local toolbox slice.")
             };
             if (Encoding.UTF8.GetByteCount(output) > MaxOutputBytes)

@@ -305,6 +305,9 @@ builder.Services.AddSingleton<ISkillService>(s => new SqlSkillService(s.GetRequi
 builder.Services.AddSingleton<IWorkLogService>(s => new SqlWorkLogService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ISkillEvidenceService>(s => (SqlSkillService)s.GetRequiredService<ISkillService>());
 builder.Services.AddSingleton<ICourseService>(s => new SqlCourseService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+// Source-participant/security review and real SQL acceptance must precede activation.
+builder.Services.AddSingleton<ILearningPlanService>(s => new SqlLearningPlanService(
+    s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, new LearningPlanReadiness(false)));
 
 builder.Services.AddSingleton<SqlFocusService>(s => new SqlFocusService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<IFocusService>(s => s.GetRequiredService<SqlFocusService>());
@@ -380,6 +383,7 @@ app.MapAutomationRunEndpoints();
 app.MapIntegrationConnectionEndpoints();
 app.MapSkillEndpoints();
 app.MapWorkLogEndpoints();
+app.MapLearningPlanEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();

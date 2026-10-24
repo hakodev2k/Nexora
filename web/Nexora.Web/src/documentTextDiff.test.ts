@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { compareDocumentText } from './documentVersionDiff';
+import { compareDocumentText } from './documentTextDiff';
 
 const pairs: [string, string][] = [
   ['', ''], ['', 'new'], ['old', ''], ['same\n', 'same\n'],

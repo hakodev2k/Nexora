@@ -734,7 +734,29 @@ a.danger-button {
   color: #52627b;
   font-size: 0.86rem;
   margin-bottom: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shell-command {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  min-height: 2.75rem;
+}
+
+.home-greeting span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.content-heading > div {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .content-section h1,
@@ -1146,7 +1168,7 @@ td .muted {
 .admin-user-row span,
 .admin-module-row small,
 .grant-list span {
-  color: #66778f;
+  color: #52617a;
   font-size: 0.76rem;
 }
 

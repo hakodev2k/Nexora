@@ -820,13 +820,19 @@ test('Notifications keeps ETags from the list projection for read state and sele
   renderShell(syntheticProfile(), { screen: 'notifications' });
 
   expect(await screen.findByRole('heading', { name: 'Notifications' })).toBeInTheDocument();
+  await screen.findByRole('button', { name: 'Đánh dấu đã đọc' });
+  const initialReads = listCalls;
   await user.click(screen.getByRole('button', { name: 'Đánh dấu đã đọc' }));
   await waitFor(() => expect(markReadCalls).toBe(1));
-  await screen.findByRole('heading', { name: 'Chi tiết Inbox hiện không khả dụng' });
+  // A committed write is not current read authority. The Inbox intentionally
+  // clears its projection and requires an explicit user refresh, even for a DTO.
+  await screen.findByText('Chi tiết Inbox hiện không khả dụng');
   expect(screen.queryByText(unread.title)).not.toBeInTheDocument();
-  expect(listCalls).toBe(1);
+  expect(listCalls).toBe(initialReads);
   await user.click(screen.getByRole('button', { name: 'Tải lại' }));
-  await waitFor(() => expect(screen.getAllByRole('button', { name: 'Đánh dấu chưa đọc' })).toHaveLength(2));
+  await waitFor(() => expect(listCalls).toBe(initialReads + 1));
+  await screen.findByRole('checkbox', { name: 'Chọn Read synthetic notice' });
+  expect(screen.getAllByRole('button', { name: 'Đánh dấu chưa đọc' })).toHaveLength(2);
   expect(screen.getByText('Chỉ chưa đọc (0)')).toBeInTheDocument();
 
   await user.click(screen.getByRole('checkbox', { name: 'Chọn Read synthetic notice' }));
@@ -836,9 +842,13 @@ test('Notifications keeps ETags from the list projection for read state and sele
   const deleteDialog = screen.getByRole('dialog', { name: 'Xóa 1 mục khỏi Inbox?' });
   await user.click(within(deleteDialog).getByRole('button', { name: 'Xóa mục đã chọn' }));
   await waitFor(() => expect(deleteCalls).toBe(1));
-  await waitFor(() => expect(screen.queryByText(read.title)).not.toBeInTheDocument());
+  await screen.findByText('Chi tiết Inbox hiện không khả dụng');
+  expect(screen.queryByText(read.title)).not.toBeInTheDocument();
   expect(screen.queryByText(unread.title)).not.toBeInTheDocument();
-  expect(listCalls).toBe(2);
+  expect(listCalls).toBe(initialReads + 1);
+  await user.click(screen.getByRole('button', { name: 'Tải lại' }));
+  await screen.findByText(unread.title);
+  expect(screen.getByText(unread.title)).toBeInTheDocument();
 });
 
 test('an authenticated share link resumes after sign-in without placing its capability token in a login URL or browser storage', async () => {

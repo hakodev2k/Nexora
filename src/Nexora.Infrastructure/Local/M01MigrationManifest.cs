@@ -94,6 +94,8 @@ public static class M01MigrationManifest
         "20261018_0082_goals_state_history.sql",
         "20261018_0083_worklog_trash.sql",
         "20261018_0084_goals_metadata_history.sql",
-        "20261018_0085_goals_target_history.sql"
+        "20261018_0085_goals_target_history.sql",
+        "20261021_0086_learning_plans.sql",
+        "20261021_0087_toolbox_extra_offline.sql"
     ];
 }

@@ -10,6 +10,8 @@ export { registerDirtyLeaveGuard, requestDirtyLeave } from './navigationGuard';
 import { restoreDocumentVersion } from './api';
 import { DashboardLayoutEditor } from './DashboardLayoutEditor';
 import { DashboardQuickCreate } from './DashboardQuickCreate';
+import { ToolboxExtraOptions, defaultToolboxExtraOptions } from './ToolboxExtraOptions';
+import { runBrowserJwt } from './ToolboxBrowserJwt';
 import { DashboardDrilldownDialog, dashboardScopeLabel } from './DashboardDrilldownDialog';
 import { RecentsScreen, type RecentView } from './RecentsScreen';
 import { CommandPalette } from './CommandPalette';
@@ -44,6 +46,7 @@ import { AssetScreen } from './PersonalAssetScreen';
 import { WishlistScreen } from './WishlistScreen';
 import { LearningScreen } from './LearningScreen';
 import { WorkLogScreen } from './WorkLogScreen';
+import { LearningPlanScreen } from './LearningPlanScreen';
 import type { WorkLogFilters } from './workLogApi';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
@@ -230,7 +233,7 @@ import {
 } from './api';
 import { LocaleContext, useI18n } from './i18n';
 
-export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'learningPlans' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
 export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string; createIntent?: string };
@@ -285,6 +288,8 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       return { screen: 'savedSearches' };
     case '/learning/work-log':
       return { screen: 'workLog' };
+    case '/learning/plans':
+      return { screen: 'learningPlans' };
     case '/favorites':
       return { screen: 'favorites' };
     case '/recent':
@@ -331,6 +336,12 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       if (path.startsWith('/share/')) {
         return { screen: 'shared', token: decodeRouteSegment(path.slice('/share/'.length)) };
       }
+      if (path.startsWith('/learning/plans/')) {
+        const id = path.slice('/learning/plans/'.length);
+        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+          return { screen: 'learningPlans', resourceId: id };
+        }
+      }
       if (path.startsWith('/modules/')) {
         return { screen: 'module', moduleCode: decodeRouteSegment(path.slice('/modules/'.length)).toUpperCase() };
       }
@@ -368,6 +379,8 @@ function pathForLocation(location: LocationState): string {
       return '/search/saved';
     case 'workLog':
       return '/learning/work-log';
+    case 'learningPlans':
+      return location.resourceId ? `/learning/plans/${encodeURIComponent(location.resourceId)}` : '/learning/plans';
     case 'favorites':
       return '/favorites';
     case 'recents':
@@ -1426,7 +1439,7 @@ export function Shell({
       </aside>
       <div className="shell-content">
         <header className="shell-header">
-          {canSearch && <button type="button" className="secondary-button" onClick={() => setPaletteOpen(true)}>Command Palette · Ctrl/Cmd+K</button>}
+          {canSearch && <button type="button" className="secondary-button shell-command" aria-label="Command Palette · Ctrl/Cmd+K" title="Command Palette · Ctrl/Cmd+K" onClick={() => setPaletteOpen(true)}><span aria-hidden="true">⌕</span><span className="shell-command-label">Command Palette · Ctrl/Cmd+K</span></button>}
           <details ref={accountMenu} className="account-menu" onKeyDown={event => { if (event.key === 'Escape' && event.currentTarget.open) { event.preventDefault(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
             <summary>{t('account', 'Tài khoản')}</summary>
             <div className="account-menu-panel"><p className="eyebrow">{t('personalSpace')}</p><p className="signed-in">{profile.email}</p>
@@ -1469,6 +1482,7 @@ export function Shell({
           {location.screen === 'goals' && (canGoals ? <GoalsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX16" />)}
           {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
           {location.screen === 'workLog' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><WorkLogScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} initialFilters={workLogView.current.filters} onViewChange={filters => { if (workLogView.current.owner === workLogOwner) workLogView.current.filters = filters; }} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
+          {location.screen === 'learningPlans' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><p role="status">Kế hoạch học tập đang chờ kiểm chứng trước khi mở sử dụng. Chưa thể tạo hoặc thay đổi kế hoạch.</p><LearningPlanScreen ownerContext={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} planId={location.resourceId} onSelectPlan={id => navigate('learningPlans', undefined, false, id)} onAuthLost={onAuthLost} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
           {location.screen === 'habits' && (canHabits ? <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
           {location.screen === 'module' && <ModuleScreen key={(location.moduleCode ?? '') + ':' + (location.createIntent ?? '')} profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
@@ -1527,10 +1541,10 @@ export function SharedResourceScreen({ token, onLogin }: { token?: string; onLog
   }, [token]);
 
   return (
-    <div className="full-page-state shared-resource-page">
+    <main className="full-page-state shared-resource-page">
       <div className="loading-mark" aria-hidden="true">N</div>
       {loading ? <><h1>Đang tải nội dung được chia sẻ</h1><p role="status">Server đang kiểm tra link và quyền truy cập.</p></> : error ? <><h1>Không thể mở nội dung</h1><p>{error.status === 404 ? 'Link không tồn tại, đã hết hạn, đã bị thu hồi hoặc tài khoản hiện tại không nằm trong audience.' : error.message}</p>{onLogin ? <button className="secondary-button" type="button" onClick={onLogin}>Đăng nhập để kiểm tra quyền</button> : <p className="field-help">Nếu đây là link yêu cầu tài khoản, hãy đăng xuất rồi đăng nhập bằng account có quyền truy cập.</p>}</> : resource ? <SharedProjectionContent resource={resource} dateTime={dateTime} sharedCriteriaText={sharedCriteriaText} /> : <><h1>Không có nội dung</h1></>}
-    </div>
+    </main>
   );
 }
 
@@ -3246,7 +3260,7 @@ function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileRespons
   const [refreshToken, setRefreshToken] = useState(0), [opaqueLayout, setOpaqueLayout] = useState(false);
   const [refreshMode, setRefreshMode] = useState(false);
   const [layoutReadable, setLayoutReadable] = useState(false);
-  const contextKey = JSON.stringify([profile.id, profile.role, profile.personalSpaceId, profile.timeZoneId, profile.modules]);
+  const contextKey = JSON.stringify([profile.id, profile.role, profile.personalSpaceId, profile.timeZoneId, profile.locale, profile.modules]);
   const authLost = useRef(onAuthLost); authLost.current = onAuthLost;
   const [loadedContext, setLoadedContext] = useState('');
   const [dashboard, setDashboard] = useState<DashboardSnapshot | null>(null);
@@ -3286,8 +3300,8 @@ function HomeScreen({ profile, navigate, onAuthLost }: { profile: ProfileRespons
       <div className="content-heading">
         <div>
           <p className="eyebrow">HOME</p>
-          <h1 id="home-title">Xin chào, {profile.displayName}</h1>
-          <p className="lead">Đây là PersonalSpace riêng của bạn. Shell chỉ hiển thị các capability server đã cấp.</p>
+          <h1 id="home-title" className="home-greeting">Xin chào, <span>{profile.displayName}</span></h1>
+          <p className="lead">Đây là không gian cá nhân của bạn.</p>
         </div>
         <span className="state-pill state-active">{profile.state}</span>
       </div>
@@ -5381,6 +5395,9 @@ type ToolboxOptions = Record<string, string>;
 function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [tools, setTools] = useState<ToolboxTool[]>([]);
   const [selectedCode, setSelectedCode] = useState('base64');
+  const [extraOptions, setExtraOptions] = useState<Record<string, string>>({});
+  const toolEpoch = useRef(0);
+  useEffect(() => () => { ++toolEpoch.current; }, []);
   const [input, setInput] = useState('');
   const [operation, setOperation] = useState('encode');
   const [algorithm, setAlgorithm] = useState('SHA-256');
@@ -5395,21 +5412,34 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
 
+  function clearToolAuthority() {
+    ++toolEpoch.current;
+    setTools([]); setInput(''); setPattern(''); setExtraOptions({});
+    setOutput(null); setCopied(false); setBusy(false); setLoading(false);
+  }
+
   async function loadCatalog() {
+    const stamp = ++toolEpoch.current;
     setLoading(true);
     setError(null);
     try {
       const catalog = await listDeveloperTools();
+      if (stamp !== toolEpoch.current) return;
+      if (!Array.isArray(catalog.items) || catalog.items.length === 0) { clearToolAuthority(); return; }
       setTools(Array.isArray(catalog.items) ? catalog.items : []);
       if (catalog.items?.length > 0 && !catalog.items.some((tool) => tool.code === selectedCode)) {
         setSelectedCode(catalog.items[0].code);
+        setExtraOptions(defaultToolboxExtraOptions(catalog.items[0].code));
+        setInput(''); setPattern(''); setOutput(null); setCopied(false);
       }
     } catch (requestError) {
+      if (stamp !== toolEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 409].includes(apiError.status)) clearToolAuthority();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setLoading(false);
+      if (stamp === toolEpoch.current) setLoading(false);
     }
   }
 
@@ -5433,6 +5463,11 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
         return { indent: String(indent) };
       case 'regex':
         return { pattern, ignoreCase: String(ignoreCase) };
+      case 'xml':
+      case 'csv':
+      case 'datetime':
+      case 'jwt':
+        return extraOptions;
       default:
         return {};
     }
@@ -5452,14 +5487,20 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       return;
     }
     setBusy(true);
+    const stamp = ++toolEpoch.current;
     try {
-      setOutput(await runDeveloperTool(selectedCode, input, optionsForTool()));
+      const result = selectedCode === 'jwt'
+        ? await runBrowserJwt(input, () => runDeveloperTool('jwt', '', {}))
+        : await runDeveloperTool(selectedCode, input, optionsForTool());
+      if (stamp === toolEpoch.current) setOutput(result);
     } catch (requestError) {
+      if (stamp !== toolEpoch.current) return;
       const apiError = asApiError(requestError);
       setError(apiError);
+      if ([401, 403, 409].includes(apiError.status)) clearToolAuthority();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      setBusy(false);
+      if (stamp === toolEpoch.current) setBusy(false);
     }
   }
 
@@ -5494,8 +5535,9 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       {loading ? <div className="loading-state" role="status">Đang tải danh mục tool…</div> : tools.length === 0 ? <div className="empty-state"><h2>Chưa có tool khả dụng</h2><p>Module hoặc action grant hiện không khả dụng trong PersonalSpace này.</p></div> : <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={run} noValidate>
           <div className="section-heading"><h2>Workbench</h2><span className="state-pill state-active">Local only</span></div>
-          <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={(event) => { setSelectedCode(event.target.value); setOutput(null); setError(null); }} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
+          <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={(event) => { ++toolEpoch.current; setSelectedCode(event.target.value); setExtraOptions(defaultToolboxExtraOptions(event.target.value)); setInput(''); setOutput(null); setError(null); }} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
           {selectedTool && <div className="security-policy"><strong>{selectedTool.description}</strong><span>Action: {selectedTool.actionKey} · {selectedTool.executionMode}</span></div>}
+          <ToolboxExtraOptions toolCode={selectedCode} options={extraOptions} disabled={busy} onChange={value => { setExtraOptions(value); setOutput(null); setError(null); setCopied(false); }} />
           {(selectedCode === 'base64' || selectedCode === 'url-codec' || selectedCode === 'html-codec') && <div className="field-group"><label htmlFor="tool-operation">Operation</label><select id="tool-operation" value={operation} onChange={(event) => setOperation(event.target.value)} disabled={busy}><option value="encode">Encode</option><option value="decode">Decode</option></select></div>}
           {selectedCode === 'hash' && <div className="field-group"><label htmlFor="tool-algorithm">Algorithm</label><select id="tool-algorithm" value={algorithm} onChange={(event) => setAlgorithm(event.target.value)} disabled={busy}><option>SHA-256</option><option>SHA-384</option><option>SHA-512</option><option>MD5</option><option>SHA-1</option></select></div>}
           {selectedCode === 'uuid' && <div className="field-group"><label htmlFor="tool-count">Số UUID (1–20)</label><input id="tool-count" inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value)} min={1} max={20} disabled={busy} /></div>}
@@ -6434,7 +6476,7 @@ function ModuleScreen({
   if (module.enabled && normalizedCode === 'FX35') return <IntegrationConnectionsScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX34') return <AutomationScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX29') return <NewsReaderScreen onAuthLost={onAuthLost} />;
-  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} onWorkLog={() => navigate('workLog')} />;
+  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} onWorkLog={() => navigate('workLog')} onPlans={() => navigate('learningPlans')} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
@@ -6957,6 +6999,8 @@ export function App() {
         ? { screen, returnTo: safeReturnPath(moduleCode) }
       : screen === 'resource'
         ? { screen, resourceType: moduleCode as ResourceType, resourceId }
+        : screen === 'learningPlans'
+          ? { screen, resourceId }
         : { screen, moduleCode };
     if ((createMode || (screen === 'finance' && moduleCode === 'create')) && (screen === 'module' || screen === 'finance')) next.createIntent = createIdempotencyKey();
     const nextPath = pathForLocation(next);
