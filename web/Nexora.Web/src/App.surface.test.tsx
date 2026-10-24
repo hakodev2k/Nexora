@@ -99,7 +99,7 @@ test('Toolbox removes the previous success when changed options fail and retains
     const body = await request.json() as { options: { count: string } };
     return body.options.count === '21'
       ? HttpResponse.json({ code: 'ValidationFailed', title: 'count must be between 1 and 20.' }, { status: 422 })
-      : HttpResponse.json({ toolCode: 'uuid', output: 'synthetic-prior-success', durationMilliseconds: 1 });
+      : HttpResponse.json({ toolCode: 'uuid', output: 'synthetic-prior-success', warning: null, errorPath: null, durationMilliseconds: 1 });
   }));
   renderEnabledShell({ screen: 'module', moduleCode: 'FX32' }); await screen.findByLabelText('Số UUID (1–20)');
   await user.click(screen.getByRole('button', { name: 'Chạy tool' })); expect(await screen.findByLabelText('Tool output')).toHaveTextContent('synthetic-prior-success');

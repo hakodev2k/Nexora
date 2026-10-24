@@ -121,3 +121,17 @@ Instructions/sources loaded: AGENTS, Nexora engineering skill, implementation pr
 Executed evidence consists of file reads/searches, Git HEAD/branch inspection with per-command safe.directory override, and SHA256 reads. `rg` became unavailable in the resumed tool environment; inspection continued with PowerShell `Select-String`. No product code, SQL, parser, test, browser or compiler command executed. No prior root build result is adopted as reviewer execution evidence. Existing literal test source was read, not authored or run.
 
 Rollback impact of this review: report only. UH-01 correction and independent focused source re-review are complete at the final fingerprints above. Root owns final compile/freeze and integration evidence. Godel's route/UI pass and owner functional/Unicode/privacy/cancel/SQL acceptance remain separate gates. This report does not accept the module/R1, providers or production.
+
+## Independent CI fixture-contract follow-up — baseline 08a8ef80
+
+Explicit owner request: review only the existing UUID response-fixture correction associated with owner-reported CI run `40111116959`; append here, with no product/test edits or local execution by the reviewer. Current source HEAD: `08a8ef80baa06cd6e894e00476e4a4939213e58b` plus the single working-tree test-file change. The CI incident and result are owner-reported; this reviewer did not retrieve or execute that run.
+
+**Bounded source signoff: the exact fixture correction is justified by the existing response contract. No confirmed defect in this delta.**
+
+`git diff 08a8ef80 -- web/Nexora.Web/src/App.surface.test.tsx` shows one replaced line at line 102: the existing UUID-success `HttpResponse.json` object gains only `warning: null` and `errorPath: null`. Its toolCode, output marker, duration, success status, failure branch, test setup and all assertions are unchanged. Numstat is one addition/one deletion. There is no added test, fixture method, response record or scenario. This is the explicitly authorized correction of an existing fixture to the normative DTO, not weakened validation or invented product behavior.
+
+Justification: `docs/implementation/developer-toolbox-pure-slice.md:31` enumerates both fields in successful responses. `ToolboxServiceContracts.cs` declares nullable `Warning`/`ErrorPath` on `ToolboxRunResult`; API `ToolboxRunResponse` declares the same fields and the endpoint maps both directly. `ApiResult.ToHttp` uses `Results.Json`; no applicable null-omission setting/attribute was found in the inspected API path. Nullable values are therefore represented as null in this contract, not absent properties. The strict client intentionally accepts null-or-string and rejects undefined. The existing fixture omitted these fields and was inconsistent with the declared success shape.
+
+Fingerprints: corrected `App.surface.test.tsx` SHA256 `BEBECB93B97597F51E9BF3968763D9736136868F31C46B45DB668FBCBC463D71`; unchanged `api.ts` SHA256 `C28D45BB0877982DD55DC84F9B75C2C62A87C6CC896E5501371616DD3C5CA650`. Git working-tree diff listed only `App.surface.test.tsx` before this report append. No product validator change was observed.
+
+Evidence: source/contract reads, exact Git diff/numstat and hashes only. No test/runtime/browser/fixtures/provider/build command ran, and the reviewer changed only this report. Passing CI after correction remains unproven by this review; root owns rerun evidence and the incident report. This follow-up does not expand the prior source signoff into functional acceptance.
