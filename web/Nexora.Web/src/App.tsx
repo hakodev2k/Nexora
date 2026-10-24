@@ -47,6 +47,10 @@ import { WishlistScreen } from './WishlistScreen';
 import { LearningScreen } from './LearningScreen';
 import { WorkLogScreen } from './WorkLogScreen';
 import { LearningPlanScreen } from './LearningPlanScreen';
+import { CourseScreen } from './CourseScreen';
+import { CollectionsScreen } from './CollectionsScreen';
+import { ToolboxMoreOfflineOptions, defaultToolboxMoreOfflineOptions } from './ToolboxMoreOfflineOptions';
+import { MoreOfflineError, runMoreOfflineBrowser } from './ToolboxMoreOffline';
 import type { WorkLogFilters } from './workLogApi';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
@@ -233,7 +237,7 @@ import {
 } from './api';
 import { LocaleContext, useI18n } from './i18n';
 
-export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'learningPlans' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'learningPlans' | 'learningCourses' | 'collections' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
 export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string; createIntent?: string };
@@ -251,7 +255,7 @@ function safeReturnPath(value: string | null | undefined): string | undefined {
     const parsed = new URL(candidate, window.location.origin);
     if (parsed.origin !== window.location.origin || parsed.username || parsed.password || parsed.hash || parsed.search) return undefined;
     const route = routeFromPath(parsed.pathname);
-    return route.screen === 'resource' && route.resourceType && route.resourceId
+    return (route.screen === 'resource' && route.resourceType && route.resourceId) || route.screen === 'learningCourses' || route.screen === 'learningPlans' || route.screen === 'collections'
       ? pathForLocation(route)
       : undefined;
   } catch {
@@ -290,6 +294,10 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       return { screen: 'workLog' };
     case '/learning/plans':
       return { screen: 'learningPlans' };
+    case '/learning/courses':
+      return { screen: 'learningCourses' };
+    case '/collections':
+      return { screen: 'collections' };
     case '/favorites':
       return { screen: 'favorites' };
     case '/recent':
@@ -336,10 +344,11 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       if (path.startsWith('/share/')) {
         return { screen: 'shared', token: decodeRouteSegment(path.slice('/share/'.length)) };
       }
-      if (path.startsWith('/learning/plans/')) {
-        const id = path.slice('/learning/plans/'.length);
+      for (const [prefix, screen] of [['/learning/plans/', 'learningPlans'], ['/learning/courses/', 'learningCourses'], ['/collections/', 'collections']] as const) {
+        if (!path.startsWith(prefix)) continue;
+        const id = path.slice(prefix.length);
         if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
-          return { screen: 'learningPlans', resourceId: id };
+          return { screen, resourceId: id };
         }
       }
       if (path.startsWith('/modules/')) {
@@ -381,6 +390,10 @@ function pathForLocation(location: LocationState): string {
       return '/learning/work-log';
     case 'learningPlans':
       return location.resourceId ? `/learning/plans/${encodeURIComponent(location.resourceId)}` : '/learning/plans';
+    case 'learningCourses':
+      return location.resourceId ? `/learning/courses/${encodeURIComponent(location.resourceId)}` : '/learning/courses';
+    case 'collections':
+      return location.resourceId ? `/collections/${encodeURIComponent(location.resourceId)}` : '/collections';
     case 'favorites':
       return '/favorites';
     case 'recents':
@@ -1403,6 +1416,7 @@ export function Shell({
           {canSnippets && <button className={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'snippets' || (location.screen === 'module' && location.moduleCode === 'FX22') ? 'page' : undefined} onClick={() => navigate('snippets')}><NavItemContent icon="⌘" label={t('snippets')} /></button>}
           {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}><NavItemContent icon="▤" label={t('readLater')} /></button>}
           {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}><NavItemContent icon="#" label={t('tags')} /></button>}
+          {canOrganization && <button className={location.screen === 'collections' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'collections' ? 'page' : undefined} onClick={() => navigate('collections')}><NavItemContent icon="▤" label="Collections" /></button>}
           {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}><NavItemContent icon="⌘" label={t('developerTools')} /></button>}
           {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}><NavItemContent icon="◎" label={t('goals')} /></button>}
           {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}><NavItemContent icon="▤" label={t('planner')} /></button>}
@@ -1449,7 +1463,7 @@ export function Shell({
         </header>
         <main ref={mainRef} className="shell-main" id="nexora-main-content" tabIndex={-1}>
           {notice && <Notice kind={notice.kind} onDismiss={onDismissNotice}>{notice.text}</Notice>}
-          {location.screen === 'resource' && <ResourceScreen resourceType={location.resourceType} resourceId={location.resourceId} navigate={navigate} onAuthLost={onAuthLost} />}
+          {location.screen === 'resource' && <ResourceScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules, location.resourceType, location.resourceId])} resourceType={location.resourceType} resourceId={location.resourceId} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'search' && (canSearch ? <SearchScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
           {location.screen === 'savedSearches' && (canSearch ? <SearchScreen key="saved-searches" savedPage onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
           {location.screen === 'favorites' && (canSearch ? <FavoritesScreen onAuthLost={onAuthLost} navigate={navigate} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
@@ -1478,11 +1492,13 @@ export function Shell({
           {location.screen === 'snippets' && (canSnippets ? <SnippetsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX22" />)}
           {location.screen === 'readLater' && (canReadLater ? <ReadLaterScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX23" />)}
           {location.screen === 'tags' && (canOrganization ? <OrganizationTagsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
-          {location.screen === 'tools' && (canToolbox ? <DeveloperToolsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX32" />)}
+          {location.screen === 'collections' && (canOrganization ? <CollectionsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules, location.resourceId])} initialCollectionId={location.resourceId} onAuthLost={onAuthLost} onSourceOpen={(type, id) => { if (RESOURCE_TYPES.has(type as ResourceType)) navigate('resource', type, false, id); }} onSelectCollection={id => navigate('collections', undefined, false, id)} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
+          {location.screen === 'tools' && (canToolbox ? <DeveloperToolsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX32" />)}
           {location.screen === 'goals' && (canGoals ? <GoalsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX16" />)}
           {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
           {location.screen === 'workLog' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><WorkLogScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} initialFilters={workLogView.current.filters} onViewChange={filters => { if (workLogView.current.owner === workLogOwner) workLogView.current.filters = filters; }} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
-          {location.screen === 'learningPlans' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><p role="status">Kế hoạch học tập đang chờ kiểm chứng trước khi mở sử dụng. Chưa thể tạo hoặc thay đổi kế hoạch.</p><LearningPlanScreen ownerContext={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} planId={location.resourceId} onSelectPlan={id => navigate('learningPlans', undefined, false, id)} onAuthLost={onAuthLost} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
+          {location.screen === 'learningPlans' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><p role="status">Kế hoạch học tập đang chờ kiểm chứng trước khi mở sử dụng. Chưa thể tạo hoặc thay đổi kế hoạch.</p><LearningPlanScreen ownerContext={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} planId={location.resourceId} onSelectPlan={id => navigate('learningPlans', undefined, false, id)} onOpenSource={source => source.kind === 'Course' ? navigate('learningCourses', undefined, false, source.id) : navigate('resource', source.kind, false, source.id)} onAuthLost={onAuthLost} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
+          {location.screen === 'learningCourses' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><CourseScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules, location.resourceId])} courseId={location.resourceId} onOpenCourse={id => navigate('learningCourses', undefined, false, id)} onBackToCourses={() => navigate('learningCourses')} onAuthLost={onAuthLost} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
           {location.screen === 'habits' && (canHabits ? <HabitsScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX17" />)}
           {location.screen === 'module' && <ModuleScreen key={(location.moduleCode ?? '') + ':' + (location.createIntent ?? '')} profile={profile} module={selectedModule} navigate={navigate} onAuthLost={onAuthLost} />}
           {location.screen === 'home' && <HomeScreen profile={profile} navigate={navigate} onAuthLost={onAuthLost} />}
@@ -5396,8 +5412,12 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
   const [tools, setTools] = useState<ToolboxTool[]>([]);
   const [selectedCode, setSelectedCode] = useState('base64');
   const [extraOptions, setExtraOptions] = useState<Record<string, string>>({});
+  const [secondInput, setSecondInput] = useState('');
+  const [toolNotice, setToolNotice] = useState<string | null>(null);
+  const offlineAbort = useRef<AbortController | null>(null);
+  const toolFlight = useRef(false);
   const toolEpoch = useRef(0);
-  useEffect(() => () => { ++toolEpoch.current; }, []);
+  useEffect(() => () => { ++toolEpoch.current; offlineAbort.current?.abort(); }, []);
   const [input, setInput] = useState('');
   const [operation, setOperation] = useState('encode');
   const [algorithm, setAlgorithm] = useState('SHA-256');
@@ -5412,10 +5432,31 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<NexoraApiError | null>(null);
 
+  const toolDefaults = (code: string) => code === 'text-diff' || code === 'color'
+    ? defaultToolboxMoreOfflineOptions(code) : defaultToolboxExtraOptions(code);
+  const [leaveTool, setLeaveTool] = useState<{ proceed: () => void } | null>(null);
+  const hasWorkbenchDraft = tools.length > 0 && (!!(input || secondInput || pattern || output) ||
+    operation !== 'encode' || algorithm !== 'SHA-256' || count !== '1' || length !== '24' || !indent || ignoreCase ||
+    JSON.stringify(extraOptions) !== JSON.stringify(toolDefaults(selectedCode)));
+  useEffect(() => registerDirtyLeaveGuard(proceed => {
+    if (toolFlight.current) return true;
+    if (!hasWorkbenchDraft) return false;
+    setLeaveTool({ proceed }); return true;
+  }), [hasWorkbenchDraft]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!hasWorkbenchDraft && !toolFlight.current) return;
+      event.preventDefault(); event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [hasWorkbenchDraft]);
+
   function clearToolAuthority() {
     ++toolEpoch.current;
+    offlineAbort.current?.abort(); toolFlight.current = false;
     setTools([]); setInput(''); setPattern(''); setExtraOptions({});
-    setOutput(null); setCopied(false); setBusy(false); setLoading(false);
+    setSecondInput(''); setToolNotice(null); setOutput(null); setCopied(false); setBusy(false); setLoading(false); setLeaveTool(null);
   }
 
   async function loadCatalog() {
@@ -5429,8 +5470,8 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       setTools(Array.isArray(catalog.items) ? catalog.items : []);
       if (catalog.items?.length > 0 && !catalog.items.some((tool) => tool.code === selectedCode)) {
         setSelectedCode(catalog.items[0].code);
-        setExtraOptions(defaultToolboxExtraOptions(catalog.items[0].code));
-        setInput(''); setPattern(''); setOutput(null); setCopied(false);
+        setExtraOptions(toolDefaults(catalog.items[0].code));
+        setInput(''); setSecondInput(''); setPattern(''); setOutput(null); setCopied(false); setToolNotice(null);
       }
     } catch (requestError) {
       if (stamp !== toolEpoch.current) return;
@@ -5467,6 +5508,8 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       case 'csv':
       case 'datetime':
       case 'jwt':
+      case 'text-diff':
+      case 'color':
         return extraOptions;
       default:
         return {};
@@ -5475,9 +5518,11 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
 
   async function run(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (toolFlight.current) return;
     setOutput(null);
     setError(null);
     setCopied(false);
+    setToolNotice(null);
     if (new TextEncoder().encode(input).length > 1024 * 1024) {
       setError(new NexoraApiError('Input tối đa 1 MiB UTF-8.', 422, 'InputTooLarge'));
       return;
@@ -5487,38 +5532,57 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       return;
     }
     setBusy(true);
+    toolFlight.current = true;
+    offlineAbort.current?.abort(); const controller = new AbortController(); offlineAbort.current = controller;
     const stamp = ++toolEpoch.current;
     try {
-      const result = selectedCode === 'jwt'
+      const result = selectedCode === 'text-diff' || selectedCode === 'color'
+        ? await runMoreOfflineBrowser(selectedCode, input, secondInput, extraOptions,
+          () => runDeveloperTool(selectedCode, '', {}), controller.signal)
+        : selectedCode === 'jwt'
         ? await runBrowserJwt(input, () => runDeveloperTool('jwt', '', {}))
         : await runDeveloperTool(selectedCode, input, optionsForTool());
-      if (stamp === toolEpoch.current) setOutput(result);
+      if (stamp === toolEpoch.current && !controller.signal.aborted) setOutput(result);
     } catch (requestError) {
       if (stamp !== toolEpoch.current) return;
-      const apiError = asApiError(requestError);
+      const apiError = requestError instanceof MoreOfflineError
+        ? new NexoraApiError(requestError.message, 422, requestError.code) : asApiError(requestError);
       setError(apiError);
       if ([401, 403, 409].includes(apiError.status)) clearToolAuthority();
       if (apiError.status === 401) await onAuthLost();
     } finally {
-      if (stamp === toolEpoch.current) setBusy(false);
+      if (stamp === toolEpoch.current) { toolFlight.current = false; setBusy(false); }
     }
   }
 
   async function copyOutput() {
     if (!output) return;
+    const stamp = toolEpoch.current;
     try {
       await navigator.clipboard.writeText(output.output);
-      setCopied(true);
+      if (stamp === toolEpoch.current) setCopied(true);
     } catch {
-      setError(new NexoraApiError('Không thể truy cập clipboard; hãy chọn và copy thủ công.', 0, 'ClipboardUnavailable'));
+      if (stamp === toolEpoch.current) setError(new NexoraApiError('Không thể truy cập clipboard; hãy chọn và copy thủ công.', 0, 'ClipboardUnavailable'));
     }
   }
 
   function clearWorkbench() {
-    setInput('');
+    ++toolEpoch.current; offlineAbort.current?.abort(); toolFlight.current = false;
+    setInput(''); setSecondInput(''); setPattern(''); setExtraOptions(toolDefaults(selectedCode)); setToolNotice(null);
     setOutput(null);
     setError(null);
     setCopied(false);
+  }
+
+  function selectTool(code: string) {
+    if (code === selectedCode || toolFlight.current) return;
+    const proceed = () => {
+      ++toolEpoch.current; offlineAbort.current?.abort(); toolFlight.current = false;
+      setSelectedCode(code); setExtraOptions(toolDefaults(code)); setInput(''); setSecondInput(''); setPattern('');
+      setOutput(null); setError(null); setCopied(false); setToolNotice(null);
+      setOperation('encode'); setAlgorithm('SHA-256'); setCount('1'); setLength('24'); setIndent(true); setIgnoreCase(false);
+    };
+    if (hasWorkbenchDraft) setLeaveTool({ proceed }); else proceed();
   }
 
   return (
@@ -5532,19 +5596,24 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
         <button className="secondary-button" type="button" onClick={() => void loadCatalog()} disabled={loading || busy}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
+      {toolNotice && <p role="status">{toolNotice}</p>}
       {loading ? <div className="loading-state" role="status">Đang tải danh mục tool…</div> : tools.length === 0 ? <div className="empty-state"><h2>Chưa có tool khả dụng</h2><p>Module hoặc action grant hiện không khả dụng trong PersonalSpace này.</p></div> : <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={run} noValidate>
           <div className="section-heading"><h2>Workbench</h2><span className="state-pill state-active">Local only</span></div>
-          <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={(event) => { ++toolEpoch.current; setSelectedCode(event.target.value); setExtraOptions(defaultToolboxExtraOptions(event.target.value)); setInput(''); setOutput(null); setError(null); }} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
-          {selectedTool && <div className="security-policy"><strong>{selectedTool.description}</strong><span>Action: {selectedTool.actionKey} · {selectedTool.executionMode}</span></div>}
+          <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={event => selectTool(event.target.value)} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
+          {selectedTool && <div className="security-policy"><strong>{selectedTool.description}</strong><span>{selectedTool.executionMode === 'Browser' ? 'Xử lý trong trình duyệt; không gửi nội dung lên server.' : 'Xử lý tạm thời trên server; không lưu nội dung.'}</span></div>}
           <ToolboxExtraOptions toolCode={selectedCode} options={extraOptions} disabled={busy} onChange={value => { setExtraOptions(value); setOutput(null); setError(null); setCopied(false); }} />
+          <ToolboxMoreOfflineOptions toolCode={selectedCode} options={extraOptions} secondInput={secondInput} disabled={busy} running={busy}
+            onChange={value => { setExtraOptions(value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }}
+            onSecondInputChange={value => { setSecondInput(value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }}
+            onCancel={() => { offlineAbort.current?.abort(); ++toolEpoch.current; toolFlight.current = false; setBusy(false); setOutput(null); setError(null); setCopied(false); setToolNotice('Đã hủy xử lý. Nội dung đầu vào được giữ để sửa.'); }} />
           {(selectedCode === 'base64' || selectedCode === 'url-codec' || selectedCode === 'html-codec') && <div className="field-group"><label htmlFor="tool-operation">Operation</label><select id="tool-operation" value={operation} onChange={(event) => setOperation(event.target.value)} disabled={busy}><option value="encode">Encode</option><option value="decode">Decode</option></select></div>}
           {selectedCode === 'hash' && <div className="field-group"><label htmlFor="tool-algorithm">Algorithm</label><select id="tool-algorithm" value={algorithm} onChange={(event) => setAlgorithm(event.target.value)} disabled={busy}><option>SHA-256</option><option>SHA-384</option><option>SHA-512</option><option>MD5</option><option>SHA-1</option></select></div>}
           {selectedCode === 'uuid' && <div className="field-group"><label htmlFor="tool-count">Số UUID (1–20)</label><input id="tool-count" inputMode="numeric" value={count} onChange={(event) => setCount(event.target.value)} min={1} max={20} disabled={busy} /></div>}
           {selectedCode === 'password' && <div className="field-group"><label htmlFor="tool-length">Độ dài password (15–128)</label><input id="tool-length" inputMode="numeric" value={length} onChange={(event) => setLength(event.target.value)} min={15} max={128} disabled={busy} /></div>}
           {selectedCode === 'json' && <label className="check-row"><input type="checkbox" checked={indent} onChange={(event) => setIndent(event.target.checked)} disabled={busy} /><span>Indent output</span></label>}
           {selectedCode === 'regex' && <><div className="field-group"><label htmlFor="tool-pattern">Regex pattern</label><input id="tool-pattern" value={pattern} onChange={(event) => setPattern(event.target.value)} maxLength={10000} disabled={busy} required /></div><label className="check-row"><input type="checkbox" checked={ignoreCase} onChange={(event) => setIgnoreCase(event.target.checked)} disabled={busy} /><span>Ignore case</span></label></>}
-          <div className="field-group"><label htmlFor="tool-input">Input <span className="optional">(tối đa 1 MiB)</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); }} rows={12} maxLength={1024 * 1024} disabled={busy} spellCheck={false} /></div>
+          <div className="field-group"><label htmlFor="tool-input">{selectedCode === 'text-diff' ? 'Before / Văn bản trước' : 'Input'} <span className="optional">({selectedCode === 'text-diff' ? 'tối đa 128 KiB UTF-8' : selectedCode === 'color' ? 'tối đa 256 ký tự' : 'tối đa 1 MiB'})</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }} rows={12} maxLength={selectedCode === 'text-diff' ? 131072 : selectedCode === 'color' ? 256 : 1024 * 1024} disabled={busy} spellCheck={false} /></div>
           <div className="form-actions"><ConfirmActionButton className="secondary-button" confirmationTitle="Xóa input/output chưa lưu?" confirmationDescription="Input và output chỉ tồn tại trong memory; thao tác này sẽ xóa nội dung hiện tại." confirmLabel="Xóa input/output" disabled={busy} onConfirm={() => { clearWorkbench(); return true; }}>Xóa</ConfirmActionButton><SubmitButton busy={busy}>Chạy tool</SubmitButton></div>
         </form>
         <div className="resource-list">
@@ -5553,6 +5622,11 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
           <div className="security-policy"><strong>Safety boundary</strong><span>Network HTTP/DNS, code formatter execution, QR navigation, history persistence và Save to Snippet chưa nằm trong local slice này.</span></div>
         </div>
       </div>}
+      <ResourceFormDialog open={leaveTool !== null} title="Bỏ nội dung Workbench?" busy={busy} dirty={false} onClose={() => setLeaveTool(null)}>
+        <p>Nội dung, kết quả và tùy chọn chưa lưu sẽ mất khi rời công cụ. Bạn có thể tiếp tục làm việc để copy kết quả trước.</p>
+        <button type="button" disabled={busy} onClick={() => setLeaveTool(null)}>Tiếp tục làm việc</button>
+        <button type="button" disabled={busy} onClick={() => { const proceed = leaveTool?.proceed; setLeaveTool(null); clearWorkbench(); proceed?.(); }}>Bỏ nội dung và tiếp tục</button>
+      </ResourceFormDialog>
     </section>
   );
 }
@@ -6476,7 +6550,7 @@ function ModuleScreen({
   if (module.enabled && normalizedCode === 'FX35') return <IntegrationConnectionsScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX34') return <AutomationScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX29') return <NewsReaderScreen onAuthLost={onAuthLost} />;
-  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} onWorkLog={() => navigate('workLog')} onPlans={() => navigate('learningPlans')} />;
+  if (module.enabled && normalizedCode === 'FX40') return <LearningScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} onWorkLog={() => navigate('workLog')} onPlans={() => navigate('learningPlans')} onCourse={id => navigate('learningCourses', undefined, false, id)} />;
   if (module.enabled && normalizedCode === 'FX18') return <TimeTrackingScreen onAuthLost={onAuthLost} />;
   if (module.enabled && normalizedCode === 'FX19') return <FocusScreen onAuthLost={onAuthLost} />;
   if (module.enabled && (normalizedCode === 'FX11' || normalizedCode === 'FX12' || normalizedCode === 'FX13')) {
@@ -6999,7 +7073,7 @@ export function App() {
         ? { screen, returnTo: safeReturnPath(moduleCode) }
       : screen === 'resource'
         ? { screen, resourceType: moduleCode as ResourceType, resourceId }
-        : screen === 'learningPlans'
+        : screen === 'learningPlans' || screen === 'learningCourses' || screen === 'collections'
           ? { screen, resourceId }
         : { screen, moduleCode };
     if ((createMode || (screen === 'finance' && moduleCode === 'create')) && (screen === 'module' || screen === 'finance')) next.createIntent = createIdempotencyKey();
@@ -7075,7 +7149,7 @@ export function App() {
 
   useEffect(() => {
     if (sessionState === 'anonymous' && !PUBLIC_SCREENS.has(location.screen)) {
-      navigate('login', location.screen === 'resource' ? pathForLocation(location) : undefined, true);
+      navigate('login', ['resource', 'learningCourses', 'learningPlans', 'collections'].includes(location.screen) ? pathForLocation(location) : undefined, true);
     }
     if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen) && location.screen !== 'shared') {
       navigate('home', undefined, true);
@@ -7092,14 +7166,14 @@ export function App() {
       navigate('shared', sharedToken, true);
     } else if (returnTo) {
       const target = routeFromPath(returnTo);
-      navigate('resource', target.resourceType, true, target.resourceId);
+      navigate(target.screen, target.resourceType, true, target.resourceId);
     } else {
       navigate('home', undefined, true);
     }
   }
 
   async function clearSession(message?: string) {
-    const returnTo = locationRef.current.screen === 'resource'
+    const returnTo = ['resource', 'learningCourses', 'learningPlans', 'collections'].includes(locationRef.current.screen)
       ? safeReturnPath(pathForLocation(locationRef.current))
       : undefined;
     clearProfileRevision();

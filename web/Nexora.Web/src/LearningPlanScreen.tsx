@@ -2,16 +2,18 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { createIdempotencyKey, NexoraApiError } from './api';
 import { ResourceFormDialog, useResourceDialog } from './ResourceFormDialog';
 import { registerDirtyLeaveGuard } from './navigationGuard';
-import { learningPlan, learningPlans, learningPlanCapabilities, learningPlanSources, learningPlanIntent, sendLearningPlan,
-  type LearningPlanDetail, type LearningPlanPage, type LearningPlanSources, type LearningPlanKind, type LearningPlanIntent } from './LearningPlanApi';
+import { learningPlan, learningPlans, learningPlanCapabilities, learningPlanSources, learningPlanIntent, sendLearningPlan, learningPlanLifecyclePreview,
+  type LearningPlanDetail, type LearningPlanPage, type LearningPlanSources, type LearningPlanKind, type LearningPlanIntent,
+  type LearningPlanRef, type LearningPlanLifecycleOperation, type LearningPlanLifecyclePreview } from './LearningPlanApi';
 
 const empty = () => ({ title: '', startsOn: '', endsOn: '', notes: '' });
 // Main shell MUST key this component by authenticated OwnerId + session identity.
-type PlanNavigation = { planId?: string; onSelectPlan?: (id?: string) => void; onAuthLost?: () => void };
+type PlanNavigation = { planId?: string; onSelectPlan?: (id?: string) => void; onAuthLost?: () => void;
+  onOpenSource?: (source: LearningPlanRef) => void };
 export function LearningPlanScreen({ ownerContext, ...navigation }: { ownerContext: string } & PlanNavigation) {
   return <LearningPlanOwnerScreen key={ownerContext} {...navigation} />;
 }
-function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavigation) {
+function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost, onOpenSource }: PlanNavigation) {
   const [caps, setCaps] = useState<Record<string, boolean>>({}), [status, setStatus] = useState('Planned');
   const [page, setPage] = useState<LearningPlanPage | null>(null), [detail, setDetail] = useState<LearningPlanDetail | null>(null);
   const [choices, setChoices] = useState<LearningPlanSources | null>(null), [kind, setKind] = useState<LearningPlanKind>('Goal');
@@ -21,6 +23,7 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
   const [pending, setPending] = useState<LearningPlanIntent | null>(null), [busy, setBusy] = useState(false), [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null);
   const [committedDestination, setCommittedDestination] = useState<string | null>(null);
+  const [lifecycle, setLifecycle] = useState<LearningPlanLifecyclePreview | null>(null);
   const alive = useRef(true), flight = useRef(false), generation = useRef(0), currentAbort = useRef<AbortController | null>(null);
   const pendingRef = useRef<LearningPlanIntent | null>(null), unresolved = useRef(false);
   pendingRef.current = pending;
@@ -30,13 +33,13 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
   function failure(e: unknown) {
     if (!alive.current) return;
     // Revoke clears all private summaries and source choices immediately.
-    if (e instanceof NexoraApiError && [401, 403, 404].includes(e.status)) { setDetail(null); setChoices(null); setPage(null); setCaps({}); setDraft(empty()); setEditing(null); setEditTag(null); setCommittedDestination(null); dialog.finish(); }
+    if (e instanceof NexoraApiError && [401, 403, 404].includes(e.status)) { setDetail(null); setChoices(null); setPage(null); setCaps({}); setDraft(empty()); setEditing(null); setEditTag(null); setCommittedDestination(null); setLifecycle(null); dialog.finish(); }
     setError(e instanceof NexoraApiError ? e.message : 'Không thể xác nhận kết quả.');
     if (e instanceof NexoraApiError && e.status === 401) onAuthLost?.();
   }
   async function list(nextStatus = status, cursor: string | null = null) {
     const version = ++generation.current; currentAbort.current?.abort(); const abort = new AbortController(); currentAbort.current = abort;
-    setLoading(true); setPage(null); setDetail(null); setChoices(null); setSelected('');
+    setLoading(true); setPage(null); setDetail(null); setChoices(null); setSelected(''); setLifecycle(null);
     try {
       const permissions = await learningPlanCapabilities(abort.signal);
       const value = permissions['learning.plan.read'] ? await learningPlans(nextStatus, cursor, abort.signal) : null;
@@ -45,7 +48,7 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
     finally { if (alive.current && version === generation.current) setLoading(false); }
   }
   async function open(id: string) {
-    const version = ++generation.current; setLoading(true); setDetail(null); setChoices(null); setSelected(''); setError(null);
+    const version = ++generation.current; setLoading(true); setDetail(null); setChoices(null); setSelected(''); setError(null); setLifecycle(null);
     try { const value = await learningPlan(id); if (alive.current && version === generation.current) setDetail(value); }
     catch (e) { if (alive.current && version === generation.current) failure(e); }
     finally { if (alive.current && version === generation.current) setLoading(false); }
@@ -56,7 +59,7 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
     else {
       const version = ++generation.current;
       currentAbort.current?.abort(); const abort = new AbortController(); currentAbort.current = abort;
-      setLoading(true); setPage(null); setDetail(null); setChoices(null); setError(null); setSelected('');
+      setLoading(true); setPage(null); setDetail(null); setChoices(null); setError(null); setSelected(''); setLifecycle(null);
       void (async () => {
         try {
           const permissions = await learningPlanCapabilities(abort.signal);
@@ -87,7 +90,7 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
     try {
       const ack = await sendLearningPlan(intent); committed = true;
       if (!alive.current) return;
-      setPending(null); pendingRef.current = null; unresolved.current = false; dialog.finish(); setChoices(null); setSelected(''); setDetail(null); setPage(null);
+      setPending(null); pendingRef.current = null; unresolved.current = false; dialog.finish(); setLifecycle(null); setChoices(null); setSelected(''); setDetail(null); setPage(null);
       setNotice('Đã nhận xác nhận lưu. Đang kiểm tra quyền đọc hiện tại.');
       const permissions = await learningPlanCapabilities();
       if (!alive.current) return;
@@ -135,6 +138,32 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
     [ids[index], ids[other]] = [ids[other], ids[index]];
     command(`/${detail.plan.id}/order`, 'PUT', detail.plan.etag, { itemIds: ids });
   }
+  async function previewLifecycle(operation: LearningPlanLifecycleOperation) {
+    if (locked || !detail) return;
+    const version = ++generation.current; setLoading(true); setError(null); setLifecycle(null); setChoices(null);
+    try {
+      const value = await learningPlanLifecyclePreview(detail.plan.id, operation, detail.plan.etag);
+      if (alive.current && version === generation.current) setLifecycle(value);
+    } catch (e) { if (alive.current && version === generation.current) failure(e); }
+    finally { if (alive.current && version === generation.current) setLoading(false); }
+  }
+  async function openSource(itemId: string) {
+    if (locked || !detail || !onOpenSource) return;
+    const version = ++generation.current; setLoading(true); setError(null); setChoices(null);
+    // Refresh Plan + source projection before handing a typed reference to the
+    // shell. Destination routing/authorization belongs to that source's screen.
+    // Clear the old source titles while the current permission is unresolved.
+    const id = detail.plan.id; setDetail(null);
+    try {
+      const value = await learningPlan(id);
+      if (!alive.current || version !== generation.current) return;
+      setDetail(value);
+      const item = value.items.find(i => i.id === itemId);
+      if (item && item.projection.status !== 'Unavailable' && item.projection.title !== null) onOpenSource(item.source);
+      else setError('Nguồn hiện không khả dụng.');
+    } catch (e) { if (alive.current && version === generation.current) failure(e); }
+    finally { if (alive.current && version === generation.current) setLoading(false); }
+  }
   return <section aria-labelledby="learning-plan-title">
     <h1 id="learning-plan-title">Kế hoạch học tập</h1>
     {planId && onSelectPlan && <button type="button" disabled={locked} onClick={() => onSelectPlan()}>Về danh sách kế hoạch</button>}
@@ -154,6 +183,8 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
       <button disabled={locked || !editable || !allowed('update')} onClick={() => begin(true)}>Sửa kế hoạch</button>
       <ol>{detail.items.map((item, index) => <li key={item.id}>
         <span>{item.source.kind}: {item.projection.status === 'Unavailable' ? 'Không khả dụng' : item.projection.title}</span>
+        {onOpenSource && item.projection.status !== 'Unavailable' && item.projection.title !== null &&
+          <button disabled={locked} onClick={() => void openSource(item.id)}>Mở nguồn</button>}
         <span> {item.targetOn} — {item.projection.status === 'Unavailable' ? 'Chưa biết tiến độ' : 'Không có chỉ số tiến độ trong kế hoạch'}</span>
         <button aria-label={`Lên mục ${index + 1}`} disabled={locked || !editable || !allowed('reorder') || index === 0} onClick={() => move(index, -1)}>Lên</button>
         <button aria-label={`Xuống mục ${index + 1}`} disabled={locked || !editable || !allowed('reorder') || index === detail.items.length - 1} onClick={() => move(index, 1)}>Xuống</button>
@@ -175,7 +206,23 @@ function LearningPlanOwnerScreen({ planId, onSelectPlan, onAuthLost }: PlanNavig
       <button disabled={locked || !editable || !allowed('complete') || detail.plan.status === 'Completed'} onClick={() => {
         if (window.confirm(`Hoàn tất kế hoạch? ${detail.progressLabel}. Không đổi trạng thái nguồn.`)) command(`/${detail.plan.id}/complete`, 'POST', detail.plan.etag, { confirm: true });
       }}>Xác nhận hoàn tất</button>
+      {detail.plan.status === 'Archived'
+        ? <button disabled={locked || !allowed('unarchive')} onClick={() => void previewLifecycle('unarchive')}>Xem tác động bỏ lưu trữ</button>
+        : <button disabled={locked || !allowed('archive')} onClick={() => void previewLifecycle('archive')}>Xem tác động lưu trữ</button>}
     </article>}
+    <ResourceFormDialog open={lifecycle !== null} title={lifecycle?.operation === 'archive' ? 'Lưu trữ kế hoạch?' : 'Bỏ lưu trữ kế hoạch?'}
+      busy={busy} dirty={false} closeBlocked={pending !== null} onClose={() => setLifecycle(null)}>
+      {lifecycle && <>
+        <p>{lifecycle.fromState} → {lifecycle.toState}</p>
+        <p>Giữ nguyên {lifecycle.retainedItems} liên kết, thứ tự và ngày mục tiêu. Không đổi trạng thái Goal, Task hoặc Course.</p>
+        <p>{lifecycle.operation === 'archive' ? 'Kế hoạch trở thành chỉ đọc.' : 'Khôi phục đúng trạng thái trước khi lưu trữ.'}</p>
+        {error && <p role="alert">{error}</p>}
+        {pending ? <div role="alert"><p>Kết quả chưa xác nhận; giữ nguyên yêu cầu gốc.</p>
+          <button disabled={busy} onClick={() => void send(pending)}>Gửi lại yêu cầu gốc</button></div>
+          : <button disabled={locked} onClick={() => command(`/${lifecycle.planId}/${lifecycle.operation}`, 'POST', lifecycle.etag,
+            { confirm: true, previewToken: lifecycle.previewToken })}>Xác nhận {lifecycle.operation === 'archive' ? 'lưu trữ' : 'bỏ lưu trữ'}</button>}
+      </>}
+    </ResourceFormDialog>
     <ResourceFormDialog open={dialog.open} title={editing ? 'Sửa kế hoạch' : 'Tạo kế hoạch'} busy={busy} dirty={dialog.dirty} closeBlocked={pending !== null} onClose={dialog.cancel}>
       {pending && <div role="alert"><p>Kết quả chưa xác nhận; chỉ gửi lại yêu cầu gốc.</p><button type="button" disabled={busy} onClick={() => void send(pending)}>Gửi lại yêu cầu gốc</button></div>}
       {error && <p role="alert">{error}</p>}

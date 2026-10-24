@@ -10,11 +10,17 @@ export type LearningPlanPage = { items: LearningPlan[]; nextCursor: string | nul
 export type LearningPlanChoice = { source: LearningPlanRef; title: string };
 export type LearningPlanSources = { items: LearningPlanChoice[]; nextCursor: string | null };
 export type LearningPlanAck = { id: string; committed: true; detailAvailable: false };
+export type LearningPlanLifecycleOperation = 'archive' | 'unarchive';
+export type LearningPlanLifecyclePreview = { planId: string; operation: LearningPlanLifecycleOperation; etag: string;
+  fromState: string; toState: string; retainedItems: number; expiresAt: string; previewToken: string };
 const root = '/api/v1/learning/plans';
 export const learningPlanCapabilities = (signal?: AbortSignal) => apiFetch<Record<string, boolean>>(`${root}/capabilities`, { signal });
 export const learningPlans = (status: string, cursor: string | null = null, signal?: AbortSignal) =>
   apiFetch<LearningPlanPage>(`${root}?${new URLSearchParams({ status, ...(cursor ? { cursor } : {}) })}`, { signal });
 export const learningPlan = (id: string, signal?: AbortSignal) => apiFetch<LearningPlanDetail>(`${root}/${encodeURIComponent(id)}`, { signal });
+export const learningPlanLifecyclePreview = (id: string, operation: LearningPlanLifecycleOperation, etag: string, signal?: AbortSignal) =>
+  apiFetch<LearningPlanLifecyclePreview>(`${root}/${encodeURIComponent(id)}/lifecycle-preview?${new URLSearchParams({ operation })}`,
+    { signal, headers: { 'If-Match': etag } });
 export const learningPlanSources = (kind: LearningPlanKind, cursor: string | null = null, signal?: AbortSignal) =>
   apiFetch<LearningPlanSources>(`${root}/sources?${new URLSearchParams({ kind, ...(cursor ? { cursor } : {}) })}`, { signal });
 export type LearningPlanIntent = Readonly<{ path: string; method: 'POST' | 'PUT' | 'DELETE'; key: string; etag: string | null; body: string | undefined }>;
