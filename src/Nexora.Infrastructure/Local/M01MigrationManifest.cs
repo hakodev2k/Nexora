@@ -100,6 +100,7 @@ public static class M01MigrationManifest
         "20261024_0088_skill_merge.sql",
         "20261024_0089_learning_plan_lifecycle.sql",
         "20261024_0090_organization_collections.sql",
-        "20261024_0091_toolbox_more_offline.sql"
+        "20261024_0091_toolbox_more_offline.sql",
+        "20261024_0092_toolbox_url_headers.sql"
     ];
 }

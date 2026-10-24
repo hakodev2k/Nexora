@@ -107,7 +107,8 @@ public sealed class M01PolicyAndCaptureContractTests
                 "20261024_0088_skill_merge.sql",
                 "20261024_0089_learning_plan_lifecycle.sql",
                 "20261024_0090_organization_collections.sql",
-                "20261024_0091_toolbox_more_offline.sql"
+                "20261024_0091_toolbox_more_offline.sql",
+                "20261024_0092_toolbox_url_headers.sql"
             ],
             M01MigrationManifest.RequiredFileNames);
         Assert.Contains("20260910_0002_r1_catalog_and_productivity.sql", M01MigrationManifest.RequiredFileNames);

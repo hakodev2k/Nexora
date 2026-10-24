@@ -1951,17 +1951,23 @@ export function listDeveloperTools() {
   return apiFetch<ToolboxCatalog>('/api/v1/developer/tools');
 }
 
-export function runDeveloperTool(
+export async function runDeveloperTool(
   toolCode: string,
   input: string,
   options: Record<string, string> = {},
   idempotencyKey = createIdempotencyKey()
 ) {
-  return apiFetch<ToolboxRunResult>('/api/v1/developer/tools/run', {
+  const result = await apiFetch<ToolboxRunResult>('/api/v1/developer/tools/run', {
     method: 'POST',
     headers: jsonMutationHeaders(idempotencyKey),
     body: JSON.stringify({ toolCode, input, options })
-  });
+  }, 200);
+  if (!result || result.toolCode !== toolCode.trim().toLowerCase() || typeof result.output !== 'string' ||
+      !(result.warning === null || typeof result.warning === 'string') ||
+      !(result.errorPath === null || typeof result.errorPath === 'string') ||
+      !Number.isSafeInteger(result.durationMilliseconds) || result.durationMilliseconds < 0)
+    throw new NexoraApiError('Chưa xác nhận được phản hồi công cụ. Giữ nội dung và thử lại.', 0, 'UnexpectedAcknowledgement');
+  return result;
 }
 
 export function getReminderSource(sourceType: 'Task' | 'CalendarEvent', sourceId: string) {

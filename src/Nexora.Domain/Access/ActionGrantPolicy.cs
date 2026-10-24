@@ -242,6 +242,7 @@ public static class ActionGrantPolicy
         "toolbox.hash.run", "toolbox.uuid.run", "toolbox.password.run", "toolbox.json.run", "toolbox.regex.run",
         "toolbox.xml.run", "toolbox.datetime.run", "toolbox.csv.run", "toolbox.jwt.run",
         "toolbox.text_diff.run", "toolbox.color.run",
+        "toolbox.url_parse.run", "toolbox.headers.run",
         "documents.format.export",
         "documents.format.import",
         "notifications.source.open",

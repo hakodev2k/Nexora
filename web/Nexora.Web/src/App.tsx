@@ -51,6 +51,7 @@ import { CourseScreen } from './CourseScreen';
 import { CollectionsScreen } from './CollectionsScreen';
 import { ToolboxMoreOfflineOptions, defaultToolboxMoreOfflineOptions } from './ToolboxMoreOfflineOptions';
 import { MoreOfflineError, runMoreOfflineBrowser } from './ToolboxMoreOffline';
+import { ToolboxUrlHeadersError, runToolboxUrlHeaders } from './ToolboxUrlHeaders';
 import type { WorkLogFilters } from './workLogApi';
 import { FocusScreen } from './FocusScreen';
 import { TimeTrackingScreen } from './TimeTrackingScreen';
@@ -240,12 +241,13 @@ import { LocaleContext, useI18n } from './i18n';
 export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'learningPlans' | 'learningCourses' | 'collections' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
-export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; returnTo?: string; createIntent?: string };
+export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; toolCode?: string; returnTo?: string; createIntent?: string };
 type SessionState = 'checking' | 'anonymous' | 'authenticated' | 'unavailable';
 type NoticeKind = 'info' | 'success' | 'error';
 const PUBLIC_SCREENS = new Set<Screen>(['login', 'register', 'verify', 'forgot', 'reset', 'shared']);
 const DEFAULT_TIME_ZONE = 'UTC';
 const RESOURCE_TYPES = new Set<ResourceType>(['Project', 'Task', 'Event', 'Document', 'Bookmark', 'Snippet', 'Goal']);
+const TOOL_ROUTE_CODES = new Set(['base64', 'url-codec', 'html-codec', 'hash', 'uuid', 'password', 'json', 'regex', 'xml', 'datetime', 'csv', 'jwt', 'text-diff', 'color', 'url-parse', 'headers']);
 
 function safeReturnPath(value: string | null | undefined): string | undefined {
   if (!value || value.length > 320) return undefined;
@@ -255,7 +257,8 @@ function safeReturnPath(value: string | null | undefined): string | undefined {
     const parsed = new URL(candidate, window.location.origin);
     if (parsed.origin !== window.location.origin || parsed.username || parsed.password || parsed.hash || parsed.search) return undefined;
     const route = routeFromPath(parsed.pathname);
-    return (route.screen === 'resource' && route.resourceType && route.resourceId) || route.screen === 'learningCourses' || route.screen === 'learningPlans' || route.screen === 'collections'
+    return (route.screen === 'resource' && route.resourceType && route.resourceId) || route.screen === 'learningCourses' || route.screen === 'learningPlans' || route.screen === 'collections' ||
+      (route.screen === 'tools' && (!route.toolCode || TOOL_ROUTE_CODES.has(route.toolCode)))
       ? pathForLocation(route)
       : undefined;
   } catch {
@@ -341,6 +344,10 @@ function routeFromPath(pathname: string, search = ''): LocationState {
     case '/':
       return { screen: 'home' };
     default:
+      if (path.startsWith('/developer/tools/')) {
+        const code = path.slice('/developer/tools/'.length);
+        if (/^[a-z][a-z0-9-]{0,39}$/.test(code)) return { screen: 'tools', toolCode: code };
+      }
       if (path.startsWith('/share/')) {
         return { screen: 'shared', token: decodeRouteSegment(path.slice('/share/'.length)) };
       }
@@ -419,7 +426,7 @@ function pathForLocation(location: LocationState): string {
     case 'tags':
       return '/organize/tags';
     case 'tools':
-      return '/developer/tools';
+      return location.toolCode ? `/developer/tools/${encodeURIComponent(location.toolCode)}` : '/developer/tools';
     case 'goals':
       return '/goals';
     case 'planner':
@@ -1336,9 +1343,12 @@ export function Shell({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const recentView = useRef<{ owner: string; view: RecentView } | null>(null);
   const recentOwner = profile.id + ':' + profile.personalSpaceId;
+  const toolCatalogScope = JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules]);
+  const toolCatalogView = useRef<{ scope: string; view: ToolCatalogView }>({ scope: toolCatalogScope, view: { query: '', category: '' } });
+  if (toolCatalogView.current.scope !== toolCatalogScope) toolCatalogView.current = { scope: toolCatalogScope, view: { query: '', category: '' } };
   const accountMenu = useRef<HTMLDetailsElement>(null);
   const mainRef = useRef<HTMLElement>(null);
-  const routeKey = `${location.screen}:${location.moduleCode ?? ''}:${location.resourceType ?? ''}:${location.resourceId ?? ''}:${location.createIntent ?? ''}`;
+  const routeKey = `${location.screen}:${location.moduleCode ?? ''}:${location.resourceType ?? ''}:${location.resourceId ?? ''}:${location.toolCode ?? ''}:${location.createIntent ?? ''}`;
   const previousRoute = useRef(routeKey);
   useEffect(() => {
     if (previousRoute.current === routeKey) return;
@@ -1493,7 +1503,7 @@ export function Shell({
           {location.screen === 'readLater' && (canReadLater ? <ReadLaterScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX23" />)}
           {location.screen === 'tags' && (canOrganization ? <OrganizationTagsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
           {location.screen === 'collections' && (canOrganization ? <CollectionsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules, location.resourceId])} initialCollectionId={location.resourceId} onAuthLost={onAuthLost} onSourceOpen={(type, id) => { if (RESOURCE_TYPES.has(type as ResourceType)) navigate('resource', type, false, id); }} onSelectCollection={id => navigate('collections', undefined, false, id)} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
-          {location.screen === 'tools' && (canToolbox ? <DeveloperToolsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX32" />)}
+          {location.screen === 'tools' && (canToolbox ? <DeveloperToolsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules, location.toolCode])} onAuthLost={onAuthLost} initialToolCode={location.toolCode} onSelectTool={code => navigate('tools', code)} catalogView={toolCatalogView.current.view} onCatalogViewChange={view => { toolCatalogView.current = { scope: toolCatalogScope, view }; }} /> : <ModuleUnavailableScreen moduleCode="FX32" />)}
           {location.screen === 'goals' && (canGoals ? <GoalsScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX16" />)}
           {location.screen === 'planner' && (canPlanner ? <PlannerScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX15" />)}
           {location.screen === 'workLog' && (canLearning ? <><button className="secondary-button" type="button" onClick={() => navigate('module', 'FX40')}>Learning</button><WorkLogScreen key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])} timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} initialFilters={workLogView.current.filters} onViewChange={filters => { if (workLogView.current.owner === workLogOwner) workLogView.current.filters = filters; }} /></> : <ModuleUnavailableScreen moduleCode="FX40" />)}
@@ -5408,10 +5418,14 @@ function OrganizationTagsScreen({ onAuthLost }: { onAuthLost: () => Promise<void
 
 type ToolboxOptions = Record<string, string>;
 
-function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+type ToolCatalogView = { query: string; category: string };
+function DeveloperToolsScreen({ onAuthLost, initialToolCode, onSelectTool, catalogView, onCatalogViewChange }: { onAuthLost: () => Promise<void>; initialToolCode?: string; onSelectTool?: (code?: string) => void; catalogView?: ToolCatalogView; onCatalogViewChange?: (view: ToolCatalogView) => void }) {
   const [tools, setTools] = useState<ToolboxTool[]>([]);
-  const [selectedCode, setSelectedCode] = useState('base64');
-  const [extraOptions, setExtraOptions] = useState<Record<string, string>>({});
+  const [selectedCode, setSelectedCode] = useState(initialToolCode ?? 'base64');
+  const [extraOptions, setExtraOptions] = useState<Record<string, string>>(() => initialToolCode === 'text-diff' || initialToolCode === 'color' ? defaultToolboxMoreOfflineOptions(initialToolCode) : defaultToolboxExtraOptions(initialToolCode ?? 'base64'));
+  const [catalogQuery, setCatalogQuery] = useState(catalogView?.query ?? ''); const [catalogCategory, setCatalogCategory] = useState(catalogView?.category ?? '');
+  function updateCatalog(view: ToolCatalogView) { setCatalogQuery(view.query); setCatalogCategory(view.category); onCatalogViewChange?.(view); }
+  const [nextToolRoute, setNextToolRoute] = useState<{ code: string } | null>(null);
   const [secondInput, setSecondInput] = useState('');
   const [toolNotice, setToolNotice] = useState<string | null>(null);
   const offlineAbort = useRef<AbortController | null>(null);
@@ -5444,6 +5458,10 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
     setLeaveTool({ proceed }); return true;
   }), [hasWorkbenchDraft]);
   useEffect(() => {
+    if (!nextToolRoute || busy || hasWorkbenchDraft || !onSelectTool) return;
+    setNextToolRoute(null); onSelectTool(nextToolRoute.code);
+  }, [nextToolRoute, busy, hasWorkbenchDraft, onSelectTool]);
+  useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       if (!hasWorkbenchDraft && !toolFlight.current) return;
       event.preventDefault(); event.returnValue = '';
@@ -5457,6 +5475,8 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
     offlineAbort.current?.abort(); toolFlight.current = false;
     setTools([]); setInput(''); setPattern(''); setExtraOptions({});
     setSecondInput(''); setToolNotice(null); setOutput(null); setCopied(false); setBusy(false); setLoading(false); setLeaveTool(null);
+    setNextToolRoute(null);
+    updateCatalog({ query: '', category: '' });
   }
 
   async function loadCatalog() {
@@ -5468,7 +5488,7 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       if (stamp !== toolEpoch.current) return;
       if (!Array.isArray(catalog.items) || catalog.items.length === 0) { clearToolAuthority(); return; }
       setTools(Array.isArray(catalog.items) ? catalog.items : []);
-      if (catalog.items?.length > 0 && !catalog.items.some((tool) => tool.code === selectedCode)) {
+      if (!initialToolCode && catalog.items?.length > 0 && !catalog.items.some((tool) => tool.code === selectedCode)) {
         setSelectedCode(catalog.items[0].code);
         setExtraOptions(toolDefaults(catalog.items[0].code));
         setInput(''); setSecondInput(''); setPattern(''); setOutput(null); setCopied(false); setToolNotice(null);
@@ -5539,13 +5559,15 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
       const result = selectedCode === 'text-diff' || selectedCode === 'color'
         ? await runMoreOfflineBrowser(selectedCode, input, secondInput, extraOptions,
           () => runDeveloperTool(selectedCode, '', {}), controller.signal)
+        : selectedCode === 'url-parse' || selectedCode === 'headers'
+        ? await runToolboxUrlHeaders(selectedCode, input, () => runDeveloperTool(selectedCode, '', {}), controller.signal)
         : selectedCode === 'jwt'
         ? await runBrowserJwt(input, () => runDeveloperTool('jwt', '', {}))
         : await runDeveloperTool(selectedCode, input, optionsForTool());
       if (stamp === toolEpoch.current && !controller.signal.aborted) setOutput(result);
     } catch (requestError) {
       if (stamp !== toolEpoch.current) return;
-      const apiError = requestError instanceof MoreOfflineError
+      const apiError = requestError instanceof MoreOfflineError || requestError instanceof ToolboxUrlHeadersError
         ? new NexoraApiError(requestError.message, 422, requestError.code) : asApiError(requestError);
       setError(apiError);
       if ([401, 403, 409].includes(apiError.status)) clearToolAuthority();
@@ -5575,12 +5597,13 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
   }
 
   function selectTool(code: string) {
-    if (code === selectedCode || toolFlight.current) return;
+    if ((code === selectedCode && (!onSelectTool || initialToolCode === code)) || toolFlight.current) return;
     const proceed = () => {
       ++toolEpoch.current; offlineAbort.current?.abort(); toolFlight.current = false;
       setSelectedCode(code); setExtraOptions(toolDefaults(code)); setInput(''); setSecondInput(''); setPattern('');
       setOutput(null); setError(null); setCopied(false); setToolNotice(null);
       setOperation('encode'); setAlgorithm('SHA-256'); setCount('1'); setLength('24'); setIndent(true); setIgnoreCase(false);
+      if (onSelectTool) setNextToolRoute({ code });
     };
     if (hasWorkbenchDraft) setLeaveTool({ proceed }); else proceed();
   }
@@ -5591,18 +5614,30 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
         <div>
           <p className="eyebrow">FX32 / DEVELOPER TOOLBOX</p>
           <h1 id="developer-tools-title">Developer tools</h1>
-          <p className="lead">Pure utilities chạy local trong memory. Không chạy code, không gọi network và không tự lưu input/output.</p>
+          <p className="lead">Công cụ xử lý trong bộ nhớ, không chạy code của bạn, không gọi provider bên ngoài và không tự lưu input/output.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => void loadCatalog()} disabled={loading || busy}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {toolNotice && <p role="status">{toolNotice}</p>}
-      {loading ? <div className="loading-state" role="status">Đang tải danh mục tool…</div> : tools.length === 0 ? <div className="empty-state"><h2>Chưa có tool khả dụng</h2><p>Module hoặc action grant hiện không khả dụng trong PersonalSpace này.</p></div> : <div className="resource-layout">
+      {!loading && tools.length > 0 && <section aria-label="Danh mục công cụ" className="form-panel">
+        <h2>Danh mục công cụ</h2><div className="resource-actions">
+          <label>Tìm công cụ<input value={catalogQuery} maxLength={100} onChange={event => updateCatalog({ query: event.target.value, category: catalogCategory })} /></label>
+          <label>Nhóm công cụ<select value={catalogCategory} onChange={event => updateCatalog({ query: catalogQuery, category: event.target.value })}><option value="">Tất cả nhóm</option>{[...new Set(tools.map(tool => tool.category))].sort().map(category => <option key={category}>{category}</option>)}</select></label>
+          <button type="button" onClick={() => updateCatalog({ query: '', category: '' })}>Xóa bộ lọc</button>
+          {initialToolCode && onSelectTool && <button type="button" disabled={busy} onClick={() => onSelectTool()}>Về danh mục</button>}
+        </div>
+        <ul>{tools.filter(tool => (!catalogCategory || tool.category === catalogCategory) && `${tool.name} ${tool.description} ${tool.category}`.toLocaleLowerCase().includes(catalogQuery.trim().toLocaleLowerCase())).sort((a, b) => a.name.localeCompare(b.name, 'en')).map(tool => <li key={tool.code}><button type="button" disabled={busy} aria-current={tool.code === selectedCode ? 'page' : undefined} onClick={() => selectTool(tool.code)}>{tool.name}</button> · {tool.category} · {tool.executionMode === 'Browser' ? 'Trong trình duyệt' : 'Server, không lưu'}</li>)}</ul>
+        {!tools.some(tool => (!catalogCategory || tool.category === catalogCategory) && `${tool.name} ${tool.description} ${tool.category}`.toLocaleLowerCase().includes(catalogQuery.trim().toLocaleLowerCase())) && <p role="status">Không có công cụ khớp bộ lọc. Xóa bộ lọc để xem lại.</p>}
+      </section>}
+      {!loading && tools.length > 0 && !selectedTool && <p role="status">Công cụ này chưa khả dụng. Chọn một công cụ trong danh mục để tiếp tục.</p>}
+      {loading ? <div className="loading-state" role="status">Đang tải danh mục tool…</div> : tools.length === 0 ? <div className="empty-state"><h2>Chưa có tool khả dụng</h2><p>Module hiện không khả dụng với quyền của bạn.</p></div> : !selectedTool ? null : <div className="resource-layout">
         <form className="form-panel resource-form" onSubmit={run} noValidate>
           <div className="section-heading"><h2>Workbench</h2><span className="state-pill state-active">Local only</span></div>
           <div className="field-group"><label htmlFor="tool-code">Tool</label><select id="tool-code" value={selectedCode} onChange={event => selectTool(event.target.value)} disabled={busy}>{tools.map((tool) => <option key={tool.code} value={tool.code}>{tool.name} · {tool.category}</option>)}</select></div>
           {selectedTool && <div className="security-policy"><strong>{selectedTool.description}</strong><span>{selectedTool.executionMode === 'Browser' ? 'Xử lý trong trình duyệt; không gửi nội dung lên server.' : 'Xử lý tạm thời trên server; không lưu nội dung.'}</span></div>}
           <ToolboxExtraOptions toolCode={selectedCode} options={extraOptions} disabled={busy} onChange={value => { setExtraOptions(value); setOutput(null); setError(null); setCopied(false); }} />
+          {(selectedCode === 'url-parse' || selectedCode === 'headers') && <p role="note">Chỉ xử lý trong browser, không fetch hoặc mở URL. {selectedCode === 'url-parse' ? 'Tối đa 16 KiB UTF-8, 128 tham số.' : 'Tối đa 64 KiB UTF-8, 200 header; không nhận dòng nối hoặc HTTP body.'} Redaction theo tên trường không bảo đảm phát hiện mọi dữ liệu nhạy cảm; kiểm tra trước khi copy.</p>}
           <ToolboxMoreOfflineOptions toolCode={selectedCode} options={extraOptions} secondInput={secondInput} disabled={busy} running={busy}
             onChange={value => { setExtraOptions(value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }}
             onSecondInputChange={value => { setSecondInput(value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }}
@@ -5613,7 +5648,8 @@ function DeveloperToolsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> 
           {selectedCode === 'password' && <div className="field-group"><label htmlFor="tool-length">Độ dài password (15–128)</label><input id="tool-length" inputMode="numeric" value={length} onChange={(event) => setLength(event.target.value)} min={15} max={128} disabled={busy} /></div>}
           {selectedCode === 'json' && <label className="check-row"><input type="checkbox" checked={indent} onChange={(event) => setIndent(event.target.checked)} disabled={busy} /><span>Indent output</span></label>}
           {selectedCode === 'regex' && <><div className="field-group"><label htmlFor="tool-pattern">Regex pattern</label><input id="tool-pattern" value={pattern} onChange={(event) => setPattern(event.target.value)} maxLength={10000} disabled={busy} required /></div><label className="check-row"><input type="checkbox" checked={ignoreCase} onChange={(event) => setIgnoreCase(event.target.checked)} disabled={busy} /><span>Ignore case</span></label></>}
-          <div className="field-group"><label htmlFor="tool-input">{selectedCode === 'text-diff' ? 'Before / Văn bản trước' : 'Input'} <span className="optional">({selectedCode === 'text-diff' ? 'tối đa 128 KiB UTF-8' : selectedCode === 'color' ? 'tối đa 256 ký tự' : 'tối đa 1 MiB'})</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }} rows={12} maxLength={selectedCode === 'text-diff' ? 131072 : selectedCode === 'color' ? 256 : 1024 * 1024} disabled={busy} spellCheck={false} /></div>
+          <div className="field-group"><label htmlFor="tool-input">{selectedCode === 'text-diff' ? 'Before / Văn bản trước' : 'Input'} <span className="optional">({selectedCode === 'text-diff' ? 'tối đa 128 KiB UTF-8' : selectedCode === 'color' ? 'tối đa 256 ký tự' : selectedCode === 'url-parse' ? 'tối đa 16 KiB UTF-8' : selectedCode === 'headers' ? 'tối đa 64 KiB UTF-8' : 'tối đa 1 MiB'})</span></label><textarea id="tool-input" value={input} onChange={(event) => { setInput(event.target.value); setOutput(null); setError(null); setCopied(false); setToolNotice(null); }} rows={12} maxLength={selectedCode === 'text-diff' ? 131072 : selectedCode === 'color' ? 256 : selectedCode === 'url-parse' ? 16384 : selectedCode === 'headers' ? 65536 : 1024 * 1024} disabled={busy} spellCheck={false} /></div>
+          {busy && (selectedCode === 'url-parse' || selectedCode === 'headers') && <button type="button" onClick={() => { offlineAbort.current?.abort(); ++toolEpoch.current; toolFlight.current = false; setBusy(false); setOutput(null); setError(null); setCopied(false); setToolNotice('Đã hủy xử lý. Nội dung đầu vào được giữ để sửa.'); }}>Hủy xử lý</button>}
           <div className="form-actions"><ConfirmActionButton className="secondary-button" confirmationTitle="Xóa input/output chưa lưu?" confirmationDescription="Input và output chỉ tồn tại trong memory; thao tác này sẽ xóa nội dung hiện tại." confirmLabel="Xóa input/output" disabled={busy} onConfirm={() => { clearWorkbench(); return true; }}>Xóa</ConfirmActionButton><SubmitButton busy={busy}>Chạy tool</SubmitButton></div>
         </form>
         <div className="resource-list">
@@ -7073,6 +7109,8 @@ export function App() {
         ? { screen, returnTo: safeReturnPath(moduleCode) }
       : screen === 'resource'
         ? { screen, resourceType: moduleCode as ResourceType, resourceId }
+        : screen === 'tools'
+          ? { screen, toolCode: moduleCode }
         : screen === 'learningPlans' || screen === 'learningCourses' || screen === 'collections'
           ? { screen, resourceId }
         : { screen, moduleCode };
@@ -7149,7 +7187,7 @@ export function App() {
 
   useEffect(() => {
     if (sessionState === 'anonymous' && !PUBLIC_SCREENS.has(location.screen)) {
-      navigate('login', ['resource', 'learningCourses', 'learningPlans', 'collections'].includes(location.screen) ? pathForLocation(location) : undefined, true);
+      navigate('login', ['resource', 'learningCourses', 'learningPlans', 'collections', 'tools'].includes(location.screen) ? pathForLocation(location) : undefined, true);
     }
     if (sessionState === 'authenticated' && PUBLIC_SCREENS.has(location.screen) && location.screen !== 'shared') {
       navigate('home', undefined, true);
@@ -7166,14 +7204,14 @@ export function App() {
       navigate('shared', sharedToken, true);
     } else if (returnTo) {
       const target = routeFromPath(returnTo);
-      navigate(target.screen, target.resourceType, true, target.resourceId);
+      navigate(target.screen, target.toolCode ?? target.resourceType, true, target.resourceId);
     } else {
       navigate('home', undefined, true);
     }
   }
 
   async function clearSession(message?: string) {
-    const returnTo = ['resource', 'learningCourses', 'learningPlans', 'collections'].includes(locationRef.current.screen)
+    const returnTo = ['resource', 'learningCourses', 'learningPlans', 'collections', 'tools'].includes(locationRef.current.screen)
       ? safeReturnPath(pathForLocation(locationRef.current))
       : undefined;
     clearProfileRevision();
