@@ -77,3 +77,20 @@ and FX07 real-principal Windows verification harness. States are CODE_IMPLEMENTE
 subsets / VERIFICATION_PENDING. Plan readiness remains false. FX01–FX40 as whole
 modules remain IN_PROGRESS; none becomes VERIFIED/ACCEPTED from these builds.
 Current limitations and ordinary unfinished code are in [09](09-continuation-20261023.md).
+
+## Oct24 R1 code-only increment (supersedes absent-code statements above)
+
+All40 whole-module statuses remain IN_PROGRESS or specifically gated. No whole
+module is VERIFIED/ACCEPTED by this increment. Historical CI counts do not certify
+these new executable bytes. Details: [plan12](12-r1-implementation-20261024.md) and
+[root handoff](workers/r1-20261024-root-integration.md).
+
+| FX | New CODE_IMPLEMENTED subset | Ordinary unfinished work / acceptance |
+|---|---|---|
+| 24 | Collections API/SQL/ordered current-readable source references/native list/detail UI | Templates still absent; source expansion and SQL/API/UI/concurrency acceptance pending |
+| 32 | Browser-only bounded text diff and color/palette/contrast with SQL authority seam | YAML/conversion/date arithmetic/cron/Markdown/formatters/QR/URL/header/certificate, history/favorites/output workflows remain |
+| 40 | Skill merge with retained evidence/history; Plan archive/unarchive; typed source open; native Course detail and immutable uncertain-write recovery | Plan readiness false; Plan Trash/progress enrichment, Certifications/renewals and complete owner runtime acceptance remain |
+| 09/25 | Finite internal deep links/login return paths for Collections/Courses and context-keyed private screens | Complete shell/keyboard/responsive/journey acceptance remains |
+
+FX01–08,10–23,26–31,33–39 have no new domain-capability acceptance in this increment;
+their earlier ledger gaps remain open, subject to exact current code reconciliation.

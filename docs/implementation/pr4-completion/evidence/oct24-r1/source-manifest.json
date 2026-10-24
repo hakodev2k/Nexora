@@ -1,0 +1,159 @@
+{
+  "base": "14c76bcb6960e4ce53369dce388a8480b1c0299a",
+  "encoding": "UTF-8/LF",
+  "files": [
+    {
+      "path": "database/migrations/20261024_0088_skill_merge.sql",
+      "sha256LF": "977888207b418c0e388674fb996bf90c97bb549aea632c640605a09a901ed14d"
+    },
+    {
+      "path": "database/migrations/20261024_0089_learning_plan_lifecycle.sql",
+      "sha256LF": "260c6541ac5bf117a5653f11af59d651adb7f8df708a38def78df4c41a72b68e"
+    },
+    {
+      "path": "database/migrations/20261024_0090_organization_collections.sql",
+      "sha256LF": "cd34e044158a438a27c02a8c5b2eff10a6320df4377af53a39dfb6f460ed9646"
+    },
+    {
+      "path": "database/migrations/20261024_0091_toolbox_more_offline.sql",
+      "sha256LF": "4130ed93f8214d874511fbe20f93948c52b95560eff13de08b015e432dd26ff7"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Learning/LearningPlanEndpoints.cs",
+      "sha256LF": "de4aec478d1609c3d2b66595f6662e442222acd7840e69d6a92e892a5cd17c94"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Learning/SkillEndpoints.cs",
+      "sha256LF": "c9c524003d26bf4d772f9240f5a8fc501c4fa966b0151324790d8382c15f29dc"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Organization/CollectionEndpoints.cs",
+      "sha256LF": "016c78cc3c3866e1770036f395cb7b091ae9bead8bf4a7a82304898358e4a93f"
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256LF": "afd3fc70aa4032640e33834325ceb4ba1a9ad97a77a1b9e63f773065299dd7c3"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/LearningPlanContracts.cs",
+      "sha256LF": "f4dc65be9231de1228bda64c09169e3835815fda70ba1c17773ba8ac6e7fe649"
+    },
+    {
+      "path": "src/Nexora.Application/Learning/SkillContracts.cs",
+      "sha256LF": "1805ed2a1545e6fea50346eff637d5ea7d9c411f5dd76edfb5507dca6497711b"
+    },
+    {
+      "path": "src/Nexora.Application/Organization/CollectionServiceContracts.cs",
+      "sha256LF": "d54893000a736a59ca26ce0b6905689fa6af384dd5569c1c3a3c712f1c2dfaf5"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256LF": "178f9be9e15043bdd06b69b78b28fe2da3f7014c082a252c6ef621deaf133f40"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Bookmarks/SqlBookmarkCollectionParticipant.cs",
+      "sha256LF": "0ec1f1d9ae762cfcf74debc7f1220fd9eba965883576f4859f6c19d3092aca32"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.MoreOffline.cs",
+      "sha256LF": "8978a8a7f9d452da5cf31c6ad3bb454ba291fa358d7c5187ea6f875206f07c03"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.cs",
+      "sha256LF": "e50b14c777b2bd79318340fff5e1e2adc54c0e09d7dcfffc3d50413e6476d6ca"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentCollectionParticipant.cs",
+      "sha256LF": "05885b52e6ea4b789876ff171fad1fe5f84ef8224e48404da6fe1508539349c2"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/LearningPlanCursor.cs",
+      "sha256LF": "c67dbd1fe23975bed6aa73973e86607eab261435a212b2f8bcf60c37bd2c85d0"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlLearningPlanService.cs",
+      "sha256LF": "d3aacc8d971e985cc2ed17defe629dddf905a341d1c9f7fa22f402decd288fca"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Learning/SqlSkillService.cs",
+      "sha256LF": "11ea4c8b788f1579ae6f8697b1f27c62aec3580f7e92f8f3a6c11bca8ffc36c1"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256LF": "b252dad24de4748c6d508e3214b1b1eb1f306ace7a1bfbafb3755534765150f8"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Organization/CollectionSourceParticipant.cs",
+      "sha256LF": "bf6c4c2affbba2ea71366454d1679db5e0a318860bb754e3cc909967a14dfd12"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Organization/SqlCollectionService.cs",
+      "sha256LF": "cc40cb20b495ec35cd700bf7451d48a31cbe4605b58666b3a5e1a276b32df768"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Productivity/SqlProjectCollectionParticipant.cs",
+      "sha256LF": "411dd389aa3e5206d45a9384e85465219e7cfd3d51a81df4c12bb0a14f753add"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Snippets/SqlSnippetCollectionParticipant.cs",
+      "sha256LF": "50b2ef7d3a58eb4c6431aca065f9fe65681ab80758bf5ea27ae8140a5825272d"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256LF": "4bbdaf5a941739e566d7c0680e125417220b6cf4046522425274f6be6e73f55e"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256LF": "862411070a49faa93896d5b3b2724d337d11daf4e312169931650150d2e39319"
+    },
+    {
+      "path": "web/Nexora.Web/src/CollectionsScreen.tsx",
+      "sha256LF": "7c37d395c6b7519ed72c2b612dc9618212b5e745b033fcaca23b4dc8611d8eb5"
+    },
+    {
+      "path": "web/Nexora.Web/src/CourseScreen.tsx",
+      "sha256LF": "305a5c9a2f195a1e554545d0dae7623ba4b74f039a91bde1bc94dfebacd8575c"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningPlanApi.ts",
+      "sha256LF": "fcc04edf20cadf5623443d68ded62216d004e14eed180496140ca290c0bdf56c"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningPlanScreen.tsx",
+      "sha256LF": "dfcc97d7a1474b3f304da39e7d63b002ead33cd2e0300779fd28bedaec27276a"
+    },
+    {
+      "path": "web/Nexora.Web/src/LearningScreen.tsx",
+      "sha256LF": "8b62b30a15656d7fe4ed787606a8949dd3646201c522404606ca41adad488ef7"
+    },
+    {
+      "path": "web/Nexora.Web/src/SkillScreen.tsx",
+      "sha256LF": "94d8628d6a02ae1d890b7ad5d96d774338d782324308ea056ecb780194ede189"
+    },
+    {
+      "path": "web/Nexora.Web/src/ToolboxMoreOffline.ts",
+      "sha256LF": "9b3f48e07f9631da2d810368a8397eb289f5b19b79236fcb59e98b0e6e757a62"
+    },
+    {
+      "path": "web/Nexora.Web/src/ToolboxMoreOfflineOptions.tsx",
+      "sha256LF": "de371ad62be05cd32e322c28057b11cd5097d555a8339d1ce79f832fa7ed22b7"
+    },
+    {
+      "path": "web/Nexora.Web/src/collectionApi.ts",
+      "sha256LF": "6d92cd8d9f0fb2c2fef7f1c743ce14b4c593ae0f9bc97beb52b1e0da7a610f2f"
+    },
+    {
+      "path": "web/Nexora.Web/src/collections.css",
+      "sha256LF": "6f6b2ae89a2a8a0827741333239d8e3cbcc8ad7bf1394e7547e41f22702b34af"
+    },
+    {
+      "path": "web/Nexora.Web/src/courseApi.ts",
+      "sha256LF": "86439e41721f3d02be714ca87a33ee1896ab5ba5aaebc54c04b9bb4c6472d8ba"
+    },
+    {
+      "path": "web/Nexora.Web/src/skillApi.ts",
+      "sha256LF": "7a32e447210c858b85330a240437beaac7be92e4ca9cd92e976e23e5221fe629"
+    }
+  ],
+  "changedSourceDigest": "3cb465a78ed8d9f001a7b4653e27371e36ba08dd8cfd135f28391ed109acacc8"
+}

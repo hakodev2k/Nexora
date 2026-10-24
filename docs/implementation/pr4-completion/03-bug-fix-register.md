@@ -1,5 +1,25 @@
 # Current bug fixes and contract reconciliation
 
+## Oct24 source-review corrections (runtime retest NOT RUN)
+
+Baseline14c76bcb plus new R1 changes. Independent source findings, not browser
+reproductions. Severity Medium / priority P2 except R24-AUTH-01 High/P1;
+confidence High for inspected source.
+State CODE_IMPLEMENTED; re-review and owner runtime acceptance in linked reports.
+No synthetic entities created.
+
+| Finding | Trigger / cause / impact | Correction and closure criterion | Evidence |
+|---|---|---|---|
+| R24-AUTH-01 (High/P1) | Historical-only registration left installed Collections/Skill merge and Toolbox ineligible for Admin SELF grants | Exact7Collection and15shippedToolbox keys in effective ShippedSelf; Skill merge in effective Skill. No historical-set promotion, grants/status/module/Deny bypass, Plan activation or unshipped tools. Owner tests Allow/absent/Deny/revoke/inactive matrix | [Central review](workers/r1-20261024-review-skill-merge.md), [Toolbox delta](workers/r1-20261024-review-plan-tools.md); ActionGrantPolicy |
+| CR-01 | Course202 or wrong/missing child identity/revision could retire original command as committed | Exact201create/200other final status; nonzero root ID/canonical wire revision; generated or expected child ID/revision; null purge/delete exceptions. Malformed ACK retains original. Owner verifies malformed/nonfinal/replay scenarios | [Course review](workers/r1-20261024-review-course.md); courseApi.writeCourse/wrappers |
+| COL-R01 | Native Collection create/delete changed selection but left old/deleted URL, breaking reload/bookmark | Committed host navigation after render releases write/modal guards; local fallback retained. Owner checks create from list/detail, delete, reload/back | [Collections review](workers/r1-20261024-review-collections.md); CollectionsScreen.persist/committedNavigation |
+| R24-PT-01 | Switch tool/menu/back silently lost private diff/color drafts | Guard both inputs/output/options, flight and browser close; shared discard/stay modal; controlled switch clears drafts only after confirmation. Owner checks keyboard/back/cancel/denial/mobile | [Plan/tools review](workers/r1-20261024-review-plan-tools.md); App.DeveloperToolsScreen |
+
+Also hardened Collection candidate/revision read generations/current read proof;
+preserved existing permission migration statuses; replaced raw workbench action
+labels with truthful browser/server processing text. These are source improvements,
+not fabricated runtime findings or measured performance claims.
+
 Source checkpoints: Toolbox94fac58, backendccbc64d, Knowledge053b015,
 Productivity4eed0af, frontend738f528. Final CSS/evidence are separate continuation.
 Whole product remains INCOMPLETE; source review is bounded, not release acceptance.

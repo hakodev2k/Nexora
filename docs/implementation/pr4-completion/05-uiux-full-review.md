@@ -1,5 +1,13 @@
 # UI/UX execution report — partial coverage, not full acceptance
 
+**Oct24 new R1 increment:** no browser, screenshot or viewport execution under
+latest code-only authorization. Observations below apply to historical source.
+New Collections create/edit/picker/delete/abandon, Skill merge picker/preview/history,
+Plan lifecycle, native Courses and Workbench discard dialogs are CODE_IMPLEMENTED /
+NOT_EXERCISED on new source. CR-01/COL-R01/R24-PT-01 root fixes and owner acceptance
+criteria: [fix register](03-bug-fix-register.md). Shared modal/keyboard/responsive
+patterns were reused; no whole-screen visual/a11y acceptance is inferred.
+
 Actual current browser execution uses Chromium headless-shell153.0.8010.12,
 loopback Vite and controlled synthetic HTTP. Vite and browser must share the same
 exec network namespace; an earlier separate-session attempt was connection-refused

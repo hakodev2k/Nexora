@@ -1,5 +1,13 @@
 # Verification checkpoint — incomplete release
 
+**Current Oct24 R1 increment:** base14c76bcb plus new code; code-only authorization.
+Unit/integration project builds each exit0,0warnings/0errors; final TypeScript/Vite
+build exit0,378modules, retained >500kB advisory. Current curated logs/source map:
+[oct24-r1](evidence/oct24-r1). Local functional cases0; no migrations, browser,
+fixtures, load or ACL runtime started. Historical CI counts below do not certify
+new code. Independent source reports are separate from runtime gates. See
+[root handoff](workers/r1-20261024-root-integration.md); R1 remains incomplete.
+
 Actual application/test source snapshot digest:
 `2282dac6600ac2e0ccff90c49b1302e4bbecf1c9a3a81ec58b8413d13f596b27`.
 See evidence/tested-source-manifest.json (576source/test/migration files; SHA256

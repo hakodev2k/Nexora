@@ -1,5 +1,10 @@
 # PR4 implementation checkpoint — 2026-10-22
 
+**Latest code increment:** [Oct24 R1 implementation plan](12-r1-implementation-20261024.md)
+and [root integration handoff](workers/r1-20261024-root-integration.md). Current
+code-only authorization supersedes historical QA permissions below. New executable
+changes require their own review/verification; R1 remains incomplete and PR4 Draft.
+
 **Current continuation:** [Oct23 integrated-code/build-only checkpoint](09-continuation-20261023.md).
 Latest integration: [Oct24 preserved QA history and conflict reconciliation](10-integration-20261024.md).
 Latest CI/fix: [controlled ShareLink concurrency regression](11-sharing-concurrency-20261024.md).

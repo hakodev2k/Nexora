@@ -42,3 +42,18 @@ UI options; SQL0087 inserts missing definitions only. FX04/FX24 privacy repairs
 have source changes and independent review; final SQL acceptance remains pending.
 The recovered02-requirement-to-code-matrix.csv is an earlier lexical checkpoint,
 not an executed coverage matrix or semantic proof on current source.
+
+## Oct24 exact new command trace (code-only, not acceptance)
+
+| Requirement / FX | Exact action(s) | API / SQL / UI | Security / evidence / owner |
+|---|---|---|---|
+| P03-ORG-002; FX24-S02/S03; BR004/005; AC003 | organization.collection.read/create/update/delete | CollectionEndpoints + SqlCollectionService;0090 owner container/member FK and rowversion; CollectionsScreen `/collections[/UUID]` metadata forms and delete confirmation | Live SELF/currentFX24; opaque digest receipt; delete only container; Anscombe/root; builds only, runtime pending |
+| Same FX24 source references | organization.collection.add/remove/reorder | Members routes + source-owned Project/Document/Bookmark/Snippet participants; decimal physical slots; candidate picker and keyboard reorder | Source current-read/lifecycle, hidden refs omitted, exact visible-set reorder, original request retained; root; independent source report |
+| P07-SKL-001; FX40-S01/S02; BR002 | learning.skill.merge (+learning.skill.read, Course read when evidence exists) | Skill preview-merge/merge/merge-history;0088 immutable history and merge tombstone; target picker/preview/history UI | Both owner ETags/current source authority, signed expiry/count proof, opaque replay; Hegel; source review separate from runtime |
+| P07-LRN-001; FX40-S05; BR006; D06 | learning.plan.archive/unarchive (+learning.plan.read) | Lifecycle preview/commit;0089 exact prior-state/contract guards; lifecycle dialog | Readiness false/Gated; no source mutations; authenticated preview, original receipt/current authority; Franklin; independent bounded source review |
+| FX40-S03/S05; D06 | learning.plan.read and learning.course.read plus existing Course writes | Typed available Goal/Task/Course open; App native Courses list/detail and finite login-return routes | Owner-context remount, capabilities before read, immutable recovery and operation-specific final ACK; root; source review, no browser run |
+| P06-DAT-004/TBX001–004/007/008; FX32-S02; BR001 | toolbox.text_diff.run / toolbox.color.run | Browser helper/options; empty-payload RunMoreOffline authority seam;0091 definitions; workbench/cancel/discard | No payload server/storage/provider; bounds/cancellation/inert output/current policy; Kepler/root; source review, no functional/performance run |
+
+Status of these bounded delivered commands is CODE_IMPLEMENTED / VERIFICATION_PENDING;
+Plan execution remains deliberately Gated. This increment does not complete the
+remaining semantic matrix for all40FX or replace older UNMAPPED rows with passes.

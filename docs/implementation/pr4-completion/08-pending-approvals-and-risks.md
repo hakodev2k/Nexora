@@ -1,5 +1,15 @@
 # Remaining work, genuine gates and resumable handoff
 
+**Oct24 code-only delta:** Collection, Skill merge, Plan archive/unarchive and
+native Course/source navigation are now code-present; do not continue from older
+absent-code statements. [Plan12](12-r1-implementation-20261024.md), the all40 ledger
+delta and worker reports identify current boundaries. Templates, stored Discovery,
+Shopping Orders/Sellers/Warranty, Career Resume, Certification/renewals, Plan
+Trash/cohort/progress and remaining Toolbox families remain ordinary unfinished
+implementation. These are not blanket PO blockers. Plan activation, real SQL/API/
+browser/full-popup/platform acceptance remain distinct pending gates; latest AGENTS
+prohibits new tests/fixtures/local runtime in this run. D01–D09 gates are unchanged.
+
 Status: R1INCOMPLETE; DraftPR4 preserved. This checkpoint is valid integrated
 progress, not successful100%implementation. Repeated runtime resets and two
 explicit subagent usage-limit failures interrupted earlier work; current source
