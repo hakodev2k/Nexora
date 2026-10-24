@@ -1,0 +1,21 @@
+{
+  "parent": "1b6a1ab57897ce86e8cae1396acc9590ac80129d",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlSearchService.cs",
+      "sha256": "aa8bcafda510b138622b7a2a78b67b72e0b6738e71f383bda841b784a4168c6d",
+      "publishedLfSha256": "aa8bcafda510b138622b7a2a78b67b72e0b6738e71f383bda841b784a4168c6d"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "1714f880664d3eb5e1e211e080aea9029f800a7051eed709dc29a9c3bb4c59b0",
+      "publishedLfSha256": "1714f880664d3eb5e1e211e080aea9029f800a7051eed709dc29a9c3bb4c59b0"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "ad1c77e9e2ca89f6193740a3f587d93fe8522a72837366c02fbb933eedbcaaf8",
+      "publishedLfSha256": "ad1c77e9e2ca89f6193740a3f587d93fe8522a72837366c02fbb933eedbcaaf8"
+    }
+  ]
+}

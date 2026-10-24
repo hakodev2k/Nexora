@@ -1,0 +1,11 @@
+.collections-screen { min-width: 0; }
+.collections-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin-block: .8rem; }
+.collections-layout { display: grid; grid-template-columns: minmax(15rem, 1fr) minmax(0, 2fr); gap: 1.5rem; }
+.collections-layout > * { min-width: 0; }
+.collections-list, .collections-members { display: grid; gap: .8rem; padding-inline-start: 1.5rem; }
+.collections-list li, .collections-members li { overflow-wrap: anywhere; padding-block: .5rem; }
+.collections-form { display: grid; gap: .65rem; }
+.collections-form input, .collections-form select, .collections-form textarea { max-width: 100%; min-width: 0; box-sizing: border-box; }
+.collections-description { white-space: pre-wrap; overflow-wrap: anywhere; }
+.collections-screen button:focus-visible, .collections-screen input:focus-visible, .collections-screen select:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+@media (max-width: 760px) { .collections-layout { grid-template-columns: 1fr; } }

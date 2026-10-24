@@ -1,0 +1,8 @@
+{
+  "utc": "2026-10-18T17:37:47.5811049Z",
+  "head": "1cd27a46a2ba1f24ab2b6f32f84771230f4b1761",
+  "branch": "impl/m01-s00-scaffold",
+  "sourcePathsChecked": 612,
+  "changedSourcePaths": [],
+  "generatedArtifactDeviation": "web/Nexora.Web/artifacts/vitest-junit.xml overwritten by configured reporter; original not backed up"
+}

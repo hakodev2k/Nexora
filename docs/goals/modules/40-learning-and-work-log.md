@@ -2,7 +2,18 @@
 
 Product phase: **P07** · Delivery: **RM15** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-40 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** Local implementation is approved by DEC014; existing Skill/Course
+subsets and [manual Work Log](../../implementation/remediation-plan-20261016/worklog-manual-contract-20261018.md)
+are code-present. Work Log implements own manual metadata, Archive/Unarchive and
+gross day totals. Category-filtered list/report and private immutable edit/lifecycle
+snapshots are additionally code-present under the
+[continuation contract](../../implementation/remediation-plan-20261016/worklog-filter-history-contract-20261018.md).
+Native [Trash/Restore/Purge](../../implementation/remediation-plan-20261016/worklog-trash-contract-20261018.md)
+is also code-present: exact prior state/cohort, signed dependency preview, version
+deletion only on explicit purge, minimal registry/audit/receipt retained.
+TimeEntry deduplication/linking (AC004), other source refs, global Trash provider registration and remaining
+FX40 capabilities are open; runtime acceptance and
+independent review remain Pending. FX-40 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Mục tiêu và bằng chứng chấp nhận
 

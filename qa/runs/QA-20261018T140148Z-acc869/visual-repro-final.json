@@ -1,0 +1,402 @@
+[
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "attempt": 1,
+    "width": 768,
+    "scrollWidth": 834,
+    "quickCreateCount": 3,
+    "overflow": [
+      {
+        "tag": "DIV",
+        "cls": "section-heading",
+        "left": 297.3125,
+        "right": 833.828125,
+        "width": 536.515625,
+        "text": "Bố cục DashboardChưa có bố cục đã lưu"
+      },
+      {
+        "tag": "SPAN",
+        "cls": "",
+        "left": 676.125,
+        "right": 833.828125,
+        "width": 157.703125,
+        "text": "Chưa có bố cục đã lưu"
+      },
+      {
+        "tag": "FIELDSET",
+        "cls": "",
+        "left": 299.3125,
+        "right": 831.828125,
+        "width": 532.515625,
+        "text": "Widget đã đăng kýNguồnTasks due and overdueCalendar todayRecent DocumentsUnread "
+      },
+      {
+        "tag": "OL",
+        "cls": "resource-cards",
+        "left": 313.3125,
+        "right": 817.828125,
+        "width": 504.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "DIV",
+        "cls": "resource-actions",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "↑↓Gỡ widget"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 754.515625,
+        "right": 774.078125,
+        "width": 19.5625,
+        "text": "↑"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 781.265625,
+        "right": 800.828125,
+        "width": 19.5625,
+        "text": "↓"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "Gỡ widget"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "DIV",
+        "cls": "resource-actions",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "↑↓Gỡ widget"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 754.515625,
+        "right": 774.078125,
+        "width": 19.5625,
+        "text": "↑"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 781.265625,
+        "right": 800.828125,
+        "width": 19.5625,
+        "text": "↓"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "Gỡ widget"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "DIV",
+        "cls": "resource-actions",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "↑↓Gỡ widget"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 754.515625,
+        "right": 774.078125,
+        "width": 19.5625,
+        "text": "↑"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 781.265625,
+        "right": 800.828125,
+        "width": 19.5625,
+        "text": "↓"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "Gỡ widget"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      }
+    ]
+  },
+  {
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "attempt": 2,
+    "width": 768,
+    "scrollWidth": 834,
+    "quickCreateCount": 3,
+    "overflow": [
+      {
+        "tag": "DIV",
+        "cls": "section-heading",
+        "left": 297.3125,
+        "right": 833.828125,
+        "width": 536.515625,
+        "text": "Bố cục DashboardChưa có bố cục đã lưu"
+      },
+      {
+        "tag": "SPAN",
+        "cls": "",
+        "left": 676.125,
+        "right": 833.828125,
+        "width": 157.703125,
+        "text": "Chưa có bố cục đã lưu"
+      },
+      {
+        "tag": "FIELDSET",
+        "cls": "",
+        "left": 299.3125,
+        "right": 831.828125,
+        "width": 532.515625,
+        "text": "Widget đã đăng kýNguồnTasks due and overdueCalendar todayRecent DocumentsUnread "
+      },
+      {
+        "tag": "OL",
+        "cls": "resource-cards",
+        "left": 313.3125,
+        "right": 817.828125,
+        "width": 504.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "DIV",
+        "cls": "resource-actions",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "↑↓Gỡ widget"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 754.515625,
+        "right": 774.078125,
+        "width": 19.5625,
+        "text": "↑"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 781.265625,
+        "right": 800.828125,
+        "width": 19.5625,
+        "text": "↓"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "Gỡ widget"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "DIV",
+        "cls": "resource-actions",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "↑↓Gỡ widget"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 754.515625,
+        "right": 774.078125,
+        "width": 19.5625,
+        "text": "↑"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 781.265625,
+        "right": 800.828125,
+        "width": 19.5625,
+        "text": "↓"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "Gỡ widget"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      },
+      {
+        "tag": "DIV",
+        "cls": "resource-actions",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "↑↓Gỡ widget"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 754.515625,
+        "right": 774.078125,
+        "width": 19.5625,
+        "text": "↑"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 781.265625,
+        "right": 800.828125,
+        "width": 19.5625,
+        "text": "↓"
+      },
+      {
+        "tag": "BUTTON",
+        "cls": "",
+        "left": 740.765625,
+        "right": 800.828125,
+        "width": 60.0625,
+        "text": "Gỡ widget"
+      },
+      {
+        "tag": "LI",
+        "cls": "resource-card",
+        "left": 353.3125,
+        "right": 817.828125,
+        "width": 464.515625,
+        "text": "NguồnTasks due and overdueCalendar todayRecent DocumentsUnread NotificationsKích"
+      }
+    ]
+  },
+  {
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "attempt": 1,
+    "width": 320,
+    "scrollWidth": 324,
+    "quickCreateCount": 3,
+    "overflow": [
+      {
+        "tag": "DIV",
+        "cls": "section-heading",
+        "left": 34.59375,
+        "right": 323.59375,
+        "width": 289,
+        "text": "Bố cục DashboardChưa có bố cục đã lưu"
+      },
+      {
+        "tag": "FIELDSET",
+        "cls": "",
+        "left": 36.59375,
+        "right": 321.59375,
+        "width": 285,
+        "text": "Widget đã đăng kýNguồnTasks due and overdueCalendar todayRecent DocumentsUnread "
+      }
+    ]
+  },
+  {
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "attempt": 2,
+    "width": 320,
+    "scrollWidth": 324,
+    "quickCreateCount": 3,
+    "overflow": [
+      {
+        "tag": "DIV",
+        "cls": "section-heading",
+        "left": 34.59375,
+        "right": 323.59375,
+        "width": 289,
+        "text": "Bố cục DashboardChưa có bố cục đã lưu"
+      },
+      {
+        "tag": "FIELDSET",
+        "cls": "",
+        "left": 36.59375,
+        "right": 321.59375,
+        "width": 285,
+        "text": "Widget đã đăng kýNguồnTasks due and overdueCalendar todayRecent DocumentsUnread "
+      }
+    ]
+  }
+]

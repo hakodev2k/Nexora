@@ -1,0 +1,41 @@
+{
+  "parent": "5de5c530fb4565f3b1f10cb5bb5e1d97ef836b4c",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SearchCursor.cs",
+      "sha256": "58e6a74cf15302ed00d7420f4de04627284e142dd6b89c91b41eb84d8bcc602c",
+      "publishedLfSha256": "58e6a74cf15302ed00d7420f4de04627284e142dd6b89c91b41eb84d8bcc602c"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Discovery/SqlSearchService.cs",
+      "sha256": "e68f8291b158ae215bc31d3040d625ed6dc3d2eeab10a8c0e0234fef349320cc",
+      "publishedLfSha256": "e68f8291b158ae215bc31d3040d625ed6dc3d2eeab10a8c0e0234fef349320cc"
+    },
+    {
+      "path": "src/Nexora.Application/Discovery/SearchServiceContracts.cs",
+      "sha256": "61a231bfdeab17a173c6c00fe342e45809bd44c7aadf6114b2080c80ea493bce",
+      "publishedLfSha256": "d4c735759aa18c508be38c0839dfbcab5c9568cfad5df611db9a09e3678d5ced"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Discovery/SearchEndpoints.cs",
+      "sha256": "96a60863fe9d1c69b498cff736036266a566fe76114629ad1e81a5c6e62b737c",
+      "publishedLfSha256": "e26799650fa9115d05088310d0891602099aae4745591a0206a27494fe62d389"
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "de0f56eee8514c9798e56a18b14b31d7da7ca64a8ec706a534435f7042bbe164",
+      "publishedLfSha256": "8f86c720b9e4107aef23d25d2ccfde6535abd3d73b6e2821d47a1c3ded684a82"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "cc41e349e17db4316c94d60098f66666dc92b6ddf046b302be78aae191180fa1",
+      "publishedLfSha256": "cc41e349e17db4316c94d60098f66666dc92b6ddf046b302be78aae191180fa1"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "2f5cd54c983967c8378c269cca899f327a639035fe3f7ddf60b53cfeae76fc50",
+      "publishedLfSha256": "2f5cd54c983967c8378c269cca899f327a639035fe3f7ddf60b53cfeae76fc50"
+    }
+  ]
+}

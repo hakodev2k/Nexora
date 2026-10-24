@@ -1,0 +1,81 @@
+{
+  "verdict": "PARTIAL/BLOCKED; not release ready",
+  "head": "1cd27a46a2ba1f24ab2b6f32f84771230f4b1761",
+  "sourceFingerprintCsvSha256": "309471C6BC07B5FBCAFE934FD02A776C0B1A616EA6E3FB70E9BB204E01BF22E7",
+  "inventory": {
+    "catalogueActions": 733,
+    "endpointDeclarations": 365,
+    "apiModuleGroups": 34,
+    "uiStaticRoutes": 30,
+    "states": {
+      "PARTIAL": 371,
+      "UNKNOWN": 274,
+      "GATED": 20,
+      "NOT_IMPLEMENTED": 87,
+      "IMPLEMENTED": 346
+    },
+    "limitation": "Action and endpoint rows are different inventories, not additive business requirement coverage. Runtime UI inventory is visual-results.json. No sampling promoted to full coverage."
+  },
+  "execution": {
+    "officialBackendUnit": "COMPILE_BLOCKED",
+    "independentUnit": {
+      "pass": 46,
+      "fail": 1,
+      "excludedCompileBrokenTests": 2
+    },
+    "customChecks": {
+      "pass": 30,
+      "fail": 0,
+      "skip": 4,
+      "requiredWindowsBlocked": 1
+    },
+    "frontend": {
+      "pass": 125,
+      "fail": 5,
+      "notRun": 1
+    },
+    "sql": {
+      "pass": 193,
+      "fail": 5
+    },
+    "functional": {
+      "pass": 45,
+      "fail": 11
+    },
+    "targetedBrowser": {
+      "pass": 17,
+      "fail": 0
+    }
+  },
+  "visualObservations": 195,
+  "axeScans": 78,
+  "axeViolationScans": 0,
+  "performance": [
+    {
+      "operation": "WorkLog warm route readiness",
+      "samples": [
+        100,
+        104,
+        111,
+        112,
+        120
+      ],
+      "median": 111,
+      "max": 120
+    },
+    {
+      "operation": "WorkLog open modal",
+      "samples": [
+        24,
+        25,
+        25,
+        26,
+        32
+      ],
+      "median": 25,
+      "max": 32
+    }
+  ],
+  "findings": 20,
+  "finishedReportUtc": "2026-10-18T14:49:21.82Z"
+}

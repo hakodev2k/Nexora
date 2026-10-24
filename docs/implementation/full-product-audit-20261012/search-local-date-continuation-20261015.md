@@ -1,0 +1,17 @@
+# Search User-local date filter repair — contract before code
+
+Task SEARCH-LOCAL-DATE, root accountable; independent security_review. Branch impl/m01-s00-scaffold parent90062a3a6a288db07c18df785ea9040afba6e6a7/tree792e9f75873ee7275241beaafd82dad48117e9d0; main8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3. Existing user full localaudit/implementation andDEC014; code-only. No grants/provider/migrations/datawrites. Rollback revertcode; no retaineddata changed.
+
+Current authority main shared behavior Datefilter andFX-COM009 requires date-only User-local halfopen days; FX25BR001 andP03SRC006 datefiltercombination; NXG-SYS11/FX25G01/G02. Earlier technical Search slice UTCboundary text conflicts with these sources andmustbe corrected, nottreated as businessauthority. Existing configured User.TimeZoneId is source, notlanguage/browserOS/serverzone; read currentownprofile timezone in same Serializable searchtransaction aftercurrentactor proof.
+
+Plan: NodaTime alreadydependency3.3.3; use current Tzdb IANA zone andstart oflocal From date inclusive /dayafter To exclusive. Date-only daymeans completecalendar interval (earliestvalid start includesbothambiguous midnights; short/longdays naturally respected), notfixed24h orscheduleinputguess. Entire-skipped boundaryday orout-of-range/unrepresentable SQL/.NET boundary returns422 DateRangeUnavailable withsafe explanatorymessage, notsilentclamp/UTCfallback/500. Unknown/missing configuredIANA zone503 TimeZoneUnavailable (owner profile correction), notguess a differentzone. No dates => noboundary/timezonelookup needed. No newbroadscans forblankquery.
+
+Cursor semantics version2/sg2 bind resolvedTimeZoneId/TzdbVersion andUTCboundaries alongside existingowner/query/type/date/archive/limit. Profile timezone orTZDB changes invalidateoldcursor422; oldsg1tokensrejected aftersemanticchange, UI offers freshquery. UI dates labelleduserprofiletimezone; protectedfailure/epochs/paging logic unchanged. Allsource matching/count/seek currentproof stays intransaction. Source querycontract amended in-place.
+
+Primary API references checked: https://nodatime.org/3.2.x/api/NodaTime.DateTimeZone.html AtStartOfDay (earliestvalid daystart; whole-skippedday throws), https://nodatime.org/3.2.x/api/NodaTime.Instant.html ToDateTimeUtc (unrepresentableboundary throwsInvalidOperationException). Currentinstalled3.3.3 compile verifiesAPI availability; no dependency update orprovider call.
+
+Validation plan: APIcompile andfrontendtypecheck/build/diffcheck forimplementationerrors only, independentsource review. Humanruntime pending: Asia/HCM daystartoffset, NY23/25hourdays, ambiguous/missingmidnight, Apia skippedday, min/maxdate errors, profiletimezonechangebetweencursorpages andinvalidprofile failclosed, counts/window andownerproof. No tests/fixtures/runtimeQA currentamendment. FullSearch/Documents remainingfacets andproduct INCOMPLETE.
+
+Implementation applied with no newdependencies. API Release build PASS0warnings/errors; frontend TypeScript/Vitebuild PASS78modules with existing >500kB warning (819.52kB JavaScript); scoped diffcheckPASS lineendingwarnings only. No tests/fixtures/runtimeQA. Independent source review pending.
+
+Independent security_review finalsource pass: no confirmed scoped blocker; currentuser/ownerscope, IANA dayrange conversion/errors andsg2context verified byreading source. Final source fingerprints attached. Bounded SEARCH-LOCAL-DATE IMPLEMENTED — VERIFICATION PENDING; DST/timezone race/runtime acceptance notrun andwholeproduct INCOMPLETE.

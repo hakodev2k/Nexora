@@ -1,0 +1,45 @@
+using Nexora.Api.Features.Identity;
+using Nexora.Api.Http;
+using Nexora.Api.Security;
+using Nexora.Application.Identity;
+using Nexora.Application.Learning;
+
+namespace Nexora.Api.Features.Learning;
+
+public static class SkillEndpoints
+{
+    public static WebApplication MapSkillEndpoints(this WebApplication app)
+    {
+        var api = app.MapGroup("/api/v1/learning/skills").RequireCsrfForUnsafeMethods();
+        api.MapGet("/capabilities", (HttpContext c, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Capabilities(a)));
+        api.MapGet("/", (HttpContext c, Guid? cursor, string? status, string? query, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.List(a, cursor, status, query)));
+        api.MapGet("/{id:guid}", (HttpContext c, Guid id, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Get(a, id)));
+        api.MapGet("/{id:guid}/merge-history", (HttpContext c, Guid id, Guid? cursor, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.MergeHistory(a, id, cursor)));
+        api.MapPost("/{id:guid}/preview-merge", (HttpContext c, Guid id, SkillMergeSelection body, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.PreviewMerge(a, id, c.Request.Headers.IfMatch.ToString(), body)));
+        api.MapPost("/{id:guid}/merge", (HttpContext c, Guid id, SkillMergeCommand body, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Merge(a, id, c.Request.Headers.IfMatch.ToString(), body, Key(c), c.TraceIdentifier)));
+        api.MapGet("/{id:guid}/evidence", (HttpContext c, Guid id, Guid? cursor, ISkillEvidenceService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.ListEvidence(a, id, cursor)));
+        api.MapPost("/{id:guid}/evidence", (HttpContext c, Guid id, SkillEvidenceCommand body, ISkillEvidenceService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.AddEvidence(a, id, c.Request.Headers.IfMatch.ToString(), body, Key(c), c.TraceIdentifier)));
+        api.MapDelete("/{id:guid}/evidence/{evidenceId:guid}", (HttpContext c, Guid id, Guid evidenceId, ISkillEvidenceService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.RemoveEvidence(a, id, evidenceId, c.Request.Headers.IfMatch.ToString(), Key(c), c.TraceIdentifier)));
+        api.MapPost("/", (HttpContext c, SkillCreate body, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Create(a, body, Key(c), c.TraceIdentifier)));
+        api.MapPut("/{id:guid}", (HttpContext c, Guid id, SkillMetadata body, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Update(a, id, c.Request.Headers.IfMatch.ToString(), body, Key(c), c.TraceIdentifier)));
+        api.MapPost("/{id:guid}/proficiency", (HttpContext c, Guid id, SkillProficiency body, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Proficiency(a, id, c.Request.Headers.IfMatch.ToString(), body, Key(c), c.TraceIdentifier)));
+        foreach (var operation in new[] { "archive", "unarchive", "trash", "restore", "purge" })
+        {
+            var op = operation;
+            api.MapPost("/{id:guid}/preview-" + op, (HttpContext c, Guid id, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Preview(a, id, op)));
+            api.MapPost("/{id:guid}/" + op, (HttpContext c, Guid id, SkillConfirmation body, ISkillService s, IIdentityService i, SessionCookieService cookies) => Run(c, i, cookies, a => s.Transition(a, id, c.Request.Headers.IfMatch.ToString(), op, body, Key(c), c.TraceIdentifier)));
+        }
+        return app;
+    }
+    private static string Key(HttpContext c) => c.Request.Headers["Idempotency-Key"].ToString();
+    private static IResult Run<T>(HttpContext c, IIdentityService identity, SessionCookieService cookies, Func<IdentityPrincipal, IdentityOperationResult<T>> operation)
+    {
+        var auth = identity.GetPrincipal(cookies.ReadRawHandle(c.Request));
+        var result = auth.Succeeded && auth.Value is not null ? operation(auth.Value) : IdentityOperationResult<T>.Failure(auth.Code, auth.StatusCode, auth.Title);
+        if (result.Value is Skill item) c.Response.Headers.ETag = item.ETag;
+        if (result.Value is SkillAcknowledgement acknowledgement && acknowledgement.ETag is { } etag) c.Response.Headers.ETag = etag;
+        if (result.Succeeded && result.Acknowledgement is { } committed)
+            return new ApiResult<CommittedResourceAcknowledgement>(true, committed, result.Code, result.StatusCode, result.Title).ToHttp(c);
+        return new ApiResult<T>(result.Succeeded, result.Value, result.Code, result.StatusCode, result.Title).ToHttp(c);
+    }
+}

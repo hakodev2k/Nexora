@@ -1,0 +1,9 @@
+# FX34 final failure alert implementation — 2026-10-11
+
+P06-AUT010 / FX34-BR005 / FX34-AC004; automation.step.dispatch, automation.run.read, notifications.inbox.read. Implemented source, functional verification NOT_RUN. Status PARTIALLY_IMPLEMENTED because approved actual Email/BrowserPush providers are inactive and QA not performed.
+
+Production changed: Notifications-owned LocalModuleNotificationWriter, AutomationRun service projection/terminal transition, Application notice contract, React run detail/API type. Real Failed/PartiallySucceeded/TimedOut transition writes one owner/run logical notification + InApp/Email/BrowserPush delivery states + completed local projection outbox in the same SQL transaction. Stable logical uniqueness survives inbox soft-delete, no intermediate retries/Cancelled/Skipped/Succeeded alerts. Terminal transition idempotency also prevents mutation of terminal StepRuns. Existing owner inbox/API/read-state workflows consume persisted notices; run detail additionally shows delivery state only with current notification-read/automation-read permission. Generic body, no resource input/name, secret or raw error. InApp durable projection delivered; external channels ProviderUnavailable, no external delivery claimed.
+
+No schema/migration changes, no fixtures/tests/providers enabled. .NET10 Release API build PASS0warnings/errors; frontend tsc/vite PASS(existing large bundle warning); git diff --check PASS. Independent source/security review no confirmed blocker. SQL/API/browser/dedupe/runtime acceptance NOT_RUN under current code-only amendment.
+
+Remaining: actual Email/BrowserPush delivery after separate provider approval; durable scheduler/cron/IANA/DST, terminal retry_step, verified DryRun, purge/retention/support and human QA. Overall FX34 and release remain incomplete; FX35/FX30 not completed by this batch.

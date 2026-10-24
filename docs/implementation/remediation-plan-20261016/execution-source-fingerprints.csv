@@ -1,0 +1,6 @@
+"Path","SHA256","Revision","Verification"
+"src/Nexora.Infrastructure/Goals/SqlGoalService.cs","33b3eb82748c697638161850155cac5a24b45cd74c7bcc064f5a790f7bcfaa26","working tree on 1cd27a46a2ba1f24ab2b6f32f84771230f4b1761","compile/build only; runtime/review pending"
+"src/Nexora.Infrastructure/Identity/SqlRequestReceiptStore.cs","3cd02300c6bdd580e3565f1195ab707dabe12072134ed07b483aed16e788f2bc","working tree on 1cd27a46a2ba1f24ab2b6f32f84771230f4b1761","compile/build only; runtime/review pending"
+"src/Nexora.Api/Features/Goals/GoalsEndpoints.cs","fc97d2559400d4b3c3c7bb37a9ccc1649c54b012550c0967a0c8e2b5d9f188a5","working tree on 1cd27a46a2ba1f24ab2b6f32f84771230f4b1761","compile/build only; runtime/review pending"
+"web/Nexora.Web/src/App.tsx","ce516f39e911b0f0cf2bb685a7bcd9f1d3e352f6a72d1770c277e569e5fedad5","working tree on 1cd27a46a2ba1f24ab2b6f32f84771230f4b1761","compile/build only; runtime/review pending"
+"web/Nexora.Web/src/api.ts","3475c9788cdc0d15bdbc5276c7094f695b66ed7cf6306327a5df844097de6e9e","working tree on 1cd27a46a2ba1f24ab2b6f32f84771230f4b1761","compile/build only; runtime/review pending"

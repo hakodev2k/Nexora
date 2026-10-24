@@ -1,0 +1,267 @@
+ M .github/workflows/m01-ci.yml
+ M docs/action-catalog/modules/16-goals.md
+ M docs/action-catalog/modules/25-discovery.md
+ M docs/action-catalog/modules/40-learning.md
+ M docs/delivery/01-current-scope.md
+ M docs/design-database/05-productivity-calendar.md
+ M docs/design-database/06-documents-knowledge-discovery.md
+ M docs/design-database/10-assets-career-learning.md
+ M docs/features/16-goals.md
+ M docs/features/25-search-favorites-and-command-palette.md
+ M docs/features/26-dashboard.md
+ M docs/features/40-learning-and-work-log.md
+ M docs/goals/modules/16-goals.md
+ M docs/goals/modules/25-search-favorites-and-command-palette.md
+ M docs/goals/modules/26-dashboard.md
+ M docs/goals/modules/40-learning-and-work-log.md
+ M docs/ux-ui/modules/16-goals.md
+ M docs/ux-ui/modules/25-search-favorites-command-palette.md
+ M docs/ux-ui/modules/40-learning.md
+ M src/Nexora.Api/Features/Dashboard/DashboardContracts.cs
+ M src/Nexora.Api/Features/Dashboard/DashboardEndpoints.cs
+ M src/Nexora.Api/Features/Documents/DocumentContracts.cs
+ M src/Nexora.Api/Features/Documents/DocumentEndpoints.cs
+ M src/Nexora.Api/Features/Finance/FinanceContracts.cs
+ M src/Nexora.Api/Features/Finance/FinanceEndpoints.cs
+ M src/Nexora.Api/Features/Goals/GoalsContracts.cs
+ M src/Nexora.Api/Features/Goals/GoalsEndpoints.cs
+ M src/Nexora.Api/Features/Habits/HabitEndpoints.cs
+ M src/Nexora.Api/Features/Learning/SkillEndpoints.cs
+ M src/Nexora.Api/Features/Notifications/NotificationContracts.cs
+ M src/Nexora.Api/Features/Notifications/NotificationEndpoints.cs
+ M src/Nexora.Api/Features/Planner/PlannerContracts.cs
+ M src/Nexora.Api/Features/Planner/PlannerEndpoints.cs
+ M src/Nexora.Api/Features/Reading/ReadingContracts.cs
+ M src/Nexora.Api/Features/Reading/ReadingEndpoints.cs
+ M src/Nexora.Api/Program.cs
+ M src/Nexora.Api/packages.lock.json
+ M src/Nexora.Application/Dashboard/DashboardServiceContracts.cs
+ M src/Nexora.Application/Documents/DocumentServiceContracts.cs
+ M src/Nexora.Application/Finance/FinanceServiceContracts.cs
+ M src/Nexora.Application/Goals/GoalServiceContracts.cs
+ M src/Nexora.Application/Notifications/NotificationServiceContracts.cs
+ M src/Nexora.Application/Planner/PlannerServiceContracts.cs
+ M src/Nexora.Application/Reading/ReadingServiceContracts.cs
+ M src/Nexora.Bootstrap/packages.lock.json
+ M src/Nexora.Domain/Access/ActionGrantPolicy.cs
+ M src/Nexora.Infrastructure/Authorization/SqlSelfCapability.cs
+ M src/Nexora.Infrastructure/Bookmarks/SqlBookmarkService.cs
+ M src/Nexora.Infrastructure/Career/SqlCareerService.cs
+ M src/Nexora.Infrastructure/Dashboard/SqlDashboardService.cs
+ M src/Nexora.Infrastructure/Discovery/SqlFavoriteService.cs
+ M src/Nexora.Infrastructure/Discovery/SqlSearchService.cs
+ M src/Nexora.Infrastructure/Documents/DocumentListCursor.cs
+ M src/Nexora.Infrastructure/Documents/SqlDocumentHistory.cs
+ M src/Nexora.Infrastructure/Documents/SqlDocumentService.cs
+ M src/Nexora.Infrastructure/Documents/SqlDocumentSharedSource.cs
+ M src/Nexora.Infrastructure/Documents/SqlDocumentTagService.cs
+ M src/Nexora.Infrastructure/Files/SqlFileService.cs
+ M src/Nexora.Infrastructure/Finance/SqlFinanceService.cs
+ M src/Nexora.Infrastructure/Goals/SqlGoalService.cs
+ M src/Nexora.Infrastructure/Habits/SqlHabitService.cs
+ M src/Nexora.Infrastructure/Identity/SqlRequestReceiptStore.cs
+ M src/Nexora.Infrastructure/Learning/SqlCourseService.cs
+ M src/Nexora.Infrastructure/Learning/SqlSkillService.cs
+ M src/Nexora.Infrastructure/Local/M01MigrationManifest.cs
+ M src/Nexora.Infrastructure/Nexora.Infrastructure.csproj
+ M src/Nexora.Infrastructure/Notifications/SqlNotificationService.cs
+ M src/Nexora.Infrastructure/Planner/SqlPlannerService.cs
+ M src/Nexora.Infrastructure/Productivity/SqlProductivityService.cs
+ M src/Nexora.Infrastructure/Reading/ReadingListCursor.cs
+ M src/Nexora.Infrastructure/Reading/SqlReadingService.cs
+ M src/Nexora.Infrastructure/Sharing/SqlSharingService.cs
+ M src/Nexora.Infrastructure/Snippets/SqlSnippetService.cs
+ M src/Nexora.Infrastructure/packages.lock.json
+ M src/Nexora.Local/packages.lock.json
+ M tests/Nexora.FunctionalTestOperator/packages.lock.json
+ M tests/Nexora.IntegrationTests/SqlApiIntegrationTests.cs
+ M tests/Nexora.IntegrationTests/SqlCalendarImportTests.cs
+ M tests/Nexora.IntegrationTests/SqlCompositeCapabilityTests.cs
+ M tests/Nexora.IntegrationTests/SqlNewsMigrationTests.cs
+ M tests/Nexora.IntegrationTests/SqlSharingRepairTests.cs
+ M tests/Nexora.IntegrationTests/SqlTagPaginationTests.cs
+ M tests/Nexora.IntegrationTests/packages.lock.json
+ M tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs
+ M tests/Nexora.UnitTests/packages.lock.json
+ M web/Nexora.Web/artifacts/vitest-junit.xml
+ M web/Nexora.Web/functional/content.spec.ts
+ M web/Nexora.Web/package-lock.json
+ M web/Nexora.Web/package.json
+ M web/Nexora.Web/src/App.surface.test.tsx
+ M web/Nexora.Web/src/App.test.tsx
+ M web/Nexora.Web/src/App.tsx
+ M web/Nexora.Web/src/CareerScreen.tsx
+ M web/Nexora.Web/src/DocumentHistory.tsx
+ M web/Nexora.Web/src/LearningScreen.tsx
+ M web/Nexora.Web/src/ResourceFormDialog.tsx
+ M web/Nexora.Web/src/SharedProjectionContent.tsx
+ M web/Nexora.Web/src/SkillScreen.tsx
+ M web/Nexora.Web/src/api.ts
+ M web/Nexora.Web/src/careerApi.ts
+ M web/Nexora.Web/src/i18n.ts
+ M web/Nexora.Web/src/styles.css
+?? .remediation-work/
+?? database/migrations/20261017_0059_document_version_restore.sql
+?? database/migrations/20261017_0060_saved_search.sql
+?? database/migrations/20261017_0061_dashboard_layout.sql
+?? database/migrations/20261017_0062_career_calendar_links.sql
+?? database/migrations/20261017_0063_skill_evidence.sql
+?? database/migrations/20261017_0064_notification_source_open.sql
+?? database/migrations/20261017_0065_dashboard_refresh.sql
+?? database/migrations/20261017_0066_news_stored_reader.sql
+?? database/migrations/20261017_0067_news_read_history.sql
+?? database/migrations/20261017_0068_reading_news_reference.sql
+?? database/migrations/20261017_0069_documents_topology.sql
+?? database/migrations/20261017_0070_documents_topology_actions.sql
+?? database/migrations/20261017_0071_document_visibility_projection.sql
+?? database/migrations/20261018_0072_document_export_jobs.sql
+?? database/migrations/20261018_0073_document_import_jobs.sql
+?? database/migrations/20261018_0074_dashboard_quick_create.sql
+?? database/migrations/20261018_0075_discovery_recents.sql
+?? database/migrations/20261018_0076_discovery_commands.sql
+?? database/migrations/20261018_0077_goals_progress_history.sql
+?? database/migrations/20261018_0078_goals_target_management.sql
+?? database/migrations/20261018_0079_goals_archive.sql
+?? database/migrations/20261018_0080_worklog_manual.sql
+?? database/migrations/20261018_0081_worklog_history.sql
+?? database/migrations/20261018_0082_goals_state_history.sql
+?? database/migrations/20261018_0083_worklog_trash.sql
+?? database/migrations/20261018_0084_goals_metadata_history.sql
+?? database/migrations/20261018_0085_goals_target_history.sql
+?? docs/implementation/full-product-audit-20261012/continuation-runtime-20261013.md
+?? docs/implementation/full-product-audit-20261012/dashboard-authority-continuation-20261016.md
+?? docs/implementation/remediation-plan-20261016/
+?? qa/
+?? scripts/dev/start-isolated-browser.ps1
+?? scripts/dev/stop-isolated-browser.ps1
+?? scripts/dev/test-sql-ephemeral.sh
+?? src/Nexora.Api/.local-files/
+?? src/Nexora.Api/Features/Career/AppointmentEndpoints.cs
+?? src/Nexora.Api/Features/Dashboard/DashboardLayoutEndpoints.cs
+?? src/Nexora.Api/Features/Discovery/CommandPaletteEndpoints.cs
+?? src/Nexora.Api/Features/Discovery/RecentEndpoints.cs
+?? src/Nexora.Api/Features/Discovery/SavedSearchEndpoints.cs
+?? src/Nexora.Api/Features/Documents/DocumentTopologyEndpoints.cs
+?? src/Nexora.Api/Features/Learning/WorkLogEndpoints.cs
+?? src/Nexora.Api/Features/News/NewsReaderEndpoints.cs
+?? src/Nexora.Api/Features/Transfer/DocumentExportEndpoints.cs
+?? src/Nexora.Api/Features/Transfer/DocumentImportEndpoints.cs
+?? src/Nexora.Api/Http/ExplicitInstantJsonConverter.cs
+?? src/Nexora.Application/Career/AppointmentContracts.cs
+?? src/Nexora.Application/Dashboard/DashboardLayoutContracts.cs
+?? src/Nexora.Application/Discovery/CommandContracts.cs
+?? src/Nexora.Application/Discovery/RecentContracts.cs
+?? src/Nexora.Application/Discovery/SavedSearchContracts.cs
+?? src/Nexora.Application/Documents/DocumentFolderContracts.cs
+?? src/Nexora.Application/Documents/DocumentTreeContracts.cs
+?? src/Nexora.Application/Documents/DocumentVersionContracts.cs
+?? src/Nexora.Application/Learning/SkillEvidenceContracts.cs
+?? src/Nexora.Application/Learning/WorkLogContracts.cs
+?? src/Nexora.Application/News/NewsReaderContracts.cs
+?? src/Nexora.Application/Transfer/DocumentExportContracts.cs
+?? src/Nexora.Application/Transfer/DocumentImportContracts.cs
+?? src/Nexora.Infrastructure/Bookmarks/SqlBookmarkRecentSource.cs
+?? src/Nexora.Infrastructure/Career/SqlCareerAppointmentService.cs
+?? src/Nexora.Infrastructure/Dashboard/DashboardDrilldownCursor.cs
+?? src/Nexora.Infrastructure/Dashboard/SqlDashboardDrilldown.cs
+?? src/Nexora.Infrastructure/Dashboard/SqlDashboardLayoutService.cs
+?? src/Nexora.Infrastructure/Discovery/RecentTokens.cs
+?? src/Nexora.Infrastructure/Discovery/SqlCommandPaletteService.cs
+?? src/Nexora.Infrastructure/Discovery/SqlDiscoverySources.cs
+?? src/Nexora.Infrastructure/Discovery/SqlRecentActivity.cs
+?? src/Nexora.Infrastructure/Discovery/SqlRecentService.cs
+?? src/Nexora.Infrastructure/Discovery/SqlRecentSourceQuery.cs
+?? src/Nexora.Infrastructure/Discovery/SqlSavedSearchService.cs
+?? src/Nexora.Infrastructure/Documents/DocumentBlockSchema.cs
+?? src/Nexora.Infrastructure/Documents/DocumentExportCodec.cs
+?? src/Nexora.Infrastructure/Documents/DocumentFolderCursor.cs
+?? src/Nexora.Infrastructure/Documents/DocumentImportBlocks.cs
+?? src/Nexora.Infrastructure/Documents/DocumentImportCodec.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentArchiveCohorts.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentExportSource.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentFolderService.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentImportTarget.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentPurgeCohorts.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentRecentSource.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentRegistry.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentScopeLock.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentTopology.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentTrashCohorts.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentTreeCommands.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentTreeQueries.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentTreeService.cs
+?? src/Nexora.Infrastructure/Documents/SqlDocumentVersionRestore.cs
+?? src/Nexora.Infrastructure/Files/SqlDocumentFilePins.cs
+?? src/Nexora.Infrastructure/Files/SqlDocumentImportFile.cs
+?? src/Nexora.Infrastructure/Finance/FinanceListCursor.cs
+?? src/Nexora.Infrastructure/Goals/GoalProgressCursor.cs
+?? src/Nexora.Infrastructure/Goals/GoalTargetPreviewCodec.cs
+?? src/Nexora.Infrastructure/Goals/SqlBooleanTargets.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalArchive.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalMetadataHistory.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalProgressHistory.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalRecentSource.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalStateHistory.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalTargetHistory.cs
+?? src/Nexora.Infrastructure/Goals/SqlGoalTargetManagement.cs
+?? src/Nexora.Infrastructure/Learning/SqlCourseEvidenceSource.cs
+?? src/Nexora.Infrastructure/Learning/SqlSkillEvidenceService.cs
+?? src/Nexora.Infrastructure/Learning/SqlWorkLogHistory.cs
+?? src/Nexora.Infrastructure/Learning/SqlWorkLogLifecycle.cs
+?? src/Nexora.Infrastructure/Learning/SqlWorkLogService.cs
+?? src/Nexora.Infrastructure/Learning/WorkLogCursor.cs
+?? src/Nexora.Infrastructure/Learning/WorkLogHistoryCursor.cs
+?? src/Nexora.Infrastructure/Learning/WorkLogLifecycleCodec.cs
+?? src/Nexora.Infrastructure/News/NewsArticleCursor.cs
+?? src/Nexora.Infrastructure/News/SqlNewsArticles.cs
+?? src/Nexora.Infrastructure/News/SqlNewsHistory.cs
+?? src/Nexora.Infrastructure/News/SqlNewsNotificationSource.cs
+?? src/Nexora.Infrastructure/News/SqlNewsReaderService.cs
+?? src/Nexora.Infrastructure/News/SqlNewsReadingParticipant.cs
+?? src/Nexora.Infrastructure/News/SqlNewsSubscriptions.cs
+?? src/Nexora.Infrastructure/Notifications/NotificationListCursor.cs
+?? src/Nexora.Infrastructure/Productivity/SqlNotificationSource.cs
+?? src/Nexora.Infrastructure/Productivity/SqlPlannerTaskSource.cs
+?? src/Nexora.Infrastructure/Productivity/SqlRecentSource.cs
+?? src/Nexora.Infrastructure/Reading/SqlNewsReadingService.cs
+?? src/Nexora.Infrastructure/Snippets/SqlSnippetRecentSource.cs
+?? src/Nexora.Infrastructure/Transfer/SqlDocumentExportService.cs
+?? src/Nexora.Infrastructure/Transfer/SqlDocumentImportService.cs
+?? tests/Nexora.IntegrationTests/SqlProductivityAuthorityTests.cs
+?? tests/Nexora.IntegrationTests/SqlSessionAuthorityTests.cs
+?? tests/Nexora.IntegrationTests/SqlSnippetAuthorityTests.cs
+?? web/Nexora.Web/artifacts/functional-junit.xml
+?? web/Nexora.Web/artifacts/functional-results.json
+?? web/Nexora.Web/artifacts/playwright-output/
+?? web/Nexora.Web/src/CareerAppointments.tsx
+?? web/Nexora.Web/src/CommandPalette.tsx
+?? web/Nexora.Web/src/DashboardDrilldownDialog.tsx
+?? web/Nexora.Web/src/DashboardLayoutEditor.tsx
+?? web/Nexora.Web/src/DashboardQuickCreate.tsx
+?? web/Nexora.Web/src/DocumentBodyEditor.tsx
+?? web/Nexora.Web/src/DocumentExportDialog.tsx
+?? web/Nexora.Web/src/DocumentImportPanel.tsx
+?? web/Nexora.Web/src/DocumentMarkdownPreview.tsx
+?? web/Nexora.Web/src/DocumentNavigation.tsx
+?? web/Nexora.Web/src/DocumentTreeDialog.tsx
+?? web/Nexora.Web/src/FileRestoreDialog.test.tsx
+?? web/Nexora.Web/src/GoalMetadataHistory.tsx
+?? web/Nexora.Web/src/GoalProgressHistory.tsx
+?? web/Nexora.Web/src/GoalStateHistory.tsx
+?? web/Nexora.Web/src/GoalTargetDefinitionHistory.tsx
+?? web/Nexora.Web/src/GoalTargetManager.tsx
+?? web/Nexora.Web/src/NewsArticleDialog.tsx
+?? web/Nexora.Web/src/NewsReaderScreen.tsx
+?? web/Nexora.Web/src/RecentsScreen.tsx
+?? web/Nexora.Web/src/SavedSearches.tsx
+?? web/Nexora.Web/src/SkillEvidence.tsx
+?? web/Nexora.Web/src/WorkLogHistory.tsx
+?? web/Nexora.Web/src/WorkLogScreen.tsx
+?? web/Nexora.Web/src/commandApi.ts
+?? web/Nexora.Web/src/documentTopologyApi.ts
+?? web/Nexora.Web/src/goalNumbers.ts
+?? web/Nexora.Web/src/modalIsolation.ts
+?? web/Nexora.Web/src/navigationGuard.ts
+?? web/Nexora.Web/src/newsReaderApi.ts
+?? web/Nexora.Web/src/recentApi.ts
+?? web/Nexora.Web/src/workLogApi.ts

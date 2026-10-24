@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Nexora.Application\Nexora.Application.csproj" />
+    <ProjectReference Include="..\Nexora.Domain\Nexora.Domain.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.11" />
+    <!-- Security override for SqlClient transitive PKCS: CVE-2026-84008 / CVE-2026-70162. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
+    <PackageReference Include="NodaTime" Version="3.3.3" />
+    <PackageReference Include="Markdig" Version="1.4.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Nexora.IntegrationTests" />
+    <InternalsVisibleTo Include="Nexora.UnitTests" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Nexora.Infrastructure</RootNamespace>
+    <AssemblyName>Nexora.Infrastructure</AssemblyName>
+  </PropertyGroup>
+</Project>

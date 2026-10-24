@@ -1,5 +1,7 @@
 # M01 implementation handoff prompt
 
+> **Current authority:** This handoff remains the M01 contract. For ongoing PR #4 work, read [DEC-20260909-014](../../requirements/12-owner-decisions-local-e2e-implementation.md) and current delivery/action overlays first; full local R1 slices are approved when contracts are sufficient. Do not deploy production, call real providers or add tests/fixtures in the current code-only run.
+
 Use this prompt only after merging the 2026-09-09 implementation-readiness decisions or working on a branch that contains them.
 
 ```text

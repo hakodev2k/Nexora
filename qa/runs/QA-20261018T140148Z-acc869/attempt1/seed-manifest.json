@@ -1,0 +1,44 @@
+{
+  "runId": "QA-20261018T140148Z-acc869",
+  "runtimeAlias": "nexora-e2e-audit-85b9ce58db3445e7897dfaa7385d32d4",
+  "database": "Nexora_Test_85b9ce58db3445e7897dfaa7385d32d4",
+  "seed": 20261018,
+  "accounts": [
+    {
+      "persona": "SuperAdmin"
+    },
+    {
+      "persona": "UserA"
+    },
+    {
+      "persona": "UserB"
+    },
+    {
+      "persona": "Admin"
+    },
+    {
+      "persona": "AdminReader"
+    },
+    {
+      "persona": "Restricted"
+    },
+    {
+      "persona": "Disabled"
+    },
+    {
+      "persona": "Suspended"
+    }
+  ],
+  "resources": [
+    {
+      "id": "f8a1203c-92bf-4533-a623-34e45534e3d0",
+      "type": "Goal",
+      "layer": "API",
+      "expected": "Draft"
+    }
+  ],
+  "cleanup": "PENDING",
+  "browser": "155.0.4283.62",
+  "dpr": 1,
+  "build": "production Vite preview"
+}

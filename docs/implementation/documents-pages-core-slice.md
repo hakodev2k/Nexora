@@ -1,0 +1,56 @@
+# Documents pages core local slice
+
+Status: `SLICE_IMPLEMENTED` in PR #4; runtime acceptance remains owner
+verification under `DEC-20260909-014`.
+
+## Contract trace
+
+- Goals: `NXG-FX20-G01…G03`, owner/lifecycle/concurrency goals.
+- Sources: [FX-20 Documents](../features/20-documents.md), document payload
+  contract and `FX-20-AC-001`, `FX-20-AC-004`.
+- Operations: `listDocuments`, `getDocument`, `createDocument`,
+  `saveDocument`, `transitionDocument`.
+
+## Implemented boundary
+
+- A verified account receives an owner-scoped Documents page projection from
+  SQL through the authenticated `PersonalSpace.Id`; no owner or role is read
+  from request data.
+- Create requires an explicit `DocumentType` (`Document`, `Note` or
+  `Knowledge`) and `EditorMode` (`Markdown` or `Block`). Pages start in
+  `Draft` and store a bounded canonical body.
+- Every successful create/save writes an immutable `documents.PageVersion`.
+  Save checks the quoted SQL `ETag`/`If-Match`, keeps type/editor immutable and
+  rejects obvious executable markup. Published pages can be archived; archive
+  does not create a content version.
+- List responses are summaries. List/Get now hold current session/action and owner/Trash/deleted lifecycle proof in the same Serializable SQL transaction as projection; default library excludes Archived, which uses an explicit filter/tab. UI clears denied projections and guards stale reads/reset. The subsequent mutation checkpoint uses current transactional action proof, structured digests and minimal durable receipts. Detail requires current page.read; otherwise API/UI use committed ACK without body. Original transition action is rechecked on replay. UI keeps exact uncertain command/key and protects dirty drafts before lifecycle. Legacy delimiter receipt keys fail409 safely rather than reproduce legacy responses. See full-product-audit-20261012/documents-mutation-contract-20261015.md; runtime acceptance remains not run. UI drafts remain in memory.
+
+## Deliberately outside this slice
+
+Folders/hierarchy, covers/files, full snapshot/compare/version restore,
+sharing links, Trash cohorts and DOCX/Markdown import/export are not claimed.
+They require their own contracts and migrations before implementation.
+
+## Evidence
+
+The code-only run may execute frontend build and structural static checks. The
+agent does not add or run functional, SQL integration, E2E/browser tests,
+fixtures or manual QA. .NET Release builds are implementation-error checks only; SQL/API/browser runtime verification remains `Not run` under the current code-only amendment.
+
+## Bounded library query continuation
+
+GETdocuments also accepts cursor/query/documentType. Default page25 (maximum100), UpdatedAtDESC/IdDESC seek with encrypted authenticated owner/filter/limit-bound cursor and take+1. Query<=200 is a literal Title match, never Body; known typefilter only. UI uses25/page, LoadMore dedup, 300ms typingdebounce/Enter andabort/epoch invalidation, keeps editor draft acrosslistfilters andclearsdeniedprojections. Location/folder semantics remain unimplemented requirements, not removed fromR1. Evidence: full-product-audit-20261012/documents-list-continuation-20261015.md.
+
+GETdocuments now also accepts optional createdFrom/createdTo, inclusive profile-IANA local dates against CreatedAt using half-open UTC boundaries. UpdatedAt ordering remains unchanged. Shared SqlOwnerLocalDateRange resolves current owner profile in the caller transaction; missing/invalid zone503 and unrepresentable boundary422, no UTC fallback. Cursor dl2 binds dates/timezone/TZDB/resolved boundaries; dl1 requires a fresh query. UI combines date inputs with Title/Type/Archive and preserves pending/draft guards. See full-product-audit-20261012/documents-created-date-continuation-20261015.md. Source/build evidence only; human runtime acceptance remains not run.
+
+## Single Tag Save and current library projection
+
+Create accepts optional tagId; Save accepts optional tag:{id:Guid|null}. Omitted/null object preserves assignment; id property is required when object exists, and explicit id:null clears. Owner-scoped Tag lookup and same-owner FK enforce maxoneTag. Save snapshots Id/name in PageVersion without live Tag FK; TagSnapshotCaptured distinguishes unknown legacy versions from captured untagged. Catalog rename/delete does not rewrite history. Library matches literal Title OR current Tag name (not Body) and optional tagId before seek. Cursor dl3 binds Tag/date/type/query/owner/scope/limit, retiring dl2. UI existing-Tag picker has search/paging/stale guards, tracks Tag dirty/conflict/immutable command state, displays label in Grid/Table and suspends automatic catalog reads after ACK/denial. Inline create is implemented in the continuation below; history restore/rebind remains required work; not module-complete. Evidence: full-product-audit-20261012/documents-tag-save-continuation-20261015.md; migration/runtime not run.
+
+### Inline Tag create continuation (2026-10-15)
+
+Editor-only inline name1..50 uses exact documents.tag.create independently of page.create/save and catalog.read. Detailed authorized create response selects Tag into draft; no Page autosave. Immutable pending name/key and flight ref freeze Page operations until settle or confirmed stop. ACK does not assign guessed Tag or automatically query catalog. Unsent inline name participates in dirty warning and must be created or cleared before Page Save. Catalog denial keeps Page draft;401 uses root auth loss. See full-product-audit-20261012/documents-inline-tag-continuation-20261015.md for source evidence and not-run runtime cases. No eligibility/grant/API/schema change.
+
+## Owner history browse/preview continuation
+
+Exact SELF documents.page.history now exposes GET /documents/{id}/versions (newest25 with owner/page/take-bound dh1 cursor) and GET /documents/{id}/versions/{number} for the stored core snapshot. Current session/module/action and owner Page/nonTrash proof are held in Serializable reads and checked before staged response commit. Metadata lists omit Body; exact preview returns escaped source text and saved metadata/actor/time. Legacy TagSnapshotCaptured0 stays explicitly unknown. UI reads only on user intent, preserves current editor draft and clears private history on failure/disable/Page or revision change. Additive0058 registers history permission metadata only; no Admin eligibility/Allow/Deny or policy change. History restore/rebind, visual snapshots, richer editor preview/diff remain required. See full-product-audit-20261012/documents-history-read-20261015.md. Migrations and functional/runtime acceptance not run.

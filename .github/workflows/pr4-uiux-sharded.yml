@@ -1,0 +1,96 @@
+name: PR4 parallel synthetic UI UX reviewers
+
+on:
+  push:
+    branches: [impl/m01-s00-scaffold]
+    paths:
+      - '.github/workflows/pr4-uiux-sharded.yml'
+      - 'web/Nexora.Web/e2e/pr4-uiux-audit.spec.ts'
+      - 'web/Nexora.Web/playwright.ux-audit.config.ts'
+      - 'scripts/dev/start-e2e-target.py'
+      - 'scripts/dev/stop-e2e-target.py'
+      - 'web/Nexora.Web/src/**'
+      - 'web/Nexora.Web/package*.json'
+      - 'web/Nexora.Web/playwright.config.ts'
+      - 'src/**'
+      - 'database/migrations/**'
+      - 'tests/Nexora.FunctionalTestOperator/**'
+  workflow_dispatch:
+
+concurrency:
+  group: pr4-uiux-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  area-review:
+    name: "UIUX / ${{ matrix.area }}"
+    if: github.ref == 'refs/heads/impl/m01-s00-scaffold' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        area:
+          - auth
+          - navigation
+          - productivity
+          - knowledge
+          - business
+          - platform
+          - gated
+          - admin
+          - restricted
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install locked React and browser dependencies
+        run: |
+          npm ci --prefix web/Nexora.Web
+          npm run test:e2e:install --prefix web/Nexora.Web
+      - name: Build local-only .NET API and synthetic operators
+        run: |
+          dotnet restore src/Nexora.Api/Nexora.Api.csproj --locked-mode
+          dotnet restore src/Nexora.Local/Nexora.Local.csproj --locked-mode
+          dotnet restore tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj --locked-mode
+          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release --no-restore
+          dotnet build src/Nexora.Local/Nexora.Local.csproj --configuration Release --no-restore
+          dotnet build tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj --configuration Release --no-restore
+      - name: Start reviewer-owned disposable SQL Server
+        run: bash scripts/dev/start-ci-sql.sh
+      - name: Start isolated synthetic SQL/API/React target
+        run: python3 scripts/dev/start-e2e-target.py
+      - name: Review only this area on desktop and mobile
+        env:
+          NEXORA_UIUX_SHARD: ${{ matrix.area }}
+        run: python3 scripts/dev/start-e2e-target.py run-uiux-audit
+      - name: Sanitize this area's JUnit before artifact upload
+        if: always()
+        run: python3 scripts/dev/start-e2e-target.py sanitize-evidence
+      - name: Stop only this reviewer's owned web/API target
+        if: always()
+        run: python3 scripts/dev/stop-e2e-target.py
+      - name: Stop only this reviewer's disposable SQL Server
+        if: always()
+        run: bash scripts/dev/stop-ci-sql.sh
+      - name: Upload independent area findings and synthetic screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr4-uiux-${{ matrix.area }}-${{ github.sha }}
+          path: |
+            web/Nexora.Web/artifacts/uiux-audit/*.json
+            web/Nexora.Web/artifacts/uiux-audit/playwright-junit.xml
+            web/Nexora.Web/artifacts/uiux-audit/screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 7

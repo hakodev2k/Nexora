@@ -1,0 +1,2702 @@
+[
+  {
+    "route": "/",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Xin chào, QA UserA",
+    "alerts": [],
+    "loading": [],
+    "buttons": 56,
+    "durationMs": 590,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 589,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Goals",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 594,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Habit tracker",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 596,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Daily & weekly planner",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 622,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Finance records",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 620,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Bookmarks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 620,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Code snippets",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 592,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Read Later",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 649,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Tag management",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 607,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Global Search",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 601,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Saved Searches",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 577,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Favorites",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 580,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Đã mở gần đây",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 608,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 609,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Notifications",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 597,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Trash",
+    "alerts": [],
+    "loading": [],
+    "buttons": 1,
+    "durationMs": 577,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 586,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 570,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Profile",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 579,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Security & sessions",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 588,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Developer tools",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 573,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Projects",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 587,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Tasks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Calendar",
+    "alerts": [],
+    "loading": [],
+    "buttons": 10,
+    "durationMs": 603,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Time Tracking",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 620,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Focus",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 608,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Documents",
+    "alerts": [],
+    "loading": [],
+    "buttons": 15,
+    "durationMs": 681,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 573,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 586,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 568,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 559,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 562,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 564,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "width": 1366,
+    "scrollWidth": 1366,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 564,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Xin chào, QA UserA",
+    "alerts": [],
+    "loading": [],
+    "buttons": 56,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 603,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Goals",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 589,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Habit tracker",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Daily & weekly planner",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 572,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Finance records",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 592,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Bookmarks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 590,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Code snippets",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 582,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Read Later",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 604,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Tag management",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 572,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Global Search",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 578,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Saved Searches",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 570,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Favorites",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 573,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Đã mở gần đây",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 597,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Notifications",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Trash",
+    "alerts": [],
+    "loading": [],
+    "buttons": 1,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 587,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 553,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Profile",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 579,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Security & sessions",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 576,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Developer tools",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 588,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Projects",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 597,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Tasks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 596,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Calendar",
+    "alerts": [],
+    "loading": [],
+    "buttons": 10,
+    "durationMs": 600,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Time Tracking",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 612,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Focus",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 599,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Documents",
+    "alerts": [],
+    "loading": [],
+    "buttons": 15,
+    "durationMs": 606,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 575,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 573,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 590,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 592,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 587,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "width": 390,
+    "scrollWidth": 390,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 569,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 324,
+    "heading": "Xin chào, QA UserA",
+    "alerts": [],
+    "loading": [],
+    "buttons": 56,
+    "durationMs": 598,
+    "status": "FAIL_OVERFLOW"
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Goals",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Habit tracker",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 592,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Daily & weekly planner",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Finance records",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 580,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Bookmarks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 598,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Code snippets",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 608,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Read Later",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 595,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Tag management",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 577,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Global Search",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 591,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Saved Searches",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Favorites",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 565,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Đã mở gần đây",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 575,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 609,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Notifications",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Trash",
+    "alerts": [],
+    "loading": [],
+    "buttons": 1,
+    "durationMs": 577,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 591,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 579,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Profile",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Security & sessions",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 580,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Developer tools",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 599,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Projects",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 594,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Tasks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 582,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Calendar",
+    "alerts": [],
+    "loading": [],
+    "buttons": 10,
+    "durationMs": 590,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Time Tracking",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 591,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Focus",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 591,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Documents",
+    "alerts": [],
+    "loading": [],
+    "buttons": 15,
+    "durationMs": 607,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 565,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 590,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 574,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 571,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 563,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 320,
+      "height": 740
+    },
+    "width": 320,
+    "scrollWidth": 320,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 576,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 834,
+    "heading": "Xin chào, QA UserA",
+    "alerts": [],
+    "loading": [],
+    "buttons": 56,
+    "durationMs": 592,
+    "status": "FAIL_OVERFLOW"
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 575,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Goals",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 585,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Habit tracker",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Daily & weekly planner",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 585,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Finance records",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 578,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Bookmarks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Code snippets",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Read Later",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 599,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Tag management",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 579,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Global Search",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 602,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Saved Searches",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 570,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Favorites",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 578,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Đã mở gần đây",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 605,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 612,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Notifications",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 563,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Trash",
+    "alerts": [],
+    "loading": [],
+    "buttons": 1,
+    "durationMs": 580,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 555,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 564,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 574,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Profile",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Security & sessions",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 570,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Developer tools",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 566,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Projects",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 574,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Tasks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 575,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Calendar",
+    "alerts": [],
+    "loading": [],
+    "buttons": 10,
+    "durationMs": 572,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Time Tracking",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 589,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Focus",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 598,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Documents",
+    "alerts": [],
+    "loading": [],
+    "buttons": 15,
+    "durationMs": 624,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 578,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 604,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 571,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 576,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 572,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 572,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "width": 768,
+    "scrollWidth": 768,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 559,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Xin chào, QA UserA",
+    "alerts": [],
+    "loading": [],
+    "buttons": 56,
+    "durationMs": 598,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/learning/work-log",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 588,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/goals",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Goals",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 585,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/habits",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Habit tracker",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 579,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/planner",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Daily & weekly planner",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 582,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/finance",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Finance records",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 608,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/bookmarks",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Bookmarks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 595,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/snippets",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Code snippets",
+    "alerts": [],
+    "loading": [],
+    "buttons": 5,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/read-later",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Read Later",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 609,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/organize/tags",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Tag management",
+    "alerts": [],
+    "loading": [],
+    "buttons": 4,
+    "durationMs": 579,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Global Search",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/search/saved",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Saved Searches",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 561,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/favorites",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Favorites",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 586,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/recent",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Đã mở gần đây",
+    "alerts": [],
+    "loading": [],
+    "buttons": 2,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/command-palette",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 599,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/notifications",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Notifications",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 596,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/trash",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Trash",
+    "alerts": [],
+    "loading": [],
+    "buttons": 1,
+    "durationMs": 583,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/sharing",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 573,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/support",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 563,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/files",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 565,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/profile",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Profile",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 565,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/settings/security",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Security & sessions",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 572,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/developer/tools",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Developer tools",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 558,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX11",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Projects",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 574,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX12",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Tasks",
+    "alerts": [],
+    "loading": [],
+    "buttons": 6,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX13",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Calendar",
+    "alerts": [],
+    "loading": [],
+    "buttons": 10,
+    "durationMs": 574,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX18",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Time Tracking",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 582,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX19",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Focus",
+    "alerts": [],
+    "loading": [],
+    "buttons": 3,
+    "durationMs": 607,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX20",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Documents",
+    "alerts": [],
+    "loading": [],
+    "buttons": 15,
+    "durationMs": 648,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX29",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 584,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX33",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 578,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX39",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 582,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX40",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 580,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/modules/FX31",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Module chưa khả dụng",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 581,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/access",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 585,
+    "status": "OBSERVED"
+  },
+  {
+    "route": "/admin/modules",
+    "viewport": {
+      "width": 1920,
+      "height": 1080
+    },
+    "width": 1920,
+    "scrollWidth": 1920,
+    "heading": "Không có quyền truy cập quản trị",
+    "alerts": [],
+    "loading": [],
+    "buttons": 0,
+    "durationMs": 575,
+    "status": "OBSERVED"
+  }
+]

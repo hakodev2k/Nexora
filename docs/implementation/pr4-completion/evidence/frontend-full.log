@@ -1,0 +1,64 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nexora-web@0.1.0-s00 test:unit
+> vitest run --maxWorkers=1
+
+
+ RUN  v5.0.0 /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web
+
+ ✓ src/App.test.tsx (47 tests | 1 skipped) 4603ms
+   ✓ Snippet create-only capability never requests private list and clears a committed draft without retry 480ms
+   ✓ Snippet unknown save freezes input and retains the exact key through discard cancellation and reconciliation 596ms
+ ✓ src/KnowledgeFinanceRecovery.test.tsx (12 tests) 2787ms
+   ✓ Bookmarks seeks, deduplicates and resets the cursor when changing query 415ms
+   ✓ Finance preserves conflict draft and reviews exact-ID revision before explicitly reapplying 378ms
+   ✓ Finance freezes an uncertain command and retries its original body, revision and idempotency key 339ms
+ ✓ src/App.surface.test.tsx (34 tests) 3455ms
+   ✓ Toolbox removes the previous success when changed options fail and retains correction input 494ms
+   ✓ Toolbox clear requires confirmation and cancellation preserves pasted input 410ms
+ ✓ src/ProductivityRecovery.test.tsx (10 tests) 846ms
+   ✓ Time dirty Cancel preserves draft until explicit discard 398ms
+ ✓ src/NewsCategoryScreen.test.tsx (16 tests) 1524ms
+   ✓ News category authority and recovery (16)
+     ✓ retains a dirty draft when Escape discard is cancelled and removes unload protection after confirmed discard 349ms
+ ✓ src/OrganizationTagsScreen.test.tsx (3 tests) 1228ms
+   ✓ Tag pagination requests 25 rows, appends without duplicates and resets filters to a fresh page 512ms
+   ✓ Conflict recovery fetches the exact later-page Tag and preserves the edited draft 581ms
+ ✓ src/MonitoringScreen.test.tsx (6 tests) 928ms
+   ✓ Monitoring authority and command recovery (6)
+     ✓ freezes metadata and reuses the exact command after an unknown save outcome 328ms
+stderr | src/ResourceFormDialog.test.tsx > protects a dirty dialog from navigation and reload until explicitly discarded
+A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:
+
+await act(() => ...)
+
+ ✓ src/ResourceFormDialog.test.tsx (6 tests) 618ms
+   ✓ ResourceFormDialog (3)
+     ✓ retains dirty text on Escape, discards explicitly, and restores trigger focus 368ms
+ ✓ src/ShareLinkEditor.test.tsx (5 tests) 621ms
+   ✓ keeps an uncertain save frozen and retries the exact key, body and ETag 330ms
+ ✓ src/CalendarExportScreen.test.tsx (4 tests) 466ms
+ ✓ src/NotificationPrivacy.test.tsx (3 tests) 559ms
+   ✓ Notification single ACK clears private detail without an automatic read or a false empty state 326ms
+ ✓ src/DocumentImportPanel.test.tsx (2 tests) 368ms
+   ✓ late Markdown preview is discarded when the editor switches to Block 332ms
+ ✓ src/ShellAccessibility.test.tsx (3 tests) 506ms
+   ✓ offers the first keyboard shortcut and moves focus after changing a route 355ms
+ ✓ src/CreatedShareLink.test.tsx (6 tests) 224ms
+ ✓ src/FileRestoreDialog.test.tsx (1 test) 248ms
+ ✓ src/DocumentHistory.test.tsx (1 test) 295ms
+ ✓ src/DocumentVersionDiff.test.tsx (3 tests) 178ms
+ ✓ src/newsCategoryApi.test.ts (9 tests) 12ms
+ ✓ src/documentVersionDiff.test.ts (12 tests) 9ms
+ ✓ src/courseApi.test.ts (2 tests) 8ms
+
+ Test Files  20 passed (20)
+      Tests  184 passed | 1 skipped (185)
+   Start at  16:54:17
+   Duration  42.65s (tests 49%, environment 31%, setup 9%, import 6%, transform 5%)
+
+Environment  jsdom was created 20 times · 12.34s total, 31% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+JUNIT report written to /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web/artifacts/vitest-junit.xml

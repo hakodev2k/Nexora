@@ -1,10 +1,10 @@
 # Finance — UX/UI Specification
 
-Current basic scope · 2026-09-08 · Docs-only. [Previous advanced UX](../../history/20260908/snapshot/docs/ux-ui/modules/27-finance.md) is proposal history.
+Current basic scope · 2026-09-08 · Local UI slice implemented on PR #4 under DEC-20260909-014 (runtime verification remains owner work). [Previous advanced UX](../../history/20260908/snapshot/docs/ux-ui/modules/27-finance.md) is proposal history.
 
 ## 1. Scope
 
-Manual categories/prices; advanced ledger and correction workflows gated P-H05, sensitive sharing P-H03. Not part of M01.
+Manual categories/prices are implemented as the current local slice; advanced ledger and correction workflows remain gated P-H05, sensitive sharing P-H03. Not part of M01 delivery labels.
 
 ## 2. Requirement sources
 

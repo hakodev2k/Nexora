@@ -1,17 +1,17 @@
 # FX-21 — Bookmarks: action catalog v1.1
 
-Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/21-bookmarks.md), [UX](../../ux-ui/modules/21-bookmarks.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Docs-only; no implementation approved.
+Source [PO decisions](../../requirements/10-owner-decisions-20260907.md), [feature](../../features/21-bookmarks.md), [UX](../../ux-ui/modules/21-bookmarks.md), [global authorization](../00-authorization-contract.md), [changes](../08-owner-decision-changes.md). Manual metadata subset is `SLICE_IMPLEMENTED` on PR #4; advanced actions remain contract-gated.
 
 New PO rules override former Q proposals. Paused/Blocked/Superseded rows cannot be enabled via grant/defaults. AdminGrantable describes eligibility of action class, not authorization while inactive. All operations additionally check current account.IsDeleted, owner scope, source/lifecycle/read-projection, dependencies, policy revision and semantic field diff; no mutation response can leak denied read data.
 
 | Action | Kind / context | Admin-grantable | Current scope | Gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="bookmarks-bookmark-read"></a>`bookmarks.bookmark.read` — Xem Bookmark | QUERY / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S01, FX21-S03 |
-| <a id="bookmarks-bookmark-create"></a>`bookmarks.bookmark.create` — Tạo Bookmark | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S02 |
-| <a id="bookmarks-bookmark-update"></a>`bookmarks.bookmark.update` — Sửa Bookmark | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S02 |
+| <a id="bookmarks-bookmark-read"></a>`bookmarks.bookmark.read` — Xem Bookmark | QUERY / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Owner-scoped manual metadata list/search; URL remains inert | FX21-S01, FX21-S03 |
+| <a id="bookmarks-bookmark-create"></a>`bookmarks.bookmark.create` — Tạo Bookmark | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Owner-scoped HTTP(S) URL/title/description; no outbound fetch | FX21-S02 |
+| <a id="bookmarks-bookmark-update"></a>`bookmarks.bookmark.update` — Sửa Bookmark | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | ETag/If-Match and idempotent owner update | FX21-S02 |
 | <a id="bookmarks-bookmark-refresh"></a>`bookmarks.bookmark.refresh` — Lấy lại URL metadata | COMMAND / SELF | Yes when active | Blocked | DEP-EXT-01: outbound ingestion boundary needs clarification | FX21-S03 |
-| <a id="bookmarks-bookmark-archive"></a>`bookmarks.bookmark.archive` — Archive bookmark | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S01 |
-| <a id="bookmarks-bookmark-unarchive"></a>`bookmarks.bookmark.unarchive` — Unarchive bookmark | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S01 |
+| <a id="bookmarks-bookmark-archive"></a>`bookmarks.bookmark.archive` — Archive bookmark | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Active → Archived with ETag/If-Match and audit | FX21-S01 |
+| <a id="bookmarks-bookmark-unarchive"></a>`bookmarks.bookmark.unarchive` — Unarchive bookmark | COMMAND / SELF | Yes when active | SLICE_IMPLEMENTED (local) | Archived → Active with ETag/If-Match and audit | FX21-S01 |
 | <a id="bookmarks-bookmark-trash"></a>`bookmarks.bookmark.trash` — Đưa bookmark vào Thùng rác | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S01 |
 | <a id="bookmarks-bookmark-restore"></a>`bookmarks.bookmark.restore` — Khôi phục bookmark từ Thùng rác | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S01 |
 | <a id="bookmarks-bookmark-purge"></a>`bookmarks.bookmark.purge` — Xóa vĩnh viễn bookmark | COMMAND / SELF | Yes when active | Resolved delegated | Resolved delegated: action contract; source business rules unchanged | FX21-S01 |

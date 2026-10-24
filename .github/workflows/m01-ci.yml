@@ -1,0 +1,173 @@
+name: Nexora local implementation checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Verify local implementation boundaries
+        run: bash scripts/dev/verify.sh
+      - name: Build API and bootstrap utility
+        run: |
+          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release
+          dotnet build src/Nexora.Bootstrap/Nexora.Bootstrap.csproj --configuration Release
+      - name: Run preserved custom unit checks
+        run: dotnet run --project tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release
+      - name: Run xUnit unit checks with CI-readable results
+        run: dotnet test tests/Nexora.UnitTests/Nexora.UnitTests.csproj --configuration Release --logger "trx;LogFileName=unit-xunit.trx" --results-directory artifacts/test-results --collect:"XPlat Code Coverage"
+      - name: Upload backend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-unit-${{ github.sha }}
+          path: artifacts/test-results
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend-unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned frontend dependencies
+        run: npm ci --prefix web/Nexora.Web
+      - name: Typecheck and bundle frontend
+        run: npm run build --prefix web/Nexora.Web
+      - name: Run component tests with JUnit and coverage evidence
+        run: npm run test:unit:coverage --prefix web/Nexora.Web
+      - name: Upload frontend test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-unit-${{ github.sha }}
+          path: |
+            web/Nexora.Web/artifacts/vitest-junit.xml
+            web/Nexora.Web/artifacts/coverage/cobertura-coverage.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+  sql-api-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Start job-owned disposable loopback SQL Server
+        run: bash scripts/dev/start-ci-sql.sh
+      - name: Run isolated real SQL Server and API middleware tests
+        run: bash scripts/dev/test-sql.sh
+      - name: Stop only this job-owned SQL Server
+        if: always()
+        run: bash scripts/dev/stop-ci-sql.sh
+      - name: Upload SQL/API test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sql-api-integration-${{ github.sha }}
+          path: artifacts/test-results
+          if-no-files-found: warn
+          retention-days: 7
+
+  filesystem-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Run Linux capture mode and cross-process lock checks
+        run: bash scripts/dev/test-filesystem.sh linux
+
+  filesystem-windows-acl:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Require Windows capture ACL evidence
+        shell: pwsh
+        run: ./scripts/dev/test-filesystem.ps1 -RequireOs windows
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install pinned frontend dependencies
+        run: npm ci --prefix web/Nexora.Web
+      - name: Install the Playwright browser matching the locked package
+        run: npm run test:e2e:install --prefix web/Nexora.Web
+      - name: Build local API and approved synthetic test operators
+        run: |
+          dotnet restore src/Nexora.Api/Nexora.Api.csproj --locked-mode
+          dotnet restore src/Nexora.Local/Nexora.Local.csproj --locked-mode
+          dotnet restore tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj --locked-mode
+          dotnet build src/Nexora.Api/Nexora.Api.csproj --configuration Release --no-restore
+          dotnet build src/Nexora.Local/Nexora.Local.csproj --configuration Release --no-restore
+          dotnet build tests/Nexora.FunctionalTestOperator/Nexora.FunctionalTestOperator.csproj --configuration Release --no-restore
+      - name: Start job-owned disposable loopback SQL Server
+        run: bash scripts/dev/start-ci-sql.sh
+      - name: Seed and start private synthetic loopback browser target
+        run: python3 scripts/dev/start-e2e-target.py
+      - name: Run browser journeys with private logs and sanitized evidence
+        run: python3 scripts/dev/start-e2e-target.py run-browser
+      - name: Sanitize browser evidence before upload
+        if: always()
+        run: python3 scripts/dev/start-e2e-target.py sanitize-evidence
+      - name: Stop only this run-owned browser target
+        if: always()
+        run: python3 scripts/dev/stop-e2e-target.py
+      - name: Stop only this job-owned SQL Server
+        if: always()
+        run: bash scripts/dev/stop-ci-sql.sh
+      - name: Upload sanitized browser outcomes and explicit synthetic UI screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-e2e-${{ github.sha }}
+          path: |
+            web/Nexora.Web/artifacts/playwright-junit.xml
+            web/Nexora.Web/artifacts/ui-smoke/*.png
+            web/Nexora.Web/artifacts/playwright-output/**/home.png
+            web/Nexora.Web/artifacts/playwright-output/**/public-validation.png
+            web/Nexora.Web/artifacts/playwright-output/**/committed-ack.png
+          if-no-files-found: warn
+          retention-days: 7

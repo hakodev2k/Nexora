@@ -1,0 +1,35 @@
+import { act, render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { expect, test, vi } from 'vitest';
+import { DocumentImportPanel, type DocumentImportDraft } from './DocumentImportPanel';
+const mocks = vi.hoisted(() => ({ listFiles: vi.fn(), fetch: vi.fn(), caps: vi.fn() }));
+vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), listFiles: mocks.listFiles, apiFetch: mocks.fetch, jsonMutationHeaders: () => ({}) }));
+vi.mock('./documentTopologyApi', () => ({ documentCapabilities: mocks.caps }));
+const allowed = Object.fromEntries(['documents.format.import', 'documents.page.create', 'transfer.import.preview', 'transfer.import.commit', 'files.file.read', 'files.file.download'].map(key => [key, true]));
+const source: DocumentImportDraft = { fileId: 'file', fileETag: 'etag', editorMode: 'Markdown', body: 'old-private-preview', previewToken: 'token', warnings: [], expiresAt: '2026-10-22T00:05:00Z' };
+test('late Markdown preview is discarded when the editor switches to Block', async () => {
+  const user = userEvent.setup(); let resolve!: (value: unknown) => void;
+  mocks.caps.mockResolvedValue(allowed); mocks.listFiles.mockResolvedValue({ items: [{ id: 'file', etag: 'etag', originalName: 'source.md', byteLength: 12 }], nextCursor: null });
+  mocks.fetch.mockImplementation(() => new Promise(done => { resolve = done; }));
+  const apply = vi.fn(); const props = { disabled: false, source: null, onWorkingChange: vi.fn(), onApply: apply, onClear: vi.fn(), onUnavailable: vi.fn(), onAuthLost: vi.fn() };
+  const { rerender } = render(<DocumentImportPanel {...props} mode="Markdown" />);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Chọn / xem lại file nguồn' })).toBeEnabled());
+  await user.click(screen.getByRole('button', { name: 'Chọn / xem lại file nguồn' }));
+  await user.selectOptions(screen.getByRole('combobox', { name: 'Loại file' }), 'MD');
+  await user.click(screen.getByRole('button', { name: 'Tải Files sạch' }));
+  await user.click(await screen.findByRole('button', { name: /source.md/ }));
+  await user.click(screen.getByRole('button', { name: 'Preview chuyển đổi' }));
+  await waitFor(() => expect(mocks.fetch).toHaveBeenCalledTimes(1));
+  rerender(<DocumentImportPanel {...props} mode="Block" />);
+  await act(async () => { resolve({ ...source, parserVersion: 1 }); });
+  expect(screen.queryByText('old-private-preview')).toBeNull();
+  expect(screen.queryByRole('button', { name: 'Apply vào draft — chưa Save' })).toBeNull();
+  expect(apply).not.toHaveBeenCalled();
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Chọn / xem lại file nguồn' })).toBeEnabled());
+});
+test('mode mismatch detaches import provenance through onClear without applying or replacing the draft', async () => {
+  mocks.caps.mockResolvedValue(allowed); const clear = vi.fn(), apply = vi.fn();
+  render(<DocumentImportPanel mode="Block" disabled={false} source={source} onWorkingChange={vi.fn()} onApply={apply} onClear={clear} onUnavailable={vi.fn()} onAuthLost={vi.fn()} />);
+  await waitFor(() => expect(clear).toHaveBeenCalledTimes(1));
+  expect(apply).not.toHaveBeenCalled();
+});

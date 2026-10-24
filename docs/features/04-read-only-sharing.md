@@ -1,5 +1,7 @@
 # Read-only Sharing Engine
 
+> **2026-10-19 Owner decision D07=A:** Current-authorized owner diagnostics may include a link explicitly revoked by the owner as **inactive metadata with no raw token**, while the default **Active** tab excludes it and every historical viewer token remains permanently unavailable (safe 404). Existing owner/source/module/epoch/action checks stay mandatory; invalidated foreign or source-deleted links are not re-exposed. See [PO record](../requirements/13-owner-decisions-20261019-pr4-blockers.md) and [API/DB/UX/security/acceptance contract](../implementation/pr4-decision-contracts-20261019/05-sharing-and-tag-replay.md). This clarifies metadata vs active link management and does not enable sensitive source fields.
+
 > Current specification · reconciled 2026-09-08 · Docs-only. [Previous version](../history/20260908/snapshot/docs/features/04-read-only-sharing.md) is historical evidence, not implementation input.
 
 FX-04 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418

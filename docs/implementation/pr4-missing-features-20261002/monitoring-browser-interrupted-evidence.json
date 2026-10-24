@@ -1,0 +1,11 @@
+{
+  "baseHead": "680197d1d97bf8febf1bc0a4ec2e1a56e6f352b5",
+  "finalSourceBinding": "monitoring-source-hashes.json",
+  "status": "InterruptedAtExplicitUserPause",
+  "configuredCases": 265,
+  "confirmedPassingCasesAtLeast": 174,
+  "completedReportAvailable": false,
+  "fullRegressionPassed": false,
+  "observedFailuresBeforeInterruption": 0,
+  "note": "Ctrl-C stopped the active runner. Existing functional-results.json is the historical5case focusedReminder report, not this incomplete full run. Three earlier full-run failures remain in monitoring-evidence.md."
+}

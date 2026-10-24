@@ -1,0 +1,6 @@
+screen,disposition,source,gap
+FX35-S01,PARTIALLY_IMPLEMENTED,web/Nexora.Web/src/IntegrationConnectionsScreen.tsx,Owner inactive configuration only; system contexts/QA missing
+FX35-S02,PARTIALLY_IMPLEMENTED,web/Nexora.Web/src/IntegrationConnectionsScreen.tsx,Real scopes/auth/test gates remain closed; QA missing
+FX35-S03,NOT_IMPLEMENTED,,Webhook detail/form
+FX35-S04,NOT_IMPLEMENTED,,Delivery history
+FX35-S05,BLOCKED_BY_DECISION,,D06/Vault safe credential references

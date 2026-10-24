@@ -1,0 +1,57 @@
+{
+  "baseHead": "30e27b29d746264b3c499f579de36d3adefc8392",
+  "finalSourceBinding": "sharing-repair-source-hashes.json",
+  "command": "npm run test:e2e --prefix web/Nexora.Web -- --config functional.config.ts sharing-repair.spec.ts --max-failures=1",
+  "stats": {
+    "expected": 5,
+    "unexpected": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "duration": 63450.484
+  },
+  "projects": [
+    {
+      "project": "desktop-large",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "desktop",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "tablet",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile",
+      "status": "expected",
+      "attempts": 1
+    },
+    {
+      "project": "mobile-small",
+      "status": "expected",
+      "attempts": 1
+    }
+  ],
+  "viewports": [
+    "1920x1080",
+    "1366x768",
+    "768x1024",
+    "390x844",
+    "320x568"
+  ],
+  "workers": 1,
+  "normalLoginPacingMs": 6500,
+  "assertions": [
+    "Actual normal owner/SuperAdmin form login and anonymous link audience",
+    "Approved nullable Task priority, ordered text-safe acceptance criteria, tags/start/end/status/EndAt overdue; legacy Due/private fields excluded",
+    "Registration change preserves valid link",
+    "Explicit policy impact count and permanent warning; cancellation preserves link",
+    "Confirmed disable permanently invalidates; re-enable cannot revive; narrow card does not overflow"
+  ],
+  "retainedSyntheticDataPreserved": true,
+  "privacy": "Aggregate statuses only; no raw tokens, SQL hashes, account IDs, cookies, traces, screenshots or credentials."
+}

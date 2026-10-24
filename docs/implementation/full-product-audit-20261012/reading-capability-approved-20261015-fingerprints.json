@@ -1,0 +1,36 @@
+{
+  "parent": "00ad134bb43d0e787cf420302e8b5032652020f1",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "2ce5a308a49622cabebc851d68bf0d633ed2c09dc5cae09596d6862b427fd9df",
+      "publishedLfSha256": "3c83fd112ed63804cee985297c1232fb5c04d796e732df7387ab3705b4683bd2"
+    },
+    {
+      "path": "src/Nexora.Application/Reading/ReadingServiceContracts.cs",
+      "sha256": "92d85efd0f2937f00e73bb0a17d4e79a04571dda71239c3192ad9205757d64cb",
+      "publishedLfSha256": "92d85efd0f2937f00e73bb0a17d4e79a04571dda71239c3192ad9205757d64cb"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reading/SqlReadingService.cs",
+      "sha256": "744aaf3d9d5af54d7ba985e53dbc3464a79c21312d8069f4f2a0089b43f76bbb",
+      "publishedLfSha256": "744aaf3d9d5af54d7ba985e53dbc3464a79c21312d8069f4f2a0089b43f76bbb"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reading/ReadingEndpoints.cs",
+      "sha256": "8ed32b0fe1de40ced332ee0048f6acda8961e9d9e3f7cc0450a2dafb6e7e572c",
+      "publishedLfSha256": "8ed32b0fe1de40ced332ee0048f6acda8961e9d9e3f7cc0450a2dafb6e7e572c"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "4b42e162f26835195e46bf5995f0255f5e32cc491b146dfad3cce6152502b11d",
+      "publishedLfSha256": "4b42e162f26835195e46bf5995f0255f5e32cc491b146dfad3cce6152502b11d"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "9bcf37cfbc72969923f636ec992698ec4d80dea58c86c7f4ccf332db5340f6aa",
+      "publishedLfSha256": "9bcf37cfbc72969923f636ec992698ec4d80dea58c86c7f4ccf332db5340f6aa"
+    }
+  ]
+}

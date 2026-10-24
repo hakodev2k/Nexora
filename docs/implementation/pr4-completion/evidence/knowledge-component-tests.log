@@ -1,0 +1,20 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.0 /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web
+
+ ✓ src/DocumentImportPanel.test.tsx (2 tests) 275ms
+ ✓ src/DocumentHistory.test.tsx (1 test) 340ms
+   ✓ changing a version selector clears the previous comparison instead of mislabelling old content 336ms
+ ✓ src/DocumentVersionDiff.test.tsx (3 tests) 212ms
+ ✓ src/documentVersionDiff.test.ts (12 tests) 14ms
+
+ Test Files  4 passed (4)
+      Tests  18 passed (18)
+   Start at  16:50:08
+   Duration  5.20s (environment 54%, tests 18%, setup 16%, transform 8%, import 4%, worker 1%)
+
+Environment  jsdom was created 4 times · 2.49s total, 54% of tracked time
+             create it once per worker with pool: 'vmThreads' (keeps per-file isolation) or isolate: false (shares it across files)
+             learn more: https://vitest.dev/guide/improving-performance#test-environments
+
+JUNIT report written to /workspace/scratch/d0d296f504ca/Nexora/web/Nexora.Web/artifacts/vitest-junit.xml
