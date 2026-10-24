@@ -38,7 +38,9 @@ public sealed partial class LocalToolboxService : IToolboxService
         new("xml", "XML formatter", "Data", "Bounded XML formatting; DTD and external entities prohibited.", "Local", "toolbox.xml.run", true),
         new("datetime", "UTC epoch converter", "Date/time", "Explicit integer seconds or milliseconds to UTC.", "Local", "toolbox.datetime.run", true),
         new("csv", "CSV viewer", "Data", "Bounded CSV as JSON arrays; formulas remain text.", "Local", "toolbox.csv.run", true),
-        new("jwt", "JWT decoder (Unverified)", "Security", "Browser-only decode; never verifies signatures or sends tokens.", "Browser", "toolbox.jwt.run", false)
+        new("jwt", "JWT decoder (Unverified)", "Security", "Browser-only decode; never verifies signatures or sends tokens.", "Browser", "toolbox.jwt.run", false),
+        new("text-diff", "Text diff", "Text", "Browser-only bounded line/Unicode scalar comparison.", "Browser", "toolbox.text_diff.run", true),
+        new("color", "Color converter / palette", "Color", "Browser-only HEX/RGB/HSL/alpha and numeric contrast preview.", "Browser", "toolbox.color.run", true)
     ];
 
     public LocalToolboxService(SqlConnectionFactory connections)
@@ -87,6 +89,7 @@ public sealed partial class LocalToolboxService : IToolboxService
                 "json" => RunJson(command.Input, command.Options),
                 "regex" => RunRegex(command.Input, command.Options),
                 "xml" or "datetime" or "csv" or "jwt" => RunOffline(code, command.Input, command.Options),
+                "text-diff" or "color" => RunMoreOffline(code, command.Input, command.Options),
                 _ => throw new ToolFailureException("ToolUnavailable", "Tool is not available in the local toolbox slice.")
             };
             if (Encoding.UTF8.GetByteCount(output) > MaxOutputBytes)

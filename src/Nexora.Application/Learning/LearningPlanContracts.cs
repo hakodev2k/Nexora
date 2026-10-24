@@ -13,6 +13,10 @@ public sealed record LearningPlanLink(LearningPlanSourceRef Source, DateOnly? Ta
 public sealed record LearningPlanOrder(IReadOnlyList<Guid> ItemIds);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record LearningPlanConfirmation(bool Confirm);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record LearningPlanLifecycleConfirmation(bool Confirm, string PreviewToken);
+public sealed record LearningPlanLifecyclePreview(Guid PlanId, string Operation, string ETag,
+    string FromState, string ToState, int RetainedItems, DateTimeOffset ExpiresAt, string PreviewToken);
 public sealed record LearningPlan(Guid Id, string Title, DateOnly? StartsOn, DateOnly? EndsOn, string? Notes,
     string Status, DateTimeOffset UpdatedAt, string ETag);
 public sealed record LearningPlanPage(IReadOnlyList<LearningPlan> Items, string? NextCursor);
@@ -39,6 +43,9 @@ public interface ILearningPlanService
     IdentityOperationResult<object?> Unlink(IdentityPrincipal actor, Guid id, Guid itemId, string? etag, string key, string? trace);
     IdentityOperationResult<object?> Reorder(IdentityPrincipal actor, Guid id, string? etag, LearningPlanOrder body, string key, string? trace);
     IdentityOperationResult<object?> Complete(IdentityPrincipal actor, Guid id, string? etag, LearningPlanConfirmation body, string key, string? trace);
+    IdentityOperationResult<LearningPlanLifecyclePreview> PreviewLifecycle(IdentityPrincipal actor, Guid id, string? etag, string operation);
+    IdentityOperationResult<object?> Archive(IdentityPrincipal actor, Guid id, string? etag, LearningPlanLifecycleConfirmation body, string key, string? trace);
+    IdentityOperationResult<object?> Unarchive(IdentityPrincipal actor, Guid id, string? etag, LearningPlanLifecycleConfirmation body, string key, string? trace);
 }
 
 public static class LearningPlanRules

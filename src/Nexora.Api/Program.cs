@@ -265,6 +265,8 @@ builder.Services.AddSingleton<ISupportService>(services =>
     new SqlSupportService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<IToolboxService>(services =>
     new LocalToolboxService(services.GetRequiredService<SqlConnectionFactory>()));
+builder.Services.AddSingleton<ICollectionService>(services =>
+    new SqlCollectionService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ITrashService>(services =>
     new SqlTrashService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<SqlFileService>(services =>
@@ -387,6 +389,7 @@ app.MapLearningPlanEndpoints();
 app.MapCourseEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
+app.MapCollectionEndpoints();
 app.MapSettingsEndpoints();
 app.MapNotificationEndpoints();
 app.MapFavoriteEndpoints();

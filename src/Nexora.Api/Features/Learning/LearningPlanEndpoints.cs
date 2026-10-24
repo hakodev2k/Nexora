@@ -13,6 +13,9 @@ public static class LearningPlanEndpoints
         api.MapGet("/",(HttpContext c,string? status,string? cursor,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.List(a,status,cursor)));
         api.MapGet("/sources",(HttpContext c,string kind,string? cursor,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Sources(a,kind,cursor)));
         api.MapGet("/{id:guid}",(HttpContext c,Guid id,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Get(a,id)));
+        api.MapGet("/{id:guid}/lifecycle-preview",(HttpContext c,Guid id,string operation,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.PreviewLifecycle(a,id,Tag(c),operation)));
+        api.MapPost("/{id:guid}/archive",(HttpContext c,Guid id,LearningPlanLifecycleConfirmation body,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Archive(a,id,Tag(c),body,Key(c),c.TraceIdentifier)));
+        api.MapPost("/{id:guid}/unarchive",(HttpContext c,Guid id,LearningPlanLifecycleConfirmation body,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Unarchive(a,id,Tag(c),body,Key(c),c.TraceIdentifier)));
         api.MapPost("/",(HttpContext c,LearningPlanMetadata body,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Create(a,body,Key(c),c.TraceIdentifier)));
         api.MapPut("/{id:guid}",(HttpContext c,Guid id,LearningPlanMetadata body,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Update(a,id,Tag(c),body,Key(c),c.TraceIdentifier)));
         api.MapPost("/{id:guid}/items",(HttpContext c,Guid id,LearningPlanLink body,ILearningPlanService s,IIdentityService i,SessionCookieService cookies)=>Run(c,i,cookies,a=>s.Link(a,id,Tag(c),body,Key(c),c.TraceIdentifier)));
@@ -28,6 +31,7 @@ public static class LearningPlanEndpoints
         var auth=identity.GetPrincipal(cookies.ReadRawHandle(c.Request));
         var result=auth.Succeeded && auth.Value is not null?operation(auth.Value):IdentityOperationResult<T>.Failure(auth.Code,auth.StatusCode,auth.Title);
         if(result.Value is LearningPlanDetail detail) c.Response.Headers.ETag=detail.Plan.ETag;
+        if(result.Value is LearningPlanLifecyclePreview preview) c.Response.Headers.ETag=preview.ETag;
         if(result.Succeeded && result.Acknowledgement is {} ack)
             return new ApiResult<CommittedResourceAcknowledgement>(true,ack,result.Code,result.StatusCode,result.Title).ToHttp(c);
         return new ApiResult<T>(result.Succeeded,result.Value,result.Code,result.StatusCode,result.Title).ToHttp(c);

@@ -14,7 +14,8 @@ namespace Nexora.Infrastructure.Learning;
 public sealed class SqlLearningPlanService : ILearningPlanService
 {
     public static readonly string[] Actions = ["learning.plan.read","learning.plan.create","learning.plan.update",
-        "learning.plan.link","learning.plan.unlink","learning.plan.reorder","learning.plan.complete"];
+        "learning.plan.link","learning.plan.unlink","learning.plan.reorder","learning.plan.complete",
+        "learning.plan.archive","learning.plan.unarchive"];
     private const string Columns = "p.Id,p.Title,p.StartsOn,p.EndsOn,p.Notes,p.Status,p.UpdatedAt,p.RowVersion";
     private const string Registry = """
         EXISTS(SELECT 1 FROM [platform].[Resource] r JOIN [platform].[ResourceType] rt ON rt.Id=r.ResourceTypeId
@@ -160,6 +161,70 @@ public sealed class SqlLearningPlanService : ILearningPlanService
             return sql.ExecuteNonQuery()==1?null:Fail<object?>("LifecycleLocked",409,"The Plan cannot be completed from its current state.");
         });
 
+    public IdentityOperationResult<LearningPlanLifecyclePreview> PreviewLifecycle(IdentityPrincipal a,Guid id,string? etag,string operation)
+    {
+        if(!readiness.ReviewedLocalContract) return Denied<LearningPlanLifecyclePreview>();
+        if(operation is not ("archive" or "unarchive")) return Invalid<LearningPlanLifecyclePreview>();
+        using var c=connections.Create();
+        try
+        {
+            c.Open(); using var tx=c.BeginTransaction(IsolationLevel.Serializable);
+            using(var timeout=Command(c,tx,"SET LOCK_TIMEOUT 5000;",a.OwnerId)) timeout.ExecuteNonQuery();
+            var action="learning.plan."+operation;
+            if(!Allowed(c,tx,a,action)) return Denied<LearningPlanLifecyclePreview>();
+            if(!LearningPlanRules.TryRevision(etag,out _)) return Fail<LearningPlanLifecyclePreview>("PreconditionRequired",428,"A quoted current ETag is required.");
+            var plan=Read(c,tx,a.OwnerId,id,false); if(plan is null) return Missing<LearningPlanLifecyclePreview>();
+            if(plan.ETag!=etag) return Fail<LearningPlanLifecyclePreview>("RevisionConflict",412,"Reload the current Plan before reviewing its impact.");
+            var next=LifecycleDestination(c,tx,a.OwnerId,plan,operation);
+            if(next is null) return Fail<LearningPlanLifecyclePreview>("LifecycleLocked",409,"The current or exact prior Plan state does not allow this operation.");
+            var count=ItemCount(c,tx,a.OwnerId,id);
+            var expiry=clock.GetUtcNow().AddMinutes(5);
+            var token=cursors.EncodeLifecycle(new(a.UserId,a.OwnerId,id,action),new(plan.ETag,plan.Status,next,count,expiry));
+            if(!Allowed(c,tx,a,action)) return Denied<LearningPlanLifecyclePreview>();
+            tx.Commit();
+            return IdentityOperationResult<LearningPlanLifecyclePreview>.Success(new(id,operation,plan.ETag,plan.Status,next,count,expiry,token));
+        }
+        catch(SqlException) { return Fail<LearningPlanLifecyclePreview>("PersistenceUnavailable",503,"The Plan impact could not be confirmed. Reload the preview."); }
+    }
+    public IdentityOperationResult<object?> Archive(IdentityPrincipal a,Guid id,string? etag,LearningPlanLifecycleConfirmation body,string key,string? trace) =>
+        Lifecycle(a,id,etag,"archive",body,key,trace);
+    public IdentityOperationResult<object?> Unarchive(IdentityPrincipal a,Guid id,string? etag,LearningPlanLifecycleConfirmation body,string key,string? trace) =>
+        Lifecycle(a,id,etag,"unarchive",body,key,trace);
+    private IdentityOperationResult<object?> Lifecycle(IdentityPrincipal a,Guid id,string? etag,string operation,LearningPlanLifecycleConfirmation body,string key,string? trace) =>
+        Write(a,id,etag,operation,body,key,trace,(c,tx,_)=>
+        {
+            if(!body.Confirm) return Invalid<object?>();
+            var proof=cursors.DecodeLifecycle(new(a.UserId,a.OwnerId,id,"learning.plan."+operation),body.PreviewToken);
+            if(proof is null || proof.ETag!=etag) return Invalid<object?>();
+            if(proof.ExpiresAt<=clock.GetUtcNow()) return Fail<object?>("PreviewExpired",410,"Review the current Plan impact again.");
+            var plan=Read(c,tx,a.OwnerId,id,true); if(plan is null) return Missing<object?>();
+            var next=LifecycleDestination(c,tx,a.OwnerId,plan,operation);
+            if(next is null) return Fail<object?>("LifecycleLocked",409,"The current or exact prior Plan state does not allow this operation.");
+            if(proof.FromState!=plan.Status || proof.ToState!=next || proof.RetainedItems!=ItemCount(c,tx,a.OwnerId,id))
+                return Fail<object?>("PreviewChanged",409,"The Plan impact changed. Review it again.");
+            using var sql=Command(c,tx,"""
+                UPDATE [learning].[Plan] SET Status=@Next,PreArchiveState=@Prior
+                WHERE OwnerId=@Owner AND Id=@Id AND RowVersion=@Version;
+                """,a.OwnerId);
+            Add(sql,"@Id",SqlDbType.UniqueIdentifier,id); Add(sql,"@Next",SqlDbType.VarChar,next,64);
+            Add(sql,"@Prior",SqlDbType.VarChar,operation=="archive"?plan.Status:null,64);
+            LearningPlanRules.TryRevision(etag,out var version); Add(sql,"@Version",SqlDbType.Binary,version,8);
+            return sql.ExecuteNonQuery()==1?null:Fail<object?>("RevisionConflict",412,"Reload the current Plan before changing this intent.");
+        });
+    private static string? LifecycleDestination(SqlConnection c,SqlTransaction tx,Guid owner,LearningPlan plan,string operation)
+    {
+        if(operation=="archive") return plan.Status is "Planned" or "Active" or "Completed" ? "Archived" : null;
+        if(operation!="unarchive" || plan.Status!="Archived") return null;
+        using var sql=Command(c,tx,"SELECT PreArchiveState FROM [learning].[Plan] WHERE OwnerId=@Owner AND Id=@Id;",owner);
+        Add(sql,"@Id",SqlDbType.UniqueIdentifier,plan.Id);
+        return sql.ExecuteScalar() is string prior && prior is "Planned" or "Active" or "Completed" ? prior : null;
+    }
+    private static int ItemCount(SqlConnection c,SqlTransaction tx,Guid owner,Guid id)
+    {
+        using var sql=Command(c,tx,"SELECT COUNT(*) FROM [learning].[PlanItem] WHERE OwnerId=@Owner AND PlanId=@Id;",owner);
+        Add(sql,"@Id",SqlDbType.UniqueIdentifier,id); return (int)sql.ExecuteScalar()!;
+    }
+
     private IdentityOperationResult<object?> Write(IdentityPrincipal a,Guid? requested,string? etag,string op,object body,string key,string? trace,
         Func<SqlConnection,SqlTransaction,Guid,IdentityOperationResult<object?>?> work,LearningPlanSourceRef? source=null)
     {
@@ -190,18 +255,24 @@ public sealed class SqlLearningPlanService : ILearningPlanService
             }
             if(!claim.IsClaimed) return Fail<object?>("RequestInProgress",409,"Retry the original request with its original key.");
             var id=requested??Guid.NewGuid();
+            string? priorState=null;
             if(requested.HasValue)
             {
                 if(!LearningPlanRules.TryRevision(etag,out _)) return Fail<object?>("PreconditionRequired",428,"A quoted current ETag is required.");
                 var current=Read(c,tx,a.OwnerId,id,true); if(current is null) return Missing<object?>();
                 if(current.ETag!=etag) return Fail<object?>("RevisionConflict",412,"Reload the current Plan before changing this intent.");
-                if(current.Status=="Archived") return Fail<object?>("LifecycleLocked",409,"Archived Plans are read-only.");
+                priorState=current.Status;
+                if(current.Status=="Archived" && op!="unarchive") return Fail<object?>("LifecycleLocked",409,"Archived Plans are read-only.");
             }
             var error=work(c,tx,id); if(error is not null) return error;
-            using(var touch=Command(c,tx,"UPDATE [learning].[Plan] SET UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id; UPDATE [platform].[Resource] SET Revision=Revision+1,UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id;",a.OwnerId))
+            using(var touch=Command(c,tx,"UPDATE [learning].[Plan] SET UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User WHERE OwnerId=@Owner AND Id=@Id; UPDATE r SET Availability=CASE WHEN p.Status='Archived' THEN 'Archived' ELSE 'Active' END,Revision=r.Revision+1,UpdatedAt=SYSUTCDATETIME(),UpdatedByUserId=@User FROM [platform].[Resource] r JOIN [learning].[Plan] p ON p.OwnerId=r.OwnerId AND p.Id=r.Id WHERE r.OwnerId=@Owner AND r.Id=@Id;",a.OwnerId))
             { Identity(touch,a,id); touch.ExecuteNonQuery(); }
-            using(var audit=Command(c,tx,"INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result,TraceId) VALUES(@User,@User,@Action,'learning.Plan',@Id,'Succeeded',@Trace);",a.OwnerId))
-            { Identity(audit,a,id); Add(audit,"@Action",SqlDbType.NVarChar,action,160); Add(audit,"@Trace",SqlDbType.NVarChar,trace,100); audit.ExecuteNonQuery(); }
+            using(var audit=Command(c,tx,"INSERT [security].[AuditEvent](ActorUserId,OwnerUserId,ActionKey,TargetType,TargetId,Result,TraceId,RedactedDiffJson) VALUES(@User,@User,@Action,'learning.Plan',@Id,'Succeeded',@Trace,@Diff);",a.OwnerId))
+            {
+                Identity(audit,a,id); Add(audit,"@Action",SqlDbType.NVarChar,action,160); Add(audit,"@Trace",SqlDbType.NVarChar,trace,100);
+                Add(audit,"@Diff",SqlDbType.NVarChar,op is "archive" or "unarchive" ? JsonSerializer.Serialize(new {fromState=priorState,toState=Read(c,tx,a.OwnerId,id,false)?.Status}) : null,-1);
+                audit.ExecuteNonQuery();
+            }
             receipts.Complete(c,tx,claim,"PlanCommitted",status,JsonSerializer.Serialize(new Receipt(1,a.UserId,a.OwnerId,id,action,status,source)));
             if(!Allowed(c,tx,a,action) || !OriginalAuthority(c,tx,a,id)) return Denied<object?>();
             if(source is not null && sources.Read(c,tx,a,source).Status=="Unavailable") return Missing<object?>();
