@@ -1,5 +1,12 @@
 # Verification checkpoint — incomplete release
 
+Subsequent exact checkpoint: [13](13-r1-checkpoint-ci-20261024.md) records all6
+automatic CI jobs green on8eb5aaff, including parsed browser12/12 and SQL290/290.
+Later native Toolbox/URL/header source is separately tracked in
+[14](14-toolbox-navigation-url-headers-20261024.md) and `evidence/oct24-tools`;
+do not apply checkpoint13 runtime results to those newer bytes. Local checks for
+the newer increment are compile only, no functional cases/fixtures/runtime.
+
 **Current Oct24 R1 increment:** base14c76bcb plus new code; code-only authorization.
 Unit/integration project builds each exit0,0warnings/0errors; final TypeScript/Vite
 build exit0,378modules, retained >500kB advisory. Current curated logs/source map:

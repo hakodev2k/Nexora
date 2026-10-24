@@ -2,6 +2,17 @@
 
 ## Oct24 source-review corrections (runtime retest NOT RUN)
 
+Subsequent source review: **UH-01 High/P1**, nested URL userinfo could evade
+redaction when encoded authority delimiters were decoded before inspection.
+Correction preserves raw query name/value privacy decisions before form decoding,
+inspects every further layer including final decoded text, and redacts the entire
+ambiguous field. Fixed header and query paths must both be independently re-reviewed;
+owner encoded-delimiter/layer/duplicate/copy regression remains NOT RUN.
+[Review](workers/r1-20261024-review-url-headers.md), ToolboxUrlHeaders.inspectEncoding/
+credentialAuthority/parseToolboxUrl. **R24-TN-01 Medium/P2**, catalog filters lost
+on native tool-key remount; root scoped parent metadata fix independently closed
+in source, [navigation review](workers/r1-20261024-review-tool-navigation.md).
+
 Baseline14c76bcb plus new R1 changes. Independent source findings, not browser
 reproductions. Severity Medium / priority P2 except R24-AUTH-01 High/P1;
 confidence High for inspected source.

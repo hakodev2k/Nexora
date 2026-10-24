@@ -1,5 +1,9 @@
 # PR4 implementation checkpoint — 2026-10-22
 
+**Subsequent continuation:** [native Toolbox catalog + URL/header implementation](14-toolbox-navigation-url-headers-20261024.md).
+[Actual CI on8eb5aaff](13-r1-checkpoint-ci-20261024.md) is green but does not certify
+later source changes. Latest applicable local verification remains code-only.
+
 **Latest code increment:** [Oct24 R1 implementation plan](12-r1-implementation-20261024.md)
 and [root integration handoff](workers/r1-20261024-root-integration.md). Current
 code-only authorization supersedes historical QA permissions below. New executable

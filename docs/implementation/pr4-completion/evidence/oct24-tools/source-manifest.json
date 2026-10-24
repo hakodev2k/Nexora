@@ -1,0 +1,43 @@
+{
+  "base": "8eb5aaff54c493d27ae1a0baa7209bdadecda948",
+  "encoding": "UTF-8/LF",
+  "files": [
+    {
+      "path": "database/migrations/20261024_0092_toolbox_url_headers.sql",
+      "sha256LF": "b6eb63e735106acb172751015544c97f936f6f0a65ba9f7fca6e16e227dfe366"
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256LF": "1c298be7eac214b46c494068934a2459dfa261a1fdb040c611771a1084dcc8b9"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.UrlHeaders.cs",
+      "sha256LF": "6d2eb06ed8676d8094d29d1d6a87d5e6bf7579b4ddb15212a885778f849eb671"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/DeveloperTools/LocalToolboxService.cs",
+      "sha256LF": "bc2c8da6d49b870486d5fd62a73daec30f27981398ff50356c646fdc42a77c45"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256LF": "80520554d9206d205af5a06d82a7cb8e5a76ee8477805e208b8b76669025d28a"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256LF": "ee4dc95c3acf5eba0a45484df58306be06c68e484d7c1559f0a664ead2f9f23c"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256LF": "328dc24135fe9db02630af706465f8da6988f8884901bbea3715c8282612e723"
+    },
+    {
+      "path": "web/Nexora.Web/src/ToolboxUrlHeaders.ts",
+      "sha256LF": "d31ffc7d71ecf1453b053d3e10513b8ccbfd8aeff7db0e90c7fe747948d5306e"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256LF": "09bc6f0792abf05e93897dfd6a2f2665b551636ca6c4abd8b0fb0ee1024fb52d"
+    }
+  ],
+  "changedSourceDigest": "8ec9958a62f86bc3ce4c8a1132377e811a30e6785122d24ec342f8a449a017d3"
+}

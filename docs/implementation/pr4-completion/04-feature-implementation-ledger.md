@@ -94,3 +94,12 @@ these new executable bytes. Details: [plan12](12-r1-implementation-20261024.md) 
 
 FX01–08,10–23,26–31,33–39 have no new domain-capability acceptance in this increment;
 their earlier ledger gaps remain open, subject to exact current code reconciliation.
+
+### Subsequent FX32 increment
+
+URL parser and pasted header inspector are now CODE_IMPLEMENTED with browser-only
+payloads/current SQL authority, not ordinary missing tools. Native per-tool routes,
+catalog name/category filter and scoped filter restoration are also code-present.
+See [14](14-toolbox-navigation-url-headers-20261024.md). Their privacy/runtime gates
+remain separate; no whole-FX32/R1 acceptance. Earlier URL/header absent-code rows
+are historical; remaining other tool/history/output gaps still apply.

@@ -57,3 +57,11 @@ not an executed coverage matrix or semantic proof on current source.
 Status of these bounded delivered commands is CODE_IMPLEMENTED / VERIFICATION_PENDING;
 Plan execution remains deliberately Gated. This increment does not complete the
 remaining semantic matrix for all40FX or replace older UNMAPPED rows with passes.
+
+Subsequent FX32-S01/S02 source bindings: `toolbox.catalog.read` now has native
+per-tool navigation and scoped query/category restoration; `toolbox.url_parse.run`
+and `toolbox.headers.run` have browser-only bounded parsers, payload-free API/SQL
+authority seams, effective policy registration, migration0092 and actual UI.
+P06-NET001/003/004 and TBX001/003/004/007/008, NXG-FX32-G01/G03/SYS03/08/13/14;
+[contract and evidence](14-toolbox-navigation-url-headers-20261024.md). Status
+CODE_IMPLEMENTED / VERIFICATION_PENDING, no provider/network execution accepted.

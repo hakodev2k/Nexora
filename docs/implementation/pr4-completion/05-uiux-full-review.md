@@ -1,5 +1,10 @@
 # UI/UX execution report — partial coverage, not full acceptance
 
+Newest FX32 catalog/native tool/header/URL states are code-present and source
+reviewed only. R24-TN-01 filter restoration fix has bounded independent source
+closure; no new screen, dialog, viewport, keyboard or scroll execution is claimed.
+See14 for exact scope. Previous screenshot/runtime evidence remains source-bound.
+
 **Oct24 new R1 increment:** no browser, screenshot or viewport execution under
 latest code-only authorization. Observations below apply to historical source.
 New Collections create/edit/picker/delete/abandon, Skill merge picker/preview/history,
