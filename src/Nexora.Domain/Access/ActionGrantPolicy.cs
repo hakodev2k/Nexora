@@ -147,16 +147,6 @@ public static class ActionGrantPolicy
         "toolbox.datetime.run",
         "toolbox.csv.run",
         "toolbox.jwt.run",
-        "toolbox.text_diff.run",
-        "toolbox.color.run",
-        "learning.skill.merge",
-        "organization.collection.read",
-        "organization.collection.create",
-        "organization.collection.update",
-        "organization.collection.add",
-        "organization.collection.remove",
-        "organization.collection.reorder",
-        "organization.collection.delete",
         "goals.goal.read",
         "goals.goal.create",
         "goals.goal.update",
@@ -246,6 +236,12 @@ public static class ActionGrantPolicy
     // Exact shipped SELF catalog eligibility; no grant, SYSTEM, provider or uninstalled action.
     private static readonly HashSet<string> ApprovedShippedSelfActions = new(StringComparer.Ordinal)
     {
+        "organization.collection.read", "organization.collection.create", "organization.collection.update",
+        "organization.collection.add", "organization.collection.remove", "organization.collection.reorder", "organization.collection.delete",
+        "toolbox.catalog.read", "toolbox.base64.run", "toolbox.url_codec.run", "toolbox.html_codec.run",
+        "toolbox.hash.run", "toolbox.uuid.run", "toolbox.password.run", "toolbox.json.run", "toolbox.regex.run",
+        "toolbox.xml.run", "toolbox.datetime.run", "toolbox.csv.run", "toolbox.jwt.run",
+        "toolbox.text_diff.run", "toolbox.color.run",
         "documents.format.export",
         "documents.format.import",
         "notifications.source.open",
@@ -408,7 +404,7 @@ public static class ActionGrantPolicy
     };
     private static readonly HashSet<string> ApprovedSkillActions = new(StringComparer.Ordinal)
     {
-        "learning.skill.read", "learning.skill.create", "learning.skill.update", "learning.skill.proficiency", "learning.skill.evidence",
+        "learning.skill.read", "learning.skill.create", "learning.skill.update", "learning.skill.proficiency", "learning.skill.evidence", "learning.skill.merge",
         "learning.skill.archive", "learning.skill.unarchive", "learning.skill.trash", "learning.skill.restore", "learning.skill.purge",
         "learning.worklog.read", "learning.worklog.create", "learning.worklog.update", "learning.worklog.archive", "learning.worklog.unarchive", "learning.report.read",
         "learning.worklog.trash", "learning.worklog.restore", "learning.worklog.purge"
