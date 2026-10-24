@@ -381,12 +381,13 @@ WHERE u.[NormalizedEmail] = @normalizedEmail;");
                 user = reader.Read() ? ReadLoginRow(reader) : null;
             }
 
-            var passwordVerification = user is not null
-                ? _passwords.VerifyDetailed(password, user.PasswordHash)
-                : PasswordVerificationResult.Failed;
-            if (passwordVerification == PasswordVerificationResult.Failed)
+            // Verify exactly one fixed-cost hash for both unknown accounts and
+            // a known account with an incorrect proof. A second dummy check on
+            // only the known-account path would disclose account existence by
+            // doubling its password-verification work.
+            var passwordVerification = _passwords.VerifyDetailed(password, user?.PasswordHash ?? DummyPasswordHash);
+            if (user is null || passwordVerification == PasswordVerificationResult.Failed)
             {
-                _ = _passwords.VerifyDetailed(password, DummyPasswordHash);
                 RollbackQuietly(transaction);
                 return Failure<IdentityLoginIssue>("InvalidCredentials", 401, "Invalid credentials.");
             }

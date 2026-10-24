@@ -1,5 +1,7 @@
 # Remaining work, genuine gates and resumable handoff
 
+**2026-10-25 disposition:** current user authorization permits isolated QA and tests; older code-only restrictions below no longer apply to this audit. See [current report](17-release-audit-20261025.md) and [full action inventory](16-full-feature-inventory-20261025.md). Baseline current-head CI is green, including the Windows principal gate; older claims below that this gate currently fails are historical. Full operation/AC acceptance, current-source regression after new fixes and ordinary implementation gaps remain open. No D01–D09 product/security boundary was lifted.
+
 **Oct24 code-only delta:** Collection, Skill merge, Plan archive/unarchive and
 native Course/source navigation are now code-present; do not continue from older
 absent-code statements. [Plan12](12-r1-implementation-20261024.md), the all40 ledger

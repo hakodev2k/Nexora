@@ -1,5 +1,8 @@
 using System.Collections.Concurrent;
 using System.Globalization;
+using Nexora.Api.Features.Identity;
+using Nexora.Application.Identity;
+using Nexora.Domain.Identity;
 
 namespace Nexora.Api.Security;
 
@@ -53,9 +56,29 @@ public static class EndpointSecurityFilters
                     });
             }
 
-            var path = http.Request.Path.Value ?? string.Empty;
-            var limit = LimitFor(path);
-            if (limit is { } rate && !RequestRateLimiter.Allow(ClientKey(http) + ":" + path, rate.MaxRequests, rate.Window, out var retryAfter))
+            var csrf = http.RequestServices.GetRequiredService<CsrfTokenService>();
+            var cookieSecret = http.Request.Cookies["__Host-NexoraCsrf"];
+            var requestToken = http.Request.Headers["X-CSRF-Token"].ToString();
+            if (!csrf.Validate(cookieSecret, requestToken))
+            {
+                return Results.Problem(
+                    title: "CSRF token is invalid.",
+                    statusCode: StatusCodes.Status403Forbidden,
+                    type: "/problems/CsrfInvalid",
+                    extensions: new Dictionary<string, object?>
+                    {
+                        ["code"] = "CsrfInvalid",
+                        ["traceId"] = http.TraceIdentifier
+                    });
+            }
+
+            // ASP.NET routes accept casing variants and a trailing slash. Apply
+            // security policy to the same logical path so those equivalent
+            // requests cannot skip a suffix guard or obtain a fresh bucket.
+            var path = (http.Request.Path.Value ?? string.Empty).TrimEnd('/');
+            using var admission = http.RequestServices.GetRequiredService<AuthenticationRequestThrottle>()
+                .TryAcquire(path, Subject(invocationContext, path), ClientKey(http), out var retryAfter);
+            if (admission is null)
             {
                 http.Response.Headers["Retry-After"] = retryAfter.ToString(CultureInfo.InvariantCulture);
                 return Results.Problem(
@@ -70,35 +93,21 @@ public static class EndpointSecurityFilters
                     });
             }
 
-            var csrf = http.RequestServices.GetRequiredService<CsrfTokenService>();
-            var cookieSecret = http.Request.Cookies["__Host-NexoraCsrf"];
-            var requestToken = http.Request.Headers["X-CSRF-Token"].ToString();
-            if (csrf.Validate(cookieSecret, requestToken))
+            if (!RequiresIdempotencyKey(http.Request.Method, path) ||
+                Guid.TryParse(http.Request.Headers["Idempotency-Key"].ToString(), out _))
             {
-                if (!RequiresIdempotencyKey(http.Request.Method, path) ||
-                    Guid.TryParse(http.Request.Headers["Idempotency-Key"].ToString(), out _))
-                {
-                    return await next(invocationContext);
-                }
-
-                return Results.Problem(
-                    title: "Idempotency-Key must be a UUID.",
-                    statusCode: StatusCodes.Status422UnprocessableEntity,
-                    type: "/problems/IdempotencyKeyRequired",
-                    extensions: new Dictionary<string, object?>
-                    {
-                        ["code"] = "IdempotencyKeyRequired",
-                        ["traceId"] = http.TraceIdentifier
-                    });
+                var result = await next(invocationContext);
+                admission.Complete((result as IStatusCodeHttpResult)?.StatusCode);
+                return result;
             }
 
             return Results.Problem(
-                title: "CSRF token is invalid.",
-                statusCode: StatusCodes.Status403Forbidden,
-                type: "/problems/CsrfInvalid",
+                title: "Idempotency-Key must be a UUID.",
+                statusCode: StatusCodes.Status422UnprocessableEntity,
+                type: "/problems/IdempotencyKeyRequired",
                 extensions: new Dictionary<string, object?>
                 {
-                    ["code"] = "CsrfInvalid",
+                    ["code"] = "IdempotencyKeyRequired",
                     ["traceId"] = http.TraceIdentifier
                 });
         });
@@ -131,14 +140,24 @@ public static class EndpointSecurityFilters
              string.Equals(origin, "http://127.0.0.1:5173", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static (int MaxRequests, TimeSpan Window)? LimitFor(string path)
+    private static string Subject(EndpointFilterInvocationContext invocation, string path)
     {
-        if (path.EndsWith("/auth/login", StringComparison.OrdinalIgnoreCase)) return (10, TimeSpan.FromMinutes(1));
-        if (path.Contains("/auth/verifications", StringComparison.OrdinalIgnoreCase) ||
-            path.Contains("/auth/password-resets", StringComparison.OrdinalIgnoreCase)) return (5, TimeSpan.FromMinutes(5));
-        if (path.EndsWith("/auth/registrations", StringComparison.OrdinalIgnoreCase) ||
-            path.EndsWith("/auth/reauth", StringComparison.OrdinalIgnoreCase)) return (10, TimeSpan.FromMinutes(5));
-        return null;
+        string? email = invocation.Arguments.OfType<CredentialsRequest>().FirstOrDefault()?.Email
+            ?? invocation.Arguments.OfType<RegistrationRequest>().FirstOrDefault()?.Email
+            ?? invocation.Arguments.OfType<EmailRequest>().FirstOrDefault()?.Email;
+        if (path.EndsWith("/auth/reauth", StringComparison.OrdinalIgnoreCase))
+        {
+            var http = invocation.HttpContext;
+            var handle = http.RequestServices.GetRequiredService<SessionCookieService>().ReadRawHandle(http.Request);
+            var profile = http.RequestServices.GetRequiredService<IIdentityService>().GetMe(handle);
+            email = profile.Succeeded ? profile.Value?.Profile.Email : null;
+        }
+        try
+        {
+            return email is { Length: <= 320 } ? EmailNormalizer.Normalize(email) : "invalid-subject";
+        }
+        catch (ArgumentException) { return "invalid-subject"; }
+        catch (FormatException) { return "invalid-subject"; }
     }
 
     private static bool RequiresIdempotencyKey(string method, string path)
@@ -169,6 +188,8 @@ public static class EndpointSecurityFilters
 
 }
 
+// Existing shared-link operational guard; authentication uses its dedicated
+// result-aware subject/source limiter above.
 internal static class RequestRateLimiter
 {
     private static readonly ConcurrentDictionary<string, Window> Windows = new(StringComparer.Ordinal);
@@ -184,7 +205,6 @@ internal static class RequestRateLimiter
                 current.Start = now;
                 current.Count = 0;
             }
-
             current.Count++;
             var remaining = window - (now - current.Start);
             retryAfterSeconds = Math.Max(1, (int)Math.Ceiling(remaining.TotalSeconds));

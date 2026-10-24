@@ -14,8 +14,8 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'cobertura'],
       reportsDirectory: 'artifacts/coverage',
-      include: ['src/App.tsx', 'src/api.ts', 'src/i18n.ts'],
-      exclude: ['src/main.tsx']
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/**/*.d.ts', 'src/main.tsx']
     }
   }
 });

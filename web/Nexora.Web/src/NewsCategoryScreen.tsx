@@ -55,7 +55,10 @@ export function NewsCategoryScreen({ onAuthLost }: { onAuthLost: () => void }) {
     } catch (e) {
       if (!mounted.current || stamp !== epoch.current) return false;
       setFormError(message(e)); const status = (e as { status?: number }).status;
-      if (status === 0 || status === 503 || (status === 409 && (e as { code?: string }).code === 'RequestInProgress')) setUncertain(true);
+      // A timeout or server/proxy failure does not prove that the write rolled back.
+      // Freeze the original body/key until its acknowledgement is recovered.
+      if (status === 0 || status === 408 || (status !== undefined && status >= 500) ||
+          (status === 409 && (e as { code?: string }).code === 'RequestInProgress')) setUncertain(true);
       if (status === 412 && editor.item) {
         setUncertain(false); setConflictLocked(true);
         try { const current = await newsCategoryGet(editor.item.id); if (mounted.current && stamp === epoch.current) setConflict(current); }

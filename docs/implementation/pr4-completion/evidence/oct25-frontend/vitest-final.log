@@ -1,0 +1,19 @@
+
+> nexora-web@0.1.0-s00 test:unit
+> vitest run --reporter=dot
+
+
+ RUN  v5.0.0 D:/Projects/ASP_NET_Core_Developer_2026/Nexora/web/Nexora.Web
+
+stderr | src/ResourceFormDialog.test.tsx > protects a dirty dialog from navigation and reload until explicitly discarded
+A component suspended inside an `act` scope, but the `act` call was not awaited. When testing React components that depend on asynchronous data, you must await the result:
+
+await act(() => ...)
+
+·················································································································································································································-
+
+ Test Files  25 passed (25)
+      Tests  209 passed | 1 skipped (210)
+   Start at  00:20:22
+   Duration  19.55s (tests 36%, environment 29%, transform 16%, setup 12%, import 8%)
+

@@ -39,7 +39,7 @@ describe('News category authority and recovery', () => {
     resolve({ items: [item, { ...item, id: 'second-category', metadata: { ...item.metadata, name: 'Second page category' } }], nextCursor: null });
     await screen.findByText('Second page category'); expect(screen.getAllByRole('article')).toHaveLength(2); expect(screen.queryByText('Load more categories')).toBeNull();
   });
-  it.each([0, 503, 409])('freezes and exactly retries an uncertain update with status %s', async status => {
+  it.each([0, 408, 500, 502, 503, 504, 409])('freezes and exactly retries an uncertain update with status %s', async status => {
     vi.mocked(api.newsCategoryUpdate).mockRejectedValueOnce(Object.assign(new Error('Unknown outcome'), { status, code: status === 409 ? 'RequestInProgress' : undefined })).mockResolvedValueOnce({ id: item.id, etag: 'ack-etag' });
     const user = await edit(); await user.clear(screen.getByLabelText('Category name')); await user.type(screen.getByLabelText('Category name'), 'Retained draft');
     await user.click(screen.getByText('Save category')); await screen.findByText('Unknown outcome'); expect(screen.getByLabelText('Category name')).toBeDisabled();
@@ -53,7 +53,7 @@ describe('News category authority and recovery', () => {
     await user.keyboard('{Escape}'); await screen.findByText('The save outcome is unknown. Discarding leaves any committed server category intact.');
     expect(api.newsCategoryUpdate).toHaveBeenCalledTimes(1);
   });
-  it.each([0, 503, 409])('exactly retries uncertain creation with status %s without creating a fresh command', async status => {
+  it.each([0, 408, 500, 502, 503, 504, 409])('exactly retries uncertain creation with status %s without creating a fresh command', async status => {
     vi.mocked(api.newsCategoryCreate).mockRejectedValueOnce(Object.assign(new Error('Unknown creation'), { status, code: status === 409 ? 'RequestInProgress' : undefined })).mockResolvedValueOnce({ id: 'created-category', etag: 'ack-etag' });
     const user = userEvent.setup(); render(<NewsCategoryScreen onAuthLost={vi.fn()} />);
     await user.click(await screen.findByText('New category')); await user.type(screen.getByLabelText('Category name'), 'Frozen new category'); await user.click(screen.getByText('Save category'));

@@ -2,6 +2,8 @@
 
 Status: PRODUCT_INCOMPLETE. No whole FX group is ACCEPTED.
 
+**2026-10-25 audit overlay:** [733 exact action inventory, detailed quality and screen checklists](16-full-feature-inventory-20261025.md) retain declared versus observed status explicitly; [current remediation/QA/release report](17-release-audit-20261025.md) records actual new execution. This continues this ledger rather than promoting whole modules. Current user authorization permits QA/tests and supersedes older code-only execution statements for this audit only. No new Release Ready claim follows from green baseline CI or source token matches.
+
 The40rows below retain the explicitly historical2026-10-19 baseline inventory.
 They are backlog starting points, not current runtime certification. Current delta
 source fixes and tests appear in worker reports and07-final-verification.md.

@@ -123,6 +123,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddSingleton<SessionCookieService>();
+builder.Services.AddSingleton<AuthenticationRequestThrottle>();
 var configuredSqlConnectionString = builder.Configuration.GetConnectionString("NexoraSql")
     ?? throw new InvalidOperationException("ConnectionStrings:NexoraSql is required.");
 var sqlConnectionString = Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING");
