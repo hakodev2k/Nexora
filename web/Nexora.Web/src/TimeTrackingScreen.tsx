@@ -5,6 +5,7 @@ import { timeCapabilities, timeEntries, timeHistory, timeReport, timeSave, timeS
 
 const localInput = (instant: string) => { const d = new Date(instant); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
 const errorStatus = (e: unknown) => (e as { status?: number })?.status;
+const uncertainSave = (e: unknown) => { const status = errorStatus(e); return status === undefined || status === 0 || status === 408 || status >= 500 || (status === 409 && (e as { code?: string }).code === 'RequestInProgress'); };
 const safeError = (e: unknown) => (e as { title?: string })?.title ?? (e instanceof Error ? e.message : 'Không thể hoàn tất thao tác.');
 
 export function TimeTrackingScreen({ onAuthLost }: { onAuthLost: () => void }) {
@@ -15,6 +16,8 @@ export function TimeTrackingScreen({ onAuthLost }: { onAuthLost: () => void }) {
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ entry?: TimeEntry; timer: boolean } | null>(null);
+  const [saveUnknown, setSaveUnknown] = useState(false); const [abandonSave, setAbandonSave] = useState(false);
+  const saveCommand = useRef<(() => Promise<unknown>) | null>(null); const saving = useRef(false);
   const [description, setDescription] = useState(''); const [category, setCategory] = useState('');
   const [start, setStart] = useState(''); const [end, setEnd] = useState(''); const [overlap, setOverlap] = useState(false);
   const [pending, setPending] = useState<TimeEntry | null>(null);
@@ -23,7 +26,7 @@ export function TimeTrackingScreen({ onAuthLost }: { onAuthLost: () => void }) {
   const key = useRef(crypto.randomUUID()); const loadSequence = useRef(0); const historySequence = useRef(0); const purgeSequence = useRef(0); const formBaseline = useRef('');
   const formValue = () => JSON.stringify({ description, category, start, end, overlap });
   const selection = useRef({ editor, pending }); selection.current = { editor, pending };
-  const clear = useCallback(() => { loadSequence.current++; historySequence.current++; purgeSequence.current++; setLoading(false); setCursor(null); setDescription(''); setCategory(''); setStart(''); setEnd(''); setOverlap(false); setItems([]); setTimer(null); setReport(null); setHistory(null); setEditor(null); setPending(null); setPurge(null); setCaps({}); }, []);
+  const clear = useCallback(() => { loadSequence.current++; historySequence.current++; purgeSequence.current++; saveCommand.current = null; setSaveUnknown(false); setAbandonSave(false); setLoading(false); setCursor(null); setDescription(''); setCategory(''); setStart(''); setEnd(''); setOverlap(false); setItems([]); setTimer(null); setReport(null); setHistory(null); setEditor(null); setPending(null); setPurge(null); setCaps({}); }, []);
   const fail = useCallback((e: unknown) => { setError(safeError(e)); if (errorStatus(e) === 401 || errorStatus(e) === 403) { clear(); if (errorStatus(e) === 401) onAuthLost(); } }, [clear, onAuthLost]);
   const load = useCallback(async () => {
     const sequence = ++loadSequence.current; setLoading(true); setError(null);
@@ -46,6 +49,7 @@ export function TimeTrackingScreen({ onAuthLost }: { onAuthLost: () => void }) {
   useEffect(() => { void load(); return () => { loadSequence.current++; }; }, [load]);
   const can = (action: string) => caps[`time.${action}`] === true;
   function open(entry?: TimeEntry, isTimer = false) {
+    if (saving.current || saveCommand.current) return;
     const a = localInput(entry?.startAt ?? new Date(Date.now() - 3600000).toISOString()), b = localInput(entry?.endAt ?? new Date().toISOString());
     setDescription(entry?.description ?? ''); setCategory(entry?.category ?? ''); setStart(a); setEnd(b);
     formBaseline.current = JSON.stringify({ description: entry?.description ?? '', category: entry?.category ?? '', start: a, end: b, overlap: false });
@@ -53,15 +57,32 @@ export function TimeTrackingScreen({ onAuthLost }: { onAuthLost: () => void }) {
   }
   function changed() { key.current = crypto.randomUUID(); }
   async function save() {
-    if (!editor) return false;
-    const a = new Date(start), b = new Date(end);
-    if (!editor.timer && (!Number.isFinite(a.getTime()) || !Number.isFinite(b.getTime()) || b <= a)) { setError('Giờ kết thúc phải sau giờ bắt đầu.'); return false; }
+    if (!editor || saving.current) return false;
+    if (!saveCommand.current) {
+      const a = new Date(start), b = new Date(end);
+      if (!editor.timer && (!Number.isFinite(a.getTime()) || !Number.isFinite(b.getTime()) || b <= a)) { setError('Giờ kết thúc phải sau giờ bắt đầu.'); return false; }
+      const submittedKey = key.current, submittedDescription = description || null, submittedCategory = category || null;
+      const submittedEntry = editor.entry ? { ...editor.entry } : undefined;
+      if (editor.timer) saveCommand.current = () => timeStart(submittedDescription, submittedCategory, submittedKey);
+      else {
+        const body = { startAt: a.toISOString(), endAt: b.toISOString(), description: submittedDescription, category: submittedCategory, confirmOverlap: overlap };
+        saveCommand.current = () => timeSave(body, submittedKey, submittedEntry);
+      }
+    }
+    saving.current = true;
     const sequence = loadSequence.current; setBusy(true); setError(null);
     try {
-      if (editor.timer) await timeStart(description || null, category || null, key.current);
-      else await timeSave({ startAt: a.toISOString(), endAt: b.toISOString(), description: description || null, category: category || null, confirmOverlap: overlap }, key.current, editor.entry);
-      if (sequence !== loadSequence.current) return false; await load(); setEditor(null); return true;
-    } catch (e) { if (sequence === loadSequence.current) fail(e); return false; } finally { setBusy(false); }
+      await saveCommand.current();
+      if (sequence !== loadSequence.current) return false;
+      saveCommand.current = null; setSaveUnknown(false); setAbandonSave(false); setEditor(null); await load(); return true;
+    } catch (e) {
+      if (sequence === loadSequence.current) {
+        const unknown = uncertainSave(e); setSaveUnknown(unknown);
+        if (!unknown) { saveCommand.current = null; setAbandonSave(false); }
+        fail(e);
+      }
+      return false;
+    } finally { saving.current = false; setBusy(false); }
   }
   async function mutate(work: () => Promise<unknown>) { const sequence = loadSequence.current; setBusy(true); try { await work(); if (sequence !== loadSequence.current) return false; await load(); return true as const; } catch (e) { if (sequence === loadSequence.current) fail(e); return { error: safeError(e) }; } finally { setBusy(false); } }
   return <section aria-labelledby="time-title" className="content-panel">
@@ -81,11 +102,15 @@ export function TimeTrackingScreen({ onAuthLost }: { onAuthLost: () => void }) {
       {cursor && <button disabled={loading || busy} onClick={async () => { setLoading(true); const seq = loadSequence.current; try { const next = await timeEntries(trash, cursor); if (seq !== loadSequence.current) return; setItems(old => [...old, ...next.items]); setCursor(next.nextCursor); } catch (e) { if (seq === loadSequence.current) fail(e); } finally { if (seq === loadSequence.current) setLoading(false); } }}>Load more entries</button>}
     </>}
     {report && <div><h2>Gross duration</h2><p>{Math.floor(report.grossDurationMilliseconds / 1000)} giây · {report.entryCount} entries</p>{report.hasOverlaps && <p role="status">Có overlap. Tổng là gross duration, không phải net time.</p>}</div>}
-    {editor && <ResourceFormDialog open title={editor.timer ? 'Start timer' : editor.entry ? 'Edit entry' : 'Manual entry'} busy={busy} dirty={formValue() !== formBaseline.current} onClose={() => setEditor(null)}><form onSubmit={event => { event.preventDefault(); void save(); }} noValidate><p>Dữ liệu chỉ được lưu sau khi SQL xác nhận.</p>{error && <p role="alert">{error}</p>}
+    {editor && <ResourceFormDialog open title={editor.timer ? 'Start timer' : editor.entry ? 'Edit entry' : 'Manual entry'} busy={busy} closeBlocked={saveUnknown} dirty={formValue() !== formBaseline.current} onClose={() => setEditor(null)}><form className="resource-form" onSubmit={event => { event.preventDefault(); void save(); }} noValidate><p>Dữ liệu chỉ được lưu sau khi SQL xác nhận.</p>{error && <p role="alert">{error}</p>}
+      {saveUnknown && <div role="alert"><p>Chưa xác định được kết quả lưu. Nội dung đã được giữ nguyên để thử lại cùng thao tác, tránh tạo bản ghi trùng.</p><p>Nếu dừng đối chiếu, thao tác trước vẫn có thể đã lưu. Kiểm tra timer và danh sách trước khi tạo lại.</p>
+        {!abandonSave ? <button type="button" disabled={busy} onClick={() => setAbandonSave(true)}>Dừng đối chiếu…</button> : <div className="dialog-actions"><button type="button" disabled={busy} onClick={() => setAbandonSave(false)}>Tiếp tục đối chiếu</button><button type="button" className="danger-button" disabled={busy} onClick={() => { saveCommand.current = null; setSaveUnknown(false); setAbandonSave(false); setEditor(null); setDescription(''); setCategory(''); setStart(''); setEnd(''); setOverlap(false); void load(); }}>Tôi hiểu, kiểm tra dữ liệu đã lưu</button></div>}
+      </div>}
+      <fieldset className="resource-dialog-fields" disabled={busy || saveUnknown}>
       <label htmlFor="time-entry-description">Description</label><textarea id="time-entry-description" maxLength={2000} value={description} onChange={e => { changed(); setDescription(e.target.value); }} />
       <label htmlFor="time-entry-category">Category</label><input id="time-entry-category" maxLength={200} value={category} onChange={e => { changed(); setCategory(e.target.value); }} />
       {!editor.timer && <><label htmlFor="time-entry-start">Start (múi giờ trình duyệt)</label><input id="time-entry-start" type="datetime-local" value={start} onChange={e => { changed(); setStart(e.target.value); }} /><label htmlFor="time-entry-end">End (múi giờ trình duyệt)</label><input id="time-entry-end" type="datetime-local" value={end} onChange={e => { changed(); setEnd(e.target.value); }} /><label><input type="checkbox" checked={overlap} onChange={e => { changed(); setOverlap(e.target.checked); }} /> Tôi xác nhận nếu entry này overlap và được cộng vào gross duration.</label></>}
-      <button type="submit" disabled={busy}>Save</button></form>
+      </fieldset><button type="submit" disabled={busy}>{saveUnknown ? 'Thử lại đúng thao tác' : 'Save'}</button></form>
     </ResourceFormDialog>}
     {pending && <ActionDialog title={pending.status === 'Trash' ? 'Restore entry' : 'Trash entry'} description={<span>{pending.description ?? 'Time entry'} · {new Date(pending.startAt).toLocaleString()}. Trash giữ dữ liệu và lịch sử.</span>} confirmLabel={pending.status === 'Trash' ? 'Restore' : 'Trash'} onConfirm={() => mutate(() => timeTransition(pending, pending.status === 'Trash', key.current))} onClose={() => setPending(null)} />}
     {purge && <ActionDialog title="Delete entry permanently" description={<span>Entry {purge.entryId} và {purge.correctionCount} corrections sẽ bị xóa vĩnh viễn. Không thể hoàn tác.{purge.hasConversionPin && ' Focus conversion đang giữ reference; không thể purge.'}</span>} confirmLabel="Delete permanently" confirmDisabled={purge.hasConversionPin} onClose={() => { purgeSequence.current++; setPurge(null); }} onConfirm={() => purge.hasConversionPin ? { error: 'Focus conversion still references this entry.' } : mutate(() => timePurge(purge, key.current))} />}

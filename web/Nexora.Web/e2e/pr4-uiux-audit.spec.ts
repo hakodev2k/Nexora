@@ -64,9 +64,10 @@ async function trySeed(page: Page, records: string[], domain: string) {
     const dialog = page.getByRole('dialog').first();
     await dialog.getByLabel('URL', { exact: true }).fill('https://example.invalid/nexora-uiux-bookmark');
     await dialog.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic UIUX Bookmarks item');
-    await dialog.getByRole('button', { name: 'Lưu bookmark' }).click();
-    await page.waitForTimeout(500);
-    records.push('Bookmarks: attempted one synthetic real SQL UI create (observe subsequent list)');
+    await dialog.getByRole('button', { name: 'Tạo bookmark', exact: true }).click({ timeout: 5_000 });
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: 'Synthetic UIUX Bookmarks item', exact: true }).first()).toBeVisible({ timeout: 5_000 });
+    records.push('Bookmarks: synthetic real SQL UI creation confirmed');
   } catch { records.push('Bookmarks: UI seeding unverified/blocked (do not claim populated)'); }
   if (domain === 'knowledge') try {
     await page.goto('/modules/FX22');
@@ -296,8 +297,8 @@ const groups: AuditGroup[] = [
   { group: 'auth', role: 'Anonymous', routes: publicRoutes, seed: 'none' },
   { group: 'navigation', role: 'UserA', routes: ['/', '/search', '/search/saved', '/favorites', '/recent', '/command-palette', '/settings/profile', '/settings/security', '/notifications', '/trash'], seed: 'none' },
   { group: 'productivity', role: 'UserA', routes: ['/goals', '/planner', '/habits', ...modules.slice(10, 19)], seed: 'productivity' },
-  { group: 'knowledge', role: 'UserA', routes: ['/bookmarks', '/snippets', '/read-later', '/organize/tags', '/files', '/learning/work-log', '/sharing', ...modules.slice(19, 24)], seed: 'knowledge' },
-  { group: 'business', role: 'UserA', routes: ['/finance', '/modules/FX27', '/modules/FX29', '/modules/FX31', '/modules/FX32', '/modules/FX36', '/modules/FX37', '/modules/FX38', '/modules/FX39', '/modules/FX40'], seed: 'business' },
+  { group: 'knowledge', role: 'UserA', routes: ['/bookmarks', '/snippets', '/read-later', '/organize/tags', '/collections', '/organize/templates', '/files', '/learning/work-log', '/sharing', ...modules.slice(19, 24)], seed: 'knowledge' },
+  { group: 'business', role: 'UserA', routes: ['/finance', '/modules/FX27', '/modules/FX29', '/modules/FX31', '/shopping/sellers', '/shopping/orders', '/shopping/warranties', '/learning/certifications', '/modules/FX32', '/modules/FX36', '/modules/FX37', '/modules/FX38', '/modules/FX39', '/modules/FX40'], seed: 'business' },
   { group: 'platform', role: 'UserA', routes: modules.slice(0, 10), seed: 'none' },
   { group: 'gated', role: 'UserA', routes: ['/developer/tools', '/support', '/modules/FX25', '/modules/FX26', '/modules/FX28', '/modules/FX30', '/modules/FX33', '/modules/FX34', '/modules/FX35'], seed: 'none' },
   { group: 'admin', role: 'SuperAdmin', routes: ['/','/admin/access','/admin/modules','/settings/security','/support','/sharing','/notifications'], seed: 'none' },
@@ -311,8 +312,7 @@ for (const group of groups) {
       if (group.role !== 'Anonymous') await logIn(page, group.role);
       // Seeding must never prevent *all* route screenshots. The knowledge
       // fixture previously left dirty editor state and yielded zero evidence.
-      if (group.seed === 'knowledge') seed.push('KNOWLEDGE_POPULATED_FIXTURE_BLOCKED: initial route coverage runs unseeded; populated CRUD follows in dedicated scenario.');
-      else if (group.seed !== 'none') {
+      if (group.seed !== 'none') {
         try { await trySeed(page, seed, group.seed); }
         catch { seed.push('SEED_BLOCKED: continue independent route probes'); }
       }

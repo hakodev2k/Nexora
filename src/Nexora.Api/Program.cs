@@ -268,6 +268,9 @@ builder.Services.AddSingleton<IToolboxService>(services =>
     new LocalToolboxService(services.GetRequiredService<SqlConnectionFactory>()));
 builder.Services.AddSingleton<ICollectionService>(services =>
     new SqlCollectionService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
+builder.Services.AddSingleton<ITemplateService>(s => new SqlTemplateService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
+builder.Services.AddSingleton<ICertificationService>(s => new SqlCertificationService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!, s.GetRequiredService<TimeProvider>()));
+builder.Services.AddScoped<IShoppingRecordsService>(s => new SqlShoppingRecordsService(s.GetRequiredService<SqlConnectionFactory>(), idempotencySecret!));
 builder.Services.AddSingleton<ITrashService>(services =>
     new SqlTrashService(services.GetRequiredService<SqlConnectionFactory>(), idempotencySecret));
 builder.Services.AddSingleton<SqlFileService>(services =>
@@ -391,6 +394,9 @@ app.MapCourseEndpoints();
 app.MapGoalsEndpoints();
 app.MapOrganizationEndpoints();
 app.MapCollectionEndpoints();
+app.MapTemplateEndpoints();
+app.MapCertificationEndpoints();
+app.MapShoppingRecordsEndpoints();
 app.MapSettingsEndpoints();
 app.MapNotificationEndpoints();
 app.MapFavoriteEndpoints();

@@ -49,6 +49,10 @@ import { WorkLogScreen } from './WorkLogScreen';
 import { LearningPlanScreen } from './LearningPlanScreen';
 import { CourseScreen } from './CourseScreen';
 import { CollectionsScreen } from './CollectionsScreen';
+import { TemplatesScreen } from './TemplatesScreen';
+import type { BookmarkTemplateSeed } from './templateApi';
+import { CertificationScreen } from './CertificationScreen';
+import { ShoppingRecordsScreen } from './ShoppingRecordsScreen';
 import { ToolboxMoreOfflineOptions, defaultToolboxMoreOfflineOptions } from './ToolboxMoreOfflineOptions';
 import { MoreOfflineError, runMoreOfflineBrowser } from './ToolboxMoreOffline';
 import { ToolboxUrlHeadersError, runToolboxUrlHeaders } from './ToolboxUrlHeaders';
@@ -238,7 +242,7 @@ import {
 } from './api';
 import { LocaleContext, useI18n } from './i18n';
 
-export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'learningPlans' | 'learningCourses' | 'collections' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
+export type Screen = 'home' | 'search' | 'savedSearches' | 'favorites' | 'recents' | 'commands' | 'login' | 'register' | 'verify' | 'forgot' | 'reset' | 'profile' | 'security' | 'notifications' | 'trash' | 'admin' | 'adminModules' | 'finance' | 'bookmarks' | 'snippets' | 'readLater' | 'tags' | 'tools' | 'goals' | 'workLog' | 'learningPlans' | 'learningCourses' | 'collections' | 'templates' | 'learningCertifications' | 'shoppingSellers' | 'shoppingOrders' | 'shoppingWarranties' | 'planner' | 'habits' | 'sharing' | 'support' | 'files' | 'shared' | 'module' | 'resource';
 type ResourceType = 'Project' | 'Task' | 'Event' | 'Document' | 'Bookmark' | 'Snippet' | 'Goal';
 type ThemeMode = 'System' | 'Light' | 'Dark';
 export type LocationState = { screen: Screen; moduleCode?: string; token?: string; resourceType?: ResourceType; resourceId?: string; toolCode?: string; returnTo?: string; createIntent?: string };
@@ -257,7 +261,7 @@ function safeReturnPath(value: string | null | undefined): string | undefined {
     const parsed = new URL(candidate, window.location.origin);
     if (parsed.origin !== window.location.origin || parsed.username || parsed.password || parsed.hash || parsed.search) return undefined;
     const route = routeFromPath(parsed.pathname);
-    return (route.screen === 'resource' && route.resourceType && route.resourceId) || route.screen === 'learningCourses' || route.screen === 'learningPlans' || route.screen === 'collections' ||
+    return (route.screen === 'resource' && route.resourceType && route.resourceId) || route.screen === 'learningCourses' || route.screen === 'learningPlans' || route.screen === 'collections' || route.screen === 'templates' || route.screen === 'learningCertifications' || route.screen === 'shoppingSellers' || route.screen === 'shoppingOrders' || route.screen === 'shoppingWarranties' ||
       (route.screen === 'tools' && (!route.toolCode || TOOL_ROUTE_CODES.has(route.toolCode)))
       ? pathForLocation(route)
       : undefined;
@@ -299,6 +303,16 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       return { screen: 'learningPlans' };
     case '/learning/courses':
       return { screen: 'learningCourses' };
+    case '/organize/templates':
+      return { screen: 'templates' };
+    case '/learning/certifications':
+      return { screen: 'learningCertifications' };
+    case '/shopping/sellers':
+      return { screen: 'shoppingSellers' };
+    case '/shopping/orders':
+      return { screen: 'shoppingOrders' };
+    case '/shopping/warranties':
+      return { screen: 'shoppingWarranties' };
     case '/collections':
       return { screen: 'collections' };
     case '/favorites':
@@ -351,7 +365,7 @@ function routeFromPath(pathname: string, search = ''): LocationState {
       if (path.startsWith('/share/')) {
         return { screen: 'shared', token: decodeRouteSegment(path.slice('/share/'.length)) };
       }
-      for (const [prefix, screen] of [['/learning/plans/', 'learningPlans'], ['/learning/courses/', 'learningCourses'], ['/collections/', 'collections']] as const) {
+      for (const [prefix, screen] of [['/learning/plans/', 'learningPlans'], ['/learning/courses/', 'learningCourses'], ['/collections/', 'collections'], ['/learning/certifications/', 'learningCertifications'], ['/shopping/sellers/', 'shoppingSellers'], ['/shopping/orders/', 'shoppingOrders'], ['/shopping/warranties/', 'shoppingWarranties']] as const) {
         if (!path.startsWith(prefix)) continue;
         const id = path.slice(prefix.length);
         if (/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
@@ -399,6 +413,16 @@ function pathForLocation(location: LocationState): string {
       return location.resourceId ? `/learning/plans/${encodeURIComponent(location.resourceId)}` : '/learning/plans';
     case 'learningCourses':
       return location.resourceId ? `/learning/courses/${encodeURIComponent(location.resourceId)}` : '/learning/courses';
+    case 'templates':
+      return '/organize/templates';
+    case 'learningCertifications':
+      return location.resourceId ? '/learning/certifications/' + encodeURIComponent(location.resourceId) : '/learning/certifications';
+    case 'shoppingSellers':
+      return location.resourceId ? '/shopping/sellers/' + encodeURIComponent(location.resourceId) : '/shopping/sellers';
+    case 'shoppingOrders':
+      return location.resourceId ? '/shopping/orders/' + encodeURIComponent(location.resourceId) : '/shopping/orders';
+    case 'shoppingWarranties':
+      return location.resourceId ? '/shopping/warranties/' + encodeURIComponent(location.resourceId) : '/shopping/warranties';
     case 'collections':
       return location.resourceId ? `/collections/${encodeURIComponent(location.resourceId)}` : '/collections';
     case 'favorites':
@@ -1344,6 +1368,7 @@ export function Shell({
   const recentView = useRef<{ owner: string; view: RecentView } | null>(null);
   const recentOwner = profile.id + ':' + profile.personalSpaceId;
   const toolCatalogScope = JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules]);
+  const [bookmarkTemplateDraft, setBookmarkTemplateDraft] = useState<{ scope: string; seed: BookmarkTemplateSeed; nonce: string; consumed: boolean } | null>(null);
   const toolCatalogView = useRef<{ scope: string; view: ToolCatalogView }>({ scope: toolCatalogScope, view: { query: '', category: '' } });
   if (toolCatalogView.current.scope !== toolCatalogScope) toolCatalogView.current = { scope: toolCatalogScope, view: { query: '', category: '' } };
   const accountMenu = useRef<HTMLDetailsElement>(null);
@@ -1427,6 +1452,9 @@ export function Shell({
           {canReadLater && <button className={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'readLater' || (location.screen === 'module' && location.moduleCode === 'FX23') ? 'page' : undefined} onClick={() => navigate('readLater')}><NavItemContent icon="▤" label={t('readLater')} /></button>}
           {canOrganization && <button className={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tags' || (location.screen === 'module' && location.moduleCode === 'FX24') ? 'page' : undefined} onClick={() => navigate('tags')}><NavItemContent icon="#" label={t('tags')} /></button>}
           {canOrganization && <button className={location.screen === 'collections' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'collections' ? 'page' : undefined} onClick={() => navigate('collections')}><NavItemContent icon="▤" label="Collections" /></button>}
+          {canOrganization && <button className={location.screen === 'templates' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'templates' ? 'page' : undefined} onClick={() => navigate('templates')}><NavItemContent icon="▦" label="Mẫu của bạn" /></button>}
+          {profile.modules.some(m => m.code === 'FX31' && m.enabled) && <button className={location.screen.startsWith('shopping') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen.startsWith('shopping') ? 'page' : undefined} onClick={() => navigate('shoppingOrders')}><NavItemContent icon="▱" label="Đơn mua sắm & bảo hành" /></button>}
+          {canLearning && <button className={location.screen === 'learningCertifications' ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'learningCertifications' ? 'page' : undefined} onClick={() => navigate('learningCertifications')}><NavItemContent icon="◇" label="Chứng chỉ" /></button>}
           {canToolbox && <button className={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'tools' || (location.screen === 'module' && location.moduleCode === 'FX32') ? 'page' : undefined} onClick={() => navigate('tools')}><NavItemContent icon="⌘" label={t('developerTools')} /></button>}
           {canGoals && <button className={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'goals' || (location.screen === 'module' && location.moduleCode === 'FX16') ? 'page' : undefined} onClick={() => navigate('goals')}><NavItemContent icon="◎" label={t('goals')} /></button>}
           {canPlanner && <button className={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'nav-item active' : 'nav-item'} type="button" aria-current={location.screen === 'planner' || (location.screen === 'module' && location.moduleCode === 'FX15') ? 'page' : undefined} onClick={() => navigate('planner')}><NavItemContent icon="▤" label={t('planner')} /></button>}
@@ -1498,7 +1526,10 @@ export function Shell({
           {location.screen === 'admin' && (canViewAdminAccess ? <AdminAccessScreen onAuthLost={onAuthLost} readOnly={profile.role !== 'SuperAdmin'} /> : <AdminAccessUnavailableScreen />)}
           {location.screen === 'adminModules' && (canViewModuleCatalog ? <ModulePolicyScreen onAuthLost={onAuthLost} readOnly={!canManageModulePolicy} /> : <AdminAccessUnavailableScreen />)}
           {location.screen === 'finance' && (canFinance ? <FinanceScreen key={location.createIntent ?? 'finance'} timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} initialCreate={location.moduleCode === 'create' || Boolean(location.createIntent)} /> : <ModuleUnavailableScreen moduleCode="FX27" />)}
-          {location.screen === 'bookmarks' && (canBookmarks ? <BookmarksScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX21" />)}
+          {location.screen === 'bookmarks' && (canBookmarks ? <BookmarksScreen key={toolCatalogScope + ':' + (bookmarkTemplateDraft?.nonce ?? '')} initialTemplate={bookmarkTemplateDraft?.scope === toolCatalogScope && !bookmarkTemplateDraft.consumed ? bookmarkTemplateDraft.seed : undefined} onTemplateConsumed={() => setBookmarkTemplateDraft(current => current ? { ...current, consumed: true } : null)} onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX21" />)}
+          {location.screen === 'templates' && (canOrganization ? <TemplatesScreen key={toolCatalogScope} onAuthLost={onAuthLost} onUseBookmarkTemplate={canBookmarks ? seed => { setBookmarkTemplateDraft({ scope: toolCatalogScope, seed, nonce: crypto.randomUUID(), consumed: false }); navigate('bookmarks'); } : undefined} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
+          {location.screen === 'learningCertifications' && (canLearning ? <CertificationScreen key={toolCatalogScope + ':' + (location.resourceId ?? '')} onAuthLost={onAuthLost} certificationId={location.resourceId} onOpenCertification={id => navigate('learningCertifications', undefined, false, id)} onBackToCertifications={() => navigate('learningCertifications')} /> : <ModuleUnavailableScreen moduleCode="FX40" />)}
+          {(['shoppingSellers', 'shoppingOrders', 'shoppingWarranties'] as Screen[]).includes(location.screen) && (profile.modules.some(m => m.code === 'FX31' && m.enabled) ? <ShoppingRecordsScreen key={toolCatalogScope + ':' + location.screen + ':' + (location.resourceId ?? '')} kind={location.screen === 'shoppingSellers' ? 'sellers' : location.screen === 'shoppingWarranties' ? 'warranties' : 'orders'} initialRecordId={location.resourceId} onAuthLost={onAuthLost} onSelectRecord={id => navigate(location.screen, undefined, false, id)} onSectionChange={kind => navigate(kind === 'sellers' ? 'shoppingSellers' : kind === 'warranties' ? 'shoppingWarranties' : 'shoppingOrders')} /> : <ModuleUnavailableScreen moduleCode="FX31" />)}
           {location.screen === 'snippets' && (canSnippets ? <SnippetsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX22" />)}
           {location.screen === 'readLater' && (canReadLater ? <ReadLaterScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX23" />)}
           {location.screen === 'tags' && (canOrganization ? <OrganizationTagsScreen onAuthLost={onAuthLost} /> : <ModuleUnavailableScreen moduleCode="FX24" />)}
@@ -2505,7 +2536,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
 
   return (
     <section className="content-section" aria-labelledby="documents-title">
-      <div className="content-heading"><div><p className="eyebrow">FX20 / KNOWLEDGE</p><h1 id="documents-title">Documents</h1><p className="lead">Page thuộc PersonalSpace hiện tại; Save tạo version SQL mới và body chỉ xuất hiện ở detail của owner.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={tagPending || loading || busy !== null || pending !== null}>Tải lại</button></div>
+      <div className="content-heading"><div><p className="eyebrow">FX20 / KNOWLEDGE</p><h1 id="documents-title">Documents</h1><p className="lead">Ghi lại ý tưởng và kiến thức. Mỗi lần lưu đều giữ thêm một phiên bản để bạn xem lại.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={tagPending || loading || busy !== null || pending !== null}>Tải lại</button></div>
       {commitNotice && <Notice kind="success">Thao tác đã được lưu. Không gửi lại; chi tiết chỉ hiển thị khi còn quyền đọc.</Notice>}
       {pending && !busy && <Notice kind="error">Kết quả chưa rõ hoặc key cần đối chiếu. Giữ nguyên thao tác để thử lại.<button type="button" className="secondary-button" onClick={() => { if (pendingRef.current) void execute(pendingRef.current); }}>Đối chiếu thao tác</button></Notice>}
       {error && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
@@ -3992,10 +4023,10 @@ function ProductivityScreen({
   }
 
   return (
-    <section className="content-section" aria-labelledby="productivity-title">
+    <section className="content-section productivity-screen" aria-labelledby="productivity-title">
       {leaveDialog}
       <div className="content-heading">
-        <div><p className="eyebrow">{moduleCode} / PERSONAL PRODUCTIVITY</p><h1 id="productivity-title">{title}</h1><p className="lead">Dữ liệu được lọc theo PersonalSpace hiện tại; server giữ quyền sở hữu, lifecycle và revision.</p></div>
+        <div><p className="eyebrow">{moduleCode} / PERSONAL PRODUCTIVITY</p><h1 id="productivity-title">{title}</h1><p className="lead">Sắp xếp dự án, theo dõi công việc và lên lịch theo cách của bạn.</p></div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={busy !== null}>Tải lại</button>
       </div>
       <div className="module-tabs" role="tablist" aria-label="Productivity modules">
@@ -4032,7 +4063,7 @@ function ProductivityScreen({
             <div className="form-grid"><div className="field-group"><label htmlFor="task-status">Trạng thái</label><select id="task-status" disabled={editingTask !== null} value={taskDraft.status} onChange={(event) => setTaskDraft({ ...taskDraft, status: event.target.value })}><option value="NotStarted">Chưa bắt đầu</option><option value="InProgress">Đang làm</option>{editingTask && <><option value="Completed">Hoàn thành</option><option value="Skipped">Bỏ qua</option></>}</select></div><div className="field-group"><label htmlFor="task-priority">Ưu tiên <span className="optional">(tùy chọn)</span></label><select id="task-priority" value={taskDraft.priority} onChange={(event) => setTaskDraft({ ...taskDraft, priority: event.target.value })}><option value="">Không đặt</option><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select></div></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-start">Bắt đầu</label><input id="task-start" type="datetime-local" value={taskDraft.startAt} onChange={(event) => setTaskDraft({ ...taskDraft, startAt: event.target.value })} required /></div><div className="field-group"><label htmlFor="task-end">Kết thúc</label><input id="task-end" type="datetime-local" value={taskDraft.endAt} onChange={(event) => setTaskDraft({ ...taskDraft, endAt: event.target.value })} required /></div></div>
             <div className="form-grid"><div className="field-group"><label htmlFor="task-due">Hạn hoàn thành <span className="optional">(tùy chọn)</span></label><input id="task-due" type="datetime-local" value={taskDraft.dueAt} onChange={(event) => setTaskDraft({ ...taskDraft, dueAt: event.target.value })} /></div><div className="field-group"><label htmlFor="task-reminder">Nhắc lúc <span className="optional">(tùy chọn)</span></label><input id="task-reminder" disabled={editingTask !== null} type="datetime-local" value={taskDraft.reminderAt} onChange={(event) => { setTaskReminderChanged(true); setTaskDraft({ ...taskDraft, reminderAt: event.target.value }); }} /><p className="field-help">Khi sửa Task, đặt hoặc gỡ nhắc bằng thao tác Reminders riêng.</p></div></div>
-            {projects.length === 0 && <p className="field-help">Tasks yêu cầu Project cùng PersonalSpace. Mở tab Projects để tạo một Project.</p>}
+            {projects.length === 0 && <p className="field-help">Tạo một dự án trước để sắp xếp công việc vào đó.</p>}
             <div className="form-actions"><button className="secondary-button" type="button" onClick={resetTask} disabled={busy === 'task'}>Làm mới</button><SubmitButton busy={busy === 'task'}> {editingTask ? 'Lưu Task' : 'Tạo Task'} </SubmitButton></div>
           </form>
           <div className="resource-list"><div className="section-heading"><h2>Tasks của bạn</h2><span className="muted">{tasks.length} bản ghi</span></div>{tasks.length === 0 ? <div className="empty-state"><h3>Chưa có Task</h3><p>Tạo Task trong một Project đang hoạt động.</p></div> : <div className="resource-cards">{tasks.map((task) => <article className="resource-card" key={task.id}><div><h3>{task.title}</h3><p>{projects.find((project) => project.id === task.projectId)?.name ?? 'Project không còn trong projection'}</p><span className="state-pill">{task.status}</span>{task.isOverdue && <span className="state-pill state-warning">Overdue</span>}{task.dueAt && <span className="muted">Hạn {dateTime(task.dueAt)}</span>}</div><div className="resource-actions">
@@ -4383,7 +4414,7 @@ type BookmarkDraft = {
   description: string;
 };
 
-function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
+function BookmarksScreen({ onAuthLost, initialTemplate, onTemplateConsumed }: { onAuthLost: () => Promise<void>; initialTemplate?: BookmarkTemplateSeed; onTemplateConsumed?: () => void }) {
   const [items, setItems] = useState<BookmarkRecord[]>([]);
   const [caps, setCaps] = useState<Record<string, boolean>>({});
   const canBookmark = (action: string) => caps[`bookmarks.bookmark.${action}`] === true;
@@ -4405,9 +4436,18 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
   const [pendingOutcome, setPendingOutcome] = useState<string | null>(null);
   const pendingTransition = useRef<Pick<BookmarkRecord, 'id' | 'etag' | 'status'> | null>(null);
   const transitionKeys = useRef(new Map<string, string>());
-  const unknownOutcome = (failure: NexoraApiError) => failure.status === 0 || failure.status >= 500 || failure.code === 'RequestInProgress';
+  const unknownOutcome = (failure: NexoraApiError) => failure.status === 0 || failure.status === 408 || failure.status >= 500 || failure.code === 'RequestInProgress';
 
   const form = useResourceDialog(draft);
+  const templateApplied = useRef(false);
+  useEffect(() => {
+    if (!initialTemplate || templateApplied.current || loading || !canBookmark('create')) return;
+    templateApplied.current = true;
+    const seed = { url: initialTemplate.url ?? '', title: initialTemplate.title ?? '', description: initialTemplate.description ?? '' };
+    form.begin({ url: '', title: '', description: '' });
+    setDraft(seed);
+    onTemplateConsumed?.();
+  }, [initialTemplate, loading, caps]);
 
   function clearPrivateBookmark(clearCapabilities = true) {
     if (clearCapabilities) setCaps({});
@@ -4580,7 +4620,7 @@ function BookmarksScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
         <div>
           <p className="eyebrow">FX21 / KNOWLEDGE</p>
           <h1 id="bookmarks-title">Bookmarks</h1>
-          <p className="lead">Lưu URL và metadata thủ công trong PersonalSpace hiện tại. URL chỉ là dữ liệu bất hoạt; Nexora không tự fetch, nhúng hoặc mở provider bên ngoài.</p>
+          <p className="lead">Giữ những đường dẫn hữu ích ở một nơi. Nexora chỉ lưu thông tin bạn nhập, không tự tải nội dung từ trang bên ngoài.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null || pendingOutcome !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
@@ -5881,7 +5921,7 @@ function GoalsScreen({ onAuthLost, timeZoneId, locale }: { onAuthLost: () => Pro
         <div>
           <p className="eyebrow">FX16 / GOALS</p>
           <h1 id="goals-title">Goals</h1>
-          <p className="lead">Goal và numeric target thuộc PersonalSpace hiện tại. Progress được ghi thành event SQL; không tự liên kết Task hay provider ngoài.</p>
+          <p className="lead">Chia nhỏ điều bạn muốn đạt được, ghi nhận từng bước tiến và nhìn lại hành trình của mình.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
       </div>
@@ -6225,7 +6265,7 @@ function HabitsScreen({ timeZoneId, onAuthLost }: { timeZoneId: string; onAuthLo
   }
   return (
     <section className="content-section" aria-labelledby="habits-title">
-      <div className="content-heading"><div><p className="eyebrow">FX17 / HABITS</p><h1 id="habits-title">Habit tracker</h1><p className="lead">Habit và check-in chỉ thuộc PersonalSpace hiện tại. Schedule dùng ngày local theo timezone lưu trên Habit; lịch sử không bị relabel khi đổi timezone.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
+      <div className="content-heading"><div><p className="eyebrow">FX17 / HABITS</p><h1 id="habits-title">Habit tracker</h1><p className="lead">Xây dựng thói quen từng ngày và nhìn lại tiến bộ. Lịch sử được giữ theo múi giờ đã chọn cho từng thói quen.</p></div><button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button></div>
       {conflict && <Notice kind="error">Habit đã thay đổi ở nơi khác. Giữ bản nháp; tải lại revision trước khi áp dụng thay đổi.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
       {opaque && <Notice kind="success">Thao tác đã được lưu; chi tiết không khả dụng.</Notice>}
@@ -7111,7 +7151,7 @@ export function App() {
         ? { screen, resourceType: moduleCode as ResourceType, resourceId }
         : screen === 'tools'
           ? { screen, toolCode: moduleCode }
-        : screen === 'learningPlans' || screen === 'learningCourses' || screen === 'collections'
+        : screen === 'learningPlans' || screen === 'learningCourses' || screen === 'collections' || screen === 'learningCertifications' || screen === 'shoppingSellers' || screen === 'shoppingOrders' || screen === 'shoppingWarranties'
           ? { screen, resourceId }
         : { screen, moduleCode };
     if ((createMode || (screen === 'finance' && moduleCode === 'create')) && (screen === 'module' || screen === 'finance')) next.createIntent = createIdempotencyKey();

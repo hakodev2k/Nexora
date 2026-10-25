@@ -236,6 +236,14 @@ public static class ActionGrantPolicy
     // Exact shipped SELF catalog eligibility; no grant, SYSTEM, provider or uninstalled action.
     private static readonly HashSet<string> ApprovedShippedSelfActions = new(StringComparer.Ordinal)
     {
+        "organization.template.read", "organization.template.create", "organization.template.update",
+        "organization.template.archive", "organization.template.unarchive", "organization.template.trash",
+        "organization.template.restore", "organization.template.purge", "organization.template.instantiate",
+        "shopping.seller.read", "shopping.seller.create", "shopping.seller.update",
+        "shopping.order.read", "shopping.order.create", "shopping.order.update",
+        "shopping.warranty.read", "shopping.warranty.create", "shopping.warranty.update",
+        "learning.certification.read", "learning.certification.create", "learning.certification.update",
+        "learning.certification.renew", "learning.certification.archive", "learning.certification.unarchive",
         "organization.collection.read", "organization.collection.create", "organization.collection.update",
         "organization.collection.add", "organization.collection.remove", "organization.collection.reorder", "organization.collection.delete",
         "toolbox.catalog.read", "toolbox.base64.run", "toolbox.url_codec.run", "toolbox.html_codec.run",

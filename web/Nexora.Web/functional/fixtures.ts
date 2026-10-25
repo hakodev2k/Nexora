@@ -97,7 +97,9 @@ export async function showPagedCard(page: Page,title:string,loadMoreLabel:string
   // isVisible alone does not wait for the initial async list load.
   await expect.poll(async()=>await target.isVisible()||await next.isVisible()).toBe(true);
   if(await target.isVisible())return;
-  await expect(next).toBeVisible();
+  // A view-change response may replace the old pagination control between
+  // observations. Recheck the current DOM instead of asserting the stale page.
+  if(!(await next.isVisible()))continue;
   const before=await page.locator('.resource-card').count();await next.click();
   await expect.poll(()=>page.locator('.resource-card').count()).toBeGreaterThan(before);
  }

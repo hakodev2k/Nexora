@@ -1,0 +1,27 @@
+.shopping-section-nav { display:flex; flex-wrap:wrap; gap:.5rem; margin-block:1rem; }
+.shopping-toolbar { display:flex; align-items:end; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-block:1.5rem; }
+.shopping-toolbar form { flex:1 1 22rem; max-width:42rem; }
+.shopping-toolbar label { display:block; font-weight:600; margin-bottom:.4rem; }
+.shopping-search { display:flex; flex-wrap:wrap; gap:.5rem; }
+.shopping-search input { flex:1 1 12rem; min-width:0; }
+.shopping-record-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr)); gap:1rem; }
+.shopping-records .resource-card { min-width:0; overflow-wrap:anywhere; }
+.shopping-records .resource-card h2 { font-size:1.1rem; }
+.shopping-amount { font-size:1.15rem; font-weight:700; }
+.shopping-empty { border:1px dashed var(--line,#d5dde8); background:var(--surface,#fff); border-radius:1rem; padding:2rem; text-align:center; }
+.shopping-empty h2 { font-size:1.25rem; margin:0 0 .5rem; }
+.shopping-pagination { display:flex; justify-content:center; align-items:center; gap:1rem; margin-block:1.5rem; }
+.shopping-detail { margin-top:1.5rem; }
+.shopping-facts { display:grid; grid-template-columns:minmax(8rem,1fr) minmax(0,3fr); gap:.6rem 1rem; }
+.shopping-facts dt { color:var(--muted,#59677b); }
+.shopping-facts dd { margin:0; overflow-wrap:anywhere; }
+.shopping-private-text { white-space:pre-wrap; }
+.shopping-url { overflow-wrap:anywhere; }
+.shopping-form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr)); gap:1rem; }
+.shopping-order-line { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr)); gap:.6rem; border:1px solid var(--line,#d5dde8); border-radius:.75rem; padding:1rem; margin-bottom:1rem; }
+.shopping-order-line h3 { grid-column:1/-1; font-size:1rem; margin:0; }
+.shopping-source-search { display:flex; align-items:end; flex-wrap:wrap; gap:.5rem; border-block:1px solid var(--line,#d5dde8); padding-block:1rem; }
+.shopping-source-search label { flex:1 1 14rem; }
+.shopping-help { color:var(--muted,#59677b); font-size:.875rem; }
+.shopping-recovery { border:1px solid var(--line,#d5dde8); border-radius:.75rem; padding:1rem; background:var(--surface,#fff); }
+@media(max-width:600px) { .shopping-facts { grid-template-columns:1fr; gap:.25rem; } .shopping-facts dd { margin-bottom:.65rem; } .shopping-toolbar > button { width:100%; } .shopping-empty { padding:1.25rem; } }

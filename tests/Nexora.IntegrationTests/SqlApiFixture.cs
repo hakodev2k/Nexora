@@ -49,6 +49,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
     private NexoraApiFactory? _factory;
     private HttpClient? _client;
     private bool _databaseCreated;
+    private string _setupStage = "validate-target";
 
     public SqlApiFixture()
     {
@@ -98,6 +99,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             };
             _masterConnectionString = master.ConnectionString;
 
+            _setupStage = "create-generated-database";
             await CreateDatabaseAsync(DatabaseName);
             var database = new SqlConnectionStringBuilder(source.ConnectionString)
             {
@@ -119,6 +121,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             }
 
             var migrations = new SqlMigrationRunner();
+            _setupStage = "apply-staged-migrations";
             await migrations.ApplyAsync(ConnectionString, stagedMigrations, stagedMigrationNames);
             ReadinessBeforeM01Completion = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
             Require(
@@ -126,6 +129,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
                 string.Equals(ReadinessBeforeM01Completion.Dependencies["requiredMigrations"], "MissingRequired", StringComparison.Ordinal),
                 "A journal missing an approved Release 1 migration must not be ready for the local binary.");
 
+            _setupStage = "apply-final-migrations";
             await migrations.ApplyAsync(ConnectionString, sourceMigrations, M01MigrationManifest.RequiredFileNames);
             await migrations.ApplyAsync(ConnectionString, sourceMigrations, M01MigrationManifest.RequiredFileNames);
             var expectedMigrationCount = M01MigrationManifest.RequiredFileNames.Count;
@@ -141,8 +145,10 @@ public sealed class SqlApiFixture : IAsyncLifetime
                 string.Equals(ReadinessAfterM01Migration.Dependencies["requiredMigrations"], "Ready", StringComparison.Ordinal),
                 "A fully migrated but unbootstrapped database must remain not ready.");
 
+            _setupStage = "checksum-guard";
             await AssertJournalChecksumGuardAsync(migrations, sourceMigrations);
 
+            _setupStage = "bootstrap";
             var bootstrap = new SqlBootstrapSuperAdmin(ConnectionString);
             var bootstrapPassword = "M01-" + Convert.ToHexString(RandomNumberGenerator.GetBytes(12)) + "-aA!";
             var bootstrapCommand = new SqlBootstrapSuperAdminCommand
@@ -216,6 +222,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             ReadinessAfterBootstrap = await new SqlReadinessProbe(new SqlConnectionFactory(ConnectionString)).CheckAsync();
             Require(ReadinessAfterBootstrap.Ready, "A fully migrated and bootstrapped database must be ready.");
 
+            _setupStage = "start-test-api";
             SetApiEnvironment();
             _factory = new NexoraApiFactory(DigitalClock);
             _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
@@ -230,7 +237,7 @@ public sealed class SqlApiFixture : IAsyncLifetime
             // Do not put a connection string, synthetic credential, or raw
             // capture content in test output. The type is enough to separate a
             // missing runtime from a product failure in the handoff.
-            BlockedReason = "fixture setup failed: " + exception.GetType().Name;
+            BlockedReason = "fixture setup failed at " + _setupStage + ": " + exception.GetType().Name;
             if (exception is SqlException sql) BlockedReason += " (SQL error " + sql.Number + ", line " + sql.LineNumber + ")";
             await DisposeCreatedResourcesAsync();
         }

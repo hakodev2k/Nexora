@@ -1,0 +1,65 @@
+[
+  {
+    "file": "completion-sql-final.trx",
+    "sha256": "E251F574489369443E89B7AB0146456B9C5BB9AD4C80514B7513455B5DBB2A2F",
+    "total": 304,
+    "passed": 0,
+    "failed": 304,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  },
+  {
+    "file": "completion-sql-frozen.trx",
+    "sha256": "248107A92B830E74DD4471D3EC3CE10DC7FD4DE05619543C988561FB56A6D033",
+    "total": 304,
+    "passed": 304,
+    "failed": 0,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  },
+  {
+    "file": "completion-sql-full.trx",
+    "sha256": "5D2997660C0EA6BD216B1B222DEA480C23CD8E0474CD1FAEE624F63A7BD5DEF4",
+    "total": 296,
+    "passed": 296,
+    "failed": 0,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  },
+  {
+    "file": "completion-unit-final.trx",
+    "sha256": "DD20E2C93D04CBCD9721C29543FEACCB56347A0F825F18033A48F5708E235541",
+    "total": 193,
+    "passed": 193,
+    "failed": 0,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  },
+  {
+    "file": "completion-unit.trx",
+    "sha256": "8A6AC259DF46C3133F1DCE00E3D48E67621F36218F223710B7CC8F11D34E377A",
+    "total": 193,
+    "passed": 192,
+    "failed": 1,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  },
+  {
+    "file": "new-slices-sql.trx",
+    "sha256": "88FB4301859CBE6624A1A3468F5ED646C7C1426F2D66C0F45F2F63C2F101142D",
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  },
+  {
+    "file": "shopping-sql.trx",
+    "sha256": "B80B2883EB4ECDF00079E493663A5E5F83ADFCCF4273216B21D31B667FE72D24",
+    "total": 6,
+    "passed": 5,
+    "failed": 1,
+    "notExecuted": 0,
+    "source": "75b6d9f-local-continuation; mutable worktree, see report19; not final-commit QA"
+  }
+]

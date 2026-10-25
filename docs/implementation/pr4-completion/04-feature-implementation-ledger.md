@@ -2,6 +2,8 @@
 
 Status: PRODUCT_INCOMPLETE. No whole FX group is ACCEPTED.
 
+**Latest continuation:** [report19 — implementation, actual prior QA and code-only UI fixes](19-completion-uiux-20261025.md). Added bounded Template Bookmark-seed library (nine actions), Seller/DraftOrder/Warranty metadata (nine), Certification metadata/renewal/history/Archive (six). Full inventory reconciles these24 exact rows; full module acceptance remains open. Earlier local304SQL/193backend/250frontend+1skip and selected browser evidence precede final UI styles; no latest-source runtime acceptance. Latest user-supplied AGENTS.md reinstates code-only execution, superseding earlier QA authorization for further runs; no new tests/data/browser runs after that point. Prior results are retained, not reclassified.
+
 **2026-10-25 audit overlay:** [733 exact action inventory, detailed quality and screen checklists](16-full-feature-inventory-20261025.md) retain declared versus observed status explicitly; [current remediation/QA/release report](17-release-audit-20261025.md) records actual new execution. This continues this ledger rather than promoting whole modules. Current user authorization permits QA/tests and supersedes older code-only execution statements for this audit only. No new Release Ready claim follows from green baseline CI or source token matches.
 
 The40rows below retain the explicitly historical2026-10-19 baseline inventory.
@@ -57,6 +59,8 @@ sensitive allowlists and D06 partial Plan contracts retain their precise gates.
 
 
 ## Current implementation delta
+
+- Latest code-only FX18 correction: original submitted body/key/ETag remain frozen after uncertain save, with duplicate-submit latch and explicit informed abandonment. Independent source review complete; typecheck only, owner runtime verification pending. See report19 and `workers/review-time-recovery-20261025-code-only.md`.
 
 - FX16: five exact shipped Goals actions eligibility repaired, no grants changed.
 - FX18/19: Focus/Time request, exact-capability and modal recovery repairs.

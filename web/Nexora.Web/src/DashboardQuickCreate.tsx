@@ -37,7 +37,7 @@ export function DashboardQuickCreate({ enabledModules, onOpen, onDenied, onAuthL
   if (available.length === 0) return null;
   return <section className="form-panel" aria-labelledby="dashboard-create-title">
     <h2 id="dashboard-create-title">Tạo mới</h2>
-    <p>Mở biểu mẫu đầy đủ tại module nguồn. Chỉ lưu khi bạn xác nhận trong biểu mẫu.</p>
+    <p>Bắt đầu một việc mới. Bạn có thể xem lại thông tin trước khi lưu.</p>
     <div className="form-actions">{available.map(target => <button key={target.type} type="button" className="secondary-button"
       disabled={busy !== null} onClick={() => void open(target.type)}>{busy === target.type ? 'Đang kiểm tra quyền…' : `Tạo ${target.title}`}</button>)}</div>
     {error && <p role="alert">{error}</p>}

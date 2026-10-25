@@ -1,0 +1,27 @@
+# FX24 Templates local library contract — 2026-10-25
+
+Owner `/root/templates_completion`; root owns central integration and independent review.
+Starting source `75b6d9f4f0ac247680e22cc07bf26a4890071ef2`, branch `impl/m01-s00-scaffold`.
+Current user explicitly authorizes remaining implementation, synthetic SQL/E2E data and QA, superseding older code-only restrictions. DEC-014 and D01–D09 product/security boundaries remain unchanged.
+
+Sources: P03-ORG-004/005; FX24-S04/S05; FX-24-BR-002/003; FX-24-AC-001/002; FX-COM-006/007/010/011/012 and AC001/003/004/006; NXG-FX24-G02/G03 and SYS02/03/05/08/13/14. Read feature/action/UX/module-goal documents and baseline/routed architecture/backend/database/security/frontend/verification/owner-isolation assets. This technical slice does not claim complete FX24.
+
+## Bounded implementation
+
+Install the owner-private Template library and one typed `FX21` / `Bookmark` schema-v1 provider. Name1–100 trimmed; seed has only optional title0–200, HTTP(S) URL0–2048 and description0–4000. Empty seed fields are valid drafts: normal Bookmark create must still supply required title/URL. Unknown JSON properties are rejected; no executable schema, arbitrary JSON, source IDs, owner, shares, history, secrets, reminders or editor/type defaults accepted. URL userinfo is rejected. Text is inert React content; no fetch/navigation/execution. Documents/Tasks/other providers remain explicitly unavailable pending their exact creation contracts, never silently coerced to Bookmark.
+
+Native library operations: read/create/update/archive/unarchive/trash/restore/purge. Active→Archived; Archived→Active; Active/Archived→Trash retains exact prior state and a fresh deletion-batch ID; Trash restore recovers that exact state; purge only Trash. No automatic retention/expiry. The Template has no live binding to created resources, file refs or child cohort in this provider. Native lifecycle preview identifies exactly one template and states existing resources are unaffected. Global Trash/provider integration is not implied.
+
+`GET /api/v1/organization/templates?query=&state=Active|Archived|Trash&page=1` returns25summaries + hasMore, sorted Name/Id with owner predicates. `GET /{id}` returns typed seed/current ETag/availability, no secret-bearing generic provider. `GET /capabilities` returns exact current action decisions. `POST /` and `PUT /{id}` accept `{name,seed:{title,url,description}}`. POST `/{id}/lifecycle/{action}` performs the exact transition; all writes require UUID Idempotency-Key and non-create strong If-Match, current live actor/module/action/read prerequisites, serializable SQL revalidation and audit. Receipts are same-transaction keyed digests and opaque committed ACKs; current authority is rechecked before replay, no stale seed DTO/recreation after purge. Changed body/key or unprovable receipt fails409; stale ETag412; missing/malformed428; validation422; foreign/missing404; denied403; persistence503 with no SQL details.
+
+`GET /{id}/draft` is a read-only, current-authority handoff under template.read+instantiate and current Bookmark create authority, outside Trash. Archive hides a template from the active list but does not invalidate edit/use access (P03-ORG-005); no extra Archive restriction is invented. It returns the sanitized seed, template revision and normal target-create requirements. It does not mutate a target, reserve a record, copy identity or provide authority to the eventual Save. The normal Bookmark form must be opened with this ephemeral draft; only its explicit Save invokes the existing idempotent Bookmark create command and current target validation. Template edits have no live effect on this independent draft or previously created resources. The UI Use action stays disabled until the root supplies the normal-form callback. Target-create acceptance is separate from template-library acceptance; no claim of complete instantiate acceptance without this integration/runtime proof.
+
+## Data, security and rollback
+
+Migration0093 adds only organization.Template with owner FK to PersonalSpace, actor FKs, rowversion, exact state/typed-seed/check constraints and browse index. Unexpected pre-existing schema fails closed. Permission definitions are insert-only Resolved for these existing delegated catalog actions; no grants or inactive-row promotion. Central capability installation remains root-owned. Seed payload is never stored in receipt/audit/log; no sharing/support provider is exposed. Template-only writes do not read other module tables; target availability uses SqlSelfCapability.
+
+Rollback is disable the newly registered surface and revert code; retain the additive table/data until an explicit reviewed data-preserving rollback. No automatic DROP or production operation. New-template source provider is not globally enrolled in Trash/Search/Collections or external projection by this slice.
+
+## Verification plan
+
+Focused pure validation tests (valid optional drafts, unknown/forbidden JSON fields, URL credential/scheme bounds); React interactions including dirty/unknown-write/denied/concurrency feedback; real SQL/API owner separation, stale revision, same-key replay/digest conflicts, each state transition and current revoked authority. Root owns migration manifest, Program/DI, installed-action policy, native route/normal-form handoff and real SQL/browser execution. Independent migration/security review remains mandatory. Missing execution is NOT RUN, never PASS.

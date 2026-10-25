@@ -344,8 +344,60 @@ fieldset.field-group {
   color: #56657c;
 }
 
-.field-group input:invalid:not(:placeholder-shown) {
+.field-group input:user-invalid,
+.field-group input[aria-invalid="true"] {
   border-color: #bc6670;
+}
+
+/* Calm shared surfaces, comfortable targets and restrained feedback. */
+:root {
+  --nx-canvas: #f5f7fb;
+  --nx-surface: #ffffff;
+  --nx-text: #24334a;
+  --nx-border: #e0e6f0;
+  --nx-accent: #315fca;
+  --nx-selected: #ecf2ff;
+  --nx-shadow: 0 4px 18px rgb(30 52 86 / 4%);
+}
+:root[data-theme="dark"] {
+  --nx-canvas: #111827;
+  --nx-surface: #182234;
+  --nx-text: #e3ebf7;
+  --nx-border: #334155;
+  --nx-accent: #a9c4ff;
+  --nx-selected: #263b5e;
+  --nx-shadow: none;
+}
+.app-shell { background: var(--nx-canvas); }
+.app-shell .sidebar { background: var(--nx-surface); border-color: var(--nx-border); scrollbar-gutter: stable; }
+.app-shell .nav-item { min-height: 44px; border-radius: 10px; transition: background-color 140ms ease, color 140ms ease; }
+.app-shell .nav-item.active { background: var(--nx-selected); color: var(--nx-accent); box-shadow: inset 3px 0 var(--nx-accent); }
+.app-shell .shell-header { background: var(--nx-surface); border-color: var(--nx-border); }
+.app-shell .content-heading h1 { font-size: clamp(1.6rem, 3vw, 2.1rem); letter-spacing: -.035em; }
+.app-shell .home-greeting { font-size: clamp(1.8rem, 3.5vw, 2.35rem); }
+.app-shell .info-card, .app-shell .module-card, .app-shell .form-panel,
+.app-shell .resource-card, .app-shell .settings-panel {
+  border-color: var(--nx-border); box-shadow: var(--nx-shadow); border-radius: 12px;
+}
+.primary-button, .secondary-button, .danger-button, .text-button {
+  min-height: 44px; transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+}
+.field-group input, .field-group select, .field-group textarea {
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.field-group input:focus-visible, .field-group select:focus-visible, .field-group textarea:focus-visible {
+  box-shadow: 0 0 0 4px rgb(64 120 232 / 10%);
+}
+main[tabindex="-1"]:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: -2px; }
+.app-shell .empty-state { border-radius: 12px; padding: clamp(1.2rem, 3vw, 2rem); }
+.content-section button:not([class]) {
+  min-height: 44px; min-width: 44px; padding: .5rem .8rem;
+  border: 1px solid var(--nx-border); border-radius: 8px;
+  color: var(--nx-accent); background: var(--nx-surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .nav-item, .primary-button, .secondary-button, .danger-button, .text-button,
+  .field-group input, .field-group select, .field-group textarea { transition: none !important; }
 }
 
 .field-error {
@@ -2000,6 +2052,38 @@ progress::-moz-progress-bar {
 .resource-form-dialog [hidden] { display: none; }
 
 .resource-dialog-fields { margin: 0; padding: 0; border: 0; min-width: 0; }
+
+/* Dialogs live in a portal, outside the module's content-section. */
+.resource-form-dialog .resource-form { position: static; display: grid; gap: .75rem; }
+.resource-form-dialog .resource-form label { font-weight: 600; line-height: 1.5; }
+.resource-form-dialog .resource-form label:has(> input:not([type="checkbox"]):not([type="radio"])),
+.resource-form-dialog .resource-form label:has(> select),
+.resource-form-dialog .resource-form label:has(> textarea) { display: grid; gap: .4rem; }
+.resource-form-dialog :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
+.certification-filters :is(input, select), .shopping-search input {
+  box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px;
+  padding: .65rem .8rem; border: 1px solid var(--nx-border); border-radius: 8px;
+  color: var(--nx-text); background: var(--nx-surface); font: inherit;
+}
+.resource-form-dialog textarea { resize: vertical; min-height: 6rem; }
+.resource-form-dialog .resource-form fieldset { min-width: 0; display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--nx-border); border-radius: 8px; }
+.resource-form-dialog .resource-form legend { padding-inline: .35rem; font-weight: 600; }
+.resource-form-dialog button:not([class]) {
+  min-height: 44px; padding: .55rem .8rem; border: 1px solid var(--nx-border);
+  border-radius: 8px; background: var(--nx-surface); color: var(--nx-accent); font: inherit;
+}
+.resource-form-dialog :is(input, select, textarea, button):focus-visible,
+.certification-filters :is(input, select):focus-visible { outline: 2px solid var(--nx-accent); outline-offset: 2px; }
+.resource-form-dialog :is(input, select, textarea, button):disabled { cursor: not-allowed; opacity: .65; }
+.certification-filters { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto auto; align-items: end; gap: .75rem; margin-block: 1.25rem; }
+.certification-filters .field-group { min-width: 0; margin: 0; }
+.productivity-screen .resource-card { flex-wrap: wrap; }
+.productivity-screen .resource-card > div:first-child { flex: 1 1 15rem; overflow-wrap: anywhere; }
+.productivity-screen .resource-actions { flex: 1 1 20rem; }
+@media (max-width: 768px) {
+  .certification-filters { grid-template-columns: minmax(0, 1fr); }
+  .productivity-screen .resource-actions { flex-basis: 100%; justify-content: flex-start; }
+}
 
 .digital-asset-screen :is(h2, h3, p, dd),
 .digital-asset-form :is(p, dd) {

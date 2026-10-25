@@ -101,6 +101,9 @@ public static class M01MigrationManifest
         "20261024_0089_learning_plan_lifecycle.sql",
         "20261024_0090_organization_collections.sql",
         "20261024_0091_toolbox_more_offline.sql",
-        "20261024_0092_toolbox_url_headers.sql"
+        "20261024_0092_toolbox_url_headers.sql",
+        "20261025_0093_organization_templates.sql",
+        "20261025_0094_shopping_manual_records.sql",
+        "20261025_0095_certifications_manual.sql"
     ];
 }

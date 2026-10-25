@@ -1,14 +1,17 @@
 import { test, expect, api, sql, record, unique, card, dialog, confirm, sourceTask, showPagedCard } from './fixtures';
 
 test('Documents: create/body version, publish, archive/unarchive, table/grid and reload', async ({ page }) => {
-  await page.goto('/modules/FX20'); const title = unique('document'); await page.locator('#document-title').fill(title); await page.locator('#document-type').selectOption('Note'); await page.locator('#document-editor').selectOption('Markdown'); await page.locator('#document-body').fill('# Nội dung\n<script>literal</script>');
-  const rejected = page.waitForResponse(r => r.url().endsWith('/api/v1/documents') && r.request().method() === 'POST');
-  await page.getByRole('button', { name: 'Tạo page', exact: true }).click(); expect((await rejected).status()).toBe(422);
-  await expect(page.getByRole('alert')).toContainText('Executable markup'); await expect(page.locator('#document-body')).toHaveValue('# Nội dung\n<script>literal</script>');
-  await page.locator('#document-body').fill('# Nội dung\nNội dung tổng hợp.'); await page.getByRole('button', { name: 'Tạo page', exact: true }).click();
+  // FX20 CommonMark contract accepts raw HTML as escaped literal text.
+  const literal = '# Nội dung\n<script>window.nexoraDocumentCanary=true</script>';
+  await page.goto('/modules/FX20'); const title = unique('document'); await page.locator('#document-title').fill(title); await page.locator('#document-type').selectOption('Note'); await page.locator('#document-editor').selectOption('Markdown'); await page.locator('#document-body').fill(literal);
+  const created = page.waitForResponse(r => r.url().endsWith('/api/v1/documents') && r.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Tạo page', exact: true }).click(); expect((await created).status()).toBe(201);
+  await expect(page.locator('#document-body')).toHaveValue(literal);
+  await expect(page.locator('main script')).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).nexoraDocumentCanary)).toBeUndefined();
   const { item } = await record(page, 'listDocuments', [undefined, 100], 'Document', title); await page.locator('#document-body').fill('# Version two'); await page.getByRole('button', { name: 'Save version' }).click(); await expect.poll(() => sql('Document', item.id)[0].VersionNumber).toBe(2);
-  await page.getByRole('button', { name: 'Publish', exact: true }).click(); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published'); await page.getByRole('button', { name: 'Archive', exact: true }).click(); await confirm(page, 'Archive document'); await expect(page.locator('#document-body')).toBeDisabled(); expect(sql('Document', item.id)[0].Status).toBe('Archived');
-  await page.getByRole('button', { name: 'Unarchive' }).click(); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published'); await page.getByRole('tab', { name: 'Table', exact: true }).click(); await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible(); await page.getByRole('tab', { name: 'Grid', exact: true }).click(); await page.reload(); await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click(); await expect(page.locator('#document-body')).toHaveValue('# Version two');
+  await page.getByRole('button', { name: 'Publish', exact: true }).click(); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published'); await page.getByRole('button', { name: 'Archive', exact: true }).click(); await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận'); await expect(page.locator('#document-body')).toBeDisabled(); expect(sql('Document', item.id)[0].Status).toBe('Archived');
+  await page.getByRole('button', { name: 'Unarchive' }).click(); await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận'); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published'); await page.getByRole('tab', { name: 'Table', exact: true }).click(); await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible(); await page.getByRole('tab', { name: 'Grid', exact: true }).click(); await page.reload(); await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click(); await expect(page.locator('#document-body')).toHaveValue('# Version two');
 });
 
 test('Snippets: literal content, edit/version, archive/unarchive and SQL reload', async ({ page }) => {
@@ -58,7 +61,8 @@ test('Projects/Tasks: UI creation/edit, terminal cohort trash, restore and purge
     await expect(more).toBeVisible(); await more.click();
   }
   await page.locator('#task-project').selectOption(project.id); await page.locator('#task-title').fill(title); await page.locator('#task-description').fill('Synthetic task'); await page.locator('#task-start').fill(start); await page.locator('#task-end').fill(end); await page.getByRole('button', { name: 'Tạo Task', exact: true }).click(); const task = (await record(page, 'listTasks', [project.id, 100, ''], 'Task', title)).item;
-  await card(page, title).getByRole('button', { name: 'Sửa', exact: true }).click(); await page.locator('#task-status').selectOption('Completed'); await page.getByRole('button', { name: 'Lưu Task', exact: true }).click(); await expect.poll(() => sql('Task', task.id)[0].Status).toBe('Completed');
+  await card(page, title).getByRole('button', { name: 'Sửa', exact: true }).click(); await expect(page.locator('#task-status')).toBeDisabled(); await page.locator('#task-description').fill('Updated synthetic task'); await page.getByRole('button', { name: 'Lưu Task', exact: true }).click();
+  await card(page, title).getByRole('button', { name: 'Hoàn thành', exact: true }).click(); await confirm(page, 'Hoàn thành'); await expect.poll(() => sql('Task', task.id)[0].Status).toBe('Completed');
   await page.goto('/modules/FX11'); await showPagedCard(page,name,'Tải thêm Project'); await card(page, name).getByRole('button', { name: 'Hoàn tất', exact: true }).click(); await confirm(page, 'Hoàn tất Project'); await expect.poll(() => sql('Project', project.id)[0].Status).toBe('Completed');
   await card(page, name).getByRole('button', { name: 'Xóa', exact: true }).click(); await confirm(page, 'Đưa Project vào Trash'); expect(sql('Project', project.id)[0].Status).toBe('Deleted'); expect(sql('Task', task.id)[0].Status).toBe('Deleted');
   await page.goto('/trash'); let row = page.locator('.resource-card').filter({ hasText: project.id }); await row.getByRole('button', { name: 'Restore batch', exact: true }).click(); await confirm(page, 'Restore batch'); await expect.poll(() => sql('Project', project.id)[0].Status).toBe('Completed');
