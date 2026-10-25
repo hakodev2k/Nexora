@@ -11,5 +11,10 @@
 - High-impact changes **MUST** receive verification by an agent/reviewer other than the implementer when policy requires it.
 - Retry loops **MUST** be bounded; after two failures of the same hypothesis, the workflow **MUST** re-diagnose.
 - User-facing status **MUST** distinguish Implemented, Measured, and Verified.
+- In Nexora, follow the current DEC-014 execution amendment and `.ai/verification.md`:
+  implementation completion, automated QA verification, runtime/security evidence
+  and human UI acceptance are separate. Only explicit human confirmation may set
+  HUMAN UI REVIEW ACCEPTED; pending mandatory human/independent/D09 gates prohibit
+  full RELEASE READY. A policy update never retroactively supplies test evidence.
 - The system **SHOULD** retain non-sensitive command, scope, result, timestamp, and state fingerprint needed to audit claims.
 - Hidden chain-of-thought **MUST NOT** be requested or stored as verification evidence.

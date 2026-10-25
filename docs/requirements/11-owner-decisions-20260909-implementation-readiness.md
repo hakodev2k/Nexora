@@ -13,7 +13,7 @@ Product Owner response batch 2: selected `Q1:D`, `Q2:A`, `Q3:A`, `Q4:A`, `Q5:A`,
 
 These decisions are Product Owner decisions or Product Owner-delegated implementation-readiness decisions. They do not prove implementation, tests, runtime readiness, production suitability or security certification.
 
-**Superseded boundary:** DEC-20260909-014 is the current implementation authority. The M01-only/future-slice approval text below is retained as historical traceability. Local Release 1 code may proceed slice-by-slice when contracts are sufficient; production/provider execution remains unapproved. The current code-only run adds no test/mock/demo fixtures; functional QA and runtime verification belong to the owner.
+**Superseded boundary:** DEC-20260909-014 is the current implementation authority. The M01-only/future-slice approval text below is retained as historical traceability. Local Release 1 code may proceed slice-by-slice when contracts are sufficient; production/provider execution remains unapproved. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 ## Approved implementation boundary
 

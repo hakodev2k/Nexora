@@ -2,9 +2,9 @@
 
 > Current specification · reconciled 2026-09-09. [Previous version](../history/20260908/snapshot/docs/features/90-open-decisions.md) is historical evidence, not implementation input.
 
-[Biên bản lời PO 2026-09-07](../requirements/10-owner-decisions-20260907.md), [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) và [DEC-20260909-014](../requirements/12-owner-decisions-20260909-local-e2e-implementation.md) là nguồn quyết định hiện hành. DEC-014 supersedes M01-only/local-code pause restrictions for local implementation; production, real providers, secrets/data and paid services remain unapproved. Các proposal trước đây không tự trở thành Approved; business/security rules và retired actions vẫn giữ nguyên.
+[Biên bản lời PO 2026-09-07](../requirements/10-owner-decisions-20260907.md), [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) và [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) là nguồn quyết định hiện hành. DEC-014 supersedes M01-only/local-code pause restrictions for local implementation; production, real providers, secrets/data and paid services remain unapproved. Các proposal trước đây không tự trở thành Approved; business/security rules và retired actions vẫn giữ nguyên.
 
-> **Current implementation authority:** Full documented Release 1 local E2E may proceed slice-by-slice when API/DB/UX/acceptance/security/evidence contracts are sufficient. Formerly paused FX30/34/35 may use local/simulated/integration-safe adapters only; real provider execution remains disabled. The current run is code-only and does not add tests, fixtures or mock/demo records.
+> **Current implementation authority:** Full documented Release 1 local E2E may proceed slice-by-slice when API/DB/UX/acceptance/security/evidence contracts are sufficient. Formerly paused FX30/34/35 may use local/simulated/integration-safe adapters only; real provider execution remains disabled. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 <a id="q-01"></a>
 ## Q-01 — Resolved for account deletion/recovery policy

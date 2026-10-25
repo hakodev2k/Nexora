@@ -5,14 +5,14 @@
 
 Current implementation-status overlay for the action catalog. `DEC-20260909-014` supersedes the old M01-only/future-slice approval for local code; it does not authorize production/provider execution.
 
-It authorizes no production/provider call, production deployment, production data access or secret access by itself. Local implementation still requires a sufficient API/DB/UX/acceptance/security/evidence contract. The current run is code-only and does not add test/mock/demo data.
+It authorizes no production/provider call, production deployment, production data access or secret access by itself. Local implementation still requires a sufficient API/DB/UX/acceptance/security/evidence contract. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 Current PR #4 slice overlay: FX16 numeric Goals is now implemented locally for
 `goals.goal.read`, `goals.goal.create`, `goals.goal.update`,
 `goals.goal.start`, `goals.goal.complete`, `goals.goal.abandon`,
 `goals.goal.reopen`, `goals.target.read`, `goals.target.create` and
 `goals.target.record_progress`. These rows remain owner/module/action gated and
-are not runtime-verified in this code-only environment. Boolean/Tasks targets,
+were not runtime-verified by this source-only snapshot; current verification requires executed evidence under the 2026-10-25 amendment. Boolean/Tasks targets,
 archive/trash/history, reminders, support and provider rows remain gated.
 
 The same PR also implements the bounded FX26-S01 read-only Dashboard attention

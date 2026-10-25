@@ -3,7 +3,7 @@
 > **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
 
 
-2026-09-10 · Current interpretation layer. DEC-20260909-014 permits local/simulated code when contracts are sufficient; this document authorizes no provider call, production deployment, production data access or secret access by itself. The current run is code-only and does not add tests/mock/demo data.
+2026-09-10 · Current interpretation layer. DEC-20260909-014 permits local/simulated code when contracts are sufficient; this document authorizes no provider call, production deployment, production data access or secret access by itself. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 This register clarifies the effective meaning of `Paused`, `Blocked`, `Gated`, `Resolved delegated`, and `Approved for M01` after `DEC-20260909-001` through `DEC-20260909-014`. If an older catalog row still says `Blocked Q-*`, `DEP-EXT-01 boundary needs clarification`, or `no implementation approved`, read that row through this register until the catalog is regenerated. DEC-014 permits local implementation after contract completion; it never expands real-provider or production permission.
 
@@ -86,7 +86,7 @@ A future slice may convert a gated row to implementable only when all of these e
 4. DB/migration/transaction plan with owner isolation and rollback/restore effect.
 5. UX/screen flow and unavailable/denied/degraded states.
 6. Security/privacy review where the slice touches auth, secrets, support/share, outbound network, finance or personal data.
-7. Evidence expectations before `Implemented`, `Verified locally` or `Production-ready` can be claimed. The current code-only run adds no new test suites; functional tests/QA remain owner-owned.
+7. Evidence expectations before `Implemented`, `Verified locally` or `Production-ready` can be claimed. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 ## Agent pre-flight checklist
 
@@ -105,8 +105,8 @@ If a module file and this register appear to disagree, use the stricter rule and
 | Scope | Status |
 | --- | --- |
 | M01 + backend/frontend scaffold + local scripts | Go for implementation after PR merge/branch usage, still requires runtime evidence. |
-| Full Phase 1 | Slice-by-slice local implementation allowed when contracts are sufficient; not verified by this code-only run. |
-| Full Release 1 | Local implementation may proceed slice-by-slice; no claim of complete/verified R1 until owner evidence exists for every committed capability. |
+| Full Phase 1 | Slice-by-slice local implementation allowed when contracts are sufficient; not verified merely by implementation approval; current-source automated evidence and final human UI acceptance remain required. |
+| Full Release 1 | Local implementation may proceed slice-by-slice; no claim of complete/verified R1 until agent automated/runtime evidence and required human acceptance exist for every committed capability. |
 | Production/public launch | No-go until Local Stable evidence plus production provider/capacity/RPO/RTO/SLA approval. |
 | FX30/FX34/FX35 real providers/workers | No-go; local-safe disabled code only. |
 

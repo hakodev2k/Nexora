@@ -1,6 +1,6 @@
 # Finance — UX/UI Specification
 
-Current basic scope · 2026-09-08 · Local UI slice implemented on PR #4 under DEC-20260909-014 (runtime verification remains owner work). [Previous advanced UX](../../history/20260908/snapshot/docs/ux-ui/modules/27-finance.md) is proposal history.
+Current basic scope · 2026-09-08 · Local UI slice implemented on PR #4 under DEC-20260909-014 (automated/runtime QA is agent-owned under the 2026-10-25 DEC-014 amendment; final human UI/product acceptance remains required). [Previous advanced UX](../../history/20260908/snapshot/docs/ux-ui/modules/27-finance.md) is proposal history.
 
 ## 1. Scope
 

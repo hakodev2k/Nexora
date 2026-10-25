@@ -6,7 +6,7 @@ Date: 2026-10-19 (Asia/Bangkok). **Decision status: OWNER CONFIRMED** for the st
 
 ## Authority and precedence
 
-Preserve `DEC-20260909-004` (hybrid Vault recoverability/no operator plaintext), `-005` (sensitive projection allowlist), `-006` (manual Finance), `-007` (flat Tasks/one reminder), `-008` (bounded read-only outbound scope), `-009` (FX30/34/35 real effects paused), `-010` (Local Stable precedes production), `-014` (approved local contract-complete implementation, synthetic QA permitted under later explicit QA request). Existing `DEC-20260907-Q03/Q04` deny reuse of permanently invalidated share tokens and Vault purge/crypto-erasure. The current code-only implementation amendment is not a ban on documenting proposed acceptance tests; this docs change does not run tests, create mock data or approve provider calls.
+Preserve `DEC-20260909-004` (hybrid Vault recoverability/no operator plaintext), `-005` (sensitive projection allowlist), `-006` (manual Finance), `-007` (flat Tasks/one reminder), `-008` (bounded read-only outbound scope), `-009` (FX30/34/35 real effects paused), `-010` (Local Stable precedes production), `-014` (approved local contract-complete implementation, synthetic QA permitted under later explicit QA request). Existing `DEC-20260907-Q03/Q04` deny reuse of permanently invalidated share tokens and Vault purge/crypto-erasure. The earlier code-only execution restriction is superseded only by the 2026-10-25 execution amendment in DEC-014: agents own authorized isolated automated QA/runtime verification and the human retains final UI/product acceptance. The D01–D09 dispositions below are unchanged; this decision record itself supplies no executed tests or provider approval.
 
 ## Selected dispositions (all Option A)
 

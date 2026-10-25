@@ -1,6 +1,6 @@
 # M01 — Personal identity and access foundation
 
-> **Current authority note (2026-09-10):** This milestone file is a historical M01 contract, not the current implementation boundary. [DEC-20260909-014](../../requirements/12-owner-decisions-20260909-local-e2e-implementation.md) permits full local Release 1 implementation slice-by-slice when contracts are sufficient. Production, real providers/secrets/data and paid services remain unapproved; current code-only execution adds no tests or fixtures.
+> **Current authority note (2026-09-10):** This milestone file is a historical M01 contract, not the current implementation boundary. [DEC-20260909-014](../../requirements/12-owner-decisions-local-e2e-implementation.md) permits full local Release 1 implementation slice-by-slice when contracts are sufficient. Production, real providers/secrets/data and paid services remain unapproved; agents own isolated automated QA/synthetic fixtures/runtime verification under the 2026-10-25 DEC-014 amendment; human final UI/product acceptance remains required.
 
 **Status: approved for implementation local-first by `DEC-20260909-001`.** M01 là milestone nội bộ, một phần Phase1; không phải public launch hoặc hoàn thành Phase1/R1.
 

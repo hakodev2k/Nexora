@@ -3,7 +3,7 @@
 > **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
 
 
-2026-09-10 · **Full local Release 1 implementation is approved by `DEC-20260909-014` when the exact contract is sufficient.** M01 is an internal foundation slice and milestone labels are not runtime folders. Production/provider execution remains gated; current code-only testing and QA are owner responsibilities.
+2026-09-10 · **Full local Release 1 implementation is approved by `DEC-20260909-014` when the exact contract is sufficient.** M01 is an internal foundation slice and milestone labels are not runtime folders. Production/provider execution remains gated; agents own isolated automated QA/runtime verification under the 2026-10-25 DEC-014 amendment; human final UI/product acceptance remains required.
 
 ## Release rule
 

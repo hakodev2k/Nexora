@@ -1,5 +1,7 @@
 # Continued implementation and populated UIUX — 2026-10-25
 
+> **Historical execution checkpoint, source cd34b9c.** The later [2026-10-25 DEC-014 execution amendment](../../requirements/12-owner-decisions-local-e2e-implementation.md#local-automated-qa-20261025) and [policy report20](20-execution-policy-20261025.md) supersede only this run's code-only restriction and allocation of routine QA to the owner. All executed/not-run results, source limits and HOLD verdict below are preserved; the new permission does not retroactively run or accept anything.
+
 Status: implementation checkpoint; comprehensive mission remains INCOMPLETE. Release verdict **HOLD**.
 
 | Task brief | Current record |

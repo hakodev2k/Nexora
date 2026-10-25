@@ -30,7 +30,19 @@ paid services and external destructive actions remain unapproved. Complete missi
 API/DB/UX/AC/security/evidence contracts before code; do not invent business decisions.
 Keep work on existing PR #4, branch `impl/m01-s00-scaffold`; do not merge.
 
-Current execution amendment: this is a code-only run. Do not add new unit/integration/E2E/browser tests, mock/demo records or artificial fixtures; the human owner handles functional testing, QA, test-data design and runtime verification. Compile/build/typecheck/lint may be run only for implementation-error detection and must be reported exactly.
+Current execution authority is the **2026-10-25 implementation and automated-QA amendment**
+in [DEC-20260909-014](docs/requirements/12-owner-decisions-local-e2e-implementation.md#local-automated-qa-20261025).
+It supersedes the former code-only / human-executes-QA restriction only. Agents own
+approved local implementation, defect remediation and applicable automated QA:
+unit, component, integration, API, real isolated SQL, browser E2E, regression,
+permission/isolation/security, concurrency/idempotency/retry/recovery, responsive
+and accessibility checks, plus build/typecheck/lint/static analysis. Agents may
+create isolated synthetic users, roles, grants and feature fixtures, bootstrap the
+application through legitimate mechanisms, run local simulated providers and
+capture sanitized evidence without repeated PO approval for ordinary approved
+slices/runs. Human Product Owner review remains the final UI/product acceptance
+checkpoint, not the default executor of routine QA. All product/security gates,
+D01–D09, host/tool permissions and independent-review requirements still apply.
 
 ## Authority and source precedence
 
@@ -73,19 +85,63 @@ Load `.ai/roles/technical-lead/README.md` as the primary operating role. The Tec
 
 ## Execution workflow
 
-1. Read the exact requirement/feature/UX sources for the task and record relevant IDs plus open decisions.
-2. Classify the task and load only the matching specialist rules/skills/controls.
-3. Produce a bounded implementation plan with architecture, data, security, test, migration, and rollback impact.
-4. Only within existing explicit implementation approval, implement the smallest coherent vertical slice. Do not add speculative abstractions or unrelated refactors.
-5. Run focused verification first, then affected regression gates. Evidence must correspond to the final commit state.
-6. Perform independent review for security-sensitive, migration, authorization, background-job, caching, or cross-module changes.
-7. Update docs/traceability when an implementation decision or approved ADR requires it.
-8. Open a PR to `main`; never bypass required review by writing directly to `main`.
+Requirements → Implementation → Automated QA → Defect Remediation →
+Runtime/Browser Verification → Human UI Review.
+
+1. Read current PO/feature/UX sources; bind exact Feature/Story/BR/AC/action IDs,
+   dependencies and unresolved decisions. Load matching rules/skills/controls and
+   plan bounded architecture/data/security/test/migration/rollback work.
+2. Implement the approved vertical slice through backend/API/SQL/frontend,
+   validation, errors, edge cases and recovery. Cover applicable AC, not just
+   endpoint/component existence. Refactor only where required for correctness or
+   maintainability; do not invent requirements or widen gated scope.
+3. Create/update and execute applicable automated verification layers above.
+   Use focused checks during implementation, then rerun affected tests and
+   release-critical regression gates after final relevant edits. A build or
+   existing green CI does not prove full acceptance coverage.
+4. Preserve failures and classify implementation/oracle/fixture/environment/
+   requirement causes. Fix authorized root causes, rerun failed scenarios and
+   affected regression; never delete/disable tests, weaken assertions or loosen
+   production validation/authorization merely to obtain PASS. Document exact
+   blockers and continue independently executable work.
+5. Run actual UI/API/SQL user flows in the isolated environment, including
+   allowed/denied roles, persistence/reload, failure/recovery and desktop/mobile
+   states. Capture sanitized evidence tied to exact commit SHA and environment;
+   if execution used a worktree/tree, record it and reconcile to delivered commit.
+   Later relevant edits invalidate affected evidence; missing runtime is NOT TESTED
+   or BLOCKED, never inferred PASS from source/build/old screenshots.
+6. Perform independent review for security-sensitive, migration, authorization,
+   background-job, caching or cross-module changes; retain D09 current-head CI and
+   traceability gates. Update requirement → AC → code → test → execution → release
+   traceability and resolve actionable automated failures before handoff.
+7. Prepare final revision/evidence, safe startup/review instructions and a concise
+   UI journey acceptance checklist. Track IMPLEMENTATION COMPLETE, AUTOMATED QA
+   VERIFIED, HUMAN UI REVIEW PENDING/ACCEPTED, BLOCKED and NOT VERIFIED separately.
+   Only explicit human acceptance sets HUMAN UI REVIEW ACCEPTED; mandatory pending
+   human/independent/security/release gates prevent full RELEASE READY.
+8. Keep delivery on existing PR #4 branch `impl/m01-s00-scaffold`, targeting `main`;
+   never write directly to `main`, force push, merge, deploy or activate providers.
+
+Isolated QA must use a uniquely identified disposable test database (for example
+`Nexora_Test_<runid>`), synthetic records, least-privilege test credentials and
+isolated browser sessions/configuration. SQL Server remains authoritative; Redis
+is cache. Do not use production/real user data or secrets, bypass server-side
+authorization or enable real providers/network effects. Simulations are labelled
+and cannot prove live-provider integration. Never commit test passwords, credentials
+or private browser storage. Reset/cleanup only resources proven to belong to the
+specific run using ownership markers and exact target checks; never reuse unknown
+databases for destructive testing.
 
 Keep one accountable task owner. Upstream delegation is not permission to spawn
 agents: use delegation only when the host and user permit it. If independent
 review is required but unavailable, mark that gate pending and do not claim it
 passed through self-review. Complete other authorized work first.
+
+When genuine parallel agents are supported and authorized, the Technical Lead may
+divide backend/frontend/SQL/test/browser/security/review work with disjoint ownership;
+otherwise execute sequentially. Each agent reports assigned scope, changed files,
+tests created/updated versus actually executed, exact results, defects/fixes,
+remaining risks/blockers and evidence/source revision. Never invent agent work.
 
 For agent-kit changes run `python3 .ai/scripts/verify-baseline.py`. Follow
 `.ai/verification.md` for evidence and limitations. Product integration tests must

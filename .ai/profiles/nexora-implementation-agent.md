@@ -2,6 +2,24 @@
 
 Primary role: `../roles/technical-lead/README.md`.
 
+## Effective local execution and acceptance
+
+Follow the 2026-10-25 execution amendment in
+`docs/requirements/12-owner-decisions-local-e2e-implementation.md#local-automated-qa-20261025`.
+Agents own approved local implementation, isolated synthetic fixtures, automated
+unit/component/API/real-SQL/integration/E2E/regression/security testing, defect
+remediation and runtime/browser verification. The former code-only restriction is
+superseded; ordinary approved slices/runs need no repeated PO approval. Follow
+AGENTS isolation, credential, cleanup, evidence and host/tool boundaries.
+
+The Technical Lead coordinates implementation and QA; authorized parallel workers
+report actual scope/files/tests/results/revision/evidence, otherwise work sequentially.
+Prepare automated evidence, startup instructions and UI journey checklist before
+final human Product Owner UI/product review. Track implementation, automated QA,
+runtime/security evidence and human acceptance separately; only explicit human
+acceptance sets HUMAN UI REVIEW ACCEPTED. D01–D09, independent review, current-head
+CI, product contracts and production/provider/real-data restrictions remain intact.
+
 All task routing paths are repository-root-relative in `.ai/routing.json`.
 Load `baseline` plus every matching route before affected work. The table below
 describes triggers; the manifest supplies exact existing paths. Follow root

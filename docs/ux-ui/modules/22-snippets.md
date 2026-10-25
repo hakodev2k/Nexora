@@ -1,6 +1,6 @@
 # FX-22 — Snippets — UX/UI Specification
 
-Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Text/version UI slice implemented locally on PR #4; runtime verification remains owner work.
+Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Text/version UI slice implemented locally on PR #4; automated/runtime QA is agent-owned under the 2026-10-25 DEC-014 amendment; final human UI/product acceptance remains required.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. `/snippets` is implemented for the local text/version slice; detail/history route strings remain future contracts.
 

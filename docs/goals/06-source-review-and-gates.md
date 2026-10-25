@@ -4,7 +4,7 @@ Task gốc: PO yêu cầu viết goals từ phase đầu đến cuối và riên
 
 ## Current addendum — DEC-20260909-014
 
-Product Owner đã approve full documented Release 1 local E2E implementation trên PR #4, slice-by-slice khi contract API/DB/UX/acceptance/security/evidence đủ. DEC-014 supersedes M01-only and repeated-slice approval restrictions for local code; real providers, production, secrets/data and paid services remain unapproved. The current code-only run adds no tests, fixtures or mock/demo records; functional QA and runtime evidence remain owner responsibilities.
+Product Owner đã approve full documented Release 1 local E2E implementation trên PR #4, slice-by-slice khi contract API/DB/UX/acceptance/security/evidence đủ. DEC-014 supersedes M01-only and repeated-slice approval restrictions for local code; real providers, production, secrets/data and paid services remain unapproved. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 Formerly paused FX30/34/35 may use local/simulated/integration-safe adapters only. Do not revive retired actions or infer external behavior from a local simulation.
 

@@ -3,7 +3,7 @@
 > **Current local implementation approval:** [DEC-20260909-014](../requirements/12-owner-decisions-local-e2e-implementation.md) supersedes older M01-only/future-slice approval and local-code pause statements below. Full local E2E is approved with contracts first; real providers/production remain unapproved. Business rules and retired actions are unchanged.
 
 
-Ngày review: 2026-09-10. **DEC-20260909-014** mở rộng approval cho full local Release 1 implementation slice-by-slice khi contract đủ; production, provider thật, secrets/data thật và paid services vẫn bị chặn. Current run là code-only: functional testing/QA/fixtures/runtime verification do owner thực hiện.
+Ngày review: 2026-09-10. **DEC-20260909-014** mở rộng approval cho full local Release 1 implementation slice-by-slice khi contract đủ; production, provider thật, secrets/data thật và paid services vẫn bị chặn. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 Đọc theo thứ tự: [phạm vi hiện hành](01-current-scope.md) → [PO implementation-readiness decisions](../requirements/11-owner-decisions-20260909-implementation-readiness.md) → [paused/blocked/gated register](04-paused-blocked-gate-register.md) → [milestone đầu tiên](milestone-01/README.md) → stories → API → DB/transactions → UX/acceptance → môi trường/evidence. Một action có thiết kế không đồng nghĩa có handler, endpoint đang chạy, hoặc được phép phát hành.
 
@@ -33,6 +33,6 @@ Chuẩn hóa các quyết định PO ngày 2026-09-09 và DEC-014 để unblock 
 
 ## Goals và acceptance trace
 
-[Goals](../goals/README.md) nối current scope với P00–P08, RM00–RM22 và từng FX; [task/evidence template](../goals/05-task-and-evidence-template.md) yêu cầu trace goal tới source AC/action và actual evidence. Goals không thay story contracts, không biến `Not run` thành `Pass`; code-only run hiện tại không thêm test/mock/demo data.
+[Goals](../goals/README.md) nối current scope với P00–P08, RM00–RM22 và từng FX; [task/evidence template](../goals/05-task-and-evidence-template.md) yêu cầu trace goal tới source AC/action và actual evidence. Goals không thay story contracts, không biến `Not run` thành `Pass`; agents sở hữu automated QA và synthetic fixtures local cô lập theo amendment DEC-014 ngày 2026-10-25; human giữ nghiệm thu UI/product cuối.
 
 [PR4 local API continuation and exact partial scope](09-pr4-local-module-implementation.md).

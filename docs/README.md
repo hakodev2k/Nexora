@@ -13,7 +13,7 @@ Bộ tài liệu này là nguồn yêu cầu chính thức (single source of tru
 |---|---|
 | Phiên bản | `1.3-draft` |
 | Ngày lập baseline | `2026-09-04` |
-| Trạng thái | Local Release 1 code implementation được PO approve slice-by-slice theo DEC-20260909-014; functional QA/runtime verification do owner thực hiện |
+| Trạng thái | Local Release 1 code implementation được PO approve slice-by-slice theo DEC-20260909-014; agents thực hiện automated QA/runtime verification cô lập; Product Owner nghiệm thu UI/product cuối theo amendment 2026-10-25 |
 | Mô hình sản phẩm | Public SaaS, self-registration, dữ liệu cá nhân độc lập, không có Workspace trong Release 1 |
 | Phạm vi Release 1 | Toàn bộ module đã có requirement hiện tại; mỗi module phải hoàn thành theo scope đã duyệt |
 | Công nghệ đã định hướng | ReactJS, .NET, SQL, Redis |
@@ -90,7 +90,7 @@ Mã yêu cầu không được tái sử dụng. Khi bỏ một yêu cầu, gi�
 
 Đọc [docs/features](features/README.md) để xem40 đặc tả hành vi theo module/capability, sản phẩm tham chiếu, luồng màn hình, fields/validation, lifecycle, quyền, commands và acceptance scenarios. Có [coverage](features/92-coverage-and-decisions.md), [requirement routing](features/93-requirement-routing.md) và [12 nhóm quyết định lớn](features/90-open-decisions.md).
 
-Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi lại từng thao tác. Capability thiếu API/DB/UX/AC/security/evidence contract phải được hoàn tất trước code. Code-only run hiện tại không thêm test hoặc mock/demo data.
+Chi tiết nhỏ được PM/Technical chốt theo DEC-GOV-001; không hỏi lại từng thao tác. Capability thiếu API/DB/UX/AC/security/evidence contract phải được hoàn tất trước code. Amendment DEC-014 ngày 2026-10-25 cho phép agents tạo/chạy automated tests và synthetic fixtures trong môi trường local cô lập; human giữ quyền nghiệm thu UI/product cuối.
 
 ## Design review 2026-09-07 — documentation only
 
@@ -111,7 +111,7 @@ Các tài liệu này không tuyên bố đã implement. Current Product Owner d
 
 ## Current milestone handoff
 
-Start from [current delivery specification](delivery/README.md). M01 and later phase contracts/evidence gates are linked there. Full local implementation is approved by DEC-20260909-014; a local/internal milestone is not Release 1 completion. Functional testing, manual QA and runtime evidence are owner responsibilities in the current code-only run and must not be claimed by the agent.
+Start from [current delivery specification](delivery/README.md). M01 and later phase contracts/evidence gates are linked there. Full local implementation is approved by DEC-20260909-014; a local/internal milestone is not Release 1 completion. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
 
 ## Goals cho agents
 

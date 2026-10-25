@@ -5,7 +5,7 @@
 
 Ngày: 2026-09-09 · Nguồn chốt đọc: `e95a4b0c20f5677bada6a65ffbc1acbfd8735523` trên `main`.
 
-**Mục đích:** giữ outcome và logic nhất quán từ discovery tới Public SaaS, để agent biết mình phải đạt điều gì, không được đổi điều gì và cần bằng chứng nào. Đây là tài liệu tổng hợp/traceability theo yêu cầu PO; không cấp approval deploy/provider thật. DEC-20260909-014 cho phép local code khi contract đủ; current code-only run không thêm test/mock/demo data. Chưa có goal runtime nào được đánh dấu hoàn thành.
+**Mục đích:** giữ outcome và logic nhất quán từ discovery tới Public SaaS, để agent biết mình phải đạt điều gì, không được đổi điều gì và cần bằng chứng nào. Đây là tài liệu tổng hợp/traceability theo yêu cầu PO; không cấp approval deploy/provider thật. DEC-20260909-014 cho phép local code khi contract đủ; amendment ngày 2026-10-25 cho phép agents thực hiện automated QA/runtime verification và synthetic fixtures local cô lập; human nghiệm thu UI/product cuối. Chưa có goal runtime nào được đánh dấu hoàn thành.
 
 ## Đọc theo task
 

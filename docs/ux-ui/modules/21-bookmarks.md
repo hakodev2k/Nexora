@@ -2,7 +2,7 @@
 
 > **Current decision amendment — 2026-09-10:** External URLs are inert metadata, no Open external. The local UI slice supports manual metadata CRUD and Active/Archived lifecycle; auto-fetch, tags, collections and sharing remain gated. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md) and [slice evidence](../../implementation/bookmarks-manual-slice.md) apply. Conflicting older proposal paragraphs below are historical.
 
-Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Manual metadata UI slice implemented locally on PR #4; runtime verification remains owner work.
+Review 2026-09-10 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Manual metadata UI slice implemented locally on PR #4; automated/runtime QA is agent-owned under the 2026-10-25 DEC-014 amendment; final human UI/product acceptance remains required.
 
 Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
 
