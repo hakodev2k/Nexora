@@ -1,0 +1,43 @@
+{
+  "checkpoint": "web/Nexora.Web/artifacts/document-transfer-review/desktop-e219f504-0d3a-47fd-a1be-642f5b18087f-access-before.json",
+  "verifiedAt": "2026-10-29T16:36:45.020Z",
+  "verified": true,
+  "method": "normal SuperAdmin preview/commit and fresh API reread",
+  "modules": [
+    {
+      "id": "00000007-0000-0000-0000-000000000007",
+      "code": "FX07",
+      "systemEnabled": false,
+      "registrationEnabled": false
+    },
+    {
+      "id": "00000010-0000-0000-0000-000000000010",
+      "code": "FX10",
+      "systemEnabled": false,
+      "registrationEnabled": false
+    },
+    {
+      "id": "00000020-0000-0000-0000-000000000020",
+      "code": "FX20",
+      "systemEnabled": true,
+      "registrationEnabled": true
+    }
+  ],
+  "grants": [
+    {
+      "moduleId": "00000007-0000-0000-0000-000000000007",
+      "code": "FX07",
+      "enabled": false
+    },
+    {
+      "moduleId": "00000010-0000-0000-0000-000000000010",
+      "code": "FX10",
+      "enabled": false
+    },
+    {
+      "moduleId": "00000020-0000-0000-0000-000000000020",
+      "code": "FX20",
+      "enabled": true
+    }
+  ]
+}

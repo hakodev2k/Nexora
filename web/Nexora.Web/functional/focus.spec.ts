@@ -37,6 +37,12 @@ test('FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real
     expect(utc(convertedRows[0].EndAt) - utc(convertedRows[0].StartAt)).toBe(60000);
     expect((await moduleApi(page, 'focusApi', 'focusRecordTime', [session, true, crypto.randomUUID()])).entryId).toBe(converted.entryId);
     await expect(page.getByRole('status').filter({ hasText: converted.entryId })).toBeVisible();
+    // Repeated background passes must not create a second logical event or
+    // alter truthful channel outcomes after the phase is already completed.
+    // Observe beyond the real worker's five-second polling interval; this is
+    // a local runtime stability check, not a concurrent-finisher race test.
+    await page.waitForTimeout(6000);
+    expect(sqlFocusCompletion(session.id)).toEqual(notifications);
   } finally {
     await context.setOffline(false);
     if (original) { const current = await moduleApi(page, 'focusApi', 'focusPreferences'); await moduleApi(page, 'focusApi', 'focusSavePreferences', [{ ...original, etag: current.etag }, crypto.randomUUID()]); }

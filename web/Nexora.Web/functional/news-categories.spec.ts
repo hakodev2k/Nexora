@@ -29,6 +29,8 @@ test('News categories: private name containers, dirty cancellation, explicit con
   try {
     await policy({ systemEnabled: true, registrationEnabled: true }); await grant(true);
     await page.goto('/'); await page.locator('.module-card').filter({ has: page.getByRole('heading', { name: 'FX29', exact: true }) }).getByRole('button', { name: 'Mở module', exact: true }).click();
+    // FX29 now enters the approved reader; category CRUD is its native subview.
+    await page.getByRole('navigation', { name: 'News views', exact: true }).getByRole('button', { name: 'Categories', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'News categories', exact: true })).toBeVisible();
     const modal = page.locator('.resource-form-dialog'), root = '/api/v1/news/categories', name = unique('Category_%[x]');
     for (const defaultName of ['AI News', 'Tech News']) {

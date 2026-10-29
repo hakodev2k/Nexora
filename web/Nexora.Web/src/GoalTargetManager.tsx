@@ -141,7 +141,7 @@ export function GoalTargetManager({ detail, busy, uncertain, error, onCommand, o
           {kind === 'Boolean' && ['CreateBoolean', 'Progress'].includes(mode) && <div className="field-group"><label htmlFor="goal-target-manager-checked">{mode === 'Progress' ? 'Giá trị mới' : 'Giá trị ban đầu'}</label><select id="goal-target-manager-checked" value={draft.checked} onChange={event => setDraft({ ...draft, checked: event.target.value })}><option value="false">Chưa · 0.0%</option><option value="true">Có · 100.0%</option></select></div>}
           {mode === 'Progress' && <div className="field-group"><label htmlFor="goal-target-manager-note">Ghi chú (tùy chọn)</label><textarea id="goal-target-manager-note" value={draft.note} maxLength={2000} onChange={event => setDraft({ ...draft, note: event.target.value })} /></div>}
           <p className="muted">Loại target giữ nguyên. Sửa định nghĩa không ghi đè giá trị tiến độ hiện tại. Đạt 100% không tự hoàn thành Goal.</p>
-          <div className="form-actions"><button className="secondary-button" type="button" disabled={blocked} onClick={cancel}>Hủy</button><button className="primary-button" type="submit" disabled={blocked}>{blocked ? 'Đang xử lý…' : mode === 'Update' || mode === 'Remove' ? 'Xem ảnh hưởng' : 'Lưu'}</button></div>
+          <div className="form-actions"><button className="primary-button" type="submit" disabled={blocked}>{blocked ? 'Đang xử lý…' : mode === 'Update' || mode === 'Remove' ? 'Xem ảnh hưởng' : 'Lưu'}</button></div>
         </>}
       </form>
     </ResourceFormDialog>

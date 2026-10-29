@@ -2,6 +2,7 @@ import { isolateModalLayer } from './modalIsolation';
 import { registerDirtyLeaveGuard, type DirtyLeaveContinuation } from './navigationGuard';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from './ui/primitives';
 
 export function useResourceDialog<T>(value: T, restore?: (baseline: T) => void) {
   const [open, setOpen] = useState(false);
@@ -84,9 +85,9 @@ function OpenFormDialog({ title, busy, dirty, closeBlocked = false, onClose, chi
       {busy && <p role="status">Đang xử lý. Hãy chờ kết quả trước khi rời biểu mẫu.</p>}
       <fieldset className="resource-dialog-fields" hidden={discard} disabled={busy}>{children}</fieldset>
       {discard ? <div role="alert"><p>Bỏ thay đổi chưa lưu?</p><div className="dialog-actions">
-        <button ref={resume} type="button" className="secondary-button" onClick={() => { continuation.current = null; setDiscard(false); }}>Tiếp tục sửa</button>
-        <button type="button" className="danger-button" disabled={busy || closeBlocked} onClick={() => { if (state.current.busy || state.current.closeBlocked) return; const proceed = continuation.current; continuation.current = null; onClose(); proceed?.(); }}>Bỏ bản nháp</button>
-      </div></div> : <div className="dialog-actions"><button className="secondary-button" type="button" disabled={busy || closeBlocked} onClick={requestClose}>Hủy</button>{footer}</div>}
+        <Button ref={resume} onClick={() => { continuation.current = null; setDiscard(false); }}>Tiếp tục sửa</Button>
+        <Button variant="danger" disabled={busy || closeBlocked} onClick={() => { if (state.current.busy || state.current.closeBlocked) return; const proceed = continuation.current; continuation.current = null; onClose(); proceed?.(); }}>Bỏ bản nháp</Button>
+      </div></div> : <div className="dialog-actions"><Button disabled={busy || closeBlocked} onClick={requestClose}>Hủy</Button>{footer}</div>}
     </div>
   </div>, document.body);
 }

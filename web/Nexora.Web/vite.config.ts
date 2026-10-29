@@ -6,6 +6,11 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    // Chromium locks partial downloads on Windows. Generated QA output is not
+    // application source and must not enter Vite's source watcher.
+    watch: {
+      ignored: ['**/artifacts/**', '**/test-results/**', '**/playwright-report/**']
+    },
     proxy: {
       '/api': {
         target: 'https://localhost:5001',

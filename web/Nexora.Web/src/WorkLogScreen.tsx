@@ -157,7 +157,7 @@ export function WorkLogScreen({onAuthLost,timeZoneId,initialFilters,onViewChange
         <p className="muted">Ngày đã ghi được giữ nguyên khi đổi múi giờ.</p>
         <div className="form-grid"><div className="field-group"><label htmlFor="worklog-category">Nhóm (tùy chọn)</label><input id="worklog-category" maxLength={100} value={draft.category} onChange={event=>setDraft({...draft,category:event.target.value})}/></div><div className="field-group"><label htmlFor="worklog-employer">Tổ chức (tùy chọn)</label><input id="worklog-employer" maxLength={200} value={draft.employer} onChange={event=>setDraft({...draft,employer:event.target.value})}/></div></div>
         <div className="field-group"><label htmlFor="worklog-notes">Ghi chú (tùy chọn)</label><textarea id="worklog-notes" maxLength={20000} value={draft.notes} onChange={event=>setDraft({...draft,notes:event.target.value})}/></div>
-        <div className="form-actions"><button className="secondary-button" type="button" disabled={busy} onClick={()=>editor.cancel()}>Hủy</button><button className="primary-button" type="submit" disabled={busy||uncertain}>{busy?'Đang lưu…':'Lưu'}</button></div>
+        <div className="form-actions"><button className="primary-button" type="submit" disabled={busy||uncertain}>{busy?'Đang lưu…':'Lưu'}</button></div>
       </form>
     </ResourceFormDialog>
     <ResourceFormDialog open={transitionDialog.open} title={confirmation?.status==='Active'?'Archive nhật ký?':'Unarchive nhật ký?'} busy={busy} dirty={false} onClose={()=>{transitionDialog.finish();setConfirmation(null);}}>

@@ -1,4 +1,5 @@
 import { isolateModalLayer } from './modalIsolation';
+import { Button, Card, FormField, Toolbar } from './ui/primitives';
 import { GoalTargetManager } from './GoalTargetManager';
 import { exactGoalDecimal } from './goalNumbers';
 import { GoalProgressHistory } from './GoalProgressHistory';
@@ -1365,6 +1366,7 @@ export function Shell({
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [mobileNavigationOpen, setMobileNavigationOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteHandoff, setPaletteHandoff] = useState<{ scope: string; value: import('./commandApi').CommandHandoff } | null>(null);
   const recentView = useRef<{ owner: string; view: RecentView } | null>(null);
   const recentOwner = profile.id + ':' + profile.personalSpaceId;
   const toolCatalogScope = JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules]);
@@ -1396,6 +1398,16 @@ export function Shell({
   const canPlanner = profile.modules.some((module) => module.code.toUpperCase() === 'FX15' && module.enabled);
   const canHabits = profile.modules.some((module) => module.code.toUpperCase() === 'FX17' && module.enabled);
   const canSearch = profile.modules.some((module) => module.code.toUpperCase() === 'FX25' && module.enabled);
+  useEffect(() => {
+    if (!paletteHandoff) return;
+    const pending = paletteHandoff;
+    setPaletteHandoff(null);
+    if (!canSearch || pending.scope !== toolCatalogScope) return;
+    // The palette has unmounted in this commit, releasing its busy leave guard.
+    // Other dirty forms still get the normal navigation confirmation.
+    const value = pending.value;
+    navigate(value.screen, value.screen === 'resource' ? value.resourceType ?? undefined : value.screen === 'module' ? value.moduleCode ?? undefined : value.mode ?? undefined, false, value.resourceId ?? undefined, value.mode === 'create');
+  }, [paletteHandoff, canSearch, toolCatalogScope, navigate]);
   useEffect(() => {
     if (!canSearch) { setPaletteOpen(false); return; }
     const shortcut = (event: KeyboardEvent) => {
@@ -1491,7 +1503,7 @@ export function Shell({
       </aside>
       <div className="shell-content">
         <header className="shell-header">
-          {canSearch && <button type="button" className="secondary-button shell-command" aria-label="Command Palette · Ctrl/Cmd+K" title="Command Palette · Ctrl/Cmd+K" onClick={() => setPaletteOpen(true)}><span aria-hidden="true">⌕</span><span className="shell-command-label">Command Palette · Ctrl/Cmd+K</span></button>}
+          {canSearch && <button type="button" className="secondary-button shell-command" aria-label="Command Palette · Ctrl/Cmd+K" title="Command Palette · Ctrl/Cmd+K" onClick={() => setPaletteOpen(true)}><span aria-hidden="true">⌕</span><span className="shell-command-label">{t('quickSearch', 'Tìm nhanh')}</span><kbd className="shell-command-shortcut" aria-hidden="true">Ctrl / ⌘ K</kbd></button>}
           <details ref={accountMenu} className="account-menu" onKeyDown={event => { if (event.key === 'Escape' && event.currentTarget.open) { event.preventDefault(); event.currentTarget.open = false; event.currentTarget.querySelector('summary')?.focus(); } }}>
             <summary>{t('account', 'Tài khoản')}</summary>
             <div className="account-menu-panel"><p className="eyebrow">{t('personalSpace')}</p><p className="signed-in">{profile.email}</p>
@@ -1510,11 +1522,11 @@ export function Shell({
             initialView={recentView.current?.owner === recentOwner ? recentView.current.view : undefined} onViewChange={view => { recentView.current = { owner: recentOwner, view }; }}
             timeZoneId={profile.timeZoneId} locale={profile.locale} onAuthLost={onAuthLost} onOpen={(type, id) => navigate('resource', type, false, id)} /> : <ModuleUnavailableScreen moduleCode="FX25" />)}
           {location.screen === 'commands' && !canSearch && <ModuleUnavailableScreen moduleCode="FX25" />}
-          {canSearch && (paletteOpen || location.screen === 'commands') && <CommandPalette key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])}
+          {canSearch && !paletteHandoff && (paletteOpen || location.screen === 'commands') && <CommandPalette key={JSON.stringify([profile.id, profile.personalSpaceId, profile.role, profile.modules])}
             onAuthLost={onAuthLost} onClose={() => { setPaletteOpen(false); if (location.screen === 'commands') navigate('home', undefined, true); }}
             onHandoff={value => {
               setPaletteOpen(false);
-              navigate(value.screen, value.screen === 'resource' ? value.resourceType ?? undefined : value.screen === 'module' ? value.moduleCode ?? undefined : value.mode ?? undefined, false, value.resourceId ?? undefined, value.mode === 'create');
+              setPaletteHandoff({ scope: toolCatalogScope, value });
             }} />}
           {location.screen === 'profile' && <ProfileScreen profile={profile} onProfileUpdated={onProfileUpdated} onAuthLost={onAuthLost} onThemeChanged={onThemeChanged} />}
           {location.screen === 'security' && <SecurityScreen timeZoneId={profile.timeZoneId} onAuthLost={onAuthLost} />}
@@ -2546,7 +2558,7 @@ function DocumentsScreen({ onAuthLost }: { onAuthLost: () => Promise<void> }) {
       <DocumentNavigation folder={documentFolder} suspended={readSuspended} disabled={tagPending || loading || busy !== null || pending !== null || treeTarget !== null} onFolder={folder => requestDirtyAction(() => { const sameLocation = folder?.id === documentFolder?.id && libraryStatus === ''; clearEditor(); setCreateParent(null); setDocumentFolder(folder); setLibraryStatus(''); if (sameLocation) void load(); else invalidateList(); })} onTree={target => requestDirtyAction(() => { clearEditor(); setTreeTarget(target); })} beforeEdit={proceed => requestDirtyAction(() => { clearEditor(); proceed(); })} onCommitted={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); setCommitNotice(true); }} onUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setDocumentFolder(null); setReadSuspended(true); }} onAuthLost={onAuthLost} />
       {treeTarget && <DocumentTreeDialog target={treeTarget} onClose={() => setTreeTarget(null)} onCommitted={() => { setTreeTarget(null); clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); setCommitNotice(true); }} onUnavailable={() => { clearEditor(); invalidateList(); setLoading(false); setReadSuspended(true); }} onAuthLost={onAuthLost} />}
       {!selected && createParent && <p>Đang tạo trang con của trang đã chọn. Vị trí không đổi sau khi tạo.</p>}
-      <div className="resource-layout">
+      <div className="resource-layout documents-workspace">
         <form className="form-panel resource-form" onSubmit={save} noValidate>
           <div className="section-heading"><h2>{selected ? 'Sửa page' : 'Tạo page'}</h2>{selected && <button className="link-button" type="button" onClick={startNew} disabled={tagPending || loading || busy !== null}>Tạo mới</button>}</div>
           <div className="field-group"><label htmlFor="document-title">Tiêu đề</label><input id="document-title" value={title} maxLength={200} onChange={(event) => setTitle(event.target.value)} disabled={tagPending || loading || busy !== null || pending !== null || selected?.status === 'Archived'} required /></div>
@@ -4439,6 +4451,7 @@ function BookmarksScreen({ onAuthLost, initialTemplate, onTemplateConsumed }: { 
   const unknownOutcome = (failure: NexoraApiError) => failure.status === 0 || failure.status === 408 || failure.status >= 500 || failure.code === 'RequestInProgress';
 
   const form = useResourceDialog(draft);
+  const [abandonBookmarkSave, setAbandonBookmarkSave] = useState(false);
   const templateApplied = useRef(false);
   useEffect(() => {
     if (!initialTemplate || templateApplied.current || loading || !canBookmark('create')) return;
@@ -4471,7 +4484,8 @@ function BookmarksScreen({ onAuthLost, initialTemplate, onTemplateConsumed }: { 
         setCaps(currentCaps);
         if (currentCaps['bookmarks.bookmark.read'] !== true) {
           clearPrivateBookmark(false);
-          setError(new NexoraApiError('Không có quyền đọc thư viện Bookmarks hiện tại.', 403, 'PermissionDenied'));
+          setError(currentCaps['bookmarks.bookmark.create'] === true ? null
+            : new NexoraApiError('Bạn chưa có quyền xem thư viện đường dẫn.', 403, 'PermissionDenied'));
           return;
         }
       }
@@ -4496,6 +4510,7 @@ function BookmarksScreen({ onAuthLost, initialTemplate, onTemplateConsumed }: { 
 
   function resetEditor() {
     editorEpoch.current++;
+    setAbandonBookmarkSave(false);
     setPendingOutcome(null);
     setEditing(null);
     setDraft({ url: '', title: '', description: '' });
@@ -4622,32 +4637,27 @@ function BookmarksScreen({ onAuthLost, initialTemplate, onTemplateConsumed }: { 
           <h1 id="bookmarks-title">Bookmarks</h1>
           <p className="lead">Giữ những đường dẫn hữu ích ở một nơi. Nexora chỉ lưu thông tin bạn nhập, không tự tải nội dung từ trang bên ngoài.</p>
         </div>
-        <button className="secondary-button" type="button" onClick={() => void load()} disabled={loading || busy !== null || pendingOutcome !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</button>
+        <Toolbar><Button onClick={() => void load()} disabled={loading || busy !== null || pendingOutcome !== null}>{loading ? 'Đang tải…' : 'Tải lại'}</Button><Button variant="primary" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark('create')} onClick={() => { resetEditor(); form.begin({ url: '', title: '', description: '' }); }}>Thêm bookmark</Button></Toolbar>
       </div>
 
       {pendingOutcome && <Notice kind="error">Kết quả thao tác chưa rõ. Hãy đối chiếu bằng cách gửi lại đúng lệnh; giữ nguyên dữ liệu và khóa hiện tại.{pendingTransition.current && <button type="button" className="secondary-button" disabled={busy !== null} onClick={() => { if (pendingTransition.current) void transition(pendingTransition.current); }}>Đối chiếu lệnh chuyển trạng thái</button>}</Notice>}
       {commitNotice && <Notice kind="success">Thao tác đã được lưu. Chi tiết hiện tại không khả dụng; không cần gửi lại thao tác.</Notice>}
       {error && !conflict && <Notice kind="error">{error.message}{error.traceId ? ` (trace ${error.traceId})` : ''}</Notice>}
-      <div className="resource-layout">
-        <div className="content-section">
-          <button className="primary-button" type="button" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark('create')} onClick={() => { resetEditor(); form.begin({ url: '', title: '', description: '' }); }}>Thêm bookmark</button><ResourceFormDialog open={form.open} title={editing ? 'Sửa bookmark' : 'Bookmark mới'} busy={busy !== null} dirty={form.dirty || pendingOutcome !== null} onClose={() => { resetEditor(); form.finish(); }}>{pendingOutcome && <Notice kind="error">Kết quả chưa rõ. Gửi lại đúng lệnh để đối chiếu. Bỏ bản nháp không hủy thao tác đã gửi.</Notice>}{conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (!editing || busy !== null || loading) return; const current = editing; const generation = editorEpoch.current; try { const latest = await getBookmark(current.id); if (generation !== editorEpoch.current) return; if (latest.status !== 'Active') { clearPrivateBookmark(); setError(new NexoraApiError('Bookmark đã archive; hãy unarchive trước khi sửa.', 409, 'LifecycleLocked')); return; } setEditing({ ...current, etag: latest.etag }); requestKey.current = null; setConflict(false); setError(null); } catch (requestError) { if (generation === editorEpoch.current) showError(requestError); } }} disabled={loading || busy !== null || pendingOutcome !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel" onSubmit={save} noValidate><fieldset disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark(editing ? 'update' : 'create')}>
-            <div className="section-heading"><h2>{editing ? 'Sửa bookmark' : 'Bookmark mới'}</h2></div>
-            <div className="field-group"><label htmlFor="bookmark-url">URL</label><input id="bookmark-url" type="url" value={draft.url} maxLength={2048} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, url: event.target.value }); setError(null); }} placeholder="https://example.test/path" required aria-describedby="bookmark-url-error" /><FieldError id="bookmark-url-error" message={error ? firstFieldError(error, 'url') : undefined} /></div>
-            <div className="field-group"><label htmlFor="bookmark-title">Tiêu đề</label><input id="bookmark-title" value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required aria-describedby="bookmark-title-error" /><FieldError id="bookmark-title-error" message={error ? firstFieldError(error, 'title') : undefined} /></div>
-            <div className="field-group"><label htmlFor="bookmark-description">Mô tả <span className="optional">(tùy chọn)</span></label><textarea id="bookmark-description" value={draft.description} maxLength={20000} rows={4} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} /></div>
-            </fieldset><div className="form-actions"><button className="secondary-button" type="button" onClick={resetEditor} disabled={busy !== null || pendingOutcome !== null}>Làm mới</button><SubmitButton busy={busy === 'save'} disabled={loading || (pendingOutcome !== null && pendingOutcome !== 'save') || !canBookmark(editing ? 'update' : 'create')}>{editing ? 'Lưu bookmark' : 'Tạo bookmark'}</SubmitButton></div>
+      <div className="resource-list">
+          <ResourceFormDialog open={form.open} title={editing ? 'Sửa bookmark' : 'Bookmark mới'} busy={busy !== null} closeBlocked={pendingOutcome !== null} dirty={form.dirty || pendingOutcome !== null} onClose={() => { resetEditor(); form.finish(); }}>{pendingOutcome && <Notice kind="error"><p>Chưa xác định được kết quả lưu. Thử lại sẽ gửi đúng thao tác trước đó để tránh tạo trùng.</p>{!abandonBookmarkSave ? <Button variant="quiet" disabled={busy !== null} onClick={() => setAbandonBookmarkSave(true)}>Dừng đối chiếu…</Button> : <><p>Bookmark có thể đã được lưu. Dừng đối chiếu không hoàn tác yêu cầu; hãy kiểm tra thư viện trước khi tạo lại.</p><Toolbar><Button disabled={busy !== null} onClick={() => setAbandonBookmarkSave(false)}>Tiếp tục đối chiếu</Button><Button variant="danger" disabled={busy !== null} onClick={() => { resetEditor(); form.finish(); void load(query, includeArchived, true); }}>Tôi hiểu, kiểm tra dữ liệu đã lưu</Button></Toolbar></>}</Notice>}{conflict && <Notice kind="error"><span>Bookmark đã thay đổi ở nơi khác. Draft hiện tại vẫn nằm trong memory; hãy tải revision mới rồi lưu lại.</span><button className="inline-button" type="button" onClick={async () => { if (!editing || busy !== null || loading) return; const current = editing; const generation = editorEpoch.current; try { const latest = await getBookmark(current.id); if (generation !== editorEpoch.current) return; if (latest.status !== 'Active') { clearPrivateBookmark(); setError(new NexoraApiError('Bookmark đã archive; hãy unarchive trước khi sửa.', 409, 'LifecycleLocked')); return; } setEditing({ ...current, etag: latest.etag }); requestKey.current = null; setConflict(false); setError(null); } catch (requestError) { if (generation === editorEpoch.current) showError(requestError); } }} disabled={loading || busy !== null || pendingOutcome !== null}>Dùng revision mới</button></Notice>}{error && <Notice kind="error">{error.message}</Notice>}<form className="form-panel resource-form" onSubmit={save} noValidate><fieldset className="resource-dialog-fields" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark(editing ? 'update' : 'create')}>
+            <FormField id="bookmark-url" label="URL" hint="Địa chỉ đầy đủ bắt đầu bằng http:// hoặc https://" error={error ? firstFieldError(error, 'url') : undefined}>{control => <input {...control} type="url" value={draft.url} maxLength={2048} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, url: event.target.value }); setError(null); }} placeholder="https://example.test/path" required />}</FormField>
+            <FormField id="bookmark-title" label="Tiêu đề" error={error ? firstFieldError(error, 'title') : undefined}>{control => <input {...control} value={draft.title} maxLength={200} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, title: event.target.value }); setError(null); }} required />}</FormField>
+            <FormField id="bookmark-description" label="Mô tả" optionalLabel="(tùy chọn)">{control => <textarea {...control} value={draft.description} maxLength={20000} rows={4} onChange={(event) => { requestKey.current = null; setDraft({ ...draft, description: event.target.value }); setError(null); }} />}</FormField>
+            </fieldset><Toolbar><Button onClick={resetEditor} disabled={busy !== null || pendingOutcome !== null}>Làm mới</Button><Button variant="primary" type="submit" aria-busy={busy === 'save'} disabled={loading || busy !== null || (pendingOutcome !== null && pendingOutcome !== 'save') || !canBookmark(editing ? 'update' : 'create')}>{busy === 'save' ? 'Đang lưu…' : editing ? 'Lưu bookmark' : 'Tạo bookmark'}</Button></Toolbar>
           </form></ResourceFormDialog>
-          <div className="security-policy"><strong>Provider boundary</strong><span>Health chỉ là trạng thái metadata hiện tại; refresh, external navigation, sharing, tags và collections chưa nằm trong slice này.</span></div>
-        </div>
-        <div className="content-section">
-          <form className="form-panel" onSubmit={applySearch} noValidate>
+
+          {canBookmark('read') && <form className="form-panel" onSubmit={applySearch} noValidate>
             <div className="section-heading"><h2>Thư viện</h2><button className="link-button" type="button" onClick={() => { if (mutationFlight.current || busy !== null || pendingOutcome !== null) return; setQueryDraft(''); setQuery(''); }} disabled={loading || busy !== null || pendingOutcome !== null}>Xóa tìm kiếm</button></div>
             <div className="field-group"><label htmlFor="bookmark-query">Tìm theo tiêu đề, URL hoặc mô tả</label><input id="bookmark-query" disabled={loading || busy !== null || pendingOutcome !== null} maxLength={200} value={queryDraft} onChange={(event) => setQueryDraft(event.target.value)} /></div>
             <label className="check-row"><input type="checkbox" checked={includeArchived} onChange={(event) => { if (!mutationFlight.current && busy === null && pendingOutcome === null) setIncludeArchived(event.target.checked); }} disabled={loading || busy !== null || pendingOutcome !== null} /><span>Hiển thị bookmark đã archive</span></label>
             <button className="secondary-button" type="submit" disabled={loading || busy !== null || pendingOutcome !== null}>Áp dụng</button>
-          </form>
-          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : error && pendingOutcome === null ? <div className="empty-state"><h2>Không thể tải thư viện</h2><p>Hãy thử lại khi quyền truy cập hoặc kết nối được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <article className="resource-card" key={item.id}><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || loading || pendingOutcome !== null || !canBookmark('update') || item.status !== 'Active'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null || pendingOutcome !== null || !canBookmark('unarchive')}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null || pendingOutcome !== null || !canBookmark('archive')} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark('read')} onClick={() => void load(query, includeArchived, false, true)}>Tải thêm</button>}</div>}
-        </div>
+          </form>}
+          {loading ? <div className="loading-state" role="status">Đang tải bookmarks…</div> : !canBookmark('read') ? <div className="empty-state"><h2>Thư viện chưa khả dụng</h2><p>{canBookmark('create') ? 'Bạn có thể lưu đường dẫn mới. Xem thư viện cần quyền đọc riêng.' : 'Bạn chưa có quyền xem thư viện đường dẫn.'}</p></div> : error && pendingOutcome === null ? <div className="empty-state"><h2>Không thể tải thư viện</h2><p>Hãy thử lại khi quyền truy cập hoặc kết nối được khôi phục.</p></div> : items.length === 0 ? <div className="empty-state"><h2>Chưa có bookmark</h2><p>{query ? 'Không có bookmark phù hợp với tìm kiếm.' : 'Tạo bookmark đầu tiên bằng metadata bạn kiểm soát.'}</p></div> : <div className="resource-list"><div className="section-heading"><span className="muted">{items.length} bản ghi · {includeArchived ? 'active và archived' : 'active'}</span></div><div className="resource-cards">{items.map((item) => <Card asChild key={item.id}><article className="resource-card"><div><h3>{item.title}</h3><p className="bookmark-url" title={item.url}>{item.url}</p>{item.description && <p>{item.description}</p>}<span className="muted">{item.status} · Health: {item.health} · cập nhật {dateTime(item.updatedAt)}</span></div><div className="resource-actions"><button className="secondary-button" type="button" onClick={() => beginEdit(item)} disabled={busy !== null || loading || pendingOutcome !== null || !canBookmark('update') || item.status !== 'Active'}>Sửa</button>{item.status === 'Archived' ? <button className="secondary-button" type="button" onClick={() => void transition(item)} disabled={busy !== null || pendingOutcome !== null || !canBookmark('unarchive')}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Unarchive'}</button> : <ConfirmActionButton confirmationTitle={`Archive bookmark “${item.title}”?`} confirmationDescription="Bookmark sẽ chuyển sang trạng thái chỉ-đọc. Bạn có thể unarchive lại sau." confirmLabel="Archive bookmark" disabled={busy !== null || pendingOutcome !== null || !canBookmark('archive')} onConfirm={() => transition(item)}>{busy === `transition:${item.id}` ? 'Đang lưu…' : 'Archive'}</ConfirmActionButton>}</div></article></Card>)}</div>{nextCursor && <button type="button" className="secondary-button" disabled={loading || busy !== null || pendingOutcome !== null || !canBookmark('read')} onClick={() => void load(query, includeArchived, false, true)}>Tải thêm</button>}</div>}
       </div>
     </section>
   );

@@ -6,7 +6,8 @@ export type TimeCommand = { startAt: string; endAt: string; description: string 
 export type TimeCorrection = { id: string; action: string; at: string; before: TimeEntry };
 export const timeCapabilities = () => apiFetch<Record<string, boolean>>('/api/v1/time/capabilities');
 export const timeEntries = (trash: boolean, cursor?: string) => apiFetch<TimePage>(`/api/v1/time/entries?trash=${trash}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
-export const timeTimer = () => apiFetch<TimeEntry | null>('/api/v1/time/timer');
+export const timeTimer = async () => (await apiFetch<TimeEntry | null>('/api/v1/time/timer')) ?? null;
+export const timeGet = (id: string) => apiFetch<TimeEntry>(`/api/v1/time/entries/${encodeURIComponent(id)}`);
 export const timeReport = () => apiFetch<{ grossDurationMilliseconds: number; entryCount: number; hasOverlaps: boolean }>('/api/v1/time/report');
 export const timeHistory = (id: string, cursor?: string) => apiFetch<{ items: TimeCorrection[]; nextCursor: string | null }>(`/api/v1/time/entries/${encodeURIComponent(id)}/history${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`);
 export const timeSave = (body: TimeCommand, key: string, entry?: TimeEntry) => apiFetch<TimeEntry>(`/api/v1/time/entries${entry ? `/${entry.id}` : ''}`, { method: entry ? 'PUT' : 'POST', headers: jsonMutationHeaders(key, entry ? { 'If-Match': entry.etag } : {}), body: JSON.stringify(body) });

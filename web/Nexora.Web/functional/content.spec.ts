@@ -10,8 +10,22 @@ test('Documents: create/body version, publish, archive/unarchive, table/grid and
   await expect(page.locator('main script')).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).nexoraDocumentCanary)).toBeUndefined();
   const { item } = await record(page, 'listDocuments', [undefined, 100], 'Document', title); await page.locator('#document-body').fill('# Version two'); await page.getByRole('button', { name: 'Save version' }).click(); await expect.poll(() => sql('Document', item.id)[0].VersionNumber).toBe(2);
-  await page.getByRole('button', { name: 'Publish', exact: true }).click(); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published'); await page.getByRole('button', { name: 'Archive', exact: true }).click(); await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận'); await expect(page.locator('#document-body')).toBeDisabled(); expect(sql('Document', item.id)[0].Status).toBe('Archived');
-  await page.getByRole('button', { name: 'Unarchive' }).click(); await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận'); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published'); await page.getByRole('tab', { name: 'Table', exact: true }).click(); await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible(); await page.getByRole('tab', { name: 'Grid', exact: true }).click(); await page.reload(); await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click(); await expect(page.locator('#document-body')).toHaveValue('# Version two');
+  await page.getByRole('button', { name: 'Publish', exact: true }).click(); await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published');
+  await page.getByRole('button', { name: 'Archive', exact: true }).click(); await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận');
+  await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Archived');
+  // Tree commits deliberately clear the editor. Reopen from Archived before
+  // proving FX-20-BR-006/007 readonly content and exact-prior-state Unarchive.
+  await page.getByRole('tab', { name: 'Archived', exact: true }).click();
+  await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click();
+  await expect(page.locator('.document-preview').getByRole('heading', { name: 'Version two', exact: true })).toBeVisible();
+  await expect(page.locator('#document-body')).toHaveCount(0);
+  await expect(page.locator('#document-title')).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Save version', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Unarchive', exact: true }).click(); await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận');
+  await expect.poll(() => sql('Document', item.id)[0].Status).toBe('Published');
+  expect(sql('Document', item.id)[0].VersionNumber).toBe(2);
+  await page.getByRole('tab', { name: 'Library', exact: true }).click();
+  await page.getByRole('tab', { name: 'Table', exact: true }).click(); await expect(page.getByRole('row').filter({ hasText: title })).toBeVisible(); await page.getByRole('tab', { name: 'Grid', exact: true }).click(); await page.reload(); await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click(); await expect(page.locator('#document-body')).toHaveValue('# Version two');
 });
 
 test('Snippets: literal content, edit/version, archive/unarchive and SQL reload', async ({ page }) => {
@@ -32,7 +46,7 @@ test('Snippets: every cursor page is reachable and conflict recovery preserves t
   const rejected=page.waitForResponse(r=>r.url().endsWith(`/api/v1/snippets/${target.id}`)&&r.request().method()==='PUT');await page.getByRole('button',{name:'Lưu version',exact:true}).click();expect((await rejected).status()).toBe(412);
   await expect(page.locator('#snippet-body')).toHaveValue(draft);await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toBeVisible();expect(sql('Snippet',target.id)[0].Body).toBe('Synthetic concurrent source');
   await page.getByRole('button',{name:'Tải revision',exact:true}).click();await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toHaveCount(0);await expect(page.locator('#snippet-body')).toHaveValue(draft);
-  await page.getByRole('button',{name:'Lưu version',exact:true}).click();await expect.poll(()=>sql('Snippet',target.id)[0].VersionNumber).toBe(3);expect(sql('Snippet',target.id)[0].Body).toBe(draft);
+  await page.getByRole('button',{name:'Lưu version',exact:true}).click();await expect.poll(()=>sql('Snippet',target.id)[0].CurrentVersion).toBe(3);expect(sql('Snippet',target.id)[0].Body).toBe(draft);
 });
 
 test('Read Later: add source, invalid/valid position, read/unread and remove preserves source', async ({ page }) => {

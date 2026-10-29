@@ -1,0 +1,110 @@
+[
+  {
+    "file": "before-desktop-DOCX-import-preview.png",
+    "sha256": "6B0C8EAC26966A31B112E47A87899884A03E6B875AC34E001A7E20099A6C47A9"
+  },
+  {
+    "file": "before-desktop-DOCX-imported.png",
+    "sha256": "5EAD9F083EB82AE24EB79224C46CD88EA5EC8CDBBA33C871D36D44074BD13C78"
+  },
+  {
+    "file": "before-desktop-MD-export-preview.png",
+    "sha256": "ECFFFA1A7E8D17D0EC147ECECB58EAA183BA4AE8F5B7C9556EF036F4347844BF"
+  },
+  {
+    "file": "before-mobile-DOCX-import-preview.png",
+    "sha256": "3A3429E0EE14E4D54291BA6337C051A3743D3C8B0DADE30340619D406864EFE0"
+  },
+  {
+    "file": "before-mobile-DOCX-imported.png",
+    "sha256": "38092B716F275EBEA1D452616DD705C4FD10CF957AA98350DF8CA7DA684C9C3E"
+  },
+  {
+    "file": "before-mobile-MD-export-preview.png",
+    "sha256": "8F5F83EA7DAAB290EFA88B7A19A0C7B05641D02073E477A606A47C7BDCB457CF"
+  },
+  {
+    "file": "before-ui-desktop-final-junit.xml",
+    "sha256": "59441AD8DE783E98C7671F49A5FFB60E16EDDC6E1C9E0AFD840BAA44153E6979"
+  },
+  {
+    "file": "before-ui-mobile-final-junit.xml",
+    "sha256": "6C590F7D39D33939FEDEED686D0F2A1EFA80842C9471BD6DEC88E80FCD3B67E7"
+  },
+  {
+    "file": "desktop-408-before-fix-junit.xml",
+    "sha256": "DB0C75E6768D2B3AB12662E9DEC36D32B092C84C2257B8C3B8E644FBBCAC4696"
+  },
+  {
+    "file": "desktop-408-harness-restoration.json",
+    "sha256": "623FD0B09761A2C02D237DE29529370391F664C0467A3A42B476E5AC2EAC3301"
+  },
+  {
+    "file": "desktop-committed-408-frozen.png",
+    "sha256": "DE832549A7325A6750731B846358DB8A75B5255A53D1DAE3CC4E144651272C54"
+  },
+  {
+    "file": "desktop-corrected-junit.xml",
+    "sha256": "F967B9E99FCF23748CD242974547517714746852E4ACA4549D9D156709D08FB9"
+  },
+  {
+    "file": "desktop-DOCX-export-preview.png",
+    "sha256": "37B08C32ED8ADEBC7F6BE12A4E00567F3E03D4E9E76BD66E1B436CB388D029C9"
+  },
+  {
+    "file": "desktop-DOCX-export-proof.json",
+    "sha256": "BB95CDBE069A69240EF2B43D7E321216669B30D3AC308F7391BB46FFC5BC90DE"
+  },
+  {
+    "file": "desktop-DOCX-import-preview.png",
+    "sha256": "A6027E3049E9F92C783A105220E5F336D044F609A593235B0DE5C3596AC48999"
+  },
+  {
+    "file": "desktop-DOCX-imported.png",
+    "sha256": "4FBF623AC99C1C241D56F5AB6E5AD82B0400F4DFA940C5EFCF928659013AF03B"
+  },
+  {
+    "file": "desktop-DOCX-workspace.png",
+    "sha256": "B3744B8C6BBEB37380457A1F24AA005D77F2EB0772BA2C81BE3FC0F8797C9946"
+  },
+  {
+    "file": "desktop-MD-export-proof.json",
+    "sha256": "1FEBBF29468F1E12AD8BFC17F3FB8E00907BBAEC00C86FFD56357810178DD1E7"
+  },
+  {
+    "file": "execution-manifest.json",
+    "sha256": "BCF01FFB1C5AAD9713EE34566E680E84D434AEDA7E876CEDE4662B4AB48AEF92"
+  },
+  {
+    "file": "mobile-committed-408-frozen.png",
+    "sha256": "CF9CD9BAC388082988A2E10C7BA9694ED34A17A95AFB97F989EA79DF58DB1499"
+  },
+  {
+    "file": "mobile-corrected-junit.xml",
+    "sha256": "EEEA13937221363D49E84D852994BFCC044EF6626B56A14A094926D89491CB31"
+  },
+  {
+    "file": "mobile-DOCX-export-preview.png",
+    "sha256": "EFC3A83A7A820010071119403CCF02D67BCDCEDC22C8C0443725CA9FBC1D592D"
+  },
+  {
+    "file": "mobile-DOCX-export-proof.json",
+    "sha256": "0ADF16AE2901826124B0F3DE9A554D8A6BA3B66247F00A9577DDA58CD531F3FD"
+  },
+  {
+    "file": "mobile-DOCX-import-preview.png",
+    "sha256": "6B9D47A2DAAB19720F9EA6CCF5A62C55E09CE49EA3075E346D45B7092ECCA1AC"
+  },
+  {
+    "file": "mobile-DOCX-imported.png",
+    "sha256": "DD4FF1EDC80971CED65F81F7DA288B493A2BDCBEC82BD24410AD7702C7706C1F"
+  },
+  {
+    "file": "mobile-DOCX-workspace.png",
+    "sha256": "43E8E7B2D925CFA222515699EBEF225419A023599C8155E88ABF1417B81A30A0"
+  },
+  {
+    "file": "mobile-MD-export-proof.json",
+    "sha256": "6305D059FCC8F548F0193542D751B0D144F069BACB4FBC62813F29676DD3FA22"
+  }
+]

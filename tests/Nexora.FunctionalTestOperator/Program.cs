@@ -12,6 +12,38 @@ var b=new SqlConnectionStringBuilder(cs);var db=b.InitialCatalog;
 if(!Regex.IsMatch(db,"^Nexora_Test_[0-9a-f]{32}$"))throw new Exception("Isolated database required");
 if(args is ["verify-sharing-backup"]) { await SharingBackupProof.RunAsync(cs); return; }
 
+// One static negative-compatibility fixture, never a general SQL or authority writer.
+// LocalSqlTarget + exact disposable database format are enforced above. This command
+// additionally binds the database ownership marker to this process's current run.
+if(args is ["seed-legacy-saved-query",var legacyUserText]) {
+ var run=Environment.GetEnvironmentVariable("NEXORA_E2E_RUN_ID");
+ if(!string.Equals(run,"nexora-e2e-audit-"+db["Nexora_Test_".Length..],StringComparison.Ordinal)
+    || !Guid.TryParse(legacyUserText,out var legacyUser) || legacyUser==Guid.Empty)
+  throw new ArgumentException("An owned synthetic run and user UUID are required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var transaction=(SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable);
+ await using(var marker=new SqlCommand("SELECT CONVERT(nvarchar(128),[value]) FROM sys.extended_properties WHERE class=0 AND major_id=0 AND minor_id=0 AND name=N'nexora.test.run'",c,transaction)) {
+  if(!string.Equals(await marker.ExecuteScalarAsync() as string,run,StringComparison.Ordinal))
+   throw new InvalidOperationException("The exact owned database run marker is required");
+ }
+ var legacyId=Guid.NewGuid();var legacyTitle="Synthetic legacy schema99 "+legacyId.ToString("N");
+ await using var seed=new SqlCommand("""
+ DECLARE @owner uniqueidentifier;
+ SELECT @owner=s.Id FROM [identity].[User] u WITH(UPDLOCK,HOLDLOCK)
+ JOIN [platform].[PersonalSpace] s WITH(UPDLOCK,HOLDLOCK) ON s.UserId=u.Id
+ WHERE u.Id=@user AND u.NormalizedEmail=@email AND u.State='Active' AND u.IsDeleted=0 AND s.State='Active';
+ IF @owner IS NULL THROW 51000, 'An active run-owned synthetic UserA PersonalSpace is required.', 1;
+ INSERT INTO [discovery].[SavedQuery] ([Id],[OwnerId],[Title],[SchemaVersion],[QueryJson],[CreatedByUserId],[UpdatedByUserId])
+ VALUES(@id,@owner,@title,99,N'{"text":"synthetic legacy","resourceType":"Bookmark","from":null,"to":null,"includeArchived":false,"sort":"relevance"}',@user,@user);
+ """,c,transaction);
+ seed.Parameters.Add("@user",SqlDbType.UniqueIdentifier).Value=legacyUser;
+ seed.Parameters.Add("@email",SqlDbType.NVarChar,320).Value=$"qa-usera-{db[^8..]}@example.invalid";
+ seed.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=legacyId;
+ seed.Parameters.Add("@title",SqlDbType.NVarChar,100).Value=legacyTitle;
+ await seed.ExecuteNonQueryAsync();await transaction.CommitAsync();
+ Console.WriteLine(JsonSerializer.Serialize(new{id=legacyId,title=legacyTitle}));return;
+}
+
 // Explicit synthetic inbox fixture command. This executable has already validated a local,
 // disposable Nexora_Test_<UUID> database; it is not an application/SYSTEM publisher endpoint.
 if(args is ["seed-notification",var recipientText,var fixtureTitle]) {
@@ -96,6 +128,15 @@ if(args is ["read-focus-completion",var focusText]) {
 if(args is ["read-resource",var kind,var idText]) {
  if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
  var tables=new Dictionary<string,string> {
+   ["Template"]="[organization].[Template]",["Certification"]="[learning].[Certification]",["WorkLog"]="[learning].[WorkLog]",
+   ["Collection"]="[organization].[Collection]",["CollectionMember"]="[organization].[CollectionMember]",
+   ["SavedQuery"]="[discovery].[SavedQuery]",["RecentItem"]="[discovery].[RecentItem]",
+   ["Dashboard"]="[discovery].[Dashboard]",["DashboardWidget"]="[discovery].[DashboardWidget]",
+   ["AutomationDefinition"]="[automation].[Definition]",["AutomationSchedule"]="[automation].[Schedule]",
+   ["IntegrationConnection"]="[automation].[Connection]",
+   ["DocumentExportJob"]="[operations].[DocumentExportJob]",["DocumentImportJob"]="[operations].[DocumentImportJob]",
+   ["Seller"]="[shopping].[Seller]",["PurchaseOrder"]="[shopping].[PurchaseOrder]",
+   ["OrderLine"]="[shopping].[OrderLine]",["Warranty"]="[shopping].[Warranty]",
   ["NewsCategory"]="[news].[Category]",
   ["Monitor"]="[monitoring].[Monitor]",
   ["WishlistItem"]="[shopping].[WishlistItem]",
@@ -118,6 +159,14 @@ if(args is ["read-resource",var kind,var idText]) {
   ? "SELECT Id,OwnerId,Name,CreatedAt,UpdatedAt FROM [news].[Category] WHERE Id=@id FOR JSON PATH"
   : kind=="Monitor"
   ? "SELECT Id,OwnerId,Title,Kind,Target,IntervalSeconds,ExpectedStatus,Enabled,State,LastObservedAt,CreatedAt,UpdatedAt FROM [monitoring].[Monitor] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="AutomationSchedule"
+  ? "SELECT s.OwnerId,s.DefinitionId,s.CurrentVersion,s.NextDueAt,v.DefinitionVersion,v.ConfigurationJson FROM [automation].[Schedule] s JOIN [automation].[ScheduleVersion] v ON v.OwnerId=s.OwnerId AND v.DefinitionId=s.DefinitionId AND v.VersionNumber=s.CurrentVersion WHERE s.DefinitionId=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="IntegrationConnection"
+  ? "SELECT Id,OwnerId,ProviderKey,ConnectorVersion,Title,Endpoint,AuthMode,State,AuthorityRevision,LastTestAt,CreatedAt,UpdatedAt FROM [automation].[Connection] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="DocumentExportJob"
+  ? "SELECT Id,OwnerId,PageId,VersionNumber,Format,CodecVersion,SourceDigest,ArtifactDigest,DATALENGTH(Artifact) AS ArtifactLength,WarningsJson,CreatedAt,ExpiresAt FROM [operations].[DocumentExportJob] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="DocumentImportJob"
+  ? "SELECT Id,OwnerId,PageId,FileId,SourceDigest,ParserVersion,EditorMode,WarningsJson,DraftEdited,CreatedAt FROM [operations].[DocumentImportJob] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
   : kind=="ShareLink"
   ? "SELECT Id,OwnerId,ResourceType,ResourceId,Mode,ExpiresAt,RevokedAt,IsDeleted,InvalidatedAt,InvalidationReason,IssuedSharingEpoch FROM [security].[ShareLink] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
   : kind=="ExportJob"

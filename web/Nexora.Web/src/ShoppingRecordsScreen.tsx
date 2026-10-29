@@ -50,6 +50,7 @@ export function ShoppingRecordsScreen({ kind = 'orders', initialRecordId, onAuth
   const [formError, setFormError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false), [abandon, setAbandon] = useState(false);
   const [conflict, setConflict] = useState<ShoppingRecord | null>(null), [conflictLocked, setConflictLocked] = useState(false), [duplicate, setDuplicate] = useState(false);
   const [sourceQuery, setSourceQuery] = useState(''), [sources, setSources] = useState<Array<SellerRecord | ShoppingOrderSummary>>([]), [sourcePage, setSourcePage] = useState(0), [sourceMore, setSourceMore] = useState(false);
+  const [sourceAppliedQuery, setSourceAppliedQuery] = useState('');
   const [sourceError, setSourceError] = useState<string | null>(null), [sourceBusy, setSourceBusy] = useState(false), [sourceOrder, setSourceOrder] = useState<ShoppingOrder | null>(null);
   const sourceSequence = useRef(0);
   const spec = definition[kind], allowed = (action: string) => caps[`shopping.${spec.action}.${action}`] === true;
@@ -85,27 +86,33 @@ export function ShoppingRecordsScreen({ kind = 'orders', initialRecordId, onAuth
     sourceSequence.current++; setSourceBusy(false);
     const next = record ? fromRecord(record) : blank(); setDraft(next); setEditor({ record, baseline: JSON.stringify(next) });
     setFormError(null); setUncertain(false); setAbandon(false); setConflict(null); setConflictLocked(false); setDuplicate(false);
-    setSources([]); setSourcePage(0); setSourceQuery(''); setSourceOrder(null); setSourceError(null); original.current = null;
+    setSources([]); setSourcePage(0); setSourceQuery(''); setSourceAppliedQuery(''); setSourceOrder(null); setSourceError(null); original.current = null;
   }
   async function open(id: string) { if (busy || editor) return; setSelected(id); onSelectRecord?.(id); }
   async function sourceSearch(more = false) {
-    if (sourceBusy || editLocked) return; const type = kind === 'orders' ? 'sellers' : 'orders';
+    if (sourceBusy || editLocked || (more && sourceQuery !== sourceAppliedQuery)) return; const type = kind === 'orders' ? 'sellers' : 'orders';
     if (!caps[`shopping.${type === 'sellers' ? 'seller' : 'order'}.read`]) return;
-    const stamp = ++sourceSequence.current; setSourceBusy(true); setSourceError(null);
+    const stamp = ++sourceSequence.current, submittedQuery = sourceQuery; setSourceBusy(true); setSourceError(null);
     try {
-      const result = await shoppingRecordList<SellerRecord | ShoppingOrderSummary>(type, more ? sourcePage + 1 : 1, sourceQuery);
-      if (mounted.current && stamp === sourceSequence.current) { setSources(old => more ? [...old, ...result.items.filter(r => !old.some(existing => existing.id === r.id))] : result.items); setSourcePage(result.page); setSourceMore(result.hasMore); }
+      const result = await shoppingRecordList<SellerRecord | ShoppingOrderSummary>(type, more ? sourcePage + 1 : 1, submittedQuery);
+      if (mounted.current && stamp === sourceSequence.current) { setSources(old => more ? [...old, ...result.items.filter(r => !old.some(existing => existing.id === r.id))] : result.items); setSourcePage(result.page); setSourceMore(result.hasMore); setSourceAppliedQuery(submittedQuery); }
     } catch (e) { if (mounted.current && stamp === sourceSequence.current) { setSourceError(message(e)); if ([401, 403].includes((e as { status?: number }).status ?? 0)) fail(e); } }
     finally { if (mounted.current && stamp === sourceSequence.current) setSourceBusy(false); }
   }
   async function chooseOrder(id: string) {
-    if (!id || editLocked) { setSourceOrder(null); return; } const stamp = ++sourceSequence.current; setSourceBusy(true); setSourceError(null);
-    try { const order = await shoppingRecordGet<ShoppingOrder>('orders', id); if (mounted.current && stamp === sourceSequence.current) setSourceOrder(order); }
+    if (editLocked || flight.current) return;
+    if (!id) { sourceSequence.current++; setSourceOrder(null); change('orderLineId', ''); return; }
+    setSourceOrder(null); change('orderLineId', '');
+    const stamp = ++sourceSequence.current; setSourceBusy(true); setSourceError(null);
+    try { const order = await shoppingRecordGet<ShoppingOrder>('orders', id); if (mounted.current && stamp === sourceSequence.current) {
+      setSourceOrder(order);
+      setDraft(current => order.lines.some(line => line.id === current.orderLineId) ? current : { ...current, orderLineId: '' });
+    } }
     catch (e) { if (mounted.current && stamp === sourceSequence.current) { setSourceError(message(e)); if ([401, 403].includes((e as { status?: number }).status ?? 0)) fail(e); } }
     finally { if (mounted.current && stamp === sourceSequence.current) setSourceBusy(false); }
   }
   async function persist(e?: FormEvent) {
-    e?.preventDefault(); if (!editor || flight.current || conflictLocked || !allowed(editor.record ? 'update' : 'create')) return;
+    e?.preventDefault(); if (!editor || flight.current || sourceBusy || conflictLocked || !allowed(editor.record ? 'update' : 'create')) return;
     const stamp = sequence.current;
     const intent = original.current ?? { kind, id: editor.record?.id, etag: editor.record?.etag, key: crypto.randomUUID(), body: JSON.stringify(bodyFor(kind, draft)) };
     original.current = intent; flight.current = true; setBusy(true); setFormError(null);
@@ -150,15 +157,15 @@ export function ShoppingRecordsScreen({ kind = 'orders', initialRecordId, onAuth
     <div className="shopping-toolbar"><form onSubmit={e => { e.preventDefault(); if (!blocked) setFilter({ query, page: 1 }); }}><label htmlFor={`${prefix}-query`}>Tìm {spec.singular}</label><div className="shopping-search"><input id={`${prefix}-query`} maxLength={200} value={query} disabled={blocked || !allowed('read')} onChange={e => setQuery(e.target.value)} /><button disabled={blocked || !allowed('read')}>Tìm</button><button type="button" disabled={blocked || !allowed('read')} onClick={() => { setQuery(''); setFilter({ query: '', page: 1 }); }}>Xóa bộ lọc</button></div></form>
       {allowed('create') && <button className="primary-button" disabled={blocked} onClick={() => begin()}>Thêm {spec.singular}</button>}</div>
     {allowed('read') && !loading && !error && page?.items.length === 0 && <div className="shopping-empty"><h2>{filter.query ? 'Không tìm thấy kết quả' : 'Bắt đầu từ một bản ghi nhỏ'}</h2><p>{filter.query ? 'Thử từ khóa khác hoặc xóa bộ lọc.' : `Thêm ${spec.singular} đầu tiên để giữ thông tin gọn gàng và dễ tìm.`}</p></div>}
-    {page && <div className="shopping-record-grid">{page.items.map(row => <article className="resource-card" key={row.id}><h2>{titleOf(row)}</h2>
+    {page && <div className="shopping-record-grid">{page.items.map(row => <article className="resource-card" key={row.id}><div><h2>{titleOf(row)}</h2>
       {'totalAmount' in row && <><p className="shopping-amount">{row.totalAmount} {row.currency}</p><p>{row.purchasedOn} · {row.status === 'Draft' ? 'Bản nháp' : row.status}</p>{row.sellerTitle && <p>{row.sellerTitle}</p>}</>}
       {'coverageKind' in row && <p>{row.coverageKind === 'Fixed' ? `Bảo hành đến ${row.endsOn}` : row.coverageKind === 'Lifetime' ? 'Trọn đời' : 'Chưa rõ thời hạn'}</p>}
       {'url' in row && row.url && <p className="shopping-url">{row.url}</p>}{'linkedOrderCount' in row && row.linkedOrderCount !== null && <p>{row.linkedOrderCount} đơn đã liên kết</p>}
-      <button className="secondary-button" disabled={blocked} onClick={() => void open(row.id)}>Xem chi tiết</button></article>)}</div>}
+      <button className="secondary-button" disabled={blocked} onClick={() => void open(row.id)}>Xem chi tiết</button></div></article>)}</div>}
     {page && <div className="shopping-pagination"><button disabled={blocked || page.page <= 1} onClick={() => setFilter(f => ({ ...f, page: f.page - 1 }))}>Trang trước</button><span>Trang {page.page}</span><button disabled={blocked || !page.hasMore} onClick={() => setFilter(f => ({ ...f, page: f.page + 1 }))}>Trang sau</button></div>}
-    {detail && <article className="resource-card shopping-detail"><div className="content-heading"><h2>{titleOf(detail)}</h2><button disabled={blocked} onClick={() => { setSelected(undefined); onSelectRecord?.(); }}>Đóng chi tiết</button></div><RecordDetails record={detail} />
+    {detail && <article className="resource-card shopping-detail"><div><div className="content-heading"><h2>{titleOf(detail)}</h2><button disabled={blocked} onClick={() => { setSelected(undefined); onSelectRecord?.(); }}>Đóng chi tiết</button></div><RecordDetails record={detail} />
       {allowed('update') && (!('status' in detail) || detail.status === 'Draft') && <button className="primary-button" disabled={blocked} onClick={() => begin(detail)}>Chỉnh sửa</button>}
-      {'status' in detail && <p className="shopping-help">Bản ghi thủ công. Trạng thái giao nhận, hoàn hàng và các tích hợp khác chưa được kích hoạt trong phần này.</p>}</article>}
+      {'status' in detail && <p className="shopping-help">Bản ghi thủ công. Trạng thái giao nhận, hoàn hàng và các tích hợp khác chưa được kích hoạt trong phần này.</p>}</div></article>}
     <ResourceFormDialog open={editor !== null} title={`${editor?.record ? 'Chỉnh sửa' : 'Thêm'} ${spec.singular}`} busy={busy} dirty={dirty && !uncertain} closeBlocked={uncertain}
       onClose={() => { setEditor(null); original.current = null; sourceSequence.current++; setSourceBusy(false); }}>
       <form className="resource-form shopping-editor" onSubmit={e => void persist(e)}>
@@ -168,7 +175,7 @@ export function ShoppingRecordsScreen({ kind = 'orders', initialRecordId, onAuth
         {kind === 'sellers' && <>{field('Tên người bán', 'title', 200, true)}{field('Website công khai', 'url', 2048, false, 'url')}<p className="shopping-help">Website chỉ được lưu dưới dạng văn bản; không tự mở hoặc lấy dữ liệu từ bên ngoài.</p></>}
         {kind === 'orders' && <>
           <div className="shopping-form-grid">{field('Mã đơn (tùy chọn)', 'orderNumber')}{field('Ngày mua', 'purchasedOn', 10, true, 'date')}{field('Tiền tệ (ví dụ VND, USD)', 'currency', 3, true)}</div>
-          <SourceSearch kind="sellers" query={sourceQuery} onQuery={setSourceQuery} onSearch={() => void sourceSearch()} onMore={() => void sourceSearch(true)} more={sourceMore} busy={sourceBusy} disabled={editLocked || !caps['shopping.seller.read']} error={sourceError} />
+          <SourceSearch kind="sellers" query={sourceQuery} onQuery={setSourceQuery} onSearch={() => void sourceSearch()} onMore={() => void sourceSearch(true)} more={sourceMore && sourceQuery === sourceAppliedQuery} busy={sourceBusy} disabled={editLocked || !caps['shopping.seller.read']} error={sourceError} />
           <label>Người bán<select value={draft.sellerId} disabled={editLocked || !caps['shopping.seller.read']} onChange={e => change('sellerId', e.target.value)}><option value="">Không liên kết người bán</option>{draft.sellerId && !sources.some(s => s.id === draft.sellerId) && <option value={draft.sellerId}>Người bán đang liên kết</option>}{sources.map(s => <option key={s.id} value={s.id}>{titleOf(s)}</option>)}</select></label>
           {draft.sellerId && <button type="button" disabled={editLocked} onClick={() => change('sellerId', '')}>Gỡ liên kết người bán</button>}
           <fieldset disabled={editLocked}><legend>Sản phẩm trong đơn</legend>{draft.lines.map((line, index) => <div className="shopping-order-line" key={line.id ?? `new-${index}`}><h3>Sản phẩm {index + 1}</h3>{(['title', 'quantity', 'unitAmount', 'variant'] as const).map((name, i) => <label key={name}>{['Tên sản phẩm', 'Số lượng', 'Đơn giá', 'Phân loại (tùy chọn)'][i]}<input required={name !== 'variant'} inputMode={name === 'quantity' || name === 'unitAmount' ? 'decimal' : 'text'} maxLength={name === 'variant' ? 300 : name === 'title' ? 200 : 29} value={line[name]} onChange={e => change('lines', draft.lines.map((old, at) => at === index ? { ...old, [name]: e.target.value } : old))} /></label>)}<button type="button" disabled={draft.lines.length <= 1} onClick={() => change('lines', draft.lines.filter((_, at) => at !== index))}>Bỏ sản phẩm {index + 1}</button></div>)}<button type="button" disabled={draft.lines.length >= 100} onClick={() => change('lines', [...draft.lines, { id: null, title: '', quantity: '1', unitAmount: '', variant: '' }])}>Thêm sản phẩm</button></fieldset>
@@ -178,7 +185,7 @@ export function ShoppingRecordsScreen({ kind = 'orders', initialRecordId, onAuth
         </>}
         {kind === 'warranties' && <>
           {field('Tên bảo hành', 'title', 200, true)}
-          <SourceSearch kind="orders" query={sourceQuery} onQuery={setSourceQuery} onSearch={() => void sourceSearch()} onMore={() => void sourceSearch(true)} more={sourceMore} busy={sourceBusy} disabled={editLocked || !caps['shopping.order.read']} error={sourceError} />
+          <SourceSearch kind="orders" query={sourceQuery} onQuery={setSourceQuery} onSearch={() => void sourceSearch()} onMore={() => void sourceSearch(true)} more={sourceMore && sourceQuery === sourceAppliedQuery} busy={sourceBusy} disabled={editLocked || !caps['shopping.order.read']} error={sourceError} />
           <label>Chọn đơn mua sắm<select disabled={editLocked || sourceBusy} value={sourceOrder?.id ?? ''} onChange={e => void chooseOrder(e.target.value)}><option value="">Chọn đơn để xem sản phẩm</option>{sources.map(s => <option key={s.id} value={s.id}>{titleOf(s)}</option>)}</select></label>
           <label>Sản phẩm được bảo hành<select required disabled={editLocked} value={draft.orderLineId} onChange={e => change('orderLineId', e.target.value)}><option value="">Chọn sản phẩm</option>{draft.orderLineId && !sourceOrder?.lines.some(l => l.id === draft.orderLineId) && <option value={draft.orderLineId}>Sản phẩm đang liên kết</option>}{sourceOrder?.lines.map(l => <option key={l.id} value={l.id}>{l.title}{l.variant ? ` · ${l.variant}` : ''}</option>)}</select></label>
           <label>Thời hạn<select value={draft.coverageKind} disabled={editLocked} onChange={e => change('coverageKind', e.target.value)}><option value="Unknown">Chưa rõ</option><option value="Fixed">Có thời hạn</option><option value="Lifetime">Trọn đời</option></select></label>

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShoppingRecordsScreen } from './ShoppingRecordsScreen';
@@ -60,5 +60,64 @@ describe('Shopping manual records', () => {
     const user = userEvent.setup(); const select = vi.fn(); render(<ShoppingRecordsScreen kind="sellers" initialRecordId={id} onAuthLost={vi.fn()} onSelectRecord={select} />);
     await user.click(await screen.findByText('Về danh sách')); expect(select).toHaveBeenCalledWith();
     await screen.findByText(seller.title);
+  });
+  it('requires a product from the newly chosen order instead of silently keeping the previous order line', async () => {
+    const orderId = '23ef11a6-a65d-4d78-a15d-5df95ba7ba27', oldLineId = '23ef11a6-a65d-4d78-a15d-5df95ba7ba28', newLineId = '23ef11a6-a65d-4d78-a15d-5df95ba7ba29';
+    const warranty: api.WarrantyRecord = { id, orderLineId: oldLineId, title: 'Existing coverage', coverageKind: 'Unknown', startsOn: null, endsOn: null, provider: null, terms: null, claimContact: null, etag: seller.etag };
+    const order: api.ShoppingOrder = { id: orderId, sellerId: null, sellerTitle: null, orderNumber: 'NEW-ORDER', purchasedOn: '2026-10-25', currency: 'VND', shippingAmount: '0', taxAmount: '0', discountAmount: '0', totalAmount: '100', notes: null, status: 'Draft', etag: seller.etag,
+      lines: [{ id: newLineId, title: 'New order product', quantity: '1', unitAmount: '100', variant: null }] };
+    let release!: (row: api.ShoppingOrder) => void;
+    const pendingOrder = new Promise<api.ShoppingOrder>(resolve => { release = resolve; });
+    vi.mocked(api.shoppingRecordGet).mockImplementation(async kind => kind === 'orders' ? pendingOrder : warranty);
+    vi.mocked(api.shoppingRecordList).mockImplementation(async kind => ({ items: kind === 'orders' ? [order] : [warranty], page: 1, hasMore: false }));
+    const user = userEvent.setup(); render(<ShoppingRecordsScreen kind="warranties" initialRecordId={id} onAuthLost={vi.fn()} />);
+    await user.click(await screen.findByText('Chỉnh sửa')); expect(screen.getByLabelText('Sản phẩm được bảo hành')).toHaveValue(oldLineId);
+    await user.click(screen.getByRole('button', { name: 'Tìm để chọn' }));
+    await user.selectOptions(screen.getByLabelText('Chọn đơn mua sắm'), orderId);
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!);
+    expect(api.sendShoppingIntent).not.toHaveBeenCalled();
+    release(order);
+    await screen.findByRole('option', { name: 'New order product' });
+    expect(screen.getByLabelText('Sản phẩm được bảo hành')).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: /^Lưu$/ })); expect(api.sendShoppingIntent).not.toHaveBeenCalled();
+    await user.selectOptions(screen.getByLabelText('Sản phẩm được bảo hành'), newLineId);
+    await user.click(screen.getByRole('button', { name: /^Lưu$/ }));
+    await waitFor(() => expect(api.sendShoppingIntent).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(vi.mocked(api.sendShoppingIntent).mock.calls[0][0].body).orderLineId).toBe(newLineId);
+  });
+  it('does not append a later page for an edited source query before searching that query from page one', async () => {
+    vi.mocked(api.shoppingRecordList).mockImplementation(async kind => ({ items: kind === 'sellers' ? [seller] : [], page: 1, hasMore: kind === 'sellers' }));
+    const user = userEvent.setup(); render(<ShoppingRecordsScreen kind="orders" onAuthLost={vi.fn()} />);
+    await user.click(await screen.findByText('Thêm đơn mua sắm'));
+    await user.type(screen.getByLabelText('Tìm tên người bán'), 'Old query'); await user.click(screen.getByRole('button', { name: 'Tìm để chọn' }));
+    await screen.findByRole('button', { name: 'Xem thêm kết quả' });
+    await user.clear(screen.getByLabelText('Tìm tên người bán')); await user.type(screen.getByLabelText('Tìm tên người bán'), 'New query');
+    expect(screen.queryByRole('button', { name: 'Xem thêm kết quả' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Tìm để chọn' }));
+    await waitFor(() => expect(api.shoppingRecordList).toHaveBeenCalledWith('sellers', 1, 'New query'));
+    expect(vi.mocked(api.shoppingRecordList).mock.calls.some(call => call[1] === 2 && call[2] === 'New query')).toBe(false);
+  });
+  it('cannot silently save the old order line after a failed order switch and recovers after explicitly choosing again', async () => {
+    const orderId = '23ef11a6-a65d-4d78-a15d-5df95ba7ba27', oldLineId = '23ef11a6-a65d-4d78-a15d-5df95ba7ba28', newLineId = '23ef11a6-a65d-4d78-a15d-5df95ba7ba29';
+    const warranty: api.WarrantyRecord = { id, orderLineId: oldLineId, title: 'Retained warranty draft', coverageKind: 'Unknown', startsOn: null, endsOn: null, provider: null, terms: 'Preserve my terms', claimContact: null, etag: seller.etag };
+    const order: api.ShoppingOrder = { id: orderId, sellerId: null, sellerTitle: null, orderNumber: 'RECOVERED-ORDER', purchasedOn: '2026-10-25', currency: 'VND', shippingAmount: '0', taxAmount: '0', discountAmount: '0', totalAmount: '100', notes: null, status: 'Draft', etag: seller.etag,
+      lines: [{ id: newLineId, title: 'Recovered order product', quantity: '1', unitAmount: '100', variant: null }] };
+    let failed = false;
+    vi.mocked(api.shoppingRecordGet).mockImplementation(async kind => {
+      if (kind !== 'orders') return warranty;
+      if (!failed) { failed = true; throw Object.assign(new Error('Order unavailable temporarily'), { status: 503 }); }
+      return order;
+    });
+    vi.mocked(api.shoppingRecordList).mockImplementation(async kind => ({ items: kind === 'orders' ? [order] : [warranty], page: 1, hasMore: false }));
+    const user = userEvent.setup(); render(<ShoppingRecordsScreen kind="warranties" initialRecordId={id} onAuthLost={vi.fn()} />);
+    await user.click(await screen.findByText('Chỉnh sửa')); await user.click(screen.getByRole('button', { name: 'Tìm để chọn' }));
+    await user.selectOptions(screen.getByLabelText('Chọn đơn mua sắm'), orderId); await screen.findByText('Order unavailable temporarily');
+    expect(screen.getByLabelText('Sản phẩm được bảo hành')).toHaveValue('');
+    expect(screen.getByLabelText('Tên bảo hành')).toHaveValue('Retained warranty draft'); expect(screen.getByLabelText('Điều khoản')).toHaveValue('Preserve my terms');
+    await user.click(screen.getByRole('button', { name: /^Lưu$/ })); expect(api.sendShoppingIntent).not.toHaveBeenCalled();
+    await user.selectOptions(screen.getByLabelText('Chọn đơn mua sắm'), orderId); await screen.findByRole('option', { name: 'Recovered order product' });
+    await user.selectOptions(screen.getByLabelText('Sản phẩm được bảo hành'), newLineId); await user.click(screen.getByRole('button', { name: /^Lưu$/ }));
+    await waitFor(() => expect(api.sendShoppingIntent).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(vi.mocked(api.sendShoppingIntent).mock.calls[0][0].body).orderLineId).toBe(newLineId);
   });
 });

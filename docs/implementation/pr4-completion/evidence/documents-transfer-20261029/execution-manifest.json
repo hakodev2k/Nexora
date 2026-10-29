@@ -1,0 +1,58 @@
+{
+  "baseCommit": "a0215f7b3e85d33503cff9077b41cc065240cb81",
+  "revision": "base commit plus integrated working tree; reconcile exact source hashes to delivered commit",
+  "environment": {
+    "run": "nexora-e2e-audit-cf6948078be746e7a431fb2fecba5f47",
+    "database": "Nexora_Test_cf6948078be746e7a431fb2fecba5f47",
+    "sqlServer": "localhost\\SQLEXPRESS",
+    "frontend": "http://localhost:5173",
+    "viewports": [
+      "desktop 1366x768",
+      "mobile 390x844"
+    ],
+    "syntheticOnly": true,
+    "realProviders": false
+  },
+  "uniqueScenarios": 3,
+  "viewportExecutions": 6,
+  "desktop": "3 PASS / 0 FAIL / 0 skipped;25.5s",
+  "mobile": "3 PASS / 0 FAIL / 0 skipped;21.9s",
+  "sourceFiles": [
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "B43C5F1AD69594D24323F2CA074D2143CF6F72AA7292C8DE90369C8A67E58215"
+    },
+    {
+      "path": "web/Nexora.Web/src/styles.css",
+      "sha256": "3424912ED9509B22EC24717459F446EA4895E21E533063C8C4E3F52545D4A1DB"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentExportDialog.tsx",
+      "sha256": "1D33AC32D592AB8A613E270A1A7A4C0AEFA11E7B35FDE81667D3AC662EECE3F0"
+    },
+    {
+      "path": "web/Nexora.Web/src/DocumentImportPanel.tsx",
+      "sha256": "274AA5C5BE11A9E3BED302B456121B09F59EA20483553F19F2080B4F1B30E4D6"
+    },
+    {
+      "path": "web/Nexora.Web/src/ResourceFormDialog.tsx",
+      "sha256": "006A6220944A2D0C0C3E000C0195E29943BCF29880D2EEE91DBCCE5CA5ECF58A"
+    },
+    {
+      "path": "web/Nexora.Web/functional/document-transfer.spec.ts",
+      "sha256": "E0267D13BE6B042DBE579C4385E056B7F08C199BCA4E89E7645001A1BBE67DDB"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Documents/DocumentImportCodec.cs",
+      "sha256": "EC564413A91F5C54DFD85BFE712F766A9A752DE32376442AC99A1E21DDC2C394"
+    }
+  ],
+  "limitations": [
+    "Not total FX20 acceptance",
+    "Historical failed cleanup not retroactively verified",
+    "Read by original job UUID and same receipt identity does not prove total orphan job count",
+    "Files three-principal ACL proof remains separate",
+    "Human UI acceptance pending",
+    "Current delivered-head CI and source reconciliation pending"
+  ]
+}

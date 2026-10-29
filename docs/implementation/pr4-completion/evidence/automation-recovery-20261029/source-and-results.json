@@ -1,0 +1,57 @@
+{
+  "files": [
+    {
+      "sha256": "D4B352CB99D526BC3B0C217EC941200EC0E879D0FF562A5EA2329FAED3B63C7E",
+      "path": "web/Nexora.Web/src/AutomationRecovery.test.tsx"
+    },
+    {
+      "sha256": "B6BE3B2AFBACF3764CFAC49408386459295E3904F3205E90DA9EE5ED2B7BD208",
+      "path": "web/Nexora.Web/src/AutomationScreen.tsx"
+    },
+    {
+      "sha256": "334D78E8802088113C7EB2E937D30843953B109BAA369918E0B1B5AF3F675A0E",
+      "path": "web/Nexora.Web/src/AutomationExecutionDialog.tsx"
+    },
+    {
+      "sha256": "E84B4C9B4F14C7F24EBE372875FC57CBDCDE2C89E669EF508064FF90D34BF6AD",
+      "path": "web/Nexora.Web/src/AutomationLifecycleDialog.tsx"
+    },
+    {
+      "sha256": "36F3C3347B91D6B1575BE24FB2472F0303901CC0CBA64821E284AF9BA2525AD5",
+      "path": "web/Nexora.Web/src/AutomationScheduleDialog.tsx"
+    },
+    {
+      "sha256": "2E615C57E845C86377C6F41FF45DF576F428346337D1D78D0E1CA5D778E35C05",
+      "path": "scripts/dev/start-isolated-browser.ps1"
+    },
+    {
+      "sha256": "54341CC3544ADDC446803EADBABE7691579F44016250729DF33E75865D5E1771",
+      "path": "web/Nexora.Web/functional/local-configuration.spec.ts"
+    },
+    {
+      "sha256": "1865FF037E5EC2A635364953D00D42C30365F637F83E77764787673AC0A2EBF4",
+      "path": "web/Nexora.Web/functional/local-configuration-helpers.ts"
+    },
+    {
+      "sha256": "72A26F9DFE5DA85A9381A84942287C895E493FFC9CF36B861D92E5BE304C0910",
+      "path": "web/Nexora.Web/automation-functional/local-execution.spec.ts"
+    },
+    {
+      "sha256": "02932A01BA85CA185BE88C030894B42CA0106A6905D8E37178588493C8DA1BFC",
+      "path": "web/Nexora.Web/automation-functional.config.ts"
+    }
+  ],
+  "baseRevision": "a0215f7b3e85d33503cff9077b41cc065240cb81",
+  "environment": "Windows / Node24.17 / Vitest5.0.5 / jsdom30.0.1",
+  "initial": {
+    "failed": 4,
+    "tests": 4
+  },
+  "sourceState": "coordinated-worktree",
+  "correctedRegression": {
+    "failed": 0,
+    "passed": 13,
+    "durationSeconds": 3.96,
+    "tests": 13
+  }
+}

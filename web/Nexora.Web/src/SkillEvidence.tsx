@@ -53,7 +53,7 @@ export function SkillEvidencePanel({ skill, canWrite, onClose, onFailure }: {
     } catch (value) {
       if (!mounted.current || pending.current !== intent) return;
       const status = (value as { status?: number }).status, code = (value as { code?: string }).code;
-      const unknown = !status || status >= 500 || ['RequestInProgress', 'ReceiptUnavailable'].includes(code ?? '');
+      const unknown = !status || status === 408 || status >= 500 || ['RequestInProgress', 'ReceiptUnavailable'].includes(code ?? '');
       setUncertain(unknown); if (!unknown) pending.current = null; failure(value);
     } finally { flight.current = false; if (mounted.current) setBusy(false); }
   }

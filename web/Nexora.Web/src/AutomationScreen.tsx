@@ -108,7 +108,7 @@ export function AutomationScreen({ onAuthLost }: { onAuthLost: () => void }) {
       else if (status(e) === 412) {
         try { const latest = await automationGet(editor.id!); if (stamp === generation.current) { pending.current = null; setUncertain(false); setConflict(latest); setFormError('Revision đã thay đổi. So sánh trước khi gửi một command mới.'); } }
         catch (readError) { if (stamp === generation.current && !denied(readError)) { setUncertain(true); setFormError('Chưa tải được revision hiện tại. Retry cùng command.'); } }
-      } else if (knownAck.current || status(e) === undefined || status(e) === 0 || (status(e) ?? 0) >= 500 || code(e) === 'RequestInProgress' || code(e) === 'ConcurrencyConflict') { setUncertain(true); setFormError('Chưa đối chiếu được kết quả. Retry giữ nguyên body, ETag và key.'); }
+      } else if (knownAck.current || status(e) === undefined || status(e) === 0 || status(e) === 408 || (status(e) ?? 0) >= 500 || code(e) === 'RequestInProgress' || code(e) === 'ConcurrencyConflict') { setUncertain(true); setFormError('Chưa đối chiếu được kết quả. Retry giữ nguyên body, ETag và key.'); }
       else { pending.current = null; setUncertain(false); setFormError(message(e)); }
     } finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }

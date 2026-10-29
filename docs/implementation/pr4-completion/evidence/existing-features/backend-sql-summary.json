@@ -1,0 +1,20 @@
+[
+  {
+    "suite": "backend-unit",
+    "total": 193,
+    "passed": 193,
+    "failed": 0,
+    "notExecuted": 0,
+    "rawEvidence": "artifacts/test-results/existing-features-20261025/existing-features-unit.trx",
+    "sha256": "42E006428487ED7A2107A639AB97AA9221EA6D30EA2268908648748A7A640B37"
+  },
+  {
+    "suite": "sql-integration",
+    "total": 304,
+    "passed": 304,
+    "failed": 0,
+    "notExecuted": 0,
+    "rawEvidence": "artifacts/test-results/existing-features-20261025/existing-features-sql.trx",
+    "sha256": "604EC2E9D85F54EA6872E5ACEC591A89383FC01A9B7F674BA2AD4BB66371D37E"
+  }
+]

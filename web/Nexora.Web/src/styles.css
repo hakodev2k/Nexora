@@ -1,6 +1,6 @@
 :root {
-  color: #182338;
-  background: #f4f7fb;
+  color: var(--nx-text);
+  background: var(--nx-canvas);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   line-height: 1.5;
@@ -351,13 +351,36 @@ fieldset.field-group {
 
 /* Calm shared surfaces, comfortable targets and restrained feedback. */
 :root {
-  --nx-canvas: #f5f7fb;
+  --nx-canvas: #f7f8fc;
   --nx-surface: #ffffff;
   --nx-text: #24334a;
-  --nx-border: #e0e6f0;
+  --nx-border: #dce3ed;
   --nx-accent: #315fca;
   --nx-selected: #ecf2ff;
-  --nx-shadow: 0 4px 18px rgb(30 52 86 / 4%);
+  --nx-shadow: 0 2px 8px rgb(30 52 86 / 3%);
+  --nx-muted: #52617a;
+  --nx-border-control: #8190a5;
+  --nx-heading: #17243b;
+  --nx-accent-solid: #315fca;
+  --nx-accent-hover: #244ca8;
+  --nx-on-accent: #ffffff;
+  --nx-danger: #a62f43;
+  --nx-danger-surface: #fff0f1;
+  --nx-focus: #315fca;
+  --nx-surface-subtle: #f3f6fb;
+  --nx-space-1: .25rem;
+  --nx-space-2: .5rem;
+  --nx-space-3: .75rem;
+  --nx-space-4: 1rem;
+  --nx-space-6: 1.5rem;
+  --nx-space-8: 2rem;
+  --nx-radius-control: .5rem;
+  --nx-radius-card: .75rem;
+  --nx-radius-dialog: 1rem;
+  --nx-control-height: 2.75rem;
+  --nx-font-small: .875rem;
+  --nx-font-body: 1rem;
+  --nx-font-heading: 1.25rem;
 }
 :root[data-theme="dark"] {
   --nx-canvas: #111827;
@@ -367,6 +390,16 @@ fieldset.field-group {
   --nx-accent: #a9c4ff;
   --nx-selected: #263b5e;
   --nx-shadow: none;
+  --nx-muted: #b5c3d8;
+  --nx-border-control: #6b809f;
+  --nx-heading: #f0f4fc;
+  --nx-accent-solid: #436fce;
+  --nx-accent-hover: #527fdf;
+  --nx-on-accent: #ffffff;
+  --nx-danger: #ffb5c0;
+  --nx-danger-surface: #442632;
+  --nx-focus: #a9c4ff;
+  --nx-surface-subtle: #202e44;
 }
 .app-shell { background: var(--nx-canvas); }
 .app-shell .sidebar { background: var(--nx-surface); border-color: var(--nx-border); scrollbar-gutter: stable; }
@@ -565,7 +598,7 @@ a.danger-button {
 
 .shared-resource-page {
   align-items: stretch;
-  background: #f4f7fb;
+  background: var(--nx-canvas);
   justify-content: flex-start;
   min-height: 100vh;
   padding: clamp(1.25rem, 5vw, 4rem);
@@ -637,7 +670,7 @@ a.danger-button {
 }
 
 .app-shell {
-  background: #f4f7fb;
+  background: var(--nx-canvas);
   display: flex;
   min-height: 100vh;
 }
@@ -1491,7 +1524,7 @@ progress::-moz-progress-bar {
 
 .resource-body-preview,
 .conflict-preview {
-  background: #f4f7fb;
+  background: var(--nx-canvas);
   border: 1px solid #dbe4f0;
   border-radius: 0.65rem;
   color: #263751;
@@ -2062,7 +2095,7 @@ progress::-moz-progress-bar {
 .resource-form-dialog :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea),
 .certification-filters :is(input, select), .shopping-search input {
   box-sizing: border-box; width: 100%; min-width: 0; min-height: 44px;
-  padding: .65rem .8rem; border: 1px solid var(--nx-border); border-radius: 8px;
+  padding: .65rem .8rem; border: 1px solid var(--nx-border-control); border-radius: var(--nx-radius-control);
   color: var(--nx-text); background: var(--nx-surface); font: inherit;
 }
 .resource-form-dialog textarea { resize: vertical; min-height: 6rem; }
@@ -2158,3 +2191,146 @@ progress::-moz-progress-bar {
 [aria-label="Bố cục Dashboard"] .resource-card > label { display: grid; gap: .25rem; min-width: 0; }
 [aria-label="Bố cục Dashboard"] .resource-card select { width: 100%; min-width: 0; }
 [aria-label="Bố cục Dashboard"] .resource-card .resource-actions { flex-wrap: wrap; }
+
+/* Shared UI foundation. Legacy class names are compatibility adapters so existing
+   screens and portaled forms use the same tokens during incremental adoption. */
+body { color: var(--nx-text); background: var(--nx-canvas); }
+:is(h1, h2, h3) { color: var(--nx-heading); }
+:is(.muted, .field-help, .hint, .optional, .lead) { color: var(--nx-muted); }
+:is(.content-heading, .section-heading) { gap: var(--nx-space-4); }
+.content-heading h1 { margin-bottom: var(--nx-space-2); }
+.content-heading :is(p, .lead) { max-width: 68ch; line-height: 1.65; }
+.content-heading > :is(button, .nx-button) { flex-shrink: 0; }
+.shell-main { max-width: 1200px; }
+.app-shell .sidebar { padding-inline: var(--nx-space-3); }
+.app-shell .nav-item { gap: var(--nx-space-3); font-size: .9rem; }
+.app-shell .nav-item.active { font-weight: 650; }
+.nav-section-label { letter-spacing: .08em; font-size: .6875rem; }
+
+.nx-toolbar, .toolbar, .form-actions, .dialog-actions {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--nx-space-3);
+}
+.nx-toolbar > * { min-width: 0; }
+.nx-toolbar > :is(.nx-field, .field-group) { flex: 1 1 12rem; }
+.nx-card, .app-shell :is(.info-card, .module-card, .form-panel, .resource-card, .settings-panel) {
+  background: var(--nx-surface); border: 1px solid var(--nx-border);
+  border-radius: var(--nx-radius-card); box-shadow: var(--nx-shadow);
+}
+.nx-card { padding: var(--nx-space-6); min-width: 0; }
+.resource-card { gap: var(--nx-space-4); padding: 1.25rem; }
+.resource-card > div:first-child { min-width: 0; }
+.resource-card h3 { line-height: 1.45; overflow-wrap: anywhere; }
+/* Direct text/definition/list content is a stacked card, not several competing
+   flex columns. Cards composed as body + action group retain their row layout. */
+.resource-card:has(> :is(h2, h3, h4, p, dl, ul, ol, pre)) { flex-direction: column; align-items: stretch; }
+.resource-card:has(> :is(h2, h3, h4, p, dl, ul, ol, pre)) > * { min-width: 0; }
+.resource-card p { color: var(--nx-muted); }
+.resource-actions { align-items: center; gap: var(--nx-space-2); }
+.app-shell :is(.form-panel, .settings-panel) { padding: clamp(1rem, 2vw, 1.5rem); }
+
+.nx-button, .primary-button, .secondary-button, .danger-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--nx-space-2);
+  min-height: var(--nx-control-height); min-width: var(--nx-control-height);
+  max-width: 100%; padding: .625rem 1rem; border: 1px solid transparent;
+  border-radius: var(--nx-radius-control); font-size: var(--nx-font-small);
+  font-weight: 650; line-height: 1.4; text-align: center; text-decoration: none;
+  overflow-wrap: anywhere; transition: background-color 140ms ease, border-color 140ms ease;
+}
+.nx-button--primary, .primary-button {
+  background: var(--nx-accent-solid); color: var(--nx-on-accent);
+}
+.nx-button--primary:hover:not(:disabled), .primary-button:hover:not(:disabled) { background: var(--nx-accent-hover); }
+.nx-button--secondary, .secondary-button {
+  background: var(--nx-surface); color: var(--nx-accent); border-color: var(--nx-border-control);
+}
+.nx-button--secondary:hover:not(:disabled), .secondary-button:hover:not(:disabled) {
+  background: var(--nx-selected); border-color: var(--nx-accent);
+}
+.nx-button--danger, .danger-button {
+  color: var(--nx-danger); background: var(--nx-danger-surface); border-color: var(--nx-danger);
+}
+.nx-button--danger:hover:not(:disabled), .danger-button:hover:not(:disabled) { filter: brightness(.97); }
+.nx-button--quiet { color: var(--nx-accent); background: transparent; }
+.nx-button--quiet:hover:not(:disabled) { background: var(--nx-selected); }
+.shell-main button:not([class]), .resource-form-dialog button:not([class]) {
+  min-height: var(--nx-control-height); min-width: var(--nx-control-height);
+  padding: .625rem 1rem; border: 1px solid var(--nx-border-control); border-radius: var(--nx-radius-control);
+  background: var(--nx-surface); color: var(--nx-accent); font-size: var(--nx-font-small); font-weight: 600; line-height: 1.4;
+}
+.shell-main nav[aria-label]:has(> button:not([class])) { display: flex; flex-wrap: wrap; gap: var(--nx-space-2); margin-bottom: var(--nx-space-4); }
+:is(.link-button, .inline-button, .icon-button, .tab-button) { min-height: var(--nx-control-height); }
+.nx-button:disabled { cursor: not-allowed; opacity: .58; }
+
+.nx-field { display: grid; gap: var(--nx-space-2); min-width: 0; }
+.nx-field__label, .field-group label { color: var(--nx-text); font-size: var(--nx-font-small); font-weight: 600; line-height: 1.5; }
+.nx-field__optional { color: var(--nx-muted); font-weight: 400; }
+.nx-field__hint, .nx-field__error { margin: 0; font-size: .8125rem; line-height: 1.55; }
+.nx-field__hint { color: var(--nx-muted); }
+.nx-field__error { color: var(--nx-danger); }
+:is(.nx-field, .field-group, .form-panel, .resource-form, .dialog-panel) :is(input, select, textarea):not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"]) {
+  box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: var(--nx-control-height);
+  border: 1px solid var(--nx-border-control); border-radius: var(--nx-radius-control);
+  padding: .625rem .75rem; background: var(--nx-surface); color: var(--nx-text);
+  font: inherit; font-size: max(1rem, 16px); font-weight: 400; line-height: 1.5;
+}
+:is(.nx-field, .field-group, .form-panel, .dialog-panel) textarea { min-height: 7rem; resize: vertical; }
+.resource-form { display: grid; gap: var(--nx-space-4); }
+.resource-form:not(.form-panel) { position: static; }
+.resource-form > div:has(> label + :is(input, select, textarea)) { display: grid; gap: var(--nx-space-2); }
+:is(.form-panel, .dialog-panel) label:has(> :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea)) {
+  display: grid; gap: var(--nx-space-2); min-width: 0; font-size: var(--nx-font-small); font-weight: 600;
+}
+:is(.nx-field, .field-group, .form-panel, .dialog-panel) :is(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--nx-danger); border-width: 2px;
+}
+:is(.nx-field, .field-group, .form-panel, .dialog-panel) :is(input, textarea)[readonly] { background: var(--nx-surface-subtle); }
+:is(button, a, input, select, textarea, summary):focus-visible { outline: 3px solid var(--nx-focus); outline-offset: 3px; }
+.resource-form-dialog { width: min(38rem, calc(100vw - 2rem)); }
+.dialog-panel { border-color: var(--nx-border); background: var(--nx-surface); color: var(--nx-text); border-radius: var(--nx-radius-dialog); padding: var(--nx-space-6); }
+.resource-form-dialog > h2 { margin-bottom: var(--nx-space-6); font-size: 1.375rem; line-height: 1.4; }
+.resource-form-dialog > .dialog-actions { border-top: 1px solid var(--nx-border); margin-top: var(--nx-space-6); padding-top: var(--nx-space-4); justify-content: flex-end; }
+.resource-form-dialog .resource-form { gap: var(--nx-space-4); }
+.resource-form-dialog .resource-form fieldset { padding: var(--nx-space-4); gap: var(--nx-space-4); }
+.resource-form-dialog .resource-form fieldset.resource-dialog-fields { border: 0; padding: 0; }
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .sidebar { flex-basis: 13.5rem; }
+  .shell-main { padding: var(--nx-space-6); }
+  .resource-layout { grid-template-columns: minmax(0, 1fr); }
+  .resource-form { position: static; }
+}
+@media (max-width: 767px) {
+  .shell-main { padding: var(--nx-space-6) var(--nx-space-4) var(--nx-space-8); }
+  .content-heading { gap: var(--nx-space-4); }
+  .content-heading h1 { font-size: 1.75rem; }
+  .resource-card, .nx-card { padding: var(--nx-space-4); }
+  .nx-toolbar { align-items: stretch; }
+  .nx-toolbar > :is(.nx-field, .field-group) { flex-basis: 100%; }
+  .nx-toolbar > .nx-button { flex: 1 1 auto; }
+  .dialog-backdrop { padding: var(--nx-space-2); }
+  .dialog-panel, .resource-form-dialog { width: min(100%, 38rem); max-height: calc(100dvh - 1rem); padding: 1.25rem; }
+  .shell-command-label, .shell-command-shortcut { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .shell-header > .shell-command { flex: 0 0 var(--nx-control-height); width: var(--nx-control-height); padding: .5rem; }
+  .shell-command > span[aria-hidden="true"] { font-size: 1.25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nx-button, .primary-button, .secondary-button, .danger-button { transition: none; }
+}
+@media (forced-colors: active) {
+  .nx-button, .nx-card { border-color: ButtonText; }
+}
+
+/* Document editing and conversion need a reading-width canvas, rather than the
+   narrow quick-create rail used by short resource forms. Keep its library below. */
+.documents-workspace { grid-template-columns: minmax(0, 1fr); gap: var(--nx-space-6); }
+.documents-workspace > .resource-form { position: static; }
+.documents-workspace .document-preview { max-width: 75ch; overflow-wrap: anywhere; }
+.documents-workspace .document-preview :is(h1, h2, h3) { font-size: 1.5rem; line-height: 1.4; }
+.documents-workspace .document-preview h2 { font-size: 1.25rem; }
+.documents-workspace .document-preview h3 { font-size: 1.125rem; }
+.document-export-content { display: grid; gap: var(--nx-space-4); min-width: 0; }
+.document-export-content p { margin: 0; line-height: 1.65; }
+.document-export-content .document-export-confirmation { display: flex; align-items: flex-start; gap: var(--nx-space-2); line-height: 1.6; }
+.document-export-confirmation input { flex: 0 0 auto; margin-top: .3rem; }
+.document-export-actions { display: flex; flex-wrap: wrap; gap: var(--nx-space-3); }
+.document-export-details { display: grid; gap: var(--nx-space-4); min-width: 0; }

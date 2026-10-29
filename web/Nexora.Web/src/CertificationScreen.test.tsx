@@ -48,4 +48,16 @@ describe('Certification manual authority and recovery', () => {
     expect(screen.queryByRole('button', { name: 'Sửa thông tin' })).toBeNull(); expect(screen.queryByRole('button', { name: 'Ghi nhận gia hạn' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Bỏ lưu trữ' })).toBeEnabled();
   });
+  it('distinguishes an empty history from a failed history request and permits recovery', async () => {
+    vi.mocked(api.certificationHistory).mockRejectedValueOnce(Object.assign(new Error('History temporarily unavailable'), { status: 503 }))
+      .mockResolvedValueOnce({ items: [], nextCursor: null });
+    const user = userEvent.setup(); render(<CertificationScreen onAuthLost={vi.fn()} certificationId={id} />);
+    await user.click(await screen.findByRole('button', { name: 'Xem lịch sử' }));
+    await screen.findByText('History temporarily unavailable');
+    expect(screen.queryByText('Chưa có lần thay đổi nào được ghi nhận.')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Xem lịch sử' }));
+    await screen.findByText('Chưa có lần thay đổi nào được ghi nhận.');
+    expect(api.certificationHistory).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText('History temporarily unavailable')).toBeNull();
+  });
 });

@@ -6,6 +6,10 @@ import { ResourceFormDialog } from './ResourceFormDialog';
 type Target = { id: string; etag: string; versionNumber: number };
 type Preview = { pageId: string; versionNumber: number; format: 'MD' | 'DOCX'; etag: string; warnings: string[]; previewToken: string; expiresAt: string; byteLength: number };
 type Job = { id: string; pageId: string; versionNumber: number; format: 'MD' | 'DOCX'; codecVersion: number; state: 'Ready' | 'Expired'; createdAt: string; expiresAt: string; etag: string };
+function readableTime(value: string) {
+  const time = new Date(value);
+  return Number.isNaN(time.getTime()) ? 'không xác định' : time.toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+}
 const warningText: Record<string, string> = {
   LegacyBlockText: 'Block cũ được xuất dưới dạng văn bản.', ExternalLinksInert: 'Liên kết ngoài được giữ như văn bản, không tạo liên kết điều hướng.',
   CodeLanguageOmitted: 'Bỏ nhãn ngôn ngữ code không tương thích.', TableFirstRowBecomesHeader: 'Hàng đầu bảng trở thành header trong Markdown.',
@@ -57,10 +61,12 @@ function DocumentExportDialog({ target, caps, onClose, onUnavailable, onAuthLost
       const value = await apiFetch<unknown>(`/api/v1/documents/${encodeURIComponent(command.target.id)}/exports`, { method: 'POST', headers: jsonMutationHeaders(command.key, { 'If-Match': command.target.etag }), body: JSON.stringify({ versionNumber: command.target.versionNumber, format: command.preview.format, previewToken: command.preview.previewToken, confirmed: true, acceptedWarnings: command.accepted }) }, 201);
       if (stamp !== epoch.current) return;
       if (!isProductivityAcknowledgement(value) || typeof value.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value.id)) throw new NexoraApiError('Chưa xác nhận được job. Giữ nguyên yêu cầu để đối chiếu.', 0, 'UnexpectedAcknowledgement');
-      setJobId(value.id); setIntent(null); setPreview(null); setAccepted([]); setConfirmed(false); setNotice('Đã tạo artifact riêng. Không gửi lại yêu cầu; xem trạng thái hoặc tải bằng quyền hiện tại.');
+      setJobId(value.id); setIntent(null); setPreview(null); setAccepted([]); setConfirmed(false); setNotice('File xuất đã được tạo riêng cho bạn. Không cần tạo lại; hãy xem trạng thái rồi tải file.');
     } catch (value) {
       if (stamp !== epoch.current) return; const failure = value as { status?: number; code?: string };
-      if (failure.status && failure.status < 500 && !['RequestInProgress', 'IdempotencyConflict', 'RetryableConflict'].includes(failure.code ?? '')) { setIntent(null); setPreview(null); setAccepted([]); setConfirmed(false); }
+      // A response timeout may follow a successful commit. Preserve the original
+      // preview, ETag, request body and key for an exact receipt replay.
+      if (failure.status && failure.status !== 408 && failure.status < 500 && !['RequestInProgress', 'IdempotencyConflict', 'RetryableConflict'].includes(failure.code ?? '')) { setIntent(null); setPreview(null); setAccepted([]); setConfirmed(false); }
       fail(value);
     } finally { flight.current = false; if (stamp === epoch.current) setBusy(false); }
   }
@@ -72,16 +78,18 @@ function DocumentExportDialog({ target, caps, onClose, onUnavailable, onAuthLost
   }
   async function download() {
     if (flight.current || !jobId || !format) return; const stamp = ++epoch.current; flight.current = true; setBusy(true); setError('');
-    try { const blob = await documentExportBlob(jobId, format); if (stamp !== epoch.current) return; const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = `document-v${target.versionNumber}.${format.toLowerCase()}`; link.click(); queueMicrotask(() => URL.revokeObjectURL(url)); setNotice('Đã nhận artifact. Trình duyệt xử lý lưu file.'); }
+    try { const blob = await documentExportBlob(jobId, format); if (stamp !== epoch.current) return; const url = URL.createObjectURL(blob), link = document.createElement('a'); link.href = url; link.download = `document-v${target.versionNumber}.${format.toLowerCase()}`; link.click(); queueMicrotask(() => URL.revokeObjectURL(url)); setNotice('File đã sẵn sàng. Trình duyệt sẽ lưu vào thư mục tải xuống của bạn.'); }
     catch (value) { if (stamp === epoch.current) { setJob(null); fail(value); } } finally { flight.current = false; if (stamp === epoch.current) setBusy(false); }
   }
   return <ResourceFormDialog open title={`Export bản đã lưu v${target.versionNumber}`} busy={busy} dirty={intent !== null || (!jobId && Boolean(format || confirmed))} onClose={onClose}>
-    <p>Chỉ xuất một phiên bản đã lưu. Không xuất draft chưa lưu, children, history bundle, reminder, audit hoặc share token. File riêng hết hạn sau 15 phút; quyền và source được kiểm tra lại khi tải.</p>
+    <div className="document-export-content">
+    <p>Chỉ xuất phiên bản đã lưu này, không gồm bản nháp chưa lưu, trang con, lịch sử, lời nhắc, nhật ký hoạt động hay mã chia sẻ. File riêng hết hạn sau 15 phút. Khi tải, Nexora kiểm tra lại quyền truy cập và trang nguồn.</p>
     {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
     {!jobId && <><label>Format<select value={format} disabled={busy || intent !== null} onChange={event => { setFormat(event.target.value as typeof format); setPreview(null); setConfirmed(false); setAccepted([]); }}><option value="">Chọn format</option><option value="MD">Markdown (.md)</option><option value="DOCX">Word (.docx)</option></select></label><button type="button" disabled={busy || intent !== null || !format} onClick={() => void readPreview()}>Xem trước chuyển đổi</button></>}
-    {preview && <><p>{preview.byteLength.toLocaleString()} byte · preview hết hạn {preview.expiresAt}</p>{preview.warnings.length === 0 ? <p>Không phát hiện omission trong subset được hỗ trợ. Fidelity vẫn cần kiểm tra file.</p> : preview.warnings.map(code => <label key={code}><input type="checkbox" disabled={busy || intent !== null} checked={accepted.includes(code)} onChange={event => setAccepted(values => event.target.checked ? [...values, code] : values.filter(value => value !== code))} />{warningText[code] ?? `Chuyển đổi cần chấp nhận: ${code}`}</label>)}<label><input type="checkbox" disabled={busy || intent !== null} checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /> Tôi xác nhận phiên bản, format và các điểm mất chi tiết đã nêu.</label></>}
-    {intent && <p role="alert">Kết quả chưa rõ. Đối chiếu cùng yêu cầu/key; bỏ yêu cầu không hoàn tác job đã tạo.</p>}
-    {!jobId && <button type="button" className="primary-button" disabled={busy || (!intent && (!preview || !confirmed || accepted.length !== preview.warnings.length))} onClick={() => void generate()}>{intent ? 'Đối chiếu cùng yêu cầu' : 'Tạo artifact'}</button>}
-    {jobId && <div><p>Job: {jobId}</p>{job && <p>{job.state} · hết hạn {job.expiresAt}</p>}{caps['transfer.export.read'] && <button type="button" disabled={busy} onClick={() => void status()}>Xem trạng thái hiện tại</button>}{caps['transfer.export.download'] && <button type="button" disabled={busy || job?.state === 'Expired'} onClick={() => void download()}>Tải file với quyền hiện tại</button>}</div>}
+    {preview && <><p>{preview.byteLength.toLocaleString()} byte · bản xem trước hết hạn {readableTime(preview.expiresAt)} (giờ trình duyệt)</p>{preview.warnings.length === 0 ? <p>Không phát hiện nội dung bị bỏ trong các định dạng được hỗ trợ. Hãy kiểm tra lại bố cục của file sau khi tải.</p> : preview.warnings.map(code => <label className="document-export-confirmation" key={code}><input type="checkbox" disabled={busy || intent !== null} checked={accepted.includes(code)} onChange={event => setAccepted(values => event.target.checked ? [...values, code] : values.filter(value => value !== code))} /><span>{warningText[code] ?? `Chuyển đổi cần chấp nhận: ${code}`}</span></label>)}<label className="document-export-confirmation"><input type="checkbox" disabled={busy || intent !== null} checked={confirmed} onChange={event => setConfirmed(event.target.checked)} /><span>Tôi xác nhận phiên bản, định dạng và các điểm mất chi tiết đã nêu.</span></label></>}
+    {intent && <p role="alert">Chưa xác định được kết quả. Hãy đối chiếu lại yêu cầu cũ; rời màn hình không hủy file có thể đã được tạo.</p>}
+    {!jobId && <div className="document-export-actions"><button type="button" className="primary-button" disabled={busy || (!intent && (!preview || !confirmed || accepted.length !== preview.warnings.length))} onClick={() => void generate()}>{intent ? 'Đối chiếu cùng yêu cầu' : 'Tạo file xuất'}</button></div>}
+    {jobId && <div className="document-export-details">{job && <p>{job.state === 'Ready' ? 'Sẵn sàng tải' : 'Đã hết hạn'} · hết hạn {readableTime(job.expiresAt)} (giờ trình duyệt)</p>}<div className="document-export-actions">{caps['transfer.export.read'] && <button type="button" disabled={busy} onClick={() => void status()}>Xem trạng thái hiện tại</button>}{caps['transfer.export.download'] && <button type="button" disabled={busy || job?.state === 'Expired'} onClick={() => void download()}>Tải file với quyền hiện tại</button>}</div></div>}
+    </div>
   </ResourceFormDialog>;
 }

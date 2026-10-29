@@ -57,9 +57,23 @@ test('FN-037 User module grant: cancel/disable/re-enable Goals preserves SQL and
  }finally{if(target&&grant){const p=admin.pages()[0],a=await api(p,'getAdminUserAccess',[target.id]);if(a.moduleGrants.find((g:any)=>g.code==='FX16').enabled!==grant.enabled)await setModules(p,target.id,grant.moduleId,grant.enabled);const current=await api(p,'getAdminUserAccess',[target.id]);if(dependent&&current.moduleGrants.find((g:any)=>g.code==='FX17').enabled!==dependent.enabled)await setModules(p,target.id,dependent.moduleId,dependent.enabled);}await admin.close();await owner.close();}
 });
 
-test('FN-038 Module policy: explicit registration default commit, existing user retained, paused preview blocked',async({page,browser},worker)=>{
+test('FN-038 Module policy: registration default preserves existing user and local configuration preview has no effects',async({page,browser},worker)=>{
  const context=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL,viewport:worker.project.use.viewport});let before:any;
  try{const p=await context.newPage();await login(p,'SuperAdmin');before=(await api(p,'listAdminModules')).items.find((m:any)=>m.code==='FX32');await page.goto('/');const old=await api(page,'getMe');await p.goto('/admin/modules');const row=p.locator('.module-card').filter({has:p.getByText('FX32',{exact:true})});for(const enabled of [!before.registrationEnabled,before.registrationEnabled]){await row.getByLabel('Registration default',{exact:true}).setChecked(enabled);await row.getByRole('button',{name:'Xem lại thay đổi FX32',exact:true}).click();await confirm(p,'Xác nhận policy');await expect.poll(()=>operator('catalog').modules.find((m:any)=>m.Code==='FX32').RegistrationEnabled).toBe(enabled);expect((await api(page,'getMe')).modules.find((m:any)=>m.code==='FX32').enabled).toBe(old.modules.find((m:any)=>m.code==='FX32').enabled);}
- for(const code of ['FX30','FX34','FX35']){const r=p.locator('.module-card').filter({has:p.getByText(code,{exact:true})});const snapshot=operator('catalog').modules.find((m:any)=>m.Code===code);await r.getByLabel('System enabled',{exact:true}).check();await r.getByRole('button',{name:'Xem lại thay đổi '+code,exact:true}).click();await expect(p.getByRole('dialog').getByRole('button',{name:'Xác nhận policy',exact:true})).toBeDisabled();await p.getByRole('dialog').getByRole('button',{name:'Hủy',exact:true}).click();expect(operator('catalog').modules.find((m:any)=>m.Code===code)).toEqual(snapshot);}
+ // Configuration-only migrations0047/0054 made FX34/35 Ready; FX30 remains
+ // Paused under0018. Preview does not activate real providers.
+ // Keep a real change in the preview and prove Cancel leaves all SQL unchanged.
+ for(const code of ['FX30','FX34','FX35']){
+  const r=p.locator('.module-card').filter({has:p.getByText(code,{exact:true})});
+  const snapshot=operator('catalog').modules.find((m:any)=>m.Code===code);
+  expect(snapshot.State).toBe(code==='FX30'?'Paused':'Ready');
+  await r.getByLabel('System enabled',{exact:true}).check();
+  await r.getByLabel('Registration default',{exact:true}).setChecked(!snapshot.RegistrationEnabled);
+  await r.getByRole('button',{name:'Xem lại thay đổi '+code,exact:true}).click();
+  const confirmPolicy=p.getByRole('dialog').getByRole('button',{name:'Xác nhận policy',exact:true});
+  if(code==='FX30')await expect(confirmPolicy).toBeDisabled();else await expect(confirmPolicy).toBeEnabled();
+  await p.getByRole('dialog').getByRole('button',{name:'Hủy',exact:true}).click();
+  expect(operator('catalog').modules.find((m:any)=>m.Code===code)).toEqual(snapshot);
+ }
  }finally{if(before){const p=context.pages()[0],m=(await api(p,'listAdminModules')).items.find((m:any)=>m.code==='FX32');if(m.registrationEnabled!==before.registrationEnabled){const preview=await api(p,'previewModulePolicy',[m.id,{registrationEnabled:before.registrationEnabled}]);await api(p,'commitModulePolicy',[m.id,preview.etag,{registrationEnabled:before.registrationEnabled},preview.previewToken]);}}await context.close();}
 });

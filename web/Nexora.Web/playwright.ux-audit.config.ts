@@ -26,6 +26,7 @@ export default defineConfig({
   use: { baseURL, channel: process.env.NEXORA_E2E_BROWSER_CHANNEL || undefined, screenshot: 'off', trace: 'off', video: 'off', ignoreHTTPSErrors: false },
   projects: [
     { name: 'desktop-1440', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } } },
+    { name: 'tablet-768', use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } } },
     { name: 'mobile-390', use: { ...devices['Pixel 5'], viewport: { width: 390, height: 844 } } },
   ],
 });

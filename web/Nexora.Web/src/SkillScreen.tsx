@@ -107,7 +107,7 @@ export function SkillScreen({ onAuthLost }: { onAuthLost: () => void }) {
       await skillMerge(mergePreview, mergeKey.current); setMergeUncertain(false); setMergePreview(null); setMerge(null); await load(); return true as const;
     } catch (e) {
       const status = (e as { status?: number }).status, code = (e as { code?: string }).code;
-      const uncertain = !status || status >= 500 || code === 'RequestInProgress' || code === 'ReceiptUnavailable';
+      const uncertain = !status || status === 408 || status >= 500 || code === 'RequestInProgress' || code === 'ReceiptUnavailable';
       setMergeUncertain(uncertain); setMergeError(message(e));
       if (!uncertain) { setMergePreview(null); setMerge(null); await load(); }
       fail(e); return { error: message(e) };

@@ -16,9 +16,12 @@ test('FN-031 Search: body-only authorized match, safe source navigation and arch
   expect(sql('Document', source.id)).toEqual(before);
   await page.getByRole('button', { name: 'Publish', exact: true }).click();
   await expect.poll(() => sql('Document', source.id)[0].Status).toBe('Published');
-  await page.getByRole('button', { name: 'Archive', exact: true }).click(); await confirm(page, 'Archive document');
+  await page.getByRole('button', { name: 'Archive', exact: true }).click();
+  await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận');
   await page.goto('/search'); await page.locator('#global-search-query').fill(marker); await page.locator('#global-search-type').selectOption('Document');
-  await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click(); await expect(page.getByRole('heading', { name: 'Không có kết quả', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Không có kết quả trong nguồn khả dụng', exact: true })).toBeVisible();
+  expect((await api(page, 'searchResources', [marker, 'Document', '', '', false, 25])).items).toHaveLength(0);
   await page.getByLabel('Include archived source records').check(); await page.getByRole('button', { name: 'Tìm kiếm', exact: true }).click(); await expect(result).toBeVisible();
   expect(sql('Document', source.id)[0].Status).toBe('Archived');
 });
@@ -32,7 +35,8 @@ test('FN-032 Dashboard: real recent document projection excludes body and archiv
   expect(JSON.stringify(dashboard).includes(body)).toBe(false); expect(sql('Document', source.id)).toEqual(before);
   await page.goto('/modules/FX20'); await card(page, title).getByRole('button', { name: 'Mở', exact: true }).click();
   await page.getByRole('button', { name: 'Publish', exact: true }).click(); await expect.poll(() => sql('Document', source.id)[0].Status).toBe('Published');
-  await page.getByRole('button', { name: 'Archive', exact: true }).click(); await confirm(page, 'Archive document');
+  await page.getByRole('button', { name: 'Archive', exact: true }).click();
+  await page.getByRole('dialog').getByLabel('Tôi xác nhận phạm vi thao tác.').check(); await confirm(page, 'Xác nhận');
   await page.goto('/'); await expect(page.getByText(title, { exact: true })).toHaveCount(0);
   const refreshed = await api(page, 'getDashboard'); expect(refreshed.widgets.find((w: any) => w.id === 'documents-recent').items.some((i: any) => i.id === source.id)).toBe(false);
   expect(sql('Document', source.id)[0].Status).toBe('Archived');

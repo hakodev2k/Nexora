@@ -36,6 +36,7 @@ test('Finance: category, exact decimal record, edit, usage guard and unused dele
   await page.locator('#finance-category-title').fill(name); await modal.getByRole('button', { name: 'Tạo category' }).click(); await expect(modal).toHaveCount(0);
   const category = (await record(page, 'listFinanceCategories', ['', 100], 'Category', name)).item;
   modal = await dialog(page, 'Thêm record'); await page.locator('#finance-record-category').selectOption(category.id); await page.locator('#finance-record-amount').fill('123456.12345678'); await page.locator('#finance-record-note').fill(name);
+  await expect(modal.getByLabel('Currency', { exact: true })).toHaveValue(''); await modal.getByLabel('Currency', { exact: true }).fill('VND');
   await modal.getByRole('button', { name: 'Tạo record' }).click(); await expect(modal).toHaveCount(0);
   const list = await api(page, 'listFinanceRecords', [{ query: name, limit: 100 }]); const item = list.items.find((i: any) => i.note === name); expect(item.amount).toBe('123456.12345678'); expect(sql('Record', item.id)[0].Amount).toBe(123456.12345678);
   await page.locator('.resource-card').filter({ hasText: name }).filter({ has: page.getByRole('heading', { name: '123456.12345678 VND', exact: true }) }).getByRole('button', { name: 'Sửa', exact: true }).click();
@@ -86,7 +87,8 @@ test('Goal: title-only creation does not require optional numeric target', async
 test('Goal: numeric progress and explicit completed/reopen/abandoned lifecycle', async ({ page }) => {
   await page.goto('/modules/FX16'); const title = unique('numeric'); await page.locator('#goal-title').fill(title); await page.locator('#goal-target-title').fill('Target'); await page.locator('#goal-target-value').fill('10'); await page.getByRole('button', { name: 'Tạo goal', exact: true }).click();
   const { item } = await record(page, 'listGoals', ['', '', 100], 'Goal', title); await page.getByRole('button', { name: 'Bắt đầu', exact: true }).click(); await expect.poll(() => sql('Goal', item.id)[0].Status).toBe('Active');
-  let modal = await dialog(page, 'Ghi progress'); await page.locator('#goal-progress-value').fill('10'); await modal.getByRole('button', { name: 'Ghi progress', exact: true }).click(); await expect(modal).toHaveCount(0);
+  let modal = await dialog(page, 'Ghi tiến độ'); await expect(modal.getByRole('button', { name: 'Hủy', exact: true })).toHaveCount(1); await modal.getByLabel('Giá trị mới', { exact: true }).fill('5'); await modal.getByRole('button', { name: 'Hủy', exact: true }).click(); await expect(modal).toContainText('Bỏ thay đổi chưa lưu?'); await modal.getByRole('button', { name: 'Tiếp tục sửa', exact: true }).click(); await expect(modal.getByLabel('Giá trị mới', { exact: true })).toHaveValue('5'); await modal.getByRole('button', { name: 'Hủy', exact: true }).click(); await modal.getByRole('button', { name: 'Bỏ bản nháp', exact: true }).click(); await expect(modal).toHaveCount(0);
+  modal = await dialog(page, 'Ghi tiến độ'); await expect(modal.getByLabel('Giá trị mới', { exact: true })).toHaveValue('0'); await modal.getByLabel('Giá trị mới', { exact: true }).fill('10'); await modal.getByRole('button', { name: 'Lưu', exact: true }).click(); await expect(modal).toHaveCount(0);
   const detail = await api(page, 'getGoal', [item.id]); expect(detail.targets[0].currentValue).toBe(10); expect(sql('GoalTarget', detail.targets[0].id)[0].CurrentValue).toBe(10); expect(sql('Goal', item.id)[0].Status).toBe('Active');
   await page.getByRole('button', { name: 'Hoàn thành', exact: true }).click(); await confirm(page, 'Hoàn thành'); await expect.poll(() => sql('Goal', item.id)[0].Status).toBe('Completed'); await page.getByRole('button', { name: 'Mở lại', exact: true }).click(); await page.getByRole('button', { name: 'Bỏ goal', exact: true }).click(); await confirm(page, 'Bỏ goal'); await expect.poll(() => sql('Goal', item.id)[0].Status).toBe('Abandoned');
 });
@@ -116,8 +118,11 @@ test('Habit: real check-in correction, future schedule and pause/archive lifecyc
 test('Reminder: preset, None, Exact and remove retains None intent', async ({ page }) => {
   await page.goto('/'); const { task } = await sourceTask(page); await page.goto('/modules/FX14');
   const sourceChoice = page.locator('#reminder-source');
+  // Wait for the initial real source pool before inspecting its options. A source
+  // already on page1 needs no continuation control at all.
+  await expect(sourceChoice).toBeVisible(); await expect(sourceChoice).toBeEnabled();
   for (let pageIndex = 0; pageIndex < 150 && await sourceChoice.locator('option').evaluateAll((options, value) => !options.some(option => (option as HTMLOptionElement).value === value), 'Task:' + task.id); pageIndex++) {
-    const more = page.getByRole('button', { name: 'Load more Task sources', exact: true }); await expect(more).toBeVisible(); await expect(more).toBeEnabled(); await more.click(); await expect.poll(async () => await more.count() === 0 || await more.isEnabled()).toBe(true);
+    const more = page.getByRole('button', { name: 'Load more Task sources', exact: true }); await expect(more).toBeVisible(); await expect(more).toBeEnabled(); const next = page.waitForResponse(result => result.request().method() === 'GET' && new URL(result.url()).pathname === '/api/v1/tasks' && new URL(result.url()).searchParams.has('cursor')); await more.click(); expect((await next).status()).toBe(200); await expect.poll(async () => await more.count() === 0 || await more.isEnabled()).toBe(true);
   }
   await expect(sourceChoice).toBeEnabled(); await sourceChoice.selectOption('Task:' + task.id);
   let modal = await dialog(page, 'Cấu hình reminder'); await modal.getByRole('button', { name: /Đặt reminder|Lưu thay đổi/ }).click(); await expect(modal).toHaveCount(0);

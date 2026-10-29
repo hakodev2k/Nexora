@@ -2,7 +2,7 @@ import { apiFetch, jsonMutationHeaders, isProductivityAcknowledgement, NexoraApi
 const root = '/api/v1/career';
 export type CareerAppointment = { id: string; jobId: string; eventId: string; etag: string; event: CalendarEventRecord | null; state: 'Available' | 'Unavailable' };
 export type AppointmentEvent = { title: string; description: string; startAt: string; endAt: string; timeZoneId: string; isAllDay: boolean; startDate: string | null; endDateExclusive: string | null };
-export const careerAppointments = (jobId: string, cursor = '') => apiFetch<{ items: CareerAppointment[]; nextCursor: string | null }>(`${root}/jobs/${encodeURIComponent(jobId)}/events?cursor=${encodeURIComponent(cursor)}`);
+export const careerAppointments = (jobId: string, cursor = '') => apiFetch<{ items: CareerAppointment[]; nextCursor: string | null }>(`${root}/jobs/${encodeURIComponent(jobId)}/events${cursor ? '?cursor=' + encodeURIComponent(cursor) : ''}`);
 export async function linkCareerAppointment(jobId: string, etag: string, command: { eventId: string | null; event: AppointmentEvent | null }, key: string) {
   const result = await apiFetch<ProductivityCommittedAcknowledgement>(`${root}/jobs/${encodeURIComponent(jobId)}/events`, { method: 'POST', headers: jsonMutationHeaders(key, { 'If-Match': etag }), body: JSON.stringify(command) }, 201);
   if (!isProductivityAcknowledgement(result) || !/^[0-9a-f-]{36}$/i.test(result.id) || Object.keys(result).some(field => !['id', 'committed', 'detailAvailable'].includes(field)))

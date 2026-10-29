@@ -123,7 +123,10 @@ test('FN-026 Toolbox Regex: matching, ignore-case, truncation, invalid pattern a
 test('FN-027 Toolbox catalog: supported IDs, no persistent canary and unsupported network gate', async ({ page }) => {
   await open(page, 'base64');
   const catalog = await api(page, 'listDeveloperTools');
-  expect(catalog.items.map((t: any) => t.code).sort()).toEqual(['base64', 'hash', 'html-codec', 'json', 'password', 'regex', 'url-codec', 'uuid']);
+  // Exact finite installed catalog, including the approved offline extensions.
+  // Unknown/network execution remains denied below; extra tools must not silently pass.
+  expect(catalog.items.map((t: any) => t.code).sort()).toEqual(['base64', 'color', 'csv', 'datetime', 'hash', 'headers', 'html-codec', 'json', 'jwt', 'password', 'regex', 'text-diff', 'url-codec', 'url-parse', 'uuid', 'xml']);
+  expect(catalog.items.filter((t: any) => t.executionMode === 'Browser').map((t: any) => t.code).sort()).toEqual(['color', 'headers', 'jwt', 'text-diff', 'url-parse']);
   const canary = 'synthetic-toolbox-memory-canary'; await page.locator('#tool-input').fill(canary); await run(page);
   expect(await page.evaluate(value => [...Object.values(localStorage), ...Object.values(sessionStorage)].some(item => item.includes(value)), canary)).toBe(false);
   const unsupported = await page.evaluate(async () => {

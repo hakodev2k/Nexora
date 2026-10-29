@@ -39,7 +39,7 @@ export function AutomationExecutionDialog({ item, operation, onClose, onDenied }
       if (!mounted.current || onDenied(e)) return;
       const status = (e as { status?: number }).status, code = (e as { code?: string }).code;
       if (status === 404) { pending.current = null; setUncertain(false); setDone(true); setMessage(committed.current ? 'Command trước đã hoàn tất; resource hiện không còn khả dụng.' : 'Resource hiện không còn khả dụng. Đóng và tải lại danh sách.'); return; }
-      if (committed.current || (pending.current && (status === undefined || status === 0 || status >= 500 || code === 'RequestInProgress' || code === 'ConcurrencyConflict'))) { setUncertain(true); setMessage('Chưa đối chiếu được kết quả; Retry giữ nguyên command, ETag và key.'); }
+      if (committed.current || (pending.current && (status === undefined || status === 0 || status === 408 || status >= 500 || code === 'RequestInProgress' || code === 'ConcurrencyConflict'))) { setUncertain(true); setMessage('Chưa đối chiếu được kết quả; Retry giữ nguyên command, ETag và key.'); }
       else { pending.current = null; setDone(true); setUncertain(false); setMessage(e instanceof Error ? e.message : 'Command bị từ chối.'); }
     } finally { flight.current = false; if (mounted.current) setBusy(false); }
   }

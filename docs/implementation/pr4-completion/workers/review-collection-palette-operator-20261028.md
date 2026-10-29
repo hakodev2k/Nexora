@@ -1,0 +1,32 @@
+# Independent bounded Collection / Palette / QA operator review — 2026-10-28
+
+Reviewer: shopping_completion; authors: root/other assigned workers. Read-only source review; no production/test edits or runtime execution by reviewer for these reviewed changes. Source HEAD `a0215f7b3e85d33503cff9077b41cc065240cb81` plus worktree. Current AGENTS/engineering/Technical Lead, frontend/security/owner-isolation/verification instructions and current DEC014/D05 remain applicable. This review does not replace current-head CI, actual test execution, whole-product review or human acceptance.
+
+## Finding
+
+**COL-REV-01 — Medium, test-fixture cleanup/recovery:** `web/Nexora.Web/functional/collections.spec.ts:83` sequential `finally` calls `foreignAccess?.close(); foreign.close(); owner.close();`. If the first grant-restore call fails (e.g. transient API outage or stale permission preview), the remaining context cleanup and owner's original grant restoration are skipped. This is a test harness recovery defect, not an observed Collection production bug. Use nested `try/finally` to attempt all owned cleanup steps while retaining the original failure, then rerun the exact Collection browser case. No assertions should be removed or weakened. Reported to coordinator; author remediation/re-review pending at this checkpoint.
+
+## Scope and conclusions
+
+| Source | Review result / limits |
+|---|---|
+|`functional/collections.spec.ts`|Meaningful normal UI create/add/order/reload/edit/dirty-Escape/remove/delete workflow; real API+SQL proof; source snapshots unchanged. Foreign actor first proves actual read capability, so404 is not merely disabled-module denial. Foreign source candidate absence + real attach404 + unchanged membership/source is a meaningful isolation check. Correct `Mô tả (tùy chọn)` exact label matches actual UI. Cleanup finding above remains. One composite scenario does not prove all Collection AC or responsive views.|
+|`App.tsx:1369,1401–1411,1525–1530` Palette handoff only|Scope-bound pending handoff unmounts Palette before the parent effect calls ordinary guarded navigation, avoiding its own in-flight leave guard. Scope includes current user/PersonalSpace/role/module projection; stale scope or lost Search capability discards pending work. No `skipGuards`, new mutation permission or direct destructive action. Existing `CommandPalette` retains execute-side checks; subsequent target handler remains server-authorized. No blocking source finding in this bounded delta; authored runtime cases and independent UI-agent review remain separate evidence.|
+|`FunctionalTestOperator/Program.cs` new read-resource keys|Static dictionary allowlist only; kind is never arbitrary SQL identifier. UUID is SQL parameter; exact local disposable `Nexora_Test_<32hex>` gate precedes dispatch; new keys add no authority write. Synthetic record bodies may be returned to test assertions; this privileged test operator is not an application endpoint or owner authorization proof. No Vault/secrets table added.|
+|Same operator `seed-legacy-saved-query`|One fixed negative compatibility fixture, not general SQL input: checks loopback via LocalSqlTarget, exact disposable DB format, valid run UUID, exact database ownership marker, exact synthetic UserA email derived from that DB suffix, active account+PersonalSpace under serializable locks. Parameterized IDs/title, constant unsupported schema99/query, no permissions/status/session creation. Transaction rollback on failure; only safe synthetic id/title returned. No blocking source finding. Invalid marker/foreign run negative execution not run by this reviewer.|
+
+Reviewed SHA256 before remediation: Collection spec `6AC86A70C7521ABA62219A416EA8E928670DD58A9C32840991683156141592C0`; App whole file `A5EFFE1994F23752919DE4D816BB213DF022CAA597C05C9151933EAB0A359ABB` (review limited to Palette delta); operator `E5C13F575002B785B319429AF474E69811CA724385FA6ECB18367920A5DE4CE9`. Later relevant edits require source reinspection and affected test rerun.
+
+Verdict: Palette and guarded operator bounded source review has no blocking finding. Collection test recovery needs COL-REV-01 remediation. No whole feature or release-ready certification.
+
+## COL-REV-01 closure — source reinspection
+
+Root replaced sequential cleanup with three independent awaited attempts in a loop, collecting failures; scenario error is retained and included in `AggregateError` if cleanup also fails. Failure of foreign grant restoration no longer prevents foreign context closure or owner restoration. **COL-REV-01 FIXED by source reinspection**, Collection SHA256 `9E153A9FA7DCF2DC3769F29D87C29ED65AD6BF5E5D3B762699B594771442F0F0`. Reviewer ran no runtime test; post-fix Collection execution remains coordinator-owned. Original finding/history above is retained.
+
+Legacy fixture run-prefix correction and new negative browser test were requested for a further independent pass; do not treat this earlier operator hash/review as approval of a later uninspected correction.
+
+## Legacy fixture correction — independent source pass
+
+Reinspected final operator SHA256 `8136DC0EFFAC3BD1E33E81B9EAFDF5A67B2A41B46E2E8F03FC9D5E9E76C2D9C6`: exact ordinal run ID must equal `nexora-e2e-audit-` plus the already validated disposable database UUID suffix; transaction then requires exact SQL extended-property marker equality. This corrects the earlier incompatible GUID-only run parser without broadening allowed target/actor/write. Exact active synthetic UserA email/PersonalSpace guard, fixed schema99 insert, parameterization and no authority write remain intact. No blocking source-security finding in the corrected seam.
+
+Read-only review of `functional/discovery-negative.spec.ts:89` legacy scenario, SHA256 `3367BE74B86B7B5D8C50651445EEBB36A1C21CAD24B95E8C52C7C4006603CCBB`: subprocess failures keep diagnostics private; wrong run and unknown user must be refused before a successful controlled insertion demonstrates the executable/configuration actually works. SQL confirms schema99; actual UI disables run across reload and API409 `MigrationRequired`; only native explicitly confirmed version1 replacement is used, with SQL schema/query proof, followed by normal definition-only deletion. The case asserts button availability after replacement, not a subsequent version1 run result; do not overstate that scope. Actual execution is UI-agent-owned and was still running when this reviewer inspected source. No reviewer runtime/test claim.

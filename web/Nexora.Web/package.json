@@ -13,13 +13,15 @@
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
+    "@radix-ui/react-label": "2.1.17",
+    "@radix-ui/react-slot": "1.5.0",
     "@vitejs/plugin-react": "^4.4.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "6.4.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -30,9 +32,9 @@
     "@types/node": "26.5.1",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@vitest/coverage-v8": "5.0.0",
+    "@vitest/coverage-v8": "5.0.5",
     "jsdom": "30.0.1",
     "msw": "2.15.0",
-    "vitest": "5.0.0"
+    "vitest": "5.0.5"
   }
 }

@@ -27,6 +27,70 @@ const visiblePanelTriggers = /^(Thêm|Tạo|Xem|Chi tiết|Lịch sử|Chỉnh s
 const prohibitedTriggers = /(Đăng xuất|Lưu|Gửi|Xóa|Purge|Archive|Remove|Delete|Khôi phục|Chạy|Áp dụng|Confirm|Revoke|Phê duyệt|Logout|Save|Run |Submit|Execute|Thực thi|Bật|Tắt)/i;
 
 function safeSlug(value: string) { return value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 86) || 'home'; }
+
+test('shared modal: mixed-axis inline overflow survives nested isolation', async ({ page }) => {
+  await page.goto('/login');
+  const result = await page.evaluate(async () => {
+    const modulePath = '/src/modalIsolation.ts'; const { isolateModalLayer } = await import(modulePath);
+    // Use the browser's real CSSOM in an isolated document; no live page style,
+    // authentication state or visual evidence is modified by this regression.
+    const doc = document.implementation.createHTMLDocument('Synthetic modal styles');
+    doc.documentElement.style.setProperty('overflow-x', 'scroll', 'important'); doc.documentElement.style.setProperty('overflow-y', 'auto');
+    doc.body.style.setProperty('overflow-x', 'clip'); doc.body.style.setProperty('overflow-y', 'scroll', 'important');
+    const values = () => [doc.documentElement, doc.body].map(el => ['overflow-x', 'overflow-y'].map(key => ({ value: el.style.getPropertyValue(key), priority: el.style.getPropertyPriority(key) })));
+    const before = values(), parent = doc.createElement('div'), child = doc.createElement('div');
+    doc.body.append(parent); const closeParent = isolateModalLayer(parent);
+    doc.body.append(child); const closeChild = isolateModalLayer(child);
+    closeParent(); closeParent(); closeChild();
+    return { before, after: values() };
+  });
+  expect(result.after).toEqual(result.before);
+});
+
+test('shared foundation: Bookmark create/edit visual and rendered control contrast', async ({ page }, info) => {
+  await logIn(page, 'UserA');
+  await page.goto('/bookmarks');
+  await expect(page.getByRole('button', { name: 'Thêm bookmark', exact: true })).toBeEnabled();
+  const title = `Synthetic UI Foundation Bookmark ${page.viewportSize()?.width}-${Date.now()}`;
+  await page.getByRole('button', { name: 'Thêm bookmark', exact: true }).click();
+  const seedDialog = page.getByRole('dialog');
+  await seedDialog.getByLabel('URL', { exact: true }).fill('https://example.invalid/ui-foundation');
+  await seedDialog.getByLabel('Tiêu đề', { exact: true }).fill(title);
+  await seedDialog.getByRole('button', { name: 'Tạo bookmark', exact: true }).click();
+  await expect(seedDialog).toBeHidden();
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  const images: string[] = [await screenshot(page, 'UserA', '/bookmarks', 'foundation-populated')];
+  const controls: Array<{ field: string; border: string; background: string; contrast: number }> = [];
+  for (const mode of ['create', 'edit'] as const) {
+    if (mode === 'create') await page.getByRole('button', { name: 'Thêm bookmark', exact: true }).click();
+    else await page.locator('.resource-card').filter({ has: page.getByRole('heading', { name: title, exact: true }) }).getByRole('button', { name: 'Sửa', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: mode === 'create' ? 'Bookmark mới' : 'Sửa bookmark', exact: true })).toHaveCount(1);
+    for (const field of ['URL', 'Tiêu đề', 'Mô tả']) {
+      const input = dialog.getByLabel(field, { exact: field !== 'Mô tả' });
+      const rendered = await input.evaluate(el => {
+        const style = getComputedStyle(el);
+        const rawToken = style.getPropertyValue('--nx-border-control').trim();
+        const token = /^#[\da-f]{6}$/i.test(rawToken)
+          ? `rgb(${[1, 3, 5].map(offset => parseInt(rawToken.slice(offset, offset + 2), 16)).join(', ')})` : rawToken;
+        const luminance = (value: string) => {
+          const rgb = (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number).map(v => { const n = v / 255; return n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4; });
+          return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+        };
+        const a = luminance(style.borderTopColor), b = luminance(style.backgroundColor);
+        return { border: style.borderTopColor, background: style.backgroundColor, token, contrast: (Math.max(a, b) + .05) / (Math.min(a, b) + .05) };
+      });
+      expect(rendered.border, `${field} uses the shared control boundary`).toBe(rendered.token);
+      expect(rendered.contrast, `${field} rendered boundary contrast`).toBeGreaterThanOrEqual(3);
+      controls.push({ field, border: rendered.border, background: rendered.background, contrast: rendered.contrast });
+    }
+    images.push(await screenshot(page, 'UserA', '/bookmarks', `foundation-${mode}`));
+    await page.keyboard.press('Escape'); await expect(dialog).toBeHidden();
+  }
+  mkdirSync(artifactRoot, { recursive: true });
+  writeFileSync(join(artifactRoot, `${info.project.name}-foundation-controls.json`), JSON.stringify({ testedSha: process.env.GITHUB_SHA ?? 'WORKTREE', project: info.project.name, images, controls, scope: 'Rendered Bookmark form boundaries and selected screenshots only; no full accessibility acceptance.' }, null, 2));
+});
 function finding(code: string, severity: 'P1' | 'P2' | 'P3', detail: string): Finding { return { code, severity, detail }; }
 async function screenshot(page: Page, persona: string, route: string, suffix: string) {
   mkdirSync(screenshotRoot, { recursive: true });

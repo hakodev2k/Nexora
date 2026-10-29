@@ -1,5 +1,12 @@
-param([string]$SqlServer = 'localhost\SQLEXPRESS')
+param(
+    [string]$SqlServer = 'localhost\SQLEXPRESS',
+    [switch]$EnableLocalTaskExecution,
+    [switch]$EnableLocalScheduling
+)
 $ErrorActionPreference = 'Stop'
+# These opt-ins exercise only the contracted local SQL Task worker/scheduler.
+# They do not activate providers, credentials, webhooks or outbound execution.
+if ($EnableLocalScheduling -and !$EnableLocalTaskExecution) { throw 'Local scheduling requires the explicit local Task execution opt-in.' }
 $taskRepo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 if ($SqlServer -notin @('localhost\SQLEXPRESS', '.\SQLEXPRESS')) { throw 'Only the explicitly local SQL Express test instance is supported.' }
 foreach ($taskPort in @(5001, 5173)) {
@@ -58,8 +65,8 @@ try {
     $env:NEXORA_CSRF_SECRET = New-RunSecret
     $env:NEXORA_LOCAL_MESSAGE_KEY = New-RunSecret
     $env:NEXORA_MODULE_PREVIEW_SECRET = New-RunSecret
-    $env:Automation__LocalTaskExecutionEnabled = 'false'
-    $env:Automation__LocalSchedulingEnabled = 'false'
+    $env:Automation__LocalTaskExecutionEnabled = $EnableLocalTaskExecution.IsPresent.ToString().ToLowerInvariant()
+    $env:Automation__LocalSchedulingEnabled = $EnableLocalScheduling.IsPresent.ToString().ToLowerInvariant()
     $env:NEXORA_LOCAL_MESSAGE_OPERATOR_SID = $taskSid.Value
     $env:NEXORA_LOCAL_MESSAGE_RUNTIME_SID = $taskSid.Value
     $env:Nexora__LocalAccountMessageOperatorSid = $taskSid.Value

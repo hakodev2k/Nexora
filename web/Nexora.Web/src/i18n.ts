@@ -4,6 +4,7 @@ export type UiLocale = 'vi' | 'en';
 
 const messages: Record<UiLocale, Record<string, string>> = {
   vi: {
+    quickSearch: 'Tìm nhanh',
     skipToContent: 'Bỏ qua điều hướng, tới nội dung',
     processing: 'Đang xử lý…',
     closeNotice: 'Đóng thông báo',
@@ -204,6 +205,7 @@ const messages: Record<UiLocale, Record<string, string>> = {
     errorTokenUnavailable: 'Mã không còn hợp lệ hoặc đã hết hạn.',
   },
   en: {
+    quickSearch: 'Quick search',
     skipToContent: 'Skip to content',
     processing: 'Processing…',
     closeNotice: 'Dismiss notice',

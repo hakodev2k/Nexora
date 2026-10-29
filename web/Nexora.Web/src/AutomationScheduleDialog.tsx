@@ -65,7 +65,7 @@ export function AutomationScheduleDialog({ id, onClose, onDenied }: { id: string
     } catch (e) {
       if (stamp !== generation.current || unavailable(e)) return;
       const status = (e as { status?: number }).status, code = (e as { code?: string }).code;
-      if (pending.current && (acknowledged.current || status === undefined || status === 0 || status >= 500 || code === 'RequestInProgress' || code === 'ConcurrencyConflict')) { setUncertain(true); setError('Chưa rõ kết quả. Retry giữ nguyên schedule/ETag/key; không tạo request mới.'); }
+      if (pending.current && (acknowledged.current || status === undefined || status === 0 || status === 408 || status >= 500 || code === 'RequestInProgress' || code === 'ConcurrencyConflict')) { setUncertain(true); setError('Chưa rõ kết quả. Retry giữ nguyên schedule/ETag/key; không tạo request mới.'); }
       else { pending.current = null; setUncertain(false); setError(status === 412 ? 'Revision đã thay đổi. Tải lại schedule trước khi lưu lại.' : e instanceof Error ? e.message : 'Save bị từ chối.'); }
     } finally { if (stamp === generation.current) { flight.current = false; setBusy(false); } }
   }

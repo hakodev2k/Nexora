@@ -2,6 +2,21 @@
 
 Status: PRODUCT_INCOMPLETE. No whole FX group is ACCEPTED.
 
+**Current publication checkpoint (2026-10-30):** see
+[report23](23-pr-publish-checkpoint-20261030.md) for delivered fixes, actual
+execution results and remaining gates. Scope21 now records77 active bounded work
+packages and6 gated/excluded dispositions after explicit Support correction.
+Historical79-active counts below are retained as earlier checkpoints.
+
+**Existing-feature completion execution (2026-10-26):** the current mission completes
+genuinely started workflows, not the entire R1 backlog. [Scope21](21-existing-feature-completion-scope-20261025.md)
+records79 active work packages plus4 gated/excluded dispositions across40 modules;
+these are not counts of accepted features. [Execution22](22-existing-feature-qa-uiux-20261025.md)
+and linked worker reports record actual source fixes, isolated SQL/browser results,
+visual inspection and the remaining queue. Human acceptance and D09 remain pending.
+Earlier checkpoint statements below are historical and do not override the current
+automated-QA authorization or certify the current source.
+
 **Effective execution policy — 2026-10-25:** agents own approved local implementation and isolated automated/runtime/browser QA with synthetic fixtures under the [DEC-014 amendment](../../requirements/12-owner-decisions-local-e2e-implementation.md#local-automated-qa-20261025); final human UI/product acceptance remains mandatory. [Policy reconciliation](20-execution-policy-20261025.md) supersedes previous run-specific code-only restrictions only. No implementation/test/human-acceptance status is promoted by this policy update.
 
 **Recorded implementation checkpoint cd34b9c:** [report19 — implementation, actual prior QA and code-only UI fixes](19-completion-uiux-20261025.md). Added bounded Template Bookmark-seed library (nine actions), Seller/DraftOrder/Warranty metadata (nine), Certification metadata/renewal/history/Archive (six). Full inventory reconciles these24 exact rows; full module acceptance remains open. Earlier local304SQL/193backend/250frontend+1skip and selected browser evidence precede final UI styles; no latest-source runtime acceptance. At that checkpoint a run-specific AGENTS.md code-only amendment stopped further tests/data/browser runs. That execution restriction is now superseded; its actual results and not-run limits remain historical evidence, not reclassified.

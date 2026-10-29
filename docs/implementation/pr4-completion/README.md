@@ -1,5 +1,10 @@
 # PR4 implementation checkpoint — 2026-10-22
 
+**Active existing-feature mission (2026-10-26):** [bounded started-workflow inventory21](21-existing-feature-completion-scope-20261025.md)
+and [implementation, actual QA, visual evidence and handoff22](22-existing-feature-qa-uiux-20261025.md).
+This continues the canonical ledger; it does not authorize unstarted siblings or
+claim whole R1 completion. Current automated-QA authority below remains effective.
+
 **Effective execution policy — 2026-10-25:** [DEC-014 automated-QA amendment](../../requirements/12-owner-decisions-local-e2e-implementation.md#local-automated-qa-20261025) supersedes the former code-only restriction. Agents own approved local implementation, isolated synthetic fixtures, automated tests and runtime/browser QA; Product Owner retains final UI/product acceptance. D01–D09 and PR4 Draft/HOLD remain unchanged. [Policy reconciliation and validation](20-execution-policy-20261025.md). This authorization supplies no new application test or acceptance result.
 
 ## Historical checkpoints and execution windows
