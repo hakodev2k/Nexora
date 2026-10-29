@@ -2,7 +2,16 @@
 
 Product phase: **P03** · Delivery: **RM11** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-25 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** bounded Search/Favorites, Saved Search, seven-source Recents and a finite Command Palette registry have local code on the PR4 branch. Continuation remains uncommitted; runtime NOT RUN and independent review Pending. Additional providers/facets/full source coverage remain incomplete. Goals có điều kiện không là quyền code. FX-25 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+
+## Current implementation overlay
+
+Local code addresses NXG-FX25-G01/G02/G03 through source-query Search, typed
+Favorites/Saved Search, metadata-only current-authorized Recents and the installed
+Palette workflow registry. These are code bindings, not passing goal acceptance.
+No persisted search index or arbitrary source/action is installed. See
+[current feature overlay](../../features/25-search-favorites-and-command-palette.md)
+and the linked DISC3/DISC4 source/acceptance contracts.
 
 ## Mục tiêu và bằng chứng chấp nhận
 
@@ -22,7 +31,7 @@ Product phase: **P03** · Delivery: **RM11** · Phase 8/RM16–RM22 kiểm chứ
 ## Traceability và kiểm chứng
 
 - [Feature/BR/AC nguồn](../../features/25-search-favorites-and-command-palette.md) — đọc toàn bộ field/state/validation và trace requirements tại đó.
-- [Action contracts](../../action-catalog/modules/25-discovery.md) — exact action keys, contexts, prerequisites, status/gate; catalog có 15 rows: Resolved delegated: 15. Đây là inventory, không phải coverage đã pass.
+- [Action contracts](../../action-catalog/modules/25-discovery.md) — exact action keys, contexts, prerequisites, status/gate; catalog có 15 rows with the current local Search/Favorites overlays. Đây là inventory, không phải coverage đã pass.
 - [UX/screens](../../ux-ui/modules/25-search-favorites-command-palette.md) — luồng màn hình, disabled/loading/error và interaction contracts.
 - [DB binding](../../design-database/16-action-catalog-binding.md), [DB integrity tests](../../design-database/13-query-and-invariant-tests.md), [field classification](../../design-database/15-field-classification.md).
 - AC hiện hành cần kế thừa: `FX-25-AC-001`, `FX-25-AC-002`, `FX-25-AC-003`. Cộng source requirement AC, POAC liên quan và [cross-module journeys](../04-cross-module-verification.md); danh sách này không thay test plan đầy đủ.

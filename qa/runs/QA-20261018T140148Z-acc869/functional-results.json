@@ -1,0 +1,2552 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional.config.mjs"
+    ],
+    "configFile": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional.config.mjs",
+    "rootDir": "D:/Projects/ASP_NET_Core_Developer_2026/Nexora/web/Nexora.Web/functional",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "D:/Projects/ASP_NET_Core_Developer_2026/Nexora/qa/runs/QA-20261018T140148Z-acc869/functional-output",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "D:/Projects/ASP_NET_Core_Developer_2026/Nexora/web/Nexora.Web/functional",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-junit.xml"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.63.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "calendar-export.spec.ts",
+      "file": "calendar-export.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Calendar ICS export: explicit source/status/range, confirm, private bytes and authority clearing",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4315,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:18:29.462Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "cec9ec6de26864ecd0de-b7823267db1647e4a35a",
+          "file": "calendar-export.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "calendar-import.spec.ts",
+      "file": "calendar-import.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Calendar ICS: real scanned upload, paged preview, explicit partial import, exact dates, duplicate and cancel reports",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6538,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:18:40.949Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "89ac3f92aa96156d19fa-abde1a92d019da757d56",
+          "file": "calendar-import.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "career.spec.ts",
+      "file": "career.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Career: manual Companies/Jobs, exact SQL salary, merge history, conflicts and paged lifecycle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12979,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:18:47.521Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "049889c74a6db2083665-d30720c8f00b541dfe0c",
+          "file": "career.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "content.spec.ts",
+      "file": "content.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Documents: create/body version, publish, archive/unarchive, table/grid and reload",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 577,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m422\u001b[39m\nReceived: \u001b[31m201\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m422\u001b[39m\nReceived: \u001b[31m201\u001b[39m\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts:6:112",
+                    "location": {
+                      "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                      "column": 112,
+                      "line": 6
+                    },
+                    "snippet": "  4 |   await page.goto('/modules/FX20'); const title = unique('document'); await page.locator('#document-title').fill(title); await page.locator('#document-type').selectOption('Note'); await page.locator('#document-editor').selectOption('Markdown'); await page.locator('#document-body').fill('# Nội dung\\n<script>literal</script>');\n  5 |   const rejected = page.waitForResponse(r => r.url().endsWith('/api/v1/documents') && r.request().method() === 'POST');\n> 6 |   await page.getByRole('button', { name: 'Tạo page', exact: true }).click(); expect((await rejected).status()).toBe(422);\n    |                                                                                                                ^\n  7 |   await expect(page.getByRole('alert')).toContainText('Executable markup'); await expect(page.locator('#document-body')).toHaveValue('# Nội dung\\n<script>literal</script>');\n  8 |   await page.locator('#document-body').fill('# Nội dung\\nNội dung tổng hợp.'); await page.getByRole('button', { name: 'Tạo page', exact: true }).click();\n  9 |   const { item } = await record(page, 'listDocuments', [undefined, 100], 'Document', title); await page.locator('#document-body').fill('# Version two'); await page.getByRole('button', { name: 'Save version' }).click(); await expect.poll(() => sql('Document', item.id)[0].VersionNumber).toBe(2);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                        "column": 112,
+                        "line": 6
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m422\u001b[39m\nReceived: \u001b[31m201\u001b[39m\n\n  4 |   await page.goto('/modules/FX20'); const title = unique('document'); await page.locator('#document-title').fill(title); await page.locator('#document-type').selectOption('Note'); await page.locator('#document-editor').selectOption('Markdown'); await page.locator('#document-body').fill('# Nội dung\\n<script>literal</script>');\n  5 |   const rejected = page.waitForResponse(r => r.url().endsWith('/api/v1/documents') && r.request().method() === 'POST');\n> 6 |   await page.getByRole('button', { name: 'Tạo page', exact: true }).click(); expect((await rejected).status()).toBe(422);\n    |                                                                                                                ^\n  7 |   await expect(page.getByRole('alert')).toContainText('Executable markup'); await expect(page.locator('#document-body')).toHaveValue('# Nội dung\\n<script>literal</script>');\n  8 |   await page.locator('#document-body').fill('# Nội dung\\nNội dung tổng hợp.'); await page.getByRole('button', { name: 'Tạo page', exact: true }).click();\n  9 |   const { item } = await record(page, 'listDocuments', [undefined, 100], 'Document', title); await page.locator('#document-body').fill('# Version two'); await page.getByRole('button', { name: 'Save version' }).click(); await expect.poll(() => sql('Document', item.id)[0].VersionNumber).toBe(2);\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts:6:112"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:19:00.534Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\content-Documents-create-b-14df2-chive-table-grid-and-reload-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                    "column": 112,
+                    "line": 6
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-f0d15e1c931464048717",
+          "file": "content.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "Snippets: literal content, edit/version, archive/unarchive and SQL reload",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5459,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:19:01.803Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-6e0277e9e5cc1b9e1f89",
+          "file": "content.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "Snippets: every cursor page is reachable and conflict recovery preserves the draft with an exact revision",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 12635,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31mundefined\u001b[39m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31mundefined\u001b[39m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts:32:139",
+                    "location": {
+                      "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                      "column": 139,
+                      "line": 32
+                    },
+                    "snippet": "  30 |   await expect(page.locator('#snippet-body')).toHaveValue(draft);await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toBeVisible();expect(sql('Snippet',target.id)[0].Body).toBe('Synthetic concurrent source');\n  31 |   await page.getByRole('button',{name:'Tải revision',exact:true}).click();await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toHaveCount(0);await expect(page.locator('#snippet-body')).toHaveValue(draft);\n> 32 |   await page.getByRole('button',{name:'Lưu version',exact:true}).click();await expect.poll(()=>sql('Snippet',target.id)[0].VersionNumber).toBe(3);expect(sql('Snippet',target.id)[0].Body).toBe(draft);\n     |                                                                                                                                           ^\n  33 | });\n  34 |\n  35 | test('Read Later: add source, invalid/valid position, read/unread and remove preserves source', async ({ page }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                        "column": 139,
+                        "line": 32
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31mundefined\u001b[39m\n\nCall Log:\n- Timeout 10000ms exceeded while waiting on the predicate\n\n  30 |   await expect(page.locator('#snippet-body')).toHaveValue(draft);await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toBeVisible();expect(sql('Snippet',target.id)[0].Body).toBe('Synthetic concurrent source');\n  31 |   await page.getByRole('button',{name:'Tải revision',exact:true}).click();await expect(page.getByText(/Snippet đã thay đổi ở nơi khác/)).toHaveCount(0);await expect(page.locator('#snippet-body')).toHaveValue(draft);\n> 32 |   await page.getByRole('button',{name:'Lưu version',exact:true}).click();await expect.poll(()=>sql('Snippet',target.id)[0].VersionNumber).toBe(3);expect(sql('Snippet',target.id)[0].Body).toBe(draft);\n     |                                                                                                                                           ^\n  33 | });\n  34 |\n  35 | test('Read Later: add source, invalid/valid position, read/unread and remove preserves source', async ({ page }) => {\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts:32:139"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:19:08.518Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\content-Snippets-every-cur-644e3-raft-with-an-exact-revision-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                    "column": 139,
+                    "line": 32
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-67c8db4d2b02e26c14a4",
+          "file": "content.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "Read Later: add source, invalid/valid position, read/unread and remove preserves source",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3478,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:19:21.779Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-4bef3744e51db85e0efd",
+          "file": "content.spec.ts",
+          "line": 35,
+          "column": 1
+        },
+        {
+          "title": "Favorites: typed reference, rank popup, server route navigation/reload and delete preserves source",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3039,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:19:26.329Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-d1b296acb7b4074c6a11",
+          "file": "content.spec.ts",
+          "line": 44,
+          "column": 1
+        },
+        {
+          "title": "Projects/Tasks: UI creation/edit, terminal cohort trash, restore and purge",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 90040,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts",
+                        "column": 121,
+                        "line": 61
+                      },
+                      "message": "Error: locator.selectOption: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for locator('#task-status')\u001b[22m\n\u001b[2m    - locator resolved to <select disabled id=\"task-status\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying select option action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    174 × waiting for element to be visible and enabled\u001b[22m\n\u001b[2m        - element is not enabled\u001b[22m\n\u001b[2m      - retrying select option action\u001b[22m\n\u001b[2m        - waiting 500ms\u001b[22m\n\n\n  59 |   }\n  60 |   await page.locator('#task-project').selectOption(project.id); await page.locator('#task-title').fill(title); await page.locator('#task-description').fill('Synthetic task'); await page.locator('#task-start').fill(start); await page.locator('#task-end').fill(end); await page.getByRole('button', { name: 'Tạo Task', exact: true }).click(); const task = (await record(page, 'listTasks', [project.id, 100, ''], 'Task', title)).item;\n> 61 |   await card(page, title).getByRole('button', { name: 'Sửa', exact: true }).click(); await page.locator('#task-status').selectOption('Completed'); await page.getByRole('button', { name: 'Lưu Task', exact: true }).click(); await expect.poll(() => sql('Task', task.id)[0].Status).toBe('Completed');\n     |                                                                                                                         ^\n  62 |   await page.goto('/modules/FX11'); await showPagedCard(page,name,'Tải thêm Project'); await card(page, name).getByRole('button', { name: 'Hoàn tất', exact: true }).click(); await confirm(page, 'Hoàn tất Project'); await expect.poll(() => sql('Project', project.id)[0].Status).toBe('Completed');\n  63 |   await card(page, name).getByRole('button', { name: 'Xóa', exact: true }).click(); await confirm(page, 'Đưa Project vào Trash'); expect(sql('Project', project.id)[0].Status).toBe('Deleted'); expect(sql('Task', task.id)[0].Status).toBe('Deleted');\n  64 |   await page.goto('/trash'); let row = page.locator('.resource-card').filter({ hasText: project.id }); await row.getByRole('button', { name: 'Restore batch', exact: true }).click(); await confirm(page, 'Restore batch'); await expect.poll(() => sql('Project', project.id)[0].Status).toBe('Completed');\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\content.spec.ts:61:121"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:19:29.378Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\content-Projects-Tasks-UI--e887c-ort-trash-restore-and-purge-desktop\\error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-5ce07d2eb0d13afe4058",
+          "file": "content.spec.ts",
+          "line": 51,
+          "column": 1
+        },
+        {
+          "title": "Calendar: timed/all-day UI create/edit, views, complete/cancel and SQL state",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3068,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:21:00.009Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d74cd27346db6aa64657-fe3f762e4ce8dbf20579",
+          "file": "content.spec.ts",
+          "line": 69,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "courses.spec.ts",
+      "file": "courses.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Course: exact progress, SQL persistence, dirty conflict, pagination and owned milestone cohort",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12979,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Course verification: enabling the installed subset\n"
+                    },
+                    {
+                      "text": "Course verification: dirty cancellation and browser Back\n"
+                    },
+                    {
+                      "text": "Course verification: actual visible pagination\n"
+                    },
+                    {
+                      "text": "Course verification: exact percent, explicit completion and preserved dates\n"
+                    },
+                    {
+                      "text": "Course verification: owned milestones and root cohort\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:21:04.143Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "669a62b017047455328e-340f02d39d560971bdea",
+          "file": "courses.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "digital-assets.spec.ts",
+      "file": "digital-assets.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Digital Assets: typed SQL records, exact values, dirty conflicts, private paged history and lifecycle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7560,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:21:17.144Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "db6d0990686530231b9b-67814ac58481d16d46bc",
+          "file": "digital-assets.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "discovery.spec.ts",
+      "file": "discovery.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-031 Search: body-only authorized match, safe source navigation and archive filter",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 90026,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\fixtures.ts",
+                        "column": 189,
+                        "line": 81
+                      },
+                      "message": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').getByRole('button', { name: 'Archive document', exact: true })\u001b[22m\n\n\n   at fixtures.ts:81\n\n  79 |   return modal;\n  80 | }\n> 81 | export async function confirm(page: Page, name: string) { const modal = page.getByRole('dialog'); await expect(modal).toBeVisible(); await modal.getByRole('button', { name, exact: true }).click(); await expect(modal).toHaveCount(0); }\n     |                                                                                                                                                                                             ^\n  82 | export async function sourceTask(page: Page) {\n  83 |   const start = new Date(Date.now() + 86400000).toISOString(), end = new Date(Date.now() + 172800000).toISOString();\n  84 |   const project = await api(page, 'createProject', [unique('source-project'), 'Prerequisite synthetic project', start, end]);\n    at confirm (D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\fixtures.ts:81:189)\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\discovery.spec.ts:19:77"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:21:24.728Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\discovery-FN-031-Search-bo-5c2d9-vigation-and-archive-filter-desktop\\error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "ea3dfd443fc52d1802e6-455803c93746f027f7bb",
+          "file": "discovery.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "FN-032 Dashboard: real recent document projection excludes body and archived source",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 4,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 90012,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\fixtures.ts",
+                        "column": 189,
+                        "line": 81
+                      },
+                      "message": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('dialog').getByRole('button', { name: 'Archive document', exact: true })\u001b[22m\n\n\n   at fixtures.ts:81\n\n  79 |   return modal;\n  80 | }\n> 81 | export async function confirm(page: Page, name: string) { const modal = page.getByRole('dialog'); await expect(modal).toBeVisible(); await modal.getByRole('button', { name, exact: true }).click(); await expect(modal).toHaveCount(0); }\n     |                                                                                                                                                                                             ^\n  82 | export async function sourceTask(page: Page) {\n  83 |   const start = new Date(Date.now() + 86400000).toISOString(), end = new Date(Date.now() + 172800000).toISOString();\n  84 |   const project = await api(page, 'createProject', [unique('source-project'), 'Prerequisite synthetic project', start, end]);\n    at confirm (D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\fixtures.ts:81:189)\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\discovery.spec.ts:35:77"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:22:55.327Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\discovery-FN-032-Dashboard-03467-es-body-and-archived-source-desktop\\error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "ea3dfd443fc52d1802e6-9542b3b4800198fc92f1",
+          "file": "discovery.spec.ts",
+          "line": 26,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "files-trash.spec.ts",
+      "file": "files-trash.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Files Trash: real upload, dependency preview and lost ACK retry preserve one durable effect",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15677,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:24:26.959Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f135167cea7b35d68b08-c9b15919f336a9af9221",
+          "file": "files-trash.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "focus.spec.ts",
+      "file": "focus.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real offline completion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 71110,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:24:43.649Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d21847c9dcced81f7ac2-b92147d0152c08ce5b11",
+          "file": "focus.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "monitoring.spec.ts",
+      "file": "monitoring.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Monitoring: private HTTP configuration, explicit preferences, conflicts and real paging without observations",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3943,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:25:54.787Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "102577bb940c215e04dd-0fca8ab8208141bb60db",
+          "file": "monitoring.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "news-categories.spec.ts",
+      "file": "news-categories.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "News categories: private name containers, dirty cancellation, explicit conflict recovery and actual paging",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 5,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 21283,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'News categories', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('heading', { name: 'News categories', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'News categories', exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'News categories', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('heading', { name: 'News categories', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'News categories', exact: true })\u001b[22m\n\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\news-categories.spec.ts:32:87",
+                    "location": {
+                      "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\news-categories.spec.ts",
+                      "column": 87,
+                      "line": 32
+                    },
+                    "snippet": "  30 |     await policy({ systemEnabled: true, registrationEnabled: true }); await grant(true);\n  31 |     await page.goto('/'); await page.locator('.module-card').filter({ has: page.getByRole('heading', { name: 'FX29', exact: true }) }).getByRole('button', { name: 'Mở module', exact: true }).click();\n> 32 |     await expect(page.getByRole('heading', { name: 'News categories', exact: true })).toBeVisible();\n     |                                                                                       ^\n  33 |     const modal = page.locator('.resource-form-dialog'), root = '/api/v1/news/categories', name = unique('Category_%[x]');\n  34 |     for (const defaultName of ['AI News', 'Tech News']) {\n  35 |       const defaults = await response(page, root + '/?query=' + encodeURIComponent(defaultName), 'GET');"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\news-categories.spec.ts",
+                        "column": 87,
+                        "line": 32
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('heading', { name: 'News categories', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('heading', { name: 'News categories', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('heading', { name: 'News categories', exact: true })\u001b[22m\n\n\n  30 |     await policy({ systemEnabled: true, registrationEnabled: true }); await grant(true);\n  31 |     await page.goto('/'); await page.locator('.module-card').filter({ has: page.getByRole('heading', { name: 'FX29', exact: true }) }).getByRole('button', { name: 'Mở module', exact: true }).click();\n> 32 |     await expect(page.getByRole('heading', { name: 'News categories', exact: true })).toBeVisible();\n     |                                                                                       ^\n  33 |     const modal = page.locator('.resource-form-dialog'), root = '/api/v1/news/categories', name = unique('Category_%[x]');\n  34 |     for (const defaultName of ['AI News', 'Tech News']) {\n  35 |       const defaults = await response(page, root + '/?query=' + encodeURIComponent(defaultName), 'GET');\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\news-categories.spec.ts:32:87"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:25:58.746Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\news-categories-News-categ-aa508--recovery-and-actual-paging-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\news-categories.spec.ts",
+                    "column": 87,
+                    "line": 32
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c89295171984ce1bb1d2-05b9bee4ffbf9b2ca0d1",
+          "file": "news-categories.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "personal-assets.spec.ts",
+      "file": "personal-assets.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Assets: explicit states, SQL persistence, dirty conflict, paging, private history and lifecycle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12862,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:26:20.633Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "481427e09edcdf92af2d-6b056845eebc1171fc48",
+          "file": "personal-assets.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "platform.spec.ts",
+      "file": "platform.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-034 Notifications: UI read/unread, watermark, cancel/delete, SQL retention and foreign owner",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 6,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1286,
+                  "error": {
+                    "message": "Error: page.evaluate: Error: Notification prerequisite failed: 404\n    at eval (eval at evaluate (:311:30), <anonymous>:24:33)\n    at async <anonymous>:337:30",
+                    "stack": "Error: page.evaluate: Error: Notification prerequisite failed: 404\n    at eval (eval at evaluate (:311:30), <anonymous>:24:33)\n    at async <anonymous>:337:30\n    at eval (eval at evaluate (:311:30), <anonymous>:24:33)\n    at async <anonymous>:337:30\n    at publish (D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts:8:15)\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts:16:160",
+                    "location": {
+                      "file": "eval at evaluate (:311:30), <anonymous>",
+                      "column": 33,
+                      "line": 24
+                    }
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "eval at evaluate (:311:30), <anonymous>",
+                        "column": 33,
+                        "line": 24
+                      },
+                      "message": "Error: page.evaluate: Error: Notification prerequisite failed: 404\n    at eval (eval at evaluate (:311:30), <anonymous>:24:33)\n    at async <anonymous>:337:30\n    at eval (eval at evaluate (:311:30), <anonymous>:24:33)\n    at async <anonymous>:337:30\n    at publish (D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts:8:15)\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts:16:160"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:26:34.518Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\platform-FN-034-Notificati-ed277-retention-and-foreign-owner-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "eval at evaluate (:311:30), <anonymous>",
+                    "column": 33,
+                    "line": 24
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "310f5d38cd89ad55ea3f-0f4e8f7b31370d55052c",
+          "file": "platform.spec.ts",
+          "line": 14,
+          "column": 1
+        },
+        {
+          "title": "FN-035 AdminReader: granted API metadata, denied admin screens, direct preview denied and SQL unchanged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6705,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:26:36.463Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "310f5d38cd89ad55ea3f-3657d17df04c38a764ee",
+          "file": "platform.spec.ts",
+          "line": 30,
+          "column": 1
+        },
+        {
+          "title": "FN-036 Action grants: UI Allow/Deny/Unset, Admin SELF rechecks and SQL preference ownership",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 16713,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:26:43.382Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "310f5d38cd89ad55ea3f-1651677c35a78e193860",
+          "file": "platform.spec.ts",
+          "line": 37,
+          "column": 1
+        },
+        {
+          "title": "FN-037 User module grant: cancel/disable/re-enable Goals preserves SQL and blocks direct API",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13407,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:00.103Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "310f5d38cd89ad55ea3f-f71603218c706bf7571f",
+          "file": "platform.spec.ts",
+          "line": 50,
+          "column": 1
+        },
+        {
+          "title": "FN-038 Module policy: explicit registration default commit, existing user retained, paused preview blocked",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 7,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 19388,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeDisabled\" getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true })\u001b[22m\n\u001b[2m    23 × locator resolved to <button type=\"button\" aria-busy=\"false\" class=\"primary-button\">Xác nhận policy</button>\u001b[22m\n\u001b[2m       - unexpected value \"enabled\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeDisabled\" getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true })\u001b[22m\n\u001b[2m    23 × locator resolved to <button type=\"button\" aria-busy=\"false\" class=\"primary-button\">Xác nhận policy</button>\u001b[22m\n\u001b[2m       - unexpected value \"enabled\"\u001b[22m\n\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts:61:424",
+                    "location": {
+                      "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts",
+                      "column": 424,
+                      "line": 61
+                    },
+                    "snippet": "  59 |  const context=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL,viewport:worker.project.use.viewport});let before:any;\n  60 |  try{const p=await context.newPage();await login(p,'SuperAdmin');before=(await api(p,'listAdminModules')).items.find((m:any)=>m.code==='FX32');await page.goto('/');const old=await api(page,'getMe');await p.goto('/admin/modules');const row=p.locator('.module-card').filter({has:p.getByText('FX32',{exact:true})});for(const enabled of [!before.registrationEnabled,before.registrationEnabled]){await row.getByLabel('Registration default',{exact:true}).setChecked(enabled);await row.getByRole('button',{name:'Xem lại thay đổi FX32',exact:true}).click();await confirm(p,'Xác nhận policy');await expect.poll(()=>operator('catalog').modules.find((m:any)=>m.Code==='FX32').RegistrationEnabled).toBe(enabled);expect((await api(page,'getMe')).modules.find((m:any)=>m.code==='FX32').enabled).toBe(old.modules.find((m:any)=>m.code==='FX32').enabled);}\n> 61 |  for(const code of ['FX30','FX34','FX35']){const r=p.locator('.module-card').filter({has:p.getByText(code,{exact:true})});const snapshot=operator('catalog').modules.find((m:any)=>m.Code===code);await r.getByLabel('System enabled',{exact:true}).check();await r.getByRole('button',{name:'Xem lại thay đổi '+code,exact:true}).click();await expect(p.getByRole('dialog').getByRole('button',{name:'Xác nhận policy',exact:true})).toBeDisabled();await p.getByRole('dialog').getByRole('button',{name:'Hủy',exact:true}).click();expect(operator('catalog').modules.find((m:any)=>m.Code===code)).toEqual(snapshot);}\n     |                                                                                                                                                                                                                                                                                                                                                                                                                                        ^\n  62 |  }finally{if(before){const p=context.pages()[0],m=(await api(p,'listAdminModules')).items.find((m:any)=>m.code==='FX32');if(m.registrationEnabled!==before.registrationEnabled){const preview=await api(p,'previewModulePolicy',[m.id,{registrationEnabled:before.registrationEnabled}]);await api(p,'commitModulePolicy',[m.id,preview.etag,{registrationEnabled:before.registrationEnabled},preview.previewToken]);}}await context.close();}\n  63 | });\n  64 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts",
+                        "column": 424,
+                        "line": 61
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeDisabled\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true })\nExpected: disabled\nReceived: enabled\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toBeDisabled\" getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog').getByRole('button', { name: 'Xác nhận policy', exact: true })\u001b[22m\n\u001b[2m    23 × locator resolved to <button type=\"button\" aria-busy=\"false\" class=\"primary-button\">Xác nhận policy</button>\u001b[22m\n\u001b[2m       - unexpected value \"enabled\"\u001b[22m\n\n\n  59 |  const context=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL,viewport:worker.project.use.viewport});let before:any;\n  60 |  try{const p=await context.newPage();await login(p,'SuperAdmin');before=(await api(p,'listAdminModules')).items.find((m:any)=>m.code==='FX32');await page.goto('/');const old=await api(page,'getMe');await p.goto('/admin/modules');const row=p.locator('.module-card').filter({has:p.getByText('FX32',{exact:true})});for(const enabled of [!before.registrationEnabled,before.registrationEnabled]){await row.getByLabel('Registration default',{exact:true}).setChecked(enabled);await row.getByRole('button',{name:'Xem lại thay đổi FX32',exact:true}).click();await confirm(p,'Xác nhận policy');await expect.poll(()=>operator('catalog').modules.find((m:any)=>m.Code==='FX32').RegistrationEnabled).toBe(enabled);expect((await api(page,'getMe')).modules.find((m:any)=>m.code==='FX32').enabled).toBe(old.modules.find((m:any)=>m.code==='FX32').enabled);}\n> 61 |  for(const code of ['FX30','FX34','FX35']){const r=p.locator('.module-card').filter({has:p.getByText(code,{exact:true})});const snapshot=operator('catalog').modules.find((m:any)=>m.Code===code);await r.getByLabel('System enabled',{exact:true}).check();await r.getByRole('button',{name:'Xem lại thay đổi '+code,exact:true}).click();await expect(p.getByRole('dialog').getByRole('button',{name:'Xác nhận policy',exact:true})).toBeDisabled();await p.getByRole('dialog').getByRole('button',{name:'Hủy',exact:true}).click();expect(operator('catalog').modules.find((m:any)=>m.Code===code)).toEqual(snapshot);}\n     |                                                                                                                                                                                                                                                                                                                                                                                                                                        ^\n  62 |  }finally{if(before){const p=context.pages()[0],m=(await api(p,'listAdminModules')).items.find((m:any)=>m.code==='FX32');if(m.registrationEnabled!==before.registrationEnabled){const preview=await api(p,'previewModulePolicy',[m.id,{registrationEnabled:before.registrationEnabled}]);await api(p,'commitModulePolicy',[m.id,preview.etag,{registrationEnabled:before.registrationEnabled},preview.previewToken]);}}await context.close();}\n  63 | });\n  64 |\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts:61:424"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:13.518Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\platform-FN-038-Module-pol-245dc-ined-paused-preview-blocked-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\platform.spec.ts",
+                    "column": 424,
+                    "line": 61
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "310f5d38cd89ad55ea3f-e84f4e929609e12dea9a",
+          "file": "platform.spec.ts",
+          "line": 58,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "remaining.spec.ts",
+      "file": "remaining.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-039 Planner: UI reorder, boundary controls, week projection and SQL source preservation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3500,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:37.604Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d035e07c49cc0bb6ca3d-d040af594314091d7c29",
+          "file": "remaining.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "FN-040 Project: UI edit, cancel/confirm skip, terminal read-only and SQL reload",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2082,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:42.088Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d035e07c49cc0bb6ca3d-3103fd37fd572b03ae01",
+          "file": "remaining.spec.ts",
+          "line": 12,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "resources.spec.ts",
+      "file": "resources.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Bookmark: validation, dirty discard, create/edit/archive/unarchive and SQL persistence",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3279,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:44.201Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-1754537efef9647b2dd9",
+          "file": "resources.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "Tag: create, rename, cancel delete, delete and owner SQL",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2286,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:47.487Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-14940a2d7a9c4cef7727",
+          "file": "resources.spec.ts",
+          "line": 24,
+          "column": 1
+        },
+        {
+          "title": "Finance: category, exact decimal record, edit, usage guard and unused delete",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 8,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 11616,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog')\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByRole('dialog') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog')\u001b[22m\n\u001b[2m    24 × locator resolved to 1 element\u001b[22m\n\u001b[2m       - unexpected value \"1\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog')\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByRole('dialog') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog')\u001b[22m\n\u001b[2m    24 × locator resolved to 1 element\u001b[22m\n\u001b[2m       - unexpected value \"1\"\u001b[22m\n\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts:39:88",
+                    "location": {
+                      "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts",
+                      "column": 88,
+                      "line": 39
+                    },
+                    "snippet": "  37 |   const category = (await record(page, 'listFinanceCategories', ['', 100], 'Category', name)).item;\n  38 |   modal = await dialog(page, 'Thêm record'); await page.locator('#finance-record-category').selectOption(category.id); await page.locator('#finance-record-amount').fill('123456.12345678'); await page.locator('#finance-record-note').fill(name);\n> 39 |   await modal.getByRole('button', { name: 'Tạo record' }).click(); await expect(modal).toHaveCount(0);\n     |                                                                                        ^\n  40 |   const list = await api(page, 'listFinanceRecords', [{ query: name, limit: 100 }]); const item = list.items.find((i: any) => i.note === name); expect(item.amount).toBe('123456.12345678'); expect(sql('Record', item.id)[0].Amount).toBe(123456.12345678);\n  41 |   await page.locator('.resource-card').filter({ hasText: name }).filter({ has: page.getByRole('heading', { name: '123456.12345678 VND', exact: true }) }).getByRole('button', { name: 'Sửa', exact: true }).click();\n  42 |   await page.locator('#finance-record-amount').fill('7.25'); await page.getByRole('dialog').getByRole('button', { name: 'Lưu record' }).click(); await expect.poll(() => sql('Record', item.id)[0].Amount).toBe(7.25);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts",
+                        "column": 88,
+                        "line": 39
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('dialog')\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m1\u001b[39m\nTimeout:  10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" getByRole('dialog') with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('dialog')\u001b[22m\n\u001b[2m    24 × locator resolved to 1 element\u001b[22m\n\u001b[2m       - unexpected value \"1\"\u001b[22m\n\n\n  37 |   const category = (await record(page, 'listFinanceCategories', ['', 100], 'Category', name)).item;\n  38 |   modal = await dialog(page, 'Thêm record'); await page.locator('#finance-record-category').selectOption(category.id); await page.locator('#finance-record-amount').fill('123456.12345678'); await page.locator('#finance-record-note').fill(name);\n> 39 |   await modal.getByRole('button', { name: 'Tạo record' }).click(); await expect(modal).toHaveCount(0);\n     |                                                                                        ^\n  40 |   const list = await api(page, 'listFinanceRecords', [{ query: name, limit: 100 }]); const item = list.items.find((i: any) => i.note === name); expect(item.amount).toBe('123456.12345678'); expect(sql('Record', item.id)[0].Amount).toBe(123456.12345678);\n  41 |   await page.locator('.resource-card').filter({ hasText: name }).filter({ has: page.getByRole('heading', { name: '123456.12345678 VND', exact: true }) }).getByRole('button', { name: 'Sửa', exact: true }).click();\n  42 |   await page.locator('#finance-record-amount').fill('7.25'); await page.getByRole('dialog').getByRole('button', { name: 'Lưu record' }).click(); await expect.poll(() => sql('Record', item.id)[0].Amount).toBe(7.25);\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts:39:88"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:27:49.779Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\resources-Finance-category-f29ff-age-guard-and-unused-delete-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts",
+                    "column": 88,
+                    "line": 39
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-e10a66ce61ab55498926",
+          "file": "resources.spec.ts",
+          "line": 34,
+          "column": 1
+        },
+        {
+          "title": "Bookmark: real two-tab conflict preserves draft and explicit revision recovery",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7469,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:28:01.989Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-733b3a708c3393c802d0",
+          "file": "resources.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "Bookmark: offline failure retains draft, real retry commits one row",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1186,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:28:10.432Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-0c758618975134af2dca",
+          "file": "resources.spec.ts",
+          "line": 59,
+          "column": 1
+        },
+        {
+          "title": "Owner isolation: real User B login cannot read User A bookmark in API or UI",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1910,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:28:11.626Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-8b10b2ec8d4025bea97e",
+          "file": "resources.spec.ts",
+          "line": 66,
+          "column": 1
+        },
+        {
+          "title": "Goal: title-only creation does not require optional numeric target",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 972,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:28:13.545Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-2467cc662dd3fbb0aaef",
+          "file": "resources.spec.ts",
+          "line": 81,
+          "column": 1
+        },
+        {
+          "title": "Goal: numeric progress and explicit completed/reopen/abandoned lifecycle",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 9,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 90011,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 90000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\fixtures.ts",
+                        "column": 66,
+                        "line": 70
+                      },
+                      "message": "Error: locator.click: Target page, context or browser has been closed\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: 'Ghi progress', exact: true })\u001b[22m\n\n\n   at fixtures.ts:70\n\n  68 | export function card(page: Page, name: string) { return page.locator('.resource-card').filter({ has: page.getByRole('heading', { name, exact: true }) }); }\n  69 | export async function dialog(page: Page, trigger: string) {\n> 70 |   await page.getByRole('button', { name: trigger, exact: true }).click();\n     |                                                                  ^\n  71 |   const modal = page.getByRole('dialog'); await expect(modal).toBeVisible();\n  72 |   expect(await modal.getAttribute('aria-modal')).toBe('true');\n  73 |   const controls = modal.locator('input:not([disabled]),select:not([disabled]),textarea:not([disabled]),button:not([disabled])');\n    at dialog (D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\fixtures.ts:70:66)\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts:89:21"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:28:14.527Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\resources-Goal-numeric-pro-3bde0--reopen-abandoned-lifecycle-desktop\\error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-5556877b464c6d0f33f0",
+          "file": "resources.spec.ts",
+          "line": 86,
+          "column": 1
+        },
+        {
+          "title": "Planner: pin, move day, unpin preserves source Task",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2910,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:29:45.158Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-f3a2bd0d38fd578414b2",
+          "file": "resources.spec.ts",
+          "line": 94,
+          "column": 1
+        },
+        {
+          "title": "Habit: real check-in correction, future schedule and pause/archive lifecycle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3881,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:29:49.153Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-2ae49297a09fb90a9d0a",
+          "file": "resources.spec.ts",
+          "line": 107,
+          "column": 1
+        },
+        {
+          "title": "Reminder: preset, None, Exact and remove retains None intent",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 10,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10527,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: 'Load more Task sources', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: 'Load more Task sources', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Load more Task sources', exact: true })\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: 'Load more Task sources', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: 'Load more Task sources', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Load more Task sources', exact: true })\u001b[22m\n\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts:120:112",
+                    "location": {
+                      "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts",
+                      "column": 112,
+                      "line": 120
+                    },
+                    "snippet": "  118 |   const sourceChoice = page.locator('#reminder-source');\n  119 |   for (let pageIndex = 0; pageIndex < 150 && await sourceChoice.locator('option').evaluateAll((options, value) => !options.some(option => (option as HTMLOptionElement).value === value), 'Task:' + task.id); pageIndex++) {\n> 120 |     const more = page.getByRole('button', { name: 'Load more Task sources', exact: true }); await expect(more).toBeVisible(); await expect(more).toBeEnabled(); await more.click(); await expect.poll(async () => await more.count() === 0 || await more.isEnabled()).toBe(true);\n      |                                                                                                                ^\n  121 |   }\n  122 |   await expect(sourceChoice).toBeEnabled(); await sourceChoice.selectOption('Task:' + task.id);\n  123 |   let modal = await dialog(page, 'Cấu hình reminder'); await modal.getByRole('button', { name: /Đặt reminder|Lưu thay đổi/ }).click(); await expect(modal).toHaveCount(0);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts",
+                        "column": 112,
+                        "line": 120
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('button', { name: 'Load more Task sources', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" getByRole('button', { name: 'Load more Task sources', exact: true }) with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('button', { name: 'Load more Task sources', exact: true })\u001b[22m\n\n\n  118 |   const sourceChoice = page.locator('#reminder-source');\n  119 |   for (let pageIndex = 0; pageIndex < 150 && await sourceChoice.locator('option').evaluateAll((options, value) => !options.some(option => (option as HTMLOptionElement).value === value), 'Task:' + task.id); pageIndex++) {\n> 120 |     const more = page.getByRole('button', { name: 'Load more Task sources', exact: true }); await expect(more).toBeVisible(); await expect(more).toBeEnabled(); await more.click(); await expect.poll(async () => await more.count() === 0 || await more.isEnabled()).toBe(true);\n      |                                                                                                                ^\n  121 |   }\n  122 |   await expect(sourceChoice).toBeEnabled(); await sourceChoice.selectOption('Task:' + task.id);\n  123 |   let modal = await dialog(page, 'Cấu hình reminder'); await modal.getByRole('button', { name: /Đặt reminder|Lưu thay đổi/ }).click(); await expect(modal).toHaveCount(0);\n    at D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts:120:112"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:29:53.042Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\qa\\runs\\QA-20261018T140148Z-acc869\\functional-output\\resources-Reminder-preset--d74fa--remove-retains-None-intent-desktop\\error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "D:\\Projects\\ASP_NET_Core_Developer_2026\\Nexora\\web\\Nexora.Web\\functional\\resources.spec.ts",
+                    "column": 112,
+                    "line": 120
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-5632b688a39fc76da84d",
+          "file": "resources.spec.ts",
+          "line": 116,
+          "column": 1
+        },
+        {
+          "title": "Files: baseline availability gate is enforced in UI and direct API",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [
+                {
+                  "type": "gate",
+                  "description": "FX07 baseline disabled: upload/rename/download/restore/purge positive cases remain Not run."
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 405,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:04.255Z",
+                  "annotations": [
+                    {
+                      "type": "gate",
+                      "description": "FX07 baseline disabled: upload/rename/download/restore/purge positive cases remain Not run."
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c5a9a91e1b9b058112b5-8ced250e790785ba60fd",
+          "file": "resources.spec.ts",
+          "line": 131,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "security.spec.ts",
+      "file": "security.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-033 Sessions: cancel/confirm revoke other, foreign owner denial, current revoke logs out",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 15068,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:05.668Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a7e9410bcc1ef00e9656-53fc370f9181c7a441db",
+          "file": "security.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "settings.spec.ts",
+      "file": "settings.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-028 Settings theme: explicit save, SQL owner/value, reload and unchanged module grants",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2055,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:20.774Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d877ffdf71ec720167ae-87291635cf42c7d85497",
+          "file": "settings.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "FN-029 Profile: invalid timezone preserves draft, vi/en persistence and Task instant unchanged",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2791,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:22.837Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d877ffdf71ec720167ae-4f3c91738ba2077dba91",
+          "file": "settings.spec.ts",
+          "line": 27,
+          "column": 1
+        },
+        {
+          "title": "FN-030 Profile: real two-tab conflict, explicit comparison retains draft, server version recovery",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9271,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:25.637Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d877ffdf71ec720167ae-f0228e55cc040332a5b9",
+          "file": "settings.spec.ts",
+          "line": 49,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "sharing-repair.spec.ts",
+      "file": "sharing-repair.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Sharing repair: approved public Task detail, separate policy impact, cancellation and permanent nonrevival",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7668,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:34.929Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e3918b48723c4e1623e1-b073b13fb1851734c4a5",
+          "file": "sharing-repair.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "skills.spec.ts",
+      "file": "skills.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Skill: explicit self assessment, SQL persistence, dirty conflict, pagination and archive cohort",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6779,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Skill verification: enabling the installed subset\n"
+                    },
+                    {
+                      "text": "Skill verification: form cancel and browser Back\n"
+                    },
+                    {
+                      "text": "Skill verification: explicit assessment and SQL read\n"
+                    },
+                    {
+                      "text": "Skill verification: conflict recovery\n"
+                    },
+                    {
+                      "text": "Skill verification: pagination\n"
+                    },
+                    {
+                      "text": "Skill verification: fixtures created\n"
+                    },
+                    {
+                      "text": "Skill verification: list reloaded\n"
+                    },
+                    {
+                      "text": "Skill verification: target found through pagination\n"
+                    },
+                    {
+                      "text": "Skill verification: lifecycle and revoke\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:42.624Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "024b5a36f2868d8a0332-8f0479006e1ab57bd679",
+          "file": "skills.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "time-access.spec.ts",
+      "file": "time-access.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-043 Time access: Admin SELF grants, read-only UI, timer separation and foreign-owner 404",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 16149,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:30:49.431Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0df698fc86b46371fcaf-e528d1afd3d09a0d3347",
+          "file": "time-access.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "time.spec.ts",
+      "file": "time.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, resume and Trash/Restore",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11190,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:05.606Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "25a4a51ee02522244856-12d6bed183a5361e5255",
+          "file": "time.spec.ts",
+          "line": 24,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "toolbox.spec.ts",
+      "file": "toolbox.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "FN-019 Toolbox Base64: Unicode round-trip, invalid decode recovery and confirmed clear",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 747,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:16.822Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-01e6909babdef1b5193e",
+          "file": "toolbox.spec.ts",
+          "line": 17,
+          "column": 1
+        },
+        {
+          "title": "FN-020 Toolbox URL: exact codec output never navigates or fetches pasted URL",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 539,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:17.577Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-9d999db4dec57c9f44d1",
+          "file": "toolbox.spec.ts",
+          "line": 37,
+          "column": 1
+        },
+        {
+          "title": "FN-021 Toolbox HTML: decoded hostile content remains literal text",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 514,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:18.125Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-706dcfc099b60f635342",
+          "file": "toolbox.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "FN-022 Toolbox Hash: all five algorithms match independent oracle and legacy warning",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 690,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:18.646Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-bdc53f9a7945c68b75e7",
+          "file": "toolbox.spec.ts",
+          "line": 58,
+          "column": 1
+        },
+        {
+          "title": "FN-023 Toolbox UUID: count boundaries, version, uniqueness and failed run clears old success",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 625,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:19.343Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-a5884d3c8604ca49b13b",
+          "file": "toolbox.spec.ts",
+          "line": 68,
+          "column": 1
+        },
+        {
+          "title": "FN-024 Toolbox Password: bounds and memory-only reset without exposing generated values",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 718,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:19.975Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-13bc291ab1e57019ea28",
+          "file": "toolbox.spec.ts",
+          "line": 81,
+          "column": 1
+        },
+        {
+          "title": "FN-025 Toolbox JSON: semantic format/compact, parser error, retained input and recovery",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 665,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:20.701Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-9524fe8a504c59c1544b",
+          "file": "toolbox.spec.ts",
+          "line": 93,
+          "column": 1
+        },
+        {
+          "title": "FN-026 Toolbox Regex: matching, ignore-case, truncation, invalid pattern and bounded timeout",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 937,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:21.374Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-8b17d66011afea14f75f",
+          "file": "toolbox.spec.ts",
+          "line": 106,
+          "column": 1
+        },
+        {
+          "title": "FN-027 Toolbox catalog: supported IDs, no persistent canary and unsupported network gate",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 734,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:22.318Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "e857a9144b86bd7822e5-977d9ec523f5bafd8258",
+          "file": "toolbox.spec.ts",
+          "line": 123,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "wishlist.spec.ts",
+      "file": "wishlist.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Wishlist: real form, decimal SQL persistence, dirty cancel, pagination and preserved archive cohort",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 11,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6694,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "Wishlist verification: enabling the installed subset\n"
+                    },
+                    {
+                      "text": "Wishlist verification: form cancel and browser Back\n"
+                    },
+                    {
+                      "text": "Wishlist verification: real create and SQL read\n"
+                    },
+                    {
+                      "text": "Wishlist verification: conflict recovery\n"
+                    },
+                    {
+                      "text": "Wishlist verification: pagination\n"
+                    },
+                    {
+                      "text": "Wishlist verification: fixtures created\n"
+                    },
+                    {
+                      "text": "Wishlist verification: list reloaded\n"
+                    },
+                    {
+                      "text": "Wishlist verification: target found through pagination\n"
+                    },
+                    {
+                      "text": "Wishlist verification: lifecycle and revoke\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:31:23.065Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "86cec6b03d285ba426c2-39c07bf21d4280b6af52",
+          "file": "wishlist.spec.ts",
+          "line": 4,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T14:18:28.676Z",
+    "duration": 781318.0780000001,
+    "expected": 45,
+    "skipped": 0,
+    "unexpected": 11,
+    "flaky": 0
+  }
+}

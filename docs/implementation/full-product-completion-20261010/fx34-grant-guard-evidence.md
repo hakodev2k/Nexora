@@ -1,0 +1,11 @@
+# Installed Automation grant boundary — 2026-10-11
+
+Feature: FX34, access.permission.set, automation.definition.enable and exact shipped definition/manual-run actions. IMPLEMENTED_UNVERIFIED.
+
+Read-only CI review at24c95ce1dc985800788bbc3c230edaea2ebcc931: baseline PASS; API/bootstrap builds PASS; frontend unit/build PASS. Preserved custom backend checks:31pass/1fail/2skip; the failing paused-action check calls CanGrantAllow(automation.definition.enable) with no installed context. No tests were edited or run by this batch. SQL/API remains environment-blocked, browser lacks an isolated target, Windows ACL lacks required process-identity evidence; no full regression claim.
+
+Confirmed production guard defect: ActionGrantPolicy allowed a resumed action without installation evidence. Now its default denies paused prefixes. Only the exact shipped Automation subset plus a server-derived installed contract can receive Allow. SqlAdminAccessService structural validation defers that exact subset to the actual SQL preview/commit guard. It requires FX34 Ready, the exact Resolved permission, AutomationDefinition ResourceType contract, definition/version tables and trusted current-version foreign key. Commit rechecks inside the existing Serializable transaction; caller cannot supply the installation context. Current privileged session, recent authentication, ETag, signed preview, receipt and audit paths remain intact. Other automation actions, including worker-only dispatch, remain ungrantable.
+
+Production changes: src/Nexora.Domain/Access/ActionGrantPolicy.cs; src/Nexora.Infrastructure/Access/SqlAdminAccessService.cs. Existing Admin permission UI/API consumes the preview/blocker and commit behavior. No schema/migration, frontend, tests or CI configuration changes. An initial SQL helper column mismatch was caught during schema review and corrected before publication.
+
+.NET10 Release API build PASS0warnings/errors; git diff --check PASS. Independent source/security review reports no remaining confirmed blocker. Functional and SQL/API verification NOT_RUN under code-only owner directive. CI after this correction must be read separately; prior results do not establish acceptance. Overall FX34 and Release1 remain incomplete.

@@ -1,0 +1,1647 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 401
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/auth/login",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard/layout",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/dashboard",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/modules",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/modules/00000040-0000-0000-0000-000000000040/preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/modules/00000040-0000-0000-0000-000000000040/policy",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/users/1174d6ba-67ef-4fca-b183-3c78c2f9e250/access",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/users/1174d6ba-67ef-4fca-b183-3c78c2f9e250/access/preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/1174d6ba-67ef-4fca-b183-3c78c2f9e250/access/modules",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/admin/users/9457cc6c-8b17-4793-b17e-343296b1ba2f/access",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/admin/users/9457cc6c-8b17-4793-b17e-343296b1ba2f/access/preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/admin/users/9457cc6c-8b17-4793-b17e-343296b1ba2f/access/modules",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 400
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 400
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/history",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 422
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 412
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/archive",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 409
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/trash-preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/restore-preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/restore",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/trash-preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/trash",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/purge-preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/purge",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/learning/work-logs/0269bd01-135c-486c-904f-dfa2de468d72/purge",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals",
+    "status": 201
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "PUT",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/targets/5e2f88db-1e5e-438e-9d14-048952e5bb9a/change-preview",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/targets/5e2f88db-1e5e-438e-9d14-048952e5bb9a/update-definition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/transition",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/metadata-history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/target-history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/state-history",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals/1e2371c9-7ced-4a33-9534-51237101e800/target-history",
+    "status": 404
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/goals",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/skills",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/auth/csrf",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/me",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/settings/preferences",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs/capabilities",
+    "status": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/v1/learning/work-logs",
+    "status": 200
+  }
+]

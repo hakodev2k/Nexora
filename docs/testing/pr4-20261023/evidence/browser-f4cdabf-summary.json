@@ -1,0 +1,62 @@
+[
+  {
+    "artifact": "pr4-uiux-productivity-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-restricted-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-auth-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-navigation-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-business-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-gated-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-knowledge-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-admin-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "pr4-uiux-platform-f4cdabfdf0b641c4d64b7f6b5458101f4bbd248c",
+    "cases": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  {
+    "artifact": "browser-e2e-7c4228e954bbea06d265d3276ad89b394b26ff33",
+    "cases": 12,
+    "failed": 0,
+    "skipped": 0
+  }
+]

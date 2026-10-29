@@ -1,6 +1,6 @@
 # FX-17 — Habits: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · 2026-09-07. The 2026-09-11 local slice binds owner read/create/update/schedule/pause/resume/archive/unarchive, local reminder-time metadata and check-in actions to `SqlHabitService` and `/api/v1/habits*`; the 2026-09-12 hardening adds same-owner schedule/check-in constraints, actor attribution, stable check-in idempotency and literal-safe search. Support, Trash/purge and reminder-dispatch rows remain unavailable. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 
@@ -42,7 +42,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 | `habits.habit.schedule` | Theo FX-17; lịch mới không rewrite quá khứ; pause không làm mất streak lịch sử; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |
 | `habits.habit.pause` | Theo FX-17; lịch mới không rewrite quá khứ; pause không làm mất streak lịch sử; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |
 | `habits.habit.resume` | Theo FX-17; lịch mới không rewrite quá khứ; pause không làm mất streak lịch sử; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |
-| `habits.habit.set_reminder` | Theo FX-17; lịch mới không rewrite quá khứ; pause không làm mất streak lịch sử; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |
+| `habits.habit.set_reminder` | Chỉ lưu/clear local reminder-time metadata với ETag, idempotency và audit; không tạo reminder intent, worker hay provider dispatch. Lịch mới không rewrite quá khứ; pause không làm mất streak lịch sử | Common + dynamic source/provider guards |
 | `habits.checkin.record` | Own habit/day; không future day; boolean/count validation; ghi correction; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |
 | `habits.checkin.correct` | Own habit/day; không future day; boolean/count validation; ghi correction; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |
 | `habits.streak.read` | Own habit; history past check-ins không bị viết lại bởi đổi schedule; Own habit; history past check-ins không bị viết lại bởi đổi schedule | Common + dynamic source/provider guards |

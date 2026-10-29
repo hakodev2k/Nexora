@@ -1,0 +1,1181 @@
+[
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:Toolbox removes the previous success when changed options fail and retains correction input",
+    "TestName": "Toolbox removes the previous success when changed options fail and retains correction input",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:Toolbox clear requires confirmation and cancellation preserves pasted input",
+    "TestName": "Toolbox clear requires confirmation and cancellation preserves pasted input",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled home surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled home surface has a settled empty state and named interactive controls",
+    "Status": "FAIL",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": "expect(element).not.toBeInTheDocument()  expected document not to contain element, found <div   class=\"loading-state\"   role=\"status\" >   Đang tải các widget… </div> instead  Ignored nodes: comments, script, style [36m<html>[39m   [36m<head />[39m   [36m<body>[39m     [36m<div>[39m       [36m<div[39m         [33mclass[39m=[32m\"app-shell\"[39m       [36m>[39m         [36m<a[39m           [33mclass[39m=[32m\"skip-link\"[39m           [33mhref[39m=[32m\"#nexora-main-content\"[39m         [36m>[39m           [0mSkip to content[0m         [36m</a>[39m         [36m<aside[39m           [33maria-label[39m=[32m\"Nexora navigation\"[39m           [33mclass[39m=[32m\"sidebar\"[39m         [36m>[39m           [36m<div[39m             [33mclass[39m=[32m\"sidebar-heading\"[39m           [36m>[39m             [36m<div[39m               [33mclass[39m=[32m\"sidebar-brand\"[39m             [36m>[39m               [36m<span[39m                 [33maria-hidden[39m=[32m\"true\"[39m                 [33mclass[39m=[32m\"brand-mark\"[39m               [36m>[39m                 [0mN[0m               [36m</span>[39m               [36m<span>[39m                 [0mNexora[0m               [36m</span>[39m             [36m</div>[39m             [36m<button[39m               [33maria-controls[39m=[32m\"nexora-primary-navigation\"[39m               [33maria-expanded[39m=[32m\"false\"[39m               [33mclass[39m=[32m\"mobile-nav-toggle\"[39m               [33mtype[39m=[32m\"button\"[39m             [36m>[39m               [0mOpen menu[0m             [36m</button>[39m           [36m</div>[39m           [36m<nav[39m             ["
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled search surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled search surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled favorites surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled favorites surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled profile surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled profile surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled security surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled security surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled notifications surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled notifications surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled trash surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled trash surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled sharing surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled sharing surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled support surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled support surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled files surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled files surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled projects surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled projects surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled tasks surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled tasks surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled calendar surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled calendar surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled documents surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled documents surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled reminders surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled reminders surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled bookmarks surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled bookmarks surface has a settled empty state and named interactive controls",
+    "Status": "FAIL",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": "expect(element).not.toBeInTheDocument()  expected document not to contain element, found <div   aria-atomic=\"true\"   aria-live=\"assertive\"   class=\"notice notice-error\"   role=\"alert\" >   <div     class=\"notice-content\"   >     Không có quyền đọc thư viện Bookmarks hiện tại.   </div> </div> instead"
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled snippets surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled snippets surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled read later surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled read later surface has a settled empty state and named interactive controls",
+    "Status": "FAIL",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": "expect(element).not.toBeInTheDocument()  expected document not to contain element, found <div   aria-atomic=\"true\"   aria-live=\"assertive\"   class=\"notice notice-error\"   role=\"alert\" >   <div     class=\"notice-content\"   >     Bạn không có quyền đọc queue hiện tại.   </div> </div> instead"
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled tags surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled tags surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled developer tools surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled developer tools surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled goals surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled goals surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled planner surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled planner surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled habits surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled habits surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:the enabled finance surface has a settled empty state and named interactive controls",
+    "TestName": "the enabled finance surface has a settled empty state and named interactive controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:Files keeps a functional form visible alongside its API error state",
+    "TestName": "Files keeps a functional form visible alongside its API error state",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:Files exposes a clear loading state before its empty state resolves",
+    "TestName": "Files exposes a clear loading state before its empty state resolves",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.surface.test.tsx:a revoked module entry reports unavailability instead of claiming a grant",
+    "TestName": "a revoked module entry reports unavailability instead of claiming a grant",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.surface.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:shared Project renders approved nullable Task details and literal ordered checklist without legacy Due",
+    "TestName": "shared Project renders approved nullable Task details and literal ordered checklist without legacy Due",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Snippet create-only capability never requests private list and clears a committed draft without retry",
+    "TestName": "Snippet create-only capability never requests private list and clears a committed draft without retry",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Snippet capability revocation clears private editor and disables unauthorized commands",
+    "TestName": "Snippet capability revocation clears private editor and disables unauthorized commands",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Snippet unknown save freezes input and retains the exact key through discard cancellation and reconciliation",
+    "TestName": "Snippet unknown save freezes input and retains the exact key through discard cancellation and reconciliation",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Snippet readonly edit retains a safe Cancel path and returns to independently allowed Create",
+    "TestName": "Snippet readonly edit retains a safe Cancel path and returns to independently allowed Create",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Snippet unknown transition exposes metadata-only reconciliation and reuses the original command after 502",
+    "TestName": "Snippet unknown transition exposes metadata-only reconciliation and reuses the original command after 502",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Task edit uses generic fields and clears protected state on acknowledgement without resubmitting",
+    "TestName": "Task edit uses generic fields and clears protected state on acknowledgement without resubmitting",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Task edit uses generic fields and clears protected state on denied without resubmitting",
+    "TestName": "Task edit uses generic fields and clears protected state on denied without resubmitting",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:a denied Productivity reload clears the previously authorized Project editor and private draft",
+    "TestName": "a denied Productivity reload clears the previously authorized Project editor and private draft",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:registration renders English copy and exposes inline validation through accessible controls",
+    "TestName": "registration renders English copy and exposes inline validation through accessible controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:registration keeps one idempotency request while submit is pending",
+    "TestName": "registration keeps one idempotency request while submit is pending",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:destructive controls require an accessible in-app confirmation before acting",
+    "TestName": "destructive controls require an accessible in-app confirmation before acting",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:a failed destructive confirmation stays open, explains the failure, and returns focus safely on cancel",
+    "TestName": "a failed destructive confirmation stays open, explains the failure, and returns focus safely on cancel",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct search routes render the FX25 unavailable state without mounting a protected screen",
+    "TestName": "direct search routes render the FX25 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct favorites routes render the FX25 unavailable state without mounting a protected screen",
+    "TestName": "direct favorites routes render the FX25 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct sharing routes render the FX04 unavailable state without mounting a protected screen",
+    "TestName": "direct sharing routes render the FX04 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct support routes render the FX05 unavailable state without mounting a protected screen",
+    "TestName": "direct support routes render the FX05 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct files routes render the FX07 unavailable state without mounting a protected screen",
+    "TestName": "direct files routes render the FX07 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct finance routes render the FX27 unavailable state without mounting a protected screen",
+    "TestName": "direct finance routes render the FX27 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct bookmarks routes render the FX21 unavailable state without mounting a protected screen",
+    "TestName": "direct bookmarks routes render the FX21 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct snippets routes render the FX22 unavailable state without mounting a protected screen",
+    "TestName": "direct snippets routes render the FX22 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct readLater routes render the FX23 unavailable state without mounting a protected screen",
+    "TestName": "direct readLater routes render the FX23 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct tags routes render the FX24 unavailable state without mounting a protected screen",
+    "TestName": "direct tags routes render the FX24 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct tools routes render the FX32 unavailable state without mounting a protected screen",
+    "TestName": "direct tools routes render the FX32 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct goals routes render the FX16 unavailable state without mounting a protected screen",
+    "TestName": "direct goals routes render the FX16 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct planner routes render the FX15 unavailable state without mounting a protected screen",
+    "TestName": "direct planner routes render the FX15 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:direct habits routes render the FX17 unavailable state without mounting a protected screen",
+    "TestName": "direct habits routes render the FX17 unavailable state without mounting a protected screen",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:the shell hides an unavailable admin route and provides an explicit permission state",
+    "TestName": "the shell hides an unavailable admin route and provides an explicit permission state",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:an Admin cannot reveal a SUPER-only access route even if a stale client profile contains a capability flag",
+    "TestName": "an Admin cannot reveal a SUPER-only access route even if a stale client profile contains a capability flag",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:a SuperAdmin reviews a signed access preview before committing a role mutation",
+    "TestName": "a SuperAdmin reviews a signed access preview before committing a role mutation",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:a stale access preview (409) keeps the review dialog open and prevents a blind retry",
+    "TestName": "a stale access preview (409) keeps the review dialog open and prevents a blind retry",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:a stale access preview (412) keeps the review dialog open and prevents a blind retry",
+    "TestName": "a stale access preview (412) keeps the review dialog open and prevents a blind retry",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:a recent-auth challenge reauthenticates without losing the intended access change, then requests a fresh preview",
+    "TestName": "a recent-auth challenge reauthenticates without losing the intended access change, then requests a fresh preview",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:module policy exposes dependency context and commits only after a policy preview",
+    "TestName": "module policy exposes dependency context and commits only after a policy preview",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:mobile navigation exposes state through an accessible toggle",
+    "TestName": "mobile navigation exposes state through an accessible toggle",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:the profile dirty-state dialog traps focus, defaults to keep editing, and restores focus on Escape",
+    "TestName": "the profile dirty-state dialog traps focus, defaults to keep editing, and restores focus on Escape",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:navigation labels are concise for assistive technology and unavailable modules stay hidden",
+    "TestName": "navigation labels are concise for assistive technology and unavailable modules stay hidden",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Files exposes the installed private subset and hides dormant lifecycle controls",
+    "TestName": "Files exposes the installed private subset and hides dormant lifecycle controls",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Files binds each action capability and clears protected rows on authority loss",
+    "TestName": "Files binds each action capability and clears protected rows on authority loss",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Files clears the native file input after upload so the same file can be selected again",
+    "TestName": "Files clears the native file input after upload so the same file can be selected again",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:global Trash previews restore and permanent deletion, with a deliberate in-dialog PURGE gate",
+    "TestName": "global Trash previews restore and permanent deletion, with a deliberate in-dialog PURGE gate",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:Notifications keeps ETags from the list projection for read state and selected-item deletion",
+    "TestName": "Notifications keeps ETags from the list projection for read state and selected-item deletion",
+    "Status": "FAIL",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": "Unable to find an accessible element with the role \"button\" and name \"Đánh dấu chưa đọc\"  Here are the accessible roles:    link:    Name \"Skip to content\":   [36m<a[39m     [33mclass[39m=[32m\"skip-link\"[39m     [33mhref[39m=[32m\"#nexora-main-content\"[39m   [36m/>[39m    --------------------------------------------------   complementary:    Name \"Nexora navigation\":   [36m<aside[39m     [33maria-label[39m=[32m\"Nexora navigation\"[39m     [33mclass[39m=[32m\"sidebar\"[39m   [36m/>[39m    --------------------------------------------------   button:    Name \"Open menu\":   [36m<button[39m     [33maria-controls[39m=[32m\"nexora-primary-navigation\"[39m     [33maria-expanded[39m=[32m\"false\"[39m     [33mclass[39m=[32m\"mobile-nav-toggle\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Home\":   [36m<button[39m     [33mclass[39m=[32m\"nav-item\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Notifications\":   [36m<button[39m     [33maria-current[39m=[32m\"page\"[39m     [33mclass[39m=[32m\"nav-item active\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Trash\":   [36m<button[39m     [33mclass[39m=[32m\"nav-item\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Profile\":   [36m<button[39m     [33mclass[39m=[32m\"nav-item\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Security & sessions\":   [36m<button[39m     [33mclass[39m=[32m\"nav-item\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Sign out\":   [36m<button[39m     [33mclass[39m=[32m\"nav-item logout-item\"[39m     [33mtype[39m=[32m\"button\"[39m   [36m/>[39m    Name \"Sign o"
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:an authenticated share link resumes after sign-in without placing its capability token in a login URL or browser storage",
+    "TestName": "an authenticated share link resumes after sign-in without placing its capability token in a login URL or browser storage",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:the HTTP boundary refreshes CSRF once and retains a single idempotency key after a pre-handler rejection",
+    "TestName": "the HTTP boundary refreshes CSRF once and retains a single idempotency key after a pre-handler rejection",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:session metadata uses the profile IANA zone rather than the browser default",
+    "TestName": "session metadata uses the profile IANA zone rather than the browser default",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:time helpers preserve a normal IANA instant and all-day date boundary",
+    "TestName": "time helpers preserve a normal IANA instant and all-day date boundary",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/App.test.tsx:R2-10: DST valid-after-gap and fold disambiguation require the approved post-M01 time policy",
+    "TestName": "R2-10: DST valid-after-gap and fold disambiguation require the approved post-M01 time policy",
+    "Status": "NOT_RUN",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/App.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CalendarExportScreen.test.tsx:Calendar export authorization and recovery > allows Task-only selection when Manual read is unavailable without choosing a source automatically",
+    "TestName": "Calendar export authorization and recovery > allows Task-only selection when Manual read is unavailable without choosing a source automatically",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CalendarExportScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CalendarExportScreen.test.tsx:Calendar export authorization and recovery > clears a selected report on Reload when its individual source is no longer listed",
+    "TestName": "Calendar export authorization and recovery > clears a selected report on Reload when its individual source is no longer listed",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CalendarExportScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CalendarExportScreen.test.tsx:Calendar export authorization and recovery > clears protected cards when a source report becomes unavailable",
+    "TestName": "Calendar export authorization and recovery > clears protected cards when a source report becomes unavailable",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CalendarExportScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CalendarExportScreen.test.tsx:Calendar export authorization and recovery > retains the confirmed command key after a lost acknowledgment and uses explicit retry",
+    "TestName": "Calendar export authorization and recovery > retains the confirmed command key after a lost acknowledgment and uses explicit retry",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CalendarExportScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CreatedShareLink.test.tsx:checks current authority before copying a complete same-origin URL",
+    "TestName": "checks current authority before copying a complete same-origin URL",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CreatedShareLink.test.tsx:clears the creation result when authority is unavailable (401)",
+    "TestName": "clears the creation result when authority is unavailable (401)",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CreatedShareLink.test.tsx:clears the creation result when authority is unavailable (403)",
+    "TestName": "clears the creation result when authority is unavailable (403)",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CreatedShareLink.test.tsx:clears the creation result when authority is unavailable (404)",
+    "TestName": "clears the creation result when authority is unavailable (404)",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CreatedShareLink.test.tsx:does not copy after the creation result has unmounted while authority is pending",
+    "TestName": "does not copy after the creation result has unmounted while authority is pending",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/CreatedShareLink.test.tsx:reports clipboard rejection without showing a success or exposing the browser error",
+    "TestName": "reports clipboard rejection without showing a success or exposing the browser error",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/CreatedShareLink.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/FileRestoreDialog.test.tsx:a historical committed restore acknowledgement clears private preview and never replays another cohort",
+    "TestName": "a historical committed restore acknowledgement clears private preview and never replays another cohort",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/FileRestoreDialog.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/MonitoringScreen.test.tsx:Monitoring authority and command recovery > does not fetch protected rows after unmount while capability lookup is pending",
+    "TestName": "Monitoring authority and command recovery > does not fetch protected rows after unmount while capability lookup is pending",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/MonitoringScreen.test.tsx:Monitoring authority and command recovery > serializes real cursor loading and appends the next page without duplicating a request",
+    "TestName": "Monitoring authority and command recovery > serializes real cursor loading and appends the next page without duplicating a request",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/MonitoringScreen.test.tsx:Monitoring authority and command recovery > freezes metadata and reuses the exact command after an unknown save outcome",
+    "TestName": "Monitoring authority and command recovery > freezes metadata and reuses the exact command after an unknown save outcome",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/MonitoringScreen.test.tsx:Monitoring authority and command recovery > clears protected records and drafts when an edited source becomes unavailable",
+    "TestName": "Monitoring authority and command recovery > clears protected records and drafts when an edited source becomes unavailable",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/MonitoringScreen.test.tsx:Monitoring authority and command recovery > requires comparison of a newer revision before explicitly retaining and saving the draft",
+    "TestName": "Monitoring authority and command recovery > requires comparison of a newer revision before explicitly retaining and saving the draft",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/MonitoringScreen.test.tsx:Monitoring authority and command recovery > removes saved metadata when refreshed read authority disappears",
+    "TestName": "Monitoring authority and command recovery > removes saved metadata when refreshed read authority disappears",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > retains a dirty draft when Escape discard is cancelled and removes unload protection after confirmed discard",
+    "TestName": "News category authority and recovery > retains a dirty draft when Escape discard is cancelled and removes unload protection after confirmed discard",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > does not load private rows after a pending capability lookup resolves following unmount",
+    "TestName": "News category authority and recovery > does not load private rows after a pending capability lookup resolves following unmount",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > serializes cursor fetches and deduplicates overlapping IDs",
+    "TestName": "News category authority and recovery > serializes cursor fetches and deduplicates overlapping IDs",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > freezes and exactly retries an uncertain update with status 0",
+    "TestName": "News category authority and recovery > freezes and exactly retries an uncertain update with status 0",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > freezes and exactly retries an uncertain update with status 503",
+    "TestName": "News category authority and recovery > freezes and exactly retries an uncertain update with status 503",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > freezes and exactly retries an uncertain update with status 409",
+    "TestName": "News category authority and recovery > freezes and exactly retries an uncertain update with status 409",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > warns about possible server commit before discarding an uncertain save",
+    "TestName": "News category authority and recovery > warns about possible server commit before discarding an uncertain save",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > exactly retries uncertain creation with status 0 without creating a fresh command",
+    "TestName": "News category authority and recovery > exactly retries uncertain creation with status 0 without creating a fresh command",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > exactly retries uncertain creation with status 503 without creating a fresh command",
+    "TestName": "News category authority and recovery > exactly retries uncertain creation with status 503 without creating a fresh command",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > exactly retries uncertain creation with status 409 without creating a fresh command",
+    "TestName": "News category authority and recovery > exactly retries uncertain creation with status 409 without creating a fresh command",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > clears private records and editor on current save denial 401",
+    "TestName": "News category authority and recovery > clears private records and editor on current save denial 401",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > clears private records and editor on current save denial 403",
+    "TestName": "News category authority and recovery > clears private records and editor on current save denial 403",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > clears private records and editor on current save denial 404",
+    "TestName": "News category authority and recovery > clears private records and editor on current save denial 404",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > requires comparison again when the current revision changes before explicit reapply",
+    "TestName": "News category authority and recovery > requires comparison again when the current revision changes before explicit reapply",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > creates with an opaque acknowledgement without requesting hidden read authority",
+    "TestName": "News category authority and recovery > creates with an opaque acknowledgement without requesting hidden read authority",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/NewsCategoryScreen.test.tsx:News category authority and recovery > distinguishes unavailable capabilities from an authorized empty list",
+    "TestName": "News category authority and recovery > distinguishes unavailable capabilities from an authorized empty list",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/NewsCategoryScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/OrganizationTagsScreen.test.tsx:Tag pagination requests 25 rows, appends without duplicates and resets filters to a fresh page",
+    "TestName": "Tag pagination requests 25 rows, appends without duplicates and resets filters to a fresh page",
+    "Status": "FAIL",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/OrganizationTagsScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": "Unable to find role=\"heading\" and name \"Document label\"  Ignored nodes: comments, script, style [36m<body>[39m   [36m<div>[39m     [36m<div[39m       [33mclass[39m=[32m\"app-shell\"[39m     [36m>[39m       [36m<a[39m         [33mclass[39m=[32m\"skip-link\"[39m         [33mhref[39m=[32m\"#nexora-main-content\"[39m       [36m>[39m         [0mSkip to content[0m       [36m</a>[39m       [36m<aside[39m         [33maria-label[39m=[32m\"Nexora navigation\"[39m         [33mclass[39m=[32m\"sidebar\"[39m       [36m>[39m         [36m<div[39m           [33mclass[39m=[32m\"sidebar-heading\"[39m         [36m>[39m           [36m<div[39m             [33mclass[39m=[32m\"sidebar-brand\"[39m           [36m>[39m             [36m<span[39m               [33maria-hidden[39m=[32m\"true\"[39m               [33mclass[39m=[32m\"brand-mark\"[39m             [36m>[39m               [0mN[0m             [36m</span>[39m             [36m<span>[39m               [0mNexora[0m             [36m</span>[39m           [36m</div>[39m           [36m<button[39m             [33maria-controls[39m=[32m\"nexora-primary-navigation\"[39m             [33maria-expanded[39m=[32m\"false\"[39m             [33mclass[39m=[32m\"mobile-nav-toggle\"[39m             [33mtype[39m=[32m\"button\"[39m           [36m>[39m             [0mOpen menu[0m           [36m</button>[39m         [36m</div>[39m         [36m<nav[39m           [33maria-label[39m=[32m\"Primary navigation\"[39m           [33mclass[39m=[32m\"primary-nav\"[39m           [33mid[39m=[32m\"nexora-primary-navigation\"[39m         [36m>[39m           [36m<button[39m             [33mclass[39m=[32m\"nav-item\"[3"
+  },
+  {
+    "CaseId": "COMPONENT:src/OrganizationTagsScreen.test.tsx:A denied continuation clears private Tags and shows a failed fetch instead of an empty catalog",
+    "TestName": "A denied continuation clears private Tags and shows a failed fetch instead of an empty catalog",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/OrganizationTagsScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/OrganizationTagsScreen.test.tsx:Conflict recovery fetches the exact later-page Tag and preserves the edited draft",
+    "TestName": "Conflict recovery fetches the exact later-page Tag and preserves the edited draft",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/OrganizationTagsScreen.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ResourceFormDialog.test.tsx:ResourceFormDialog > retains dirty text on Escape, discards explicitly, and restores trigger focus",
+    "TestName": "ResourceFormDialog > retains dirty text on Escape, discards explicitly, and restores trigger focus",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ResourceFormDialog.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ResourceFormDialog.test.tsx:ResourceFormDialog > traps keyboard focus and blocks Escape/cancel while a request is busy",
+    "TestName": "ResourceFormDialog > traps keyboard focus and blocks Escape/cancel while a request is busy",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ResourceFormDialog.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ResourceFormDialog.test.tsx:ResourceFormDialog > focuses the first field when initial asynchronous loading finishes",
+    "TestName": "ResourceFormDialog > focuses the first field when initial asynchronous loading finishes",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ResourceFormDialog.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ShareLinkEditor.test.tsx:keeps an uncertain save frozen and retries the exact key, body and ETag",
+    "TestName": "keeps an uncertain save frozen and retries the exact key, body and ETag",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ShareLinkEditor.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ShareLinkEditor.test.tsx:requires comparison again if the current version changes before explicit reapply",
+    "TestName": "requires comparison again if the current version changes before explicit reapply",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ShareLinkEditor.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ShareLinkEditor.test.tsx:clears editor authority after a module denial",
+    "TestName": "clears editor authority after a module denial",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ShareLinkEditor.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ShareLinkEditor.test.tsx:keeps missing successful ACK recoverable instead of silently closing",
+    "TestName": "keeps missing successful ACK recoverable instead of silently closing",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ShareLinkEditor.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/ShareLinkEditor.test.tsx:ignores the first StrictMode GET after the current generation permits editing",
+    "TestName": "ignores the first StrictMode GET after the current generation permits editing",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/ShareLinkEditor.test.tsx",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/courseApi.test.ts:owner percentage at SQL decimal boundary > preserves smallest supported value and an eight-place fraction without binary floating point",
+    "TestName": "owner percentage at SQL decimal boundary > preserves smallest supported value and an eight-place fraction without binary floating point",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/courseApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/courseApi.test.ts:owner percentage at SQL decimal boundary > rejects a value that would round and progress outside owner range",
+    "TestName": "owner percentage at SQL decimal boundary > rejects a value that would round and progress outside owner range",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/courseApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "TestName": "category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "TestName": "category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "TestName": "category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "TestName": "category save acknowledgement recovery > keeps a missing or invalid ACK outcome unknown",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > keeps JSON decoding failure recoverable with the same update request",
+    "TestName": "category save acknowledgement recovery > keeps JSON decoding failure recoverable with the same update request",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > preserves known HTTP failure 403",
+    "TestName": "category save acknowledgement recovery > preserves known HTTP failure 403",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > preserves known HTTP failure 412",
+    "TestName": "category save acknowledgement recovery > preserves known HTTP failure 412",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > preserves known HTTP failure 503",
+    "TestName": "category save acknowledgement recovery > preserves known HTTP failure 503",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  },
+  {
+    "CaseId": "COMPONENT:src/newsCategoryApi.test.ts:category save acknowledgement recovery > accepts a canonical ACK without exposing extra response fields",
+    "TestName": "category save acknowledgement recovery > accepts a canonical ACK without exposing extra response fields",
+    "Status": "PASS",
+    "Layer": "JSDOM_MSW_COMPONENT",
+    "SourceRef": "web/Nexora.Web/src/newsCategoryApi.test.ts",
+    "EvidenceRef": "frontend-unit.xml",
+    "Error": ""
+  }
+]

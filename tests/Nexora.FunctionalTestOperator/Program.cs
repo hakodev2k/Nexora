@@ -1,0 +1,215 @@
+using System.Data;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Security.Cryptography;
+using Microsoft.Data.SqlClient;
+using Nexora.Domain.Identity;
+using Nexora.Application.Identity;
+using Nexora.Infrastructure.Identity;
+using Nexora.Infrastructure.Local;
+var cs=LocalSqlTarget.Validate(Environment.GetEnvironmentVariable("NEXORA_SQL_CONNECTION_STRING"),"Development");
+var b=new SqlConnectionStringBuilder(cs);var db=b.InitialCatalog;
+if(!Regex.IsMatch(db,"^Nexora_Test_[0-9a-f]{32}$"))throw new Exception("Isolated database required");
+if(args is ["verify-sharing-backup"]) { await SharingBackupProof.RunAsync(cs); return; }
+
+// One static negative-compatibility fixture, never a general SQL or authority writer.
+// LocalSqlTarget + exact disposable database format are enforced above. This command
+// additionally binds the database ownership marker to this process's current run.
+if(args is ["seed-legacy-saved-query",var legacyUserText]) {
+ var run=Environment.GetEnvironmentVariable("NEXORA_E2E_RUN_ID");
+ if(!string.Equals(run,"nexora-e2e-audit-"+db["Nexora_Test_".Length..],StringComparison.Ordinal)
+    || !Guid.TryParse(legacyUserText,out var legacyUser) || legacyUser==Guid.Empty)
+  throw new ArgumentException("An owned synthetic run and user UUID are required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var transaction=(SqlTransaction)await c.BeginTransactionAsync(IsolationLevel.Serializable);
+ await using(var marker=new SqlCommand("SELECT CONVERT(nvarchar(128),[value]) FROM sys.extended_properties WHERE class=0 AND major_id=0 AND minor_id=0 AND name=N'nexora.test.run'",c,transaction)) {
+  if(!string.Equals(await marker.ExecuteScalarAsync() as string,run,StringComparison.Ordinal))
+   throw new InvalidOperationException("The exact owned database run marker is required");
+ }
+ var legacyId=Guid.NewGuid();var legacyTitle="Synthetic legacy schema99 "+legacyId.ToString("N");
+ await using var seed=new SqlCommand("""
+ DECLARE @owner uniqueidentifier;
+ SELECT @owner=s.Id FROM [identity].[User] u WITH(UPDLOCK,HOLDLOCK)
+ JOIN [platform].[PersonalSpace] s WITH(UPDLOCK,HOLDLOCK) ON s.UserId=u.Id
+ WHERE u.Id=@user AND u.NormalizedEmail=@email AND u.State='Active' AND u.IsDeleted=0 AND s.State='Active';
+ IF @owner IS NULL THROW 51000, 'An active run-owned synthetic UserA PersonalSpace is required.', 1;
+ INSERT INTO [discovery].[SavedQuery] ([Id],[OwnerId],[Title],[SchemaVersion],[QueryJson],[CreatedByUserId],[UpdatedByUserId])
+ VALUES(@id,@owner,@title,99,N'{"text":"synthetic legacy","resourceType":"Bookmark","from":null,"to":null,"includeArchived":false,"sort":"relevance"}',@user,@user);
+ """,c,transaction);
+ seed.Parameters.Add("@user",SqlDbType.UniqueIdentifier).Value=legacyUser;
+ seed.Parameters.Add("@email",SqlDbType.NVarChar,320).Value=$"qa-usera-{db[^8..]}@example.invalid";
+ seed.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=legacyId;
+ seed.Parameters.Add("@title",SqlDbType.NVarChar,100).Value=legacyTitle;
+ await seed.ExecuteNonQueryAsync();await transaction.CommitAsync();
+ Console.WriteLine(JsonSerializer.Serialize(new{id=legacyId,title=legacyTitle}));return;
+}
+
+// Explicit synthetic inbox fixture command. This executable has already validated a local,
+// disposable Nexora_Test_<UUID> database; it is not an application/SYSTEM publisher endpoint.
+if(args is ["seed-notification",var recipientText,var fixtureTitle]) {
+ if(!Guid.TryParse(recipientText,out var recipient)||string.IsNullOrWhiteSpace(fixtureTitle)||fixtureTitle.Length>200)
+  throw new ArgumentException("A synthetic recipient UUID and title up to200 characters are required");
+ var id=Guid.NewGuid();
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("""
+ SET XACT_ABORT ON;
+ BEGIN TRANSACTION;
+ IF NOT EXISTS (SELECT 1 FROM [identity].[User] WHERE [Id]=@user AND [NormalizedEmail] LIKE N'qa-%@example.invalid' AND [State]='Active' AND [IsDeleted]=0)
+  THROW 51000, 'A seeded active synthetic QA account is required.', 1;
+ INSERT INTO [notifications].[Notification] ([Id],[OwnerUserId],[LogicalKey],[Kind],[Title],[Body],[SourceRef])
+ VALUES (@id,@user,@key,N'System',@title,N'Synthetic functional inbox fixture.',NULL);
+ INSERT INTO [notifications].[Delivery] ([NotificationId],[Channel],[State],[LastErrorCode])
+ VALUES (@id,'InApp','Pending',NULL),(@id,'Email','Pending',NULL),
+        (@id,'BrowserPush','PermissionUnavailable',N'PushPermissionUnavailable');
+ COMMIT TRANSACTION;
+ """,c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=id;q.Parameters.Add("@user",SqlDbType.UniqueIdentifier).Value=recipient;
+ q.Parameters.Add("@key",SqlDbType.NVarChar,200).Value="functional-fixture:"+id.ToString("N");
+ q.Parameters.Add("@title",SqlDbType.NVarChar,200).Value=fixtureTitle;await q.ExecuteNonQueryAsync();
+ Console.WriteLine(JsonSerializer.Serialize(new{id}));return;
+}
+
+if(args is ["inventory"]){
+ await using var inventory=new SqlConnection(cs);await inventory.OpenAsync();
+ var counts=new Dictionary<string,long>();
+ foreach(var table in new[]{"[identity].[User]","[platform].[PersonalSpace]","[productivity].[Project]","[productivity].[Task]","[calendar].[Event]"}){
+  await using var q=new SqlCommand($"SELECT COUNT_BIG(*) FROM {table}",inventory);counts[table]=(long)(await q.ExecuteScalarAsync())!;
+ }
+ Console.WriteLine(JsonSerializer.Serialize(counts));return;
+}
+if(args is ["catalog"]) {
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT JSON_QUERY((SELECT Code,State,SystemEnabled,RegistrationEnabled,SharingEnabled,SharingEpoch,PolicyRevision FROM [platform].[Module] ORDER BY Code FOR JSON PATH)) AS modules,JSON_QUERY((SELECT ActionKey,EffectiveStatus FROM [platform].[Permission] ORDER BY ActionKey FOR JSON PATH)) AS actions FOR JSON PATH, WITHOUT_ARRAY_WRAPPER",c);
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.ToString());return;
+}
+if(args is ["read-access",var userIdText]) {
+ if(!Guid.TryParse(userIdText,out var userId))throw new ArgumentException("A UUID is required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT JSON_QUERY((SELECT p.ActionKey,g.Effect FROM [platform].[AdminPermission] g JOIN [platform].[Permission] p ON p.Id=g.PermissionId WHERE g.UserId=@id FOR JSON PATH)) AS actionGrants,JSON_QUERY((SELECT m.Code,g.Enabled FROM [platform].[UserModuleGrant] g JOIN [platform].[Module] m ON m.Id=g.ModuleId WHERE g.UserId=@id FOR JSON PATH)) AS moduleGrants FOR JSON PATH, WITHOUT_ARRAY_WRAPPER",c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=userId;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.ToString());return;
+}
+if(args is ["read-session",var sessionIdText]) {
+ if(!Guid.TryParse(sessionIdText,out var sessionId))throw new ArgumentException("A UUID is required");
+ // Safe identity projection: no handle hash, security stamp, password or bearer token.
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT Id,UserId,DeviceLabel,CreatedAt,RevokedAt FROM [identity].[Session] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES",c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=sessionId;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
+if(args is ["read-profile",var profileIdText]) {
+ if(!Guid.TryParse(profileIdText,out var profileId))throw new ArgumentException("A UUID is required");
+ // Explicit safe projection: never select password hashes, security stamps, tokens or MFA data.
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT Id,DisplayName,TimeZoneId,Locale,State FROM [identity].[User] WHERE Id=@id FOR JSON PATH",c);
+ q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=profileId;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
+if(args is ["read-time-report-series",var ownerText]) {
+ if(!Guid.TryParse(ownerText,out var owner))throw new ArgumentException("A UUID is required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT Id,StartAt,EndAt FROM [time].[Entry] WHERE OwnerId=@owner AND Status='Stopped' ORDER BY Id FOR JSON PATH",c);
+ q.Parameters.AddWithValue("@owner",owner);
+ await using var r=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await r.ReadAsync())output.Append(r.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
+if(args is ["read-focus-completion",var focusText]) {
+ if(!Guid.TryParse(focusText,out var focusId))throw new ArgumentException("A UUID is required");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ await using var q=new SqlCommand("SELECT n.Id,n.OwnerUserId,n.LogicalKey,JSON_QUERY((SELECT d.Channel,d.State,d.Attempts,d.LastErrorCode FROM [notifications].[Delivery] d WHERE d.NotificationId=n.Id ORDER BY d.Channel FOR JSON PATH)) AS deliveries FROM [notifications].[Notification] n WHERE n.LogicalKey=@key FOR JSON PATH",c);
+ q.Parameters.AddWithValue("@key",$"focus.completed:{focusId:N}");
+ await using var r=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await r.ReadAsync())output.Append(r.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
+if(args is ["read-resource",var kind,var idText]) {
+ if(!Guid.TryParse(idText,out var id))throw new ArgumentException("A UUID is required");
+ var tables=new Dictionary<string,string> {
+   ["Template"]="[organization].[Template]",["Certification"]="[learning].[Certification]",["WorkLog"]="[learning].[WorkLog]",
+   ["Collection"]="[organization].[Collection]",["CollectionMember"]="[organization].[CollectionMember]",
+   ["SavedQuery"]="[discovery].[SavedQuery]",["RecentItem"]="[discovery].[RecentItem]",
+   ["Dashboard"]="[discovery].[Dashboard]",["DashboardWidget"]="[discovery].[DashboardWidget]",
+   ["AutomationDefinition"]="[automation].[Definition]",["AutomationSchedule"]="[automation].[Schedule]",
+   ["IntegrationConnection"]="[automation].[Connection]",
+   ["DocumentExportJob"]="[operations].[DocumentExportJob]",["DocumentImportJob"]="[operations].[DocumentImportJob]",
+   ["Seller"]="[shopping].[Seller]",["PurchaseOrder"]="[shopping].[PurchaseOrder]",
+   ["OrderLine"]="[shopping].[OrderLine]",["Warranty"]="[shopping].[Warranty]",
+  ["NewsCategory"]="[news].[Category]",
+  ["Monitor"]="[monitoring].[Monitor]",
+  ["WishlistItem"]="[shopping].[WishlistItem]",
+  ["ImportBatch"]="[operations].[ImportBatch]",
+  ["ExportJob"]="[operations].[ExportJob]",
+  ["ShareLink"]="[security].[ShareLink]",
+  ["Skill"]="[learning].[Skill]",
+  ["Company"]="[career].[Company]",["JobApplication"]="[career].[JobApplication]",["ApplicationEvent"]="[career].[ApplicationEvent]",
+  ["DigitalAsset"]="[assets].[DigitalAsset]",["DigitalAssetVersion"]="[assets].[DigitalAssetVersion]",["RenewalRecord"]="[assets].[RenewalRecord]",
+  ["PersonalAsset"]="[assets].[PersonalAsset]",["AssetVersion"]="[assets].[AssetVersion]",
+  ["Course"]="[learning].[Course]",["CourseMilestone"]="[learning].[CourseMilestone]",
+  ["TimeEntry"]="[time].[Entry]",["FocusSession"]="[time].[FocusSession]",["Notification"]="[notifications].[Notification]",["Bookmark"]="[knowledge].[Bookmark]",["Tag"]="[organization].[Tag]",["Category"]="[finance].[ManualCategory]",["Record"]="[finance].[ManualRecord]",
+  ["Project"]="[productivity].[Project]",["Task"]="[productivity].[Task]",["Event"]="[calendar].[Event]",["Goal"]="[productivity].[Goal]",["GoalTarget"]="[productivity].[GoalTarget]",
+  ["Habit"]="[productivity].[Habit]",["HabitCheckIn"]="[productivity].[HabitCheckIn]",["HabitSchedule"]="[productivity].[HabitSchedule]",["PlannerPin"]="[productivity].[PlannerPin]",
+  ["Reminder"]="[calendar].[Reminder]",["Document"]="[documents].[Page]",["Snippet"]="[knowledge].[Snippet]",["ReadingItem"]="[knowledge].[ReadingItem]",["Favorite"]="[discovery].[Favorite]",["Preference"]="[platform].[Preference]"
+ };
+ if(!tables.TryGetValue(kind,out var table))throw new ArgumentException("Resource type is not allowed");
+ await using var c=new SqlConnection(cs);await c.OpenAsync();
+ var query=kind=="NewsCategory"
+  ? "SELECT Id,OwnerId,Name,CreatedAt,UpdatedAt FROM [news].[Category] WHERE Id=@id FOR JSON PATH"
+  : kind=="Monitor"
+  ? "SELECT Id,OwnerId,Title,Kind,Target,IntervalSeconds,ExpectedStatus,Enabled,State,LastObservedAt,CreatedAt,UpdatedAt FROM [monitoring].[Monitor] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="AutomationSchedule"
+  ? "SELECT s.OwnerId,s.DefinitionId,s.CurrentVersion,s.NextDueAt,v.DefinitionVersion,v.ConfigurationJson FROM [automation].[Schedule] s JOIN [automation].[ScheduleVersion] v ON v.OwnerId=s.OwnerId AND v.DefinitionId=s.DefinitionId AND v.VersionNumber=s.CurrentVersion WHERE s.DefinitionId=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="IntegrationConnection"
+  ? "SELECT Id,OwnerId,ProviderKey,ConnectorVersion,Title,Endpoint,AuthMode,State,AuthorityRevision,LastTestAt,CreatedAt,UpdatedAt FROM [automation].[Connection] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="DocumentExportJob"
+  ? "SELECT Id,OwnerId,PageId,VersionNumber,Format,CodecVersion,SourceDigest,ArtifactDigest,DATALENGTH(Artifact) AS ArtifactLength,WarningsJson,CreatedAt,ExpiresAt FROM [operations].[DocumentExportJob] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="DocumentImportJob"
+  ? "SELECT Id,OwnerId,PageId,FileId,SourceDigest,ParserVersion,EditorMode,WarningsJson,DraftEdited,CreatedAt FROM [operations].[DocumentImportJob] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="ShareLink"
+  ? "SELECT Id,OwnerId,ResourceType,ResourceId,Mode,ExpiresAt,RevokedAt,IsDeleted,InvalidatedAt,InvalidationReason,IssuedSharingEpoch FROM [security].[ShareLink] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="ExportJob"
+  ? "SELECT j.Id,j.OwnerId,j.FileObjectId,j.State,j.EventCount,j.CreatedAt,j.ExpiresAt,DATALENGTH(a.Content) AS ArtifactBytes,(SELECT COUNT(*) FROM [operations].[ExportSource] s WHERE s.JobId=j.Id AND s.OwnerId=j.OwnerId) AS SourceCount FROM [operations].[ExportJob] j JOIN [operations].[ExportArtifact] a ON a.JobId=j.Id AND a.OwnerId=j.OwnerId WHERE j.Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="ImportBatch"
+  ? "SELECT Id,OwnerId,FileObjectId,State,TotalCount,AcceptedCount,SkippedCount,AppliedCount FROM [operations].[ImportBatch] WHERE Id=@id FOR JSON PATH"
+  : kind=="Notification"
+  ? "SELECT Id,OwnerUserId,Title,ReadAt,DeletedAt FROM [notifications].[Notification] WHERE Id=@id FOR JSON PATH, INCLUDE_NULL_VALUES"
+  : kind=="Snippet"
+  ? "SELECT s.*,v.SourceText AS Body FROM [knowledge].[Snippet] s JOIN [knowledge].[SnippetVersion] v ON v.SnippetId=s.Id AND v.OwnerId=s.OwnerId AND v.VersionNumber=s.CurrentVersion WHERE s.Id=@id FOR JSON PATH"
+  : $"SELECT * FROM {table} WHERE Id=@id FOR JSON PATH";
+ await using var q=new SqlCommand(query,c);q.Parameters.Add("@id",SqlDbType.UniqueIdentifier).Value=id;
+ await using var reader=await q.ExecuteReaderAsync();var output=new System.Text.StringBuilder();while(await reader.ReadAsync())output.Append(reader.GetString(0));
+ Console.WriteLine(output.Length==0?"[]":output.ToString());return;
+}
+if(args is ["migrate"]) {
+ await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
+ Console.WriteLine($"Applied {M01MigrationManifest.RequiredFileNames.Count} approved migrations.");return;
+}
+if(args is not ["seed"])throw new ArgumentException("Use seed, migrate, inventory, catalog, seed-notification USER_UUID TITLE, read-access UUID, read-session UUID, read-profile UUID, or read-resource TYPE UUID");
+b.InitialCatalog="master";
+await using(var c=new SqlConnection(b.ConnectionString)){await c.OpenAsync();await using var q=new SqlCommand($"IF DB_ID(@db) IS NULL CREATE DATABASE [{db}]",c);q.Parameters.AddWithValue("@db",db);await q.ExecuteNonQueryAsync();}
+await new SqlMigrationRunner().ApplyAsync(cs,Environment.GetEnvironmentVariable("NEXORA_MIGRATIONS_DIR")!,M01MigrationManifest.RequiredFileNames);
+var hasher=new Pbkdf2PasswordHasher();var accounts=new List<object>();
+await using var conn=new SqlConnection(cs);await conn.OpenAsync();
+foreach(var role in new[]{"SuperAdmin","UserA","UserB","Admin","AdminReader","Restricted","Disabled","Suspended"}){
+ var email=$"qa-{role.ToLowerInvariant()}-{db[^8..]}@example.invalid";var password="Nx!7"+Convert.ToHexString(RandomNumberGenerator.GetBytes(18));var hash=hasher.Hash(password);
+ if(role=="SuperAdmin")await new SqlBootstrapSuperAdmin(cs).ExecuteAsync(new SqlBootstrapSuperAdminCommand{Email=email,DisplayName="QA SuperAdmin",TimeZoneId="Asia/Ho_Chi_Minh",PasswordHash=hash});
+ else{
+ await using var cmd=new SqlCommand("""
+ INSERT [identity].[User](Id,Email,NormalizedEmail,PasswordHash,SecurityStamp,State,EmailConfirmed,VerifiedAt,DisplayName,TimeZoneId,Locale)
+ VALUES(@u,@email,@email,@hash,@stamp,@state,1,SYSUTCDATETIME(),@name,'Asia/Ho_Chi_Minh','vi');
+ INSERT [platform].[PersonalSpace](Id,UserId) VALUES(@owner,@u);
+ INSERT [identity].[UserRole](UserId,RoleId) SELECT @u,Id FROM [identity].[Role] WHERE Code='User' OR Code=@role;
+ INSERT [platform].[UserModuleGrant](UserId,ModuleId,Enabled) SELECT @u,Id,1 FROM [platform].[Module] WHERE State='Ready' AND SystemEnabled=1 AND RegistrationEnabled=1;
+ IF @reader=1 INSERT [platform].[AdminPermission](UserId,PermissionId,Effect) SELECT @u,Id,'Allow' FROM [platform].[Permission] WHERE ActionKey IN('access.user.read','access.permission.read','modules.catalog.read','settings.preference.read','settings.preference.update') AND EffectiveStatus='Resolved';
+ IF @restricted=1 UPDATE g SET Enabled=0 FROM [platform].[UserModuleGrant] g JOIN [platform].[Module] m ON m.Id=g.ModuleId WHERE g.UserId=@u AND m.Code='FX11';
+ IF @suspended=1 UPDATE [platform].[PersonalSpace] SET State='Suspended' WHERE UserId=@u;
+ """,conn);
+ cmd.Parameters.AddWithValue("@u",Guid.NewGuid());cmd.Parameters.AddWithValue("@owner",Guid.NewGuid());cmd.Parameters.AddWithValue("@email",email);cmd.Parameters.AddWithValue("@hash",hash);cmd.Parameters.AddWithValue("@stamp",Guid.NewGuid().ToString("N"));cmd.Parameters.AddWithValue("@state",role=="Disabled"?"Disabled":"Active");cmd.Parameters.AddWithValue("@name","QA "+role);cmd.Parameters.AddWithValue("@role",role.StartsWith("Admin")?"Admin":"User");cmd.Parameters.AddWithValue("@reader",role=="AdminReader");cmd.Parameters.AddWithValue("@restricted",role=="Restricted");cmd.Parameters.AddWithValue("@suspended",role=="Suspended");await cmd.ExecuteNonQueryAsync();
+ }
+ accounts.Add(new{role,email,password});
+}
+var path=Environment.GetEnvironmentVariable("NEXORA_E2E_ACCOUNTS")!;
+await File.WriteAllTextAsync(path,JsonSerializer.Serialize(accounts));if(!OperatingSystem.IsWindows())File.SetUnixFileMode(path,UnixFileMode.UserRead|UnixFileMode.UserWrite);
+Console.WriteLine($"Applied {M01MigrationManifest.RequiredFileNames.Count} migrations; created {accounts.Count} synthetic password accounts.");

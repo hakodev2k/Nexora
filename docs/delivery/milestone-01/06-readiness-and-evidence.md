@@ -2,6 +2,8 @@
 
 ## Current status
 
+> **Authority update:** The M01-only approval below is retained for historical traceability. DEC-20260909-014 is the current authority for local R1 implementation beyond M01; it does not turn any slice into runtime-verified or production-ready. Agents own authorized isolated automated QA and runtime verification under the 2026-10-25 DEC-014 execution amendment; final human UI/product acceptance remains required.
+
 M01 + backend/frontend scaffold + local scripts are approved for implementation by `DEC-20260909-001`. No application has yet been compiled, DB created, migration executed, browser journey tested, capacity measured or production service approved by this documentation amendment. Runtime evidence must be produced by the implementation PRs.
 
 | Gate | M01 effect | Current state / next owner |

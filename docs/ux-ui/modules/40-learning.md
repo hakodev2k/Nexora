@@ -1,5 +1,14 @@
 # FX-40 — Learning — UX/UI Specification
 
+> **Local continuation 2026-10-18:** Learning links to `/learning/work-log` with
+> manual create/detail/edit, date/title/state filters25/page, explicit Archive/
+> Unarchive and gross manual-minute day report. Date-only values stay unchanged
+> under timezone changes; fresh form defaults use the explicit profile timezone.
+> Common dirty/uncertainty dialogs, frozen retry, safe leave confirmation and
+> owner-scoped in-memory filters are code-present. Source links/TimeEntry dedupe,
+> Native Work Log Trash/Restore/Purge and edit history are now code-present; global Trash provider and full Learning overview remain open. [Contract](../../implementation/remediation-plan-20261016/worklog-manual-contract-20261018.md).
+> Browser/runtime acceptance and independent review Pending.
+
 > **Current decision amendment — 2026-09-07:** Language/internal-link rules apply; sensitive sharing remains gated and no new external LMS integration. [Normative PO decisions](../../requirements/10-owner-decisions-20260907.md). Conflicting older proposal paragraphs below are historical; current field/action overrides are in the linked delta. Docs-only.
 
 Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
@@ -54,7 +63,7 @@ These are screen surfaces, not necessarily separate backend resources; create/ed
 | FX40-S02 | Skills / evidence / merge | /learning/skills; /learning/skills/:skillId | Name; self-level; description; typed evidence; merge preview | Save Skill / Record evidence |
 | FX40-S03 | Course form / progress | /learning/courses/new; /learning/courses/:courseId | Name/provider/URL; progress mode; manual percent or milestone rows; status/dates/notes | Save / Record progress |
 | FX40-S04 | Certifications / renewal | /learning/certifications; /learning/certifications/:certificationId | Title/issuer; masked credentialID; verification URL; optional issue/expiry; files; previous evidence | Save certification / Record renewal |
-| FX40-S05 | Learning plans | /learning/plans; /learning/plans/:planId | Plan period/status; ordered existing Course/Skill/Task refs; target dates; source progress | Add existing resource |
+| FX40-S05 | Learning plans | /learning/plans; /learning/plans/:planId | Plan period/status; ordered existing Goal/Task/Course refs; target dates; source progress | Add existing resource |
 | FX40-S06 | Work log form / list | /learning/work-log; /learning/work-log/new | Date; title/notes; duration or linked TimeEntry; category; Project/Course/Task refs; employer text | Save log |
 
 ## 8. Navigation
@@ -159,14 +168,14 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 
 | Dimension | Specification |
 | --- | --- |
-| Purpose / profile | DETAIL — Plan period/status; ordered existing Course/Skill/Task refs; target dates; source progress |
+| Purpose / profile | DETAIL — Plan period/status; ordered existing Goal/Task/Course refs; target dates; source progress |
 | Entry / proposed route | /learning/plans; /learning/plans/:planId; module/source navigation or authorized deep link. |
 | Header / layout | Screen title: Learning plans. Shared detail profile; header → controls → declared content → feedback. |
 | Primary action | Add existing resource; available only when section15/context permits; otherwise explain lifecycle/policy. |
 | Secondary actions | Reorder; remove ref; complete/archive; Back. Back/Cancel always has authorized fallback. |
-| Content regions / fields | Plan period/status; ordered existing Course/Skill/Task refs; target dates; source progress |
+| Content regions / fields | Plan period/status; ordered existing Goal/Task/Course refs; target dates; source progress |
 | Search / filters / sorting / pagination | Title/status/target date; rank. Controls not listed here are N/A, not implicit new fields. |
-| Interaction / validation overrides | Plan target date not Task reschedule; removing plan/ref never deletes Course/Task. |
+| Interaction / validation overrides | Plan target date not Task reschedule; removing plan/ref never deletes Goal/Task/Course. |
 | Loading / empty / error | UX-15A state contract. Empty: declared data absent; no matches: clear listed query controls; fetch error: safe retry. These are distinct, no error-as-empty. |
 | Disabled / readonly / Archived / Trash | UX-15A plus exact section15 matrix. No lifecycle in source = N/A. Do not render unauthorized payload behind disabled controls. |
 | Conflict / destructive | Current revision and parent guards, section16 dialogs. Readonly surfaces only refresh, never forced write. |
@@ -175,6 +184,20 @@ All screens below inherit every state/layout/keyboard/exit rule in [UX-15A](../g
 | Exit / return | Back/Cancel → actual invoking screen with view/filter/date/scroll restored; direct deep link → module root or safe Home/Admin landing; dirty form guard and revoked-data clear take precedence. |
 
 ### FX40-S06 — Work log form / list
+
+Local continuation: exact Category filter is shared by native list and gross
+report. Own detail offers explicit-load25-row immutable manual snapshots,
+with expandable prior fields, source-update and capture instants in profile
+timezone. Legacy HistoryStarted is honestly labelled; there is no fabricated
+pre-install history or history-restore command. [Bounded contract](../../implementation/remediation-plan-20261016/worklog-filter-history-contract-20261018.md).
+Runtime/independent review Pending; TimeEntry/source links remain open.
+Native Trash/Restore/Purge is now additionally code-present under the
+[lifecycle contract](../../implementation/remediation-plan-20261016/worklog-trash-contract-20261018.md):
+Trash status filter, readonly detail/history, restore actual prior Active/Archived,
+exact one-root cohort/reference/version preview, explicit irreversible purge of
+content and versions. Cancel focused first; refs block purge; pending retry freezes
+original key/revision/token. Trash excluded from reports. TimeEntry/source links
+and global Trash provider registration remain open, runtime/review Pending.
 
 | Dimension | Specification |
 | --- | --- |

@@ -370,7 +370,7 @@ Personal goal with explicit status independent of computed progress. Profile **R
 | EndDate | date | Yes | Optional period end | No implicit default unless stated |
 | Status | varchar(64) | No | Draft, Active, Completed, Abandoned, Archived | CHECK allowed codes documented in meaning |
 | TrashBatchId | uniqueidentifier | Yes | Deletion lifecycle | FK (OwnerId, TrashBatchId) → (OwnerId, Id); [operations.TrashBatch](04-files-jobs-notifications.md#operations-trashbatch); NO ACTION |
-| PreArchiveStatus | varchar(64) | Yes | Original nonArchived state | CHECK allowed codes documented in meaning |
+| PreArchiveStatus | varchar(64) | Yes | Exact Draft/Active/Completed/Abandoned state retained on Archive, cleared only when restoring it; legacy missing value blocks Unarchive | Local migration0079 enum CHECK; no inferred state/backfill |
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). IX OwnerId,Status,EndDate
 
@@ -400,6 +400,16 @@ Numeric, Boolean or Task-linked target. Profile **O**. Status: **Technical decis
 | BooleanValue | bit | Yes | Boolean target state | No implicit default unless stated |
 | Position | int | No | Display order | No implicit default unless stated |
 | InitialValue | decimal(28,8) | Yes | Numeric baseline, target strictly greater than initial | No implicit default unless stated |
+| RemovedAt | datetime2(7) | Yes | Target removed from current denominator; retain target/progress evidence | Local migration0078; null means active target |
+| RemovedByUserId | uniqueidentifier | Yes | Actual removal actor | FK identity.User; paired-null CHECK with RemovedAt |
+
+**Local target-management continuation:** Removed targets are excluded from current
+lists/counts/progress and future edits/check-ins. GoalProgress and metadata audit
+remain immutable; history explicitly marks removed targets. Positions are not
+reused. Update changes title and Numeric initial/target only; Kind/current progress
+are unchanged. Removing a target requires revision-bound impact confirmation.
+0078/0079 are code-present migrations, not executed runtime evidence. A rollback
+must retain active-only target readers to avoid reviving removed denominators.
 
 **Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). UQ OwnerId,GoalId,Position
 
@@ -693,3 +703,42 @@ erDiagram
     productivity_GoalTarget ||--o{ productivity_GoalTargetTask : "TargetId"
     productivity_TimeEntry ||--o{ productivity_TimeEntryVersion : "TimeEntryId"
 ~~~
+
+## Local Goal state-history continuation —0082
+
+`productivity.GoalStateHistory` records explicit successful lifecycle transitions
+only: owner/Goal composite FK, actor FK, exact action and source-specific status
+pair CHECK, UTC datetime2(7), unique resulting binary8 source revision, owner/Goal/
+timestamp/GUID seek index. Append shares domain/audit/receipt transaction;
+completed replay and rollback append none. No backfill or generic projection.
+Current own nonTrash Goal + history/read authority gate every25-row page.
+No metadata/target-definition history, no cascade or history edit/restore API;
+future source purge must dispose of history explicitly.0082 NOT EXECUTED.
+[Bounded contract](../implementation/remediation-plan-20261016/goals-lifecycle-history-contract-20261018.md).
+## Local Goal metadata version continuation —0084
+
+GoalMetadataVersion holds owner/Goal composite FK, actor FK, original source
+binary8 revision unique per Goal, capture and source-updated UTC datetime2(7),
+bounded title/description and original nullable date-only period. Created/Updated
+snapshots share source/audit/receipt transaction; first later legacy edit captures
+actual pre-command state as HistoryStarted, not fabricated historical evidence.
+No backfill/restore-version/cascade. Current own nonTrash Goal + history/read
+required on every purpose-bound25-row timestamp/GUID seek. Target-definition
+version history remains separate.0084 NOT EXECUTED; future Goal purge must account
+for these dependent versions.
+[Contract](../implementation/remediation-plan-20261016/goals-metadata-history-contract-20261018.md).
+## Local Numeric/Boolean target definition versions —0085
+
+GoalTargetDefinitionVersion has owner/Goal/target composite FK backed by a new
+parent unique index, actor FK, unique original source binary8 revision and UTC
+capture/source-update timestamps. Original title/kind/decimal28,8 initial/target
+and removed flag are constrained; Boolean numeric fields remain null. Created
+captures both initial Goal Numeric target and later Numeric/Boolean additions;
+first later edit/remove of legacy target captures actual HistoryStarted baseline,
+then Updated/Removed, atomically with source/Goal/audit/receipt. No progress copies
+or historical inference; replay appends none. Removed definitions remain readable
+under current own nonTrash Goal + history/Goal-read/target-read,25-row purpose-bound
+seek. API exact decimals are nonexponential strings. No history rewrite/restore,
+no cascade or data backfill; future purge must order these dependent rows.
+0085 NOT EXECUTED; schema locks/index validation and runtime acceptance Pending.
+[Contract](../implementation/remediation-plan-20261016/goals-target-history-contract-20261018.md).

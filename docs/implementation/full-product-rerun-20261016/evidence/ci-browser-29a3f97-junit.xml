@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites id="" name="" tests="10" failures="0" skipped="0" errors="0" time="61.277646">
+<testsuite name="bootstrap-failure.spec.ts" timestamp="2026-10-16T14:09:00.571Z" hostname="chromium-desktop" tests="1" failures="0" skipped="0" time="3.432" errors="0">
+<testcase name="bootstrap dependency failure retains an accessible main landmark and keyboard retry" classname="bootstrap-failure.spec.ts" time="3.432">
+</testcase>
+</testsuite>
+<testsuite name="m01-identity.spec.ts" timestamp="2026-10-16T14:09:00.571Z" hostname="chromium-desktop" tests="2" failures="0" skipped="0" time="18.817" errors="0">
+<testcase name="M01 register, local capture, verify, login, and keyboard-visible controls" classname="m01-identity.spec.ts" time="8.003">
+</testcase>
+<testcase name="M01 password reset uses the local operator boundary and does not auto-login" classname="m01-identity.spec.ts" time="10.814">
+</testcase>
+</testsuite>
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:09:00.571Z" hostname="chromium-desktop" tests="2" failures="0" skipped="0" time="6.66" errors="0">
+<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="2.511">
+</testcase>
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="4.149">
+</testcase>
+</testsuite>
+<testsuite name="bootstrap-failure.spec.ts" timestamp="2026-10-16T14:09:00.571Z" hostname="chromium-mobile" tests="1" failures="0" skipped="0" time="1.153" errors="0">
+<testcase name="bootstrap dependency failure retains an accessible main landmark and keyboard retry" classname="bootstrap-failure.spec.ts" time="1.153">
+</testcase>
+</testsuite>
+<testsuite name="m01-identity.spec.ts" timestamp="2026-10-16T14:09:00.571Z" hostname="chromium-mobile" tests="2" failures="0" skipped="0" time="21.921" errors="0">
+<testcase name="M01 register, local capture, verify, login, and keyboard-visible controls" classname="m01-identity.spec.ts" time="11.213">
+</testcase>
+<testcase name="M01 password reset uses the local operator boundary and does not auto-login" classname="m01-identity.spec.ts" time="10.708">
+</testcase>
+</testsuite>
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-16T14:09:00.571Z" hostname="chromium-mobile" tests="2" failures="0" skipped="0" time="6.654" errors="0">
+<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="2.458">
+</testcase>
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="4.196">
+</testcase>
+</testsuite>
+</testsuites>

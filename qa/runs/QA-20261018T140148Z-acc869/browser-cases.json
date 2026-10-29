@@ -1,0 +1,161 @@
+[
+  {
+    "CaseId": "QA-J1-LOGIN",
+    "RequirementRef": "FX01; SYS03",
+    "Expected": "UserA logs in through native form, isolated profile and Ready SQL",
+    "Actual": {
+      "profileStatus": 200,
+      "ownerId": "189ee80a-739c-4aff-b80f-c1a9e834e259",
+      "ready": 200,
+      "browser": "155.0.4283.62"
+    },
+    "Status": "PASS",
+    "DurationMs": 1046,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-SETUP-LEARNING",
+    "RequirementRef": "FX03 module policy; FX02 access modules",
+    "Expected": "Only local Ready FX40 enabled through genuine SuperAdmin preview/commit; explicit A/B module grant, no raw SQL permission change",
+    "Actual": "Default gated state observed first; test-only policy changed via real audited API. All change removed with owned DB cleanup.",
+    "Status": "PASS",
+    "DurationMs": 872,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-UI-CREATE",
+    "RequirementRef": "FX40-S06; P07-WRK-001",
+    "Expected": "Real UI saves one90-minute Vietnamese entry; reload/detail/SQL retain original day",
+    "Actual": [
+      {
+        "Id": "0269BD01-135C-486C-904F-DFA2DE468D72",
+        "OwnerId": "189EE80A-739C-4AFF-B80F-C1A9E834E259",
+        "Title": "QA-20261018T140148Z-acc869 - H?c EF Core ??",
+        "RecordedOn": "2026-10-15",
+        "Minutes": 90,
+        "Status": "Active"
+      }
+    ],
+    "Status": "PASS",
+    "DurationMs": 530,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-INVALID",
+    "RequirementRef": "FX40 manual contract",
+    "Expected": "Server rejects missing/0/1441/fractional minutes, unknown source field; no write",
+    "Actual": [
+      {
+        "minutes": 0,
+        "status": 422
+      },
+      {
+        "minutes": 1441,
+        "status": 422
+      },
+      {
+        "minutes": 1.5,
+        "status": 400
+      },
+      {
+        "minutes": null,
+        "status": 422
+      }
+    ],
+    "Status": "PASS",
+    "DurationMs": 78,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-OWNER",
+    "RequirementRef": "SYS02; worklog.read",
+    "Expected": "Owner B cannot read owner A entry/history; tampered cursor rejects",
+    "Actual": [
+      404,
+      404
+    ],
+    "Status": "PASS",
+    "DurationMs": 32,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-SEED-PAGING",
+    "RequirementRef": "FX40-S06; SYS02/05",
+    "Expected": "53 additional realistic API entries; stable25/page seek no duplicates/missing, count/owner SQL exact",
+    "Actual": {
+      "pages": 3,
+      "count": 54,
+      "sql": [
+        {
+          "Count": 54,
+          "Minimum": 30,
+          "Maximum": 150
+        }
+      ]
+    },
+    "Status": "PASS",
+    "DurationMs": 1205,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-REPLAY-ETAG",
+    "RequirementRef": "SYS05; WorkLog history contract",
+    "Expected": "Same original key/body commits once, changed payload409, stale ETag412, history exactly one additional snapshot",
+    "Actual": {
+      "one": 200,
+      "replay": 200,
+      "conflict": 409,
+      "stale": 412,
+      "history": 2
+    },
+    "Status": "PASS",
+    "DurationMs": 136,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-LIFECYCLE",
+    "RequirementRef": "FX40-BR006; WorkLog Trash contract",
+    "Expected": "Archive readonly; Trash then restore actual Archived; purge source+versions; same original purge retry ACK",
+    "Actual": [
+      {
+        "Sources": 0,
+        "Versions": 0,
+        "Availability": "Purged"
+      }
+    ],
+    "Status": "PASS",
+    "DurationMs": 450,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-GOAL-HISTORY",
+    "RequirementRef": "FX16-BR001/003; metadata/target history contracts",
+    "Expected": "Goal metadata, Numeric definition update/remove and lifecycle preserve distinct exact history; replay no duplicate",
+    "Actual": {
+      "history": {
+        "metadata-history": 2,
+        "target-history": 2,
+        "state-history": 5
+      },
+      "foreign": 404,
+      "sql": [
+        {
+          "Title": "QA-20261018T140148Z-acc869 Chu?n b? ph?ng v?n .NET - c?p nh?t",
+          "Status": "Active"
+        }
+      ]
+    },
+    "Status": "PASS",
+    "DurationMs": 310,
+    "Layer": "REAL_BROWSER_API_SQL"
+  },
+  {
+    "CaseId": "QA-WRK-OFFLINE",
+    "RequirementRef": "UX40 error recovery; one-boundary browser injection",
+    "Expected": "Offline read shows actionable error rather than success; reconnect can reload",
+    "Actual": "Browser offline only; API/SQL never stubbed",
+    "Status": "PASS",
+    "DurationMs": 255,
+    "Layer": "REAL_BROWSER_API_SQL"
+  }
+]

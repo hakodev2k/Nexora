@@ -1,0 +1,35 @@
+// Real SQL/browser inventory. A route or metadata check never earns a functional action pass.
+const fs=require('node:fs'), path=require('node:path'),{execFileSync}=require('node:child_process'),{randomUUID}=require('node:crypto');
+const root=path.resolve(__dirname,'../..'),out=process.env.NEXORA_QA_EVIDENCE_DIR||path.resolve(root,'../evidence');
+const {chromium,expect}=require(path.join(root,'web/Nexora.Web/node_modules/@playwright/test'));
+const ledger=JSON.parse(fs.readFileSync(path.join(out,'full-plan-ledger.json'),'utf8'));
+const accounts=JSON.parse(fs.readFileSync(process.env.NEXORA_E2E_ACCOUNTS,'utf8'));
+const snapshot=JSON.parse(execFileSync(process.env.NEXORA_E2E_SQL_OPERATOR,['catalog'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}));
+fs.writeFileSync(path.join(out,'full-sql-catalog.json'),JSON.stringify(snapshot,null,2));
+const sqlModules=new Map(snapshot.modules.map(m=>[m.Code,m]));const sqlActions=new Map(snapshot.actions.map(a=>[a.ActionKey,a]));
+for(const a of ledger.actions){const m=sqlModules.get(a.feature.replace('-',''));a.runtimeModule=m||null;a.runtimePermission=sqlActions.get(a.actionKey)||null;a.metadataProbe=a.runtimePermission?'Present in real SQL':'Missing from real SQL';a.runtimeGateResult='Action handler not executed';if(a.functionalResult!=='Excluded-retired'&&m&&['Blocked','Paused'].includes(m.State))a.positiveResult='Blocked by runtime module; no positive execution';if(!a.candidateEndpointModule)a.implementationDisposition='No candidate API feature handler in this build; implementation gap';}
+const app=fs.readFileSync(path.join(root,'web/Nexora.Web/src/App.tsx'),'utf8');const routing=app.slice(app.indexOf('function routeFromPath'),app.indexOf('function pathForLocation'));const literalRoutes=new Set([...routing.matchAll(/case '([^']+)':/g)].map(m=>m[1]));
+let results={counts:ledger.counts,sql:{moduleRows:snapshot.modules.length,permissionRows:snapshot.actions.length,catalogKeysPresent:ledger.actions.filter(a=>a.runtimePermission).length},modules:[],screens:[],negativeApi:[],errors:[],fullScopePassed:0};
+function save(){fs.writeFileSync(path.join(out,'full-runtime-inventory.json'),JSON.stringify(results,null,2));fs.writeFileSync(path.join(out,'full-plan-ledger.json'),JSON.stringify(ledger));}
+function redact(s){for(const a of accounts)s=s.split(a.password).join('[redacted]');return s;}
+async function api(page,name,args=[]){return page.evaluate(async({name,args})=>{const src='/src/api.ts',m=await import(src);return m[name](...args);},{name,args});}
+async function login(page,role){const a=accounts.find(a=>a.role===role);await page.goto('/login');await page.getByLabel('Email',{exact:true}).fill(a.email);await page.getByLabel('Mật khẩu',{exact:true}).fill(a.password);await page.getByRole('button',{name:'Đăng nhập',exact:true}).click();await expect(page.locator('.app-shell')).toBeVisible();}
+(async()=>{const browser=await chromium.launch({executablePath:process.env.NEXORA_E2E_EXECUTABLE});try{
+const user=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL}),anon=await browser.newContext({baseURL:process.env.NEXORA_E2E_BASE_URL});const page=await user.newPage(),publicPage=await anon.newPage();await login(page,'UserA');const me=await api(page,'getMe');
+const start=new Date(Date.now()+86400000).toISOString(),end=new Date(Date.now()+172800000).toISOString();
+const project=await api(page,'createProject',['inventory-'+randomUUID(),'Real SQL inventory prerequisite',start,end]);
+const task=await api(page,'createTask',[project.id,'inventory-task-'+randomUUID(),'Real SQL prerequisite','NotStarted',end,start,end]);
+const doc=await api(page,'createDocument',['inventory-doc-'+randomUUID(),'Note','Markdown','Safe inventory prerequisite']);
+const ids={userId:me.id,projectId:project.id,taskId:task.id,pageId:doc.id,documentId:doc.id,opaqueId:doc.id,token:'qa-invalid-share',moduleCode:'FX11'};
+for(const [fx,endpoint] of [['FX04','/api/v1/sharing/links'],['FX05','/api/v1/support/grants'],['FX07','/api/v1/files']]){const r=await page.evaluate(async p=>{const r=await fetch(p);let b={};try{b=await r.json();}catch{}return {http:r.status,code:b.code};},endpoint);expect(r.http).toBe(409);results.negativeApi.push({feature:fx,endpoint,...r,scope:'List gate only; positive actions Not run'});}
+for(const [width,height] of [[1920,1080],[1366,768],[768,1024],[390,844],[320,568]]){
+ await page.setViewportSize({width,height});await publicPage.setViewportSize({width,height});
+ for(const module of ledger.modules){const code=module.feature.replace('-','');await page.goto('/modules/'+code);await expect(page.locator('main h1')).toBeVisible();const heading=await page.locator('main h1').innerText();const runtime=me.modules.find(m=>m.code===code);const gated=!runtime?.enabled;if(gated)await expect(page.getByRole('heading',{name:'Module chưa khả dụng',exact:true})).toBeVisible();results.modules.push({feature:module.feature,viewport:`${width}x${height}`,heading,gated,scope:gated?'UI module gate only':'Entry only; functional actions require separate cases'});}
+ for(const screen of ledger.screens){const proposed=screen.route.split(';')[0].trim();const route=proposed.replace(/:([A-Za-z][A-Za-z0-9]*)/g,(_,key)=>key==='moduleCode'?screen.feature.replace('-',''):(ids[key]||'00000000-0000-4000-8000-000000000000'));const p=/^\/register|^\/verify-email|^\/login|^\/password\//.test(route)?publicPage:page;
+  try{await p.goto(route);await expect(p.locator('main h1')).toBeVisible();const heading=await p.locator('main h1').innerText();const noOverflow=await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth);const pathname=route.split('?')[0];const sourceMapped=literalRoutes.has(pathname)||/^\/share\/[^/]+$/.test(pathname)||/^\/modules\/FX\d\d$/.test(pathname);const observation={screenId:screen.id,feature:screen.feature,viewport:`${width}x${height}`,proposed,visited:route,heading,noOverflow,sourceMapped,scope:'Route observation only; definition states/actions remain unverified'};results.screens.push(observation);screen.routeProbe='Observed on 5 viewports; no functional credit';screen.definitionResult=sourceMapped?'Reconcile state/actions with executable cases':'Proposed route not mapped; alternate layout/state reconciliation required';
+  }catch(e){results.errors.push({screenId:screen.id,viewport:`${width}x${height}`,error:redact(String(e.message)).slice(0,1500)});}
+  if(results.screens.length%20===0){save();console.log(`SCREEN_OBSERVATIONS ${results.screens.length}; ERRORS ${results.errors.length}`);}
+ }
+}
+expect(results.screens.length+results.errors.length).toBe(1010);expect(results.modules.length).toBe(200);save();console.log(JSON.stringify({features:40,screenDefinitions:202,actionKeys:733,routeObservations:results.screens.length,routeErrors:results.errors.length,moduleGateOrEntryObservations:results.modules.length,sql:results.sql,fullFunctionalScopePassed:false}));
+}finally{await browser.close();}})().catch(e=>{results.errors.push({setup:redact(String(e.message)).slice(0,1500)});save();console.error('Inventory failed; see redacted evidence');process.exitCode=1});

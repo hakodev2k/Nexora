@@ -1,0 +1,39 @@
+{
+  "parent": "d2e4eac5b5e1dcb5cc4c4a675d91eb6f580a7f49",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "verification": "APIbuild0warnings/errors;frontend TypeScript/VitePASS existingbundlewarning;diffcheckPASS;no runtime tests code-only",
+  "review": "security_review finalsource no new scoped blocker",
+  "unapplied": "READ-ADMIN-CAPS automaticrejection;policyunchanged",
+  "sources": [
+    {
+      "path": "src/Nexora.Infrastructure/Reading/SqlReadingService.cs",
+      "sha256": "07d86e1580557ab9f81275d48ca2eae180cf8b02dfc983e4809f5e13610ef875",
+      "publishedLfSha256": "07d86e1580557ab9f81275d48ca2eae180cf8b02dfc983e4809f5e13610ef875"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Reading/ReadingListCursor.cs",
+      "sha256": "6cb4909f364cbc5091e08677af5e7a0d2ddc3f3fcc717fad2f795734840320e9",
+      "publishedLfSha256": "6cb4909f364cbc5091e08677af5e7a0d2ddc3f3fcc717fad2f795734840320e9"
+    },
+    {
+      "path": "src/Nexora.Application/Reading/ReadingServiceContracts.cs",
+      "sha256": "d6f15ad1fd1759144c3bd86f99adcd8fa11a2cb9294a609060cd841d2ef8b4e0",
+      "publishedLfSha256": "f78fba52cc6ddfb9c1afb9fbb00d91048dd4dd8a18255fb553855790ae60a0d9"
+    },
+    {
+      "path": "src/Nexora.Api/Features/Reading/ReadingEndpoints.cs",
+      "sha256": "b0c2355db6fa168e4236b1e914b3829b1ecc7729a4f75eb7c020432d66ce0e25",
+      "publishedLfSha256": "b0c2355db6fa168e4236b1e914b3829b1ecc7729a4f75eb7c020432d66ce0e25"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "5c90937230d2dd11e2a74f31f81befbf83d82a7ca8f5f8f0ac114c28ebb50f06",
+      "publishedLfSha256": "5c90937230d2dd11e2a74f31f81befbf83d82a7ca8f5f8f0ac114c28ebb50f06"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "db2f041952bdc73146a3c73f3567f2b6fff6cfcee28ccd0ee9885501c538c5b9",
+      "publishedLfSha256": "db2f041952bdc73146a3c73f3567f2b6fff6cfcee28ccd0ee9885501c538c5b9"
+    }
+  ]
+}

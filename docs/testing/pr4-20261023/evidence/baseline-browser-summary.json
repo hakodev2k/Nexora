@@ -1,0 +1,175 @@
+{
+  "runId": 39792570922,
+  "branchSha": "fbafbaa482b094f26f067f1697d1f9d610e5367c",
+  "testedMergeSha": "2497194dc6672b76f65d0a83eb98fff4cf832200",
+  "cases": [
+    {
+      "name": "bootstrap dependency failure retains an accessible main landmark and keyboard retry",
+      "class": "bootstrap-failure.spec.ts",
+      "outcome": "passed",
+      "seconds": "3.955"
+    },
+    {
+      "name": "M01 register, local capture, verify, login, and keyboard-visible controls",
+      "class": "m01-identity.spec.ts",
+      "outcome": "failure",
+      "seconds": "18.153"
+    },
+    {
+      "name": "M01 password reset uses the local operator boundary and does not auto-login",
+      "class": "m01-identity.spec.ts",
+      "outcome": "passed",
+      "seconds": "9.026"
+    },
+    {
+      "name": "parallel UIUX group: auth",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "error",
+      "seconds": "14.751"
+    },
+    {
+      "name": "parallel UIUX group: navigation",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "error",
+      "seconds": "45.062"
+    },
+    {
+      "name": "parallel UIUX group: productivity",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "17.07"
+    },
+    {
+      "name": "parallel UIUX group: knowledge",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "16.966"
+    },
+    {
+      "name": "parallel UIUX group: business",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "12.242"
+    },
+    {
+      "name": "parallel UIUX group: platform",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "8.705"
+    },
+    {
+      "name": "parallel UIUX group: gated",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "8.907"
+    },
+    {
+      "name": "parallel UIUX group: admin",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "15.078"
+    },
+    {
+      "name": "parallel UIUX group: restricted",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "12.243"
+    },
+    {
+      "name": "public responsive forms, keyboard shortcut, validation and API unavailable state",
+      "class": "ui-smoke.spec.ts",
+      "outcome": "passed",
+      "seconds": "2.938"
+    },
+    {
+      "name": "authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK",
+      "class": "ui-smoke.spec.ts",
+      "outcome": "passed",
+      "seconds": "5.473"
+    },
+    {
+      "name": "bootstrap dependency failure retains an accessible main landmark and keyboard retry",
+      "class": "bootstrap-failure.spec.ts",
+      "outcome": "passed",
+      "seconds": "1.278"
+    },
+    {
+      "name": "M01 register, local capture, verify, login, and keyboard-visible controls",
+      "class": "m01-identity.spec.ts",
+      "outcome": "failure",
+      "seconds": "16.752"
+    },
+    {
+      "name": "M01 password reset uses the local operator boundary and does not auto-login",
+      "class": "m01-identity.spec.ts",
+      "outcome": "error",
+      "seconds": "45.045"
+    },
+    {
+      "name": "parallel UIUX group: auth",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "error",
+      "seconds": "14.997"
+    },
+    {
+      "name": "parallel UIUX group: navigation",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "error",
+      "seconds": "45.053"
+    },
+    {
+      "name": "parallel UIUX group: productivity",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "17.225"
+    },
+    {
+      "name": "parallel UIUX group: knowledge",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "16.713"
+    },
+    {
+      "name": "parallel UIUX group: business",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "12.903"
+    },
+    {
+      "name": "parallel UIUX group: platform",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "8.848"
+    },
+    {
+      "name": "parallel UIUX group: gated",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "8.846"
+    },
+    {
+      "name": "parallel UIUX group: admin",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "14.628"
+    },
+    {
+      "name": "parallel UIUX group: restricted",
+      "class": "pr4-uiux-audit.spec.ts",
+      "outcome": "passed",
+      "seconds": "11.176"
+    },
+    {
+      "name": "public responsive forms, keyboard shortcut, validation and API unavailable state",
+      "class": "ui-smoke.spec.ts",
+      "outcome": "passed",
+      "seconds": "3.02"
+    },
+    {
+      "name": "authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK",
+      "class": "ui-smoke.spec.ts",
+      "outcome": "passed",
+      "seconds": "5.493"
+    }
+  ]
+}

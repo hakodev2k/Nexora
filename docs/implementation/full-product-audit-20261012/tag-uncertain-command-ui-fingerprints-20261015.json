@@ -1,0 +1,21 @@
+{
+  "parent": "969acbd68f7b10432ab5dbfc4da3856f8d1de634",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "ee6cd18c2e235709277020cb9b9cbf5abc435e605edeb7685c584af7a0f4740b",
+      "publishedLfSha256": "ee6cd18c2e235709277020cb9b9cbf5abc435e605edeb7685c584af7a0f4740b"
+    },
+    {
+      "path": "web/Nexora.Web/src/api.ts",
+      "sha256": "ec833dbfab12155a7e3727c2f07c977f327b67344f35c82184906ac5a8b20c08",
+      "publishedLfSha256": "ec833dbfab12155a7e3727c2f07c977f327b67344f35c82184906ac5a8b20c08"
+    },
+    {
+      "path": "web/Nexora.Web/src/ResourceFormDialog.tsx",
+      "sha256": "a6b958221d5ced74a38407c87b47a51e0c5053f22426bbc6a5ba2e0a645ee378",
+      "publishedLfSha256": "0af0160d02e086004258fab431a93ac88369ce6408e3e15014d7bf6551a77ed0"
+    }
+  ]
+}

@@ -1,6 +1,10 @@
 # FX-25 — Search / Favorites / Command Palette: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+Catalog v1 · source business decisions giữ nguyên. Local PR4-branch continuation
+has code for bounded Search/Favorites, Saved Search, Recents and finite Palette
+handoffs. Runtime and independent review remain Pending; local uncommitted code
+does not prove PR synchronization or all-provider acceptance. Blocked rows cannot
+be enabled by grants.
 
 ## Sources và phạm vi
 
@@ -15,13 +19,13 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 
 | Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="discovery-search-query"></a>`discovery.search.query` — Search across enabled providers | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S01 |
+| <a id="discovery-search-query"></a>`discovery.search.query` — Search across enabled providers | QUERY / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — bounded owner-scoped source query; runtime not run | FX25-S01 |
 | <a id="discovery-command-read"></a>`discovery.command.read` — Liệt kê commands khả dụng | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S02 |
 | <a id="discovery-command-execute"></a>`discovery.command.execute` — Thực thi command đã chọn | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S02 |
-| <a id="discovery-favorite-read"></a>`discovery.favorite.read` — Xem favorites | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
-| <a id="discovery-favorite-add"></a>`discovery.favorite.add` — Favorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
-| <a id="discovery-favorite-remove"></a>`discovery.favorite.remove` — Unfavorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
-| <a id="discovery-favorite-reorder"></a>`discovery.favorite.reorder` — Sắp xếp favorites | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
+| <a id="discovery-favorite-read"></a>`discovery.favorite.read` — Xem favorites | QUERY / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — owner-scoped typed references; source access/lifecycle/trash rechecked; runtime not run | FX25-S03 |
+| <a id="discovery.favorite-add"></a>`discovery.favorite.add` — Favorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — SQL reference write with source recheck; runtime not run | FX25-S03 |
+| <a id="discovery.favorite-remove"></a>`discovery.favorite.remove` — Unfavorite source | COMMAND / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — owner/ETag/idempotent delete; runtime not run | FX25-S03 |
+| <a id="discovery.favorite-reorder"></a>`discovery.favorite.reorder` — Sắp xếp favorites | COMMAND / SELF | Yes, gated | Normal (Normal) | **SLICE_IMPLEMENTED (local)** — bounded rank with owner/ETag guard; runtime not run | FX25-S03 |
 | <a id="discovery-recent-read"></a>`discovery.recent.read` — Xem recents | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
 | <a id="discovery-recent-clear"></a>`discovery.recent.clear` — Xóa recents của mình | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S03 |
 | <a id="discovery-saved-search-read"></a>`discovery.saved_search.read` — Xem Saved Search | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX25-S04 |
@@ -43,7 +47,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 | `discovery.favorite.remove` | Own refs; source read; không bypass Archived/disabled; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.favorite.reorder` | Own refs; source read; không bypass Archived/disabled; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.recent.read` | Current permission trên từng source result; index không authority; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
-| `discovery.recent.clear` | Current permission trên từng source result; index không authority; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
+| `discovery.recent.clear` | Own metadata only, explicit owner-wide rowversion preview and idempotent selection; later opens survive, source/Audit untouched. No source-read prerequisite for removing own recent metadata | Common + current clear action/owner/session; FX-25-BR-005; DISC3 contract |
 | `discovery.saved_search.read` | Owner query definition only; query params không embed secrets; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.saved_search.create` | Owner query definition only; query params không embed secrets; Current permission trên từng source result; index không authority | Common + dynamic source/provider guards |
 | `discovery.saved_search.update` | Owner query definition only; query params không embed secrets; Current permission trên từng source result; index không authority | `discovery.saved_search.read` |
@@ -56,6 +60,7 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 - Module off, grant missing/deny, resource wrong owner, disallowed lifecycle, current Q gate hoặc source dependency fail: không side effect; không dùng hidden button thay authorization.
 - Before/after field diff được kiểm tra cho Save, import, version restore, bulk, scheduler và automation. Form không được gửi status/reveal/export/owner trong generic Update.
 - Safe capability reason: ModuleUnavailable, ActionDenied, LifecycleLocked, DependencyUnavailable, DecisionBlocked hoặc StepUpRequired; unknown/wrong-owner resource trả unavailable chung để không enumerate.
+- Implemented FX25-S03 endpoints map a missing/denied Favorites operation to `403 PermissionDenied`; unavailable FX25 or any hard dependency in its transitive chain maps to `409 ModuleUnavailable`. Source-read denial remains an unavailable projection.
 - Grant không thay đổi state graph. Chỉ quyền đã cấp và hợp lệ mới xuất hiện enabled; permission editor có thể hiển thị blocked row để giải thích, không cho bật.
 - Revocation và support/share/system contexts áp toàn bộ [common contract](../00-authorization-contract.md). Readonly projections không reuse full owner DTO.
 

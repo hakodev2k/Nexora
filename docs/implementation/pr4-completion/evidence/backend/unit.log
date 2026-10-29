@@ -1,0 +1,13 @@
+  Nexora.Domain -> /workspace/scratch/d0d296f504ca/Nexora/src/Nexora.Domain/bin/Debug/net10.0/Nexora.Domain.dll
+  Nexora.Application -> /workspace/scratch/d0d296f504ca/Nexora/src/Nexora.Application/bin/Debug/net10.0/Nexora.Application.dll
+  Nexora.Infrastructure -> /workspace/scratch/d0d296f504ca/Nexora/src/Nexora.Infrastructure/bin/Debug/net10.0/Nexora.Infrastructure.dll
+  Nexora.Api -> /workspace/scratch/d0d296f504ca/Nexora/src/Nexora.Api/bin/Debug/net10.0/Nexora.Api.dll
+  Nexora.UnitTests -> /workspace/scratch/d0d296f504ca/Nexora/tests/Nexora.UnitTests/bin/Debug/net10.0/Nexora.UnitTests.dll
+Test run for /workspace/scratch/d0d296f504ca/Nexora/tests/Nexora.UnitTests/bin/Debug/net10.0/Nexora.UnitTests.dll (.NETCoreApp,Version=v10.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+Results File: /workspace/scratch/d0d296f504ca/evidence/unit/unit.trx
+
+Passed!  - Failed:     0, Passed:    54, Skipped:     0, Total:    54, Duration: 150 ms - Nexora.UnitTests.dll (net10.0)

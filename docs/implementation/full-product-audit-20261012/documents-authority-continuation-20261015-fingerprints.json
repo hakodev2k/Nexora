@@ -1,0 +1,16 @@
+{
+  "parent": "7028efd41d34707efda8e9c0df837aa80db9b1a2",
+  "main": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "sources": [
+    {
+      "path": "src/Nexora.Infrastructure/Documents/SqlDocumentService.cs",
+      "sha256": "a3ec95bbe09eef809598aa9d619fc2e1bd972dcdb68d5d24ab95d674448ded6c",
+      "publishedLfSha256": "a3ec95bbe09eef809598aa9d619fc2e1bd972dcdb68d5d24ab95d674448ded6c"
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "509deaef534e03491e9f2177fe51ee42c682bc358d3ae0416af687a11bb43f50",
+      "publishedLfSha256": "509deaef534e03491e9f2177fe51ee42c682bc358d3ae0416af687a11bb43f50"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "catalogueActions": 733,
+  "endpointDeclarations": 365,
+  "apiModuleGroups": 34,
+  "uiStaticRoutes": 30,
+  "states": {
+    "PARTIAL": 371,
+    "UNKNOWN": 274,
+    "GATED": 20,
+    "NOT_IMPLEMENTED": 87,
+    "IMPLEMENTED": 346
+  },
+  "limitation": "Action and endpoint rows are different inventories, not additive business requirement coverage. Runtime UI inventory is visual-results.json. No sampling promoted to full coverage."
+}

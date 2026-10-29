@@ -1,0 +1,20 @@
+{
+  "source": "73951b869a0bf1eaa32a7ddd52b63d401b56f9b3",
+  "run": 40010021330,
+  "job": 120607685680,
+  "conclusion": "success",
+  "discovered": 34,
+  "passed": 31,
+  "failed": 0,
+  "skipped": 3,
+  "skips": "Linux-only tests on Windows",
+  "native_child_reports": 26,
+  "lines": [
+    "[evidence] Windows W01-W10 actual-token assertions completed; native child reports=26\r",
+    "[pass] local capture verifies Windows A/B/C with actual process identities\r",
+    "[skip] local capture uses private Unix modes when running on Linux: requires an actual linux process; current OS is 'Win32NT'.\r",
+    "[skip] local capture isolates an unsafe temporary file from later delivery: requires an actual linux process; current OS is 'Win32NT'.\r",
+    "[skip] local capture detects an active writer across processes: requires an actual linux process; current OS is 'Win32NT'.\r",
+    "Discovered 34 tests; passed 31; failed 0; skipped 3.\r"
+  ]
+}

@@ -1,0 +1,22 @@
+feature,action,disposition,backend,screen,gap
+FX35,integrations.connection.read,IMPLEMENTED_UNVERIFIED,SqlIntegrationConnectionService.cs,FX35-S01/FX35-S02,Human SQL/API/browser QA
+FX35,integrations.connection.create,IMPLEMENTED_UNVERIFIED,SqlIntegrationConnectionService.cs,FX35-S02,Inactive configuration only; human QA
+FX35,integrations.connection.update,IMPLEMENTED_UNVERIFIED,SqlIntegrationConnectionService.cs,FX35-S02,Inactive metadata only; human QA
+FX35,integrations.connection.disable,PARTIALLY_IMPLEMENTED,SqlIntegrationConnectionService.cs,FX35-S01,Persisted invalidation; future queued transport integration missing
+FX35,integrations.connection.test,BLOCKED_BY_PROVIDER,,FX35-S02,G3 auth/environment/source contract; simulated acceptance not run
+FX35,integrations.connection.scopes,BLOCKED_BY_DECISION,,FX35-S02,D04/D05 exact inbound commands/outbound projections
+FX35,integrations.connection.credential,BLOCKED_BY_DECISION,,FX35-S05,D06 reviewed secret-reference/key/Vault dependency
+FX35,integrations.webhook.read,NOT_IMPLEMENTED,,FX35-S03,Webhook persistence/query/UI
+FX35,integrations.webhook.create,NOT_IMPLEMENTED,,FX35-S03,Versioned contract and secure registration
+FX35,integrations.webhook.update,NOT_IMPLEMENTED,,FX35-S03,ETag/schema/lifecycle behavior
+FX35,integrations.webhook.enable,BLOCKED_BY_DECISION,,FX35-S03,D04/D05/D06; independent G3 for live operations
+FX35,integrations.webhook.disable,NOT_IMPLEMENTED,,FX35-S03,Queued delivery revocation guard
+FX35,integrations.webhook.test,BLOCKED_BY_PROVIDER,,FX35-S03,Exact test contract and G3 for real effects
+FX35,integrations.webhook.rotate,BLOCKED_BY_DECISION,,FX35-S03,D06 signing reference/rotation overlap contract
+FX35,integrations.delivery.read,NOT_IMPLEMENTED,,FX35-S04,Delivery persistence/history/projection
+FX35,integrations.delivery.retry,NOT_IMPLEMENTED,,FX35-S04,Durable outbox/current authority/reconciliation
+FX35,integrations.system_connection.read,NOT_IMPLEMENTED,,FX35-S01,Separate operational safe metadata context
+FX35,integrations.system_connection.configure,NOT_IMPLEMENTED,,FX35-S01,Separate SUPER scoped configuration contract
+FX35,integrations.worker.receive,NOT_IMPLEMENTED,,,Verified signature/replay/dedupe/command mapping; D04/D05/D06 and G3
+FX35,integrations.worker.send,NOT_IMPLEMENTED,,,Durable outbox/egress/projection/signing; D04/D05/D06 and G3
+FX35,integrations.support.read,BLOCKED_BY_DECISION,,FX05-S03/FX05-S05,Exact support-safe field projection/current grant integration

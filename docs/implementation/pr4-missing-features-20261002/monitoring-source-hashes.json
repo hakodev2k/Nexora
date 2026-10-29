@@ -1,0 +1,145 @@
+{
+  "baseHead": "680197d1d97bf8febf1bc0a4ec2e1a56e6f352b5",
+  "mainAuthority": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "canonicalEncoding": "UTF-8 LF without BOM",
+  "files": [
+    {
+      "path": "database/migrations/20261004_0045_monitoring_http_config.sql",
+      "sha256": "e670038a1595cddfaf353798f69ae8489915fc99592e1a144545d4b5487f1d4e",
+      "gitBlobSha": "d9f14d1c8c4cfc86fd9377b0a353ec112ec30fa4",
+      "bytes": 2802
+    },
+    {
+      "path": "src/Nexora.Application/Monitoring/MonitorContracts.cs",
+      "sha256": "a4c05a91bf991b8236140cc7c9d7f742d7fccbe51c6905b3a3d05409fe5f5840",
+      "gitBlobSha": "ceac02466f5feb15661afe118180b5875d93c0ae",
+      "bytes": 1821
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Monitoring/MonitorInput.cs",
+      "sha256": "d3b70e3d0f9d9a28ce4f353591ddd38bd1a9d9d9b4dbeadd9e6aa403569a987d",
+      "gitBlobSha": "047426807745b05bc19100dda4e1cf7dbb42813b",
+      "bytes": 2965
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Monitoring/SqlMonitoringService.cs",
+      "sha256": "3beb0879003851a58fa7ff0ab67e2ee2ecb648ad9987fcfd9f680524511e7ff1",
+      "gitBlobSha": "232fea48e9360434a780d3ff8fdb3151a00816be",
+      "bytes": 16857
+    },
+    {
+      "path": "src/Nexora.Api/Features/Monitoring/MonitoringEndpoints.cs",
+      "sha256": "1214cddc8c64ce418b411d2d9599081966bd4955956388228ac7bf79c1937690",
+      "gitBlobSha": "dc0249cf07acd674cd92bb94efa3affab7d1dcc9",
+      "bytes": 2638
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Local/M01MigrationManifest.cs",
+      "sha256": "8fc1a08f54d3807a0e50381082318a263e18996cd44d86690ab5921efcade6b7",
+      "gitBlobSha": "7d3df2241e93710b3ee9482757e2d91a39430d5b",
+      "bytes": 2768
+    },
+    {
+      "path": "src/Nexora.Domain/Access/ActionGrantPolicy.cs",
+      "sha256": "d201864e68d75c2b6baccfe6d47af99e760c1ea32ee0e508177ee23540239615",
+      "gitBlobSha": "3d8a823807f254e00e8279213ca19e26cbccb27b",
+      "bytes": 15820
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlSelfCapability.cs",
+      "sha256": "dcd2baa2d06fcedd26c16201d60684b8f20e6b59c48a69613d902bade303ce75",
+      "gitBlobSha": "e6a90d0e0dbcc9588524b4d988d7bc32feb89c5d",
+      "bytes": 11135
+    },
+    {
+      "path": "src/Nexora.Infrastructure/Authorization/SqlCurrentActor.cs",
+      "sha256": "d907a5e54cffd7dc52000320b5358cf4677e30e4c731fc899ff0cff64f3e446d",
+      "gitBlobSha": "182c00baea699eb7581cad59e486eadc2a3d764e",
+      "bytes": 2108
+    },
+    {
+      "path": "src/Nexora.Api/Program.cs",
+      "sha256": "05dd633217e5ef5740c88be2a9dd995329725d866e233764d18150f274875309",
+      "gitBlobSha": "4b5a4e22d438e199d70e2bd699426aad37ad625a",
+      "bytes": 19181
+    },
+    {
+      "path": "web/Nexora.Web/src/monitorApi.ts",
+      "sha256": "807d54401d0d702eb590da636cec6dcff2ada52fdb3fd9fe710c26e2d7b9514a",
+      "gitBlobSha": "7dc2f71cb2546f850f8e5df0e5becf33037c8fcd",
+      "bytes": 1971
+    },
+    {
+      "path": "web/Nexora.Web/src/MonitoringScreen.tsx",
+      "sha256": "498e19fcf74fd3c14bfd6dcc5dc3be85e81dbf11c65245eec78d20bd1c80015e",
+      "gitBlobSha": "320c0724d861025a013513ec14fd378044ec752b",
+      "bytes": 17451
+    },
+    {
+      "path": "web/Nexora.Web/src/App.tsx",
+      "sha256": "9eab3b5833d2b3e021524948b4cade7fc476afc2b19d3cf338e09dda86328298",
+      "gitBlobSha": "e927132bfdba0adc3904c21d02f9aebc318e585c",
+      "bytes": 383653
+    },
+    {
+      "path": "web/Nexora.Web/src/styles.css",
+      "sha256": "cb506bbcf491a5a49d2bfb25d83ff4dbb584e30853c7c48702160b014cb1a541",
+      "gitBlobSha": "329517e5cad6a3c8944bd2ec5b1e3b25559baee8",
+      "bytes": 35397
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/SqlMonitoringTests.cs",
+      "sha256": "4fd0d84c05f7657d7412043656b95a02acd26547854114c4aef26f18936abee8",
+      "gitBlobSha": "e37dbe5316f8eb82005e59f55770bf6036909659",
+      "bytes": 24741
+    },
+    {
+      "path": "tests/Nexora.UnitTests/MonitorInputTests.cs",
+      "sha256": "9ab6a1f0d56c6491aee2b19ac0d1cd3c0b9c886ce28e89be66682b527fec31bb",
+      "gitBlobSha": "ae2cb669538702c0a45d12e8295f1647c873ec0b",
+      "bytes": 2165
+    },
+    {
+      "path": "tests/Nexora.UnitTests/M01PolicyAndCaptureContractTests.cs",
+      "sha256": "1a19592ad9ab923b5cfe252dbdc49d64054c196dc24d654d15b59887847e6d41",
+      "gitBlobSha": "853fcd89a85bd0c4f4adff7113724c022816a866",
+      "bytes": 11880
+    },
+    {
+      "path": "web/Nexora.Web/src/MonitoringScreen.test.tsx",
+      "sha256": "7f10ae1b789cb7ae5f843b1cab6230b4f4a7bce7657ccb3540a6bafe1dc0e73e",
+      "gitBlobSha": "ea33d2779e43ea41fa637a37df707a7641afe779",
+      "bytes": 5614
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/Program.cs",
+      "sha256": "bf4a2c221a232b005d9a6edbf721da60e7a508ea77a23dbabe8de0be770fe8e1",
+      "gitBlobSha": "22b63f4307ebb58ab27371d6c7de7d987af8bde1",
+      "bytes": 13305
+    },
+    {
+      "path": "web/Nexora.Web/functional/monitoring.spec.ts",
+      "sha256": "ab7d58a9671453843e90406a745bff98806bd25c0d897ca382954fd65fdef28a",
+      "gitBlobSha": "44deabef0793f31048fbbeac115ffb51b28fd28e",
+      "bytes": 6081
+    },
+    {
+      "path": "web/Nexora.Web/functional/resources.spec.ts",
+      "sha256": "d608da91d04e5447e3e884df872d877802987cf74803860a6eefadb74079da19",
+      "gitBlobSha": "fd29776cefffe147d42ee29fd6b8d34603bd044a",
+      "bytes": 18231
+    },
+    {
+      "path": "web/Nexora.Web/functional/content.spec.ts",
+      "sha256": "429e2b97134ae96927eb9ed3afaa3ce9508e3cc0c1d27a7e824ad6634761ce2e",
+      "gitBlobSha": "dd558a82a16bb59aad8b85c88c341a7cf9b310dd",
+      "bytes": 13548
+    },
+    {
+      "path": "web/Nexora.Web/src/App.test.tsx",
+      "sha256": "cf13ba14f09a5ff8b02f80945d262396ef3f3b1eba3f5add6f0ce4f464adb6bc",
+      "gitBlobSha": "ef0ef4520a68c52a818d27e170e08d359397e777",
+      "bytes": 42041
+    }
+  ]
+}

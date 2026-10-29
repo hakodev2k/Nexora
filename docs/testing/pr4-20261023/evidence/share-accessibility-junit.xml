@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="3" failures="0" errors="0" time="0.363801795">
+    <testsuite name="src/SharedResourceAccessibility.test.tsx" timestamp="2026-10-23T05:37:49.824Z" hostname="f8865bbd2255" tests="3" failures="0" errors="0" skipped="0" time="0.363801795">
+        <testcase classname="src/SharedResourceAccessibility.test.tsx" name="public share loading and uniform unavailable state remain inside one main landmark" time="0.214628166">
+        </testcase>
+        <testcase classname="src/SharedResourceAccessibility.test.tsx" name="missing share token is unavailable without performing a source request" time="0.020202365">
+        </testcase>
+        <testcase classname="src/SharedResourceAccessibility.test.tsx" name="changing a share token cannot revive a late formerly available projection" time="0.123660421">
+        </testcase>
+    </testsuite>
+</testsuites>

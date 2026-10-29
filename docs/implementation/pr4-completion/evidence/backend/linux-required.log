@@ -1,0 +1,36 @@
+[pass] module store lists core and paused M01 catalog entries
+[pass] module preview blocks enabling PO-paused module
+[pass] module commit requires current etag and matching preview
+[skip] local capture retains stable configured runtime and operator ACL policy: requires an actual windows process; current OS is 'Unix'.
+[skip] local capture verifies Windows A/B/C with actual process identities: requires a configured runtime process, operator process, and foreign principal; a SID argument in one process is not evidence of this boundary.
+[pass] local capture removes only old malformed owned JSON and keeps foreign names
+Local account-message capture identity mismatch; file was not returned or removed.
+[pass] local capture rejects filename and payload identity mismatches without deleting them
+[pass] local capture preserves a matching legacy final JSON capture
+[pass] local capture removes malformed pending files after grace on an idle restart
+[pass] local capture disposes an actual orphan temporary file after the grace period
+[pass] local capture uses private Unix modes when running on Linux
+[pass] local capture isolates an unsafe temporary file from later delivery
+[pass] local capture detects an active writer across processes
+[pass] email normalization trims and lowercases without provider alias rewriting
+[pass] email normalization applies IDNA domain normalization
+[pass] password policy rejects short values
+[pass] password policy accepts fifteen unicode code points
+[pass] password hash verifies only the original secret
+[pass] registration defaults display name and locale
+[pass] registration rejects unsupported locale
+[pass] login denies pending verification
+[pass] login denies deleted account without restore side effects
+[pass] login denies mfa-enabled fixture in M01
+[pass] password reset refuses to remove MFA
+[pass] profile patch rejects privileged or ownership fields
+[pass] last active SuperAdmin cannot be downgraded
+[pass] paused action cannot receive Allow grant
+[pass] approved M01 action can receive Allow grant
+[pass] paused module cannot be enabled
+[pass] module disable blocks enabled hard dependent
+[pass] idempotency digest requires uuid key
+[pass] idempotency digest is stable and body-sensitive
+[pass] runtime store can register verify and login through service layer
+[pass] runtime store prevents duplicate verification token replay
+Discovered 34 tests; passed 32; failed 0; skipped 2.

@@ -1,0 +1,17 @@
+{
+  "requirementSource": "8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3",
+  "implementationBaseline": "fd7d087142e7e437cf742fdf401acea1757179cb",
+  "mainActiveDocuments": 303,
+  "features": 40,
+  "catalogActions": 733,
+  "sourceIdentifierOccurrences": 4644,
+  "uniqueCandidateIdentifiers": 1327,
+  "identifierWarning": "References and declarations not yet disambiguated; not a total requirement count",
+  "actionStatuses": {
+    "COMPLETE": 0,
+    "PARTIAL": 4,
+    "UNVERIFIED": 729
+  },
+  "fullSemanticAudit": "INCOMPLETE",
+  "verdict": "INCOMPLETE"
+}

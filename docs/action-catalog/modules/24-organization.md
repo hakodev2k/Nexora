@@ -1,6 +1,8 @@
 # FX-24 — Tags / Collections / Templates: actions
 
-Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
+> **2026-10-19 D08=A original Tag-create receipt:** A verified same-key/same-canonical-body replay may return `TagCommitted` opaque ACK after prior Tag deletion **only** under current original-write authority and namespace proof. No second create, current/removed Tag DTO, namespace substitution or legacy fallback. Conflicting/unverified receipts fail closed. [DEC-20261019-PR4](../../requirements/13-owner-decisions-20261019-pr4-blockers.md) · [contract](../../implementation/pr4-decision-contracts-20261019/05-sharing-and-tag-replay.md). Existing state/action/owner/audit gates unchanged.
+
+Catalog v1 · 2026-09-10 · FX24-S01 Tag catalog is `SLICE_IMPLEMENTED (local)` on PR #4; Collections/Templates and assignment/sharing remain gated. Source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi
 
@@ -15,10 +17,10 @@ Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegate
 
 | Action key / hành vi | Kind / context | Admin checkbox? | Risk (DB mapping) | Status / gate | UI entry |
 | --- | --- | --- | --- | --- | --- |
-| <a id="organization-tag-read"></a>`organization.tag.read` — Xem tags theo namespace | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S01 |
-| <a id="organization-tag-create"></a>`organization.tag.create` — Tạo Tag | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S01 |
-| <a id="organization-tag-rename"></a>`organization.tag.rename` — Đổi tên Tag | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S01 |
-| <a id="organization-tag-remove"></a>`organization.tag.remove` — Xóa Tag | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S01 |
+| <a id="organization-tag-read"></a>`organization.tag.read` — Xem tags theo namespace | QUERY / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-scoped SQL catalog, bounded search and usage projection | FX24-S01 |
+| <a id="organization-tag-create"></a>`organization.tag.create` — Tạo Tag | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): validated local namespace/name/color, idempotency and audit | FX24-S01 |
+| <a id="organization-tag-rename"></a>`organization.tag.rename` — Đổi tên Tag | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): owner-only ETag/If-Match rename and color update | FX24-S01 |
+| <a id="organization-tag-remove"></a>`organization.tag.remove` — Xóa Tag | COMPOSITE / SELF | Yes, gated | Normal (Normal) | SLICE_IMPLEMENTED (local): ETag/If-Match delete blocked while ResourceTag usage exists | FX24-S01 |
 | <a id="organization-tag-assign"></a>`organization.tag.assign` — Gắn/gỡ Tag trên source | COMPOSITE / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S01 |
 | <a id="organization-collection-read"></a>`organization.collection.read` — Xem Collection | QUERY / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S02 |
 | <a id="organization-collection-create"></a>`organization.collection.create` — Tạo Collection | COMMAND / SELF | Yes, gated | Normal (Normal) | Resolved delegated: action contract; source business rules unchanged | FX24-S02 |

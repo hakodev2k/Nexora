@@ -1,8 +1,24 @@
 # FX-25 — Search / Favorites / Command Palette — UX/UI Specification
 
-Review 2026-09-07 · Baseline `b85f0f314da8ca7dcee8dad156e7b538ba52c287` · Documentation only; no schema, migrations or application code executed.
+Review baseline2026-09-07 `b85f0f314da8ca7dcee8dad156e7b538ba52c287`; local continuation2026-10-18 adds code for Saved Search within Search, Recents and a finite Command Palette registry on the existing PR4 branch. Runtime/independent review NOT RUN/Pending; uncommitted continuation is not a synchronized PR or full-UX acceptance claim.
 
-Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. Route strings are navigation proposals, not existing routes or API endpoints.
+## Current PR #4 UX overlay
+
+The `/search` screen exposes a bounded query, resource type/date/archive
+filters, safe result cards and per-source status. Results are owner-scoped and
+opening a hit navigates only to its internal source route. The `/favorites`
+screen is the implemented typed-reference subset: it rechecks source access
+and lifecycle, supports safe unavailable references and owner-scoped reorder /
+remove. `/recent` has current-source metadata, type filtering,25/page and
+explicit watermark-bound metadata Clear with original-intent recovery.
+Saved Search uses the canonical definition form at `/search` and `/search/saved`. The header/Ctrl-Cmd-K/direct
+`/command-palette` modal has grouped current commands, authorized source results,
+combobox keyboard/IME handling and current action checks on selection. The
+registered destructive handoff only opens native Recents preview/confirmation;
+it never executes Clear from palette highlight/selection. Other arbitrary
+commands/providers remain outside this code subset.
+
+Approved source behavior remains Approved; routine interaction choices below are Resolved delegated under DEC-GOV-001. Major Q-linked behaviors remain Proposed/Blocked. `/search`, `/search/saved`, `/favorites`, `/recent` and `/command-palette` have local routes; other route strings remain navigation proposals until their exact contracts are implemented.
 
 ## 1. Scope
 

@@ -1,0 +1,14 @@
+<testsuites id="" name="" tests="4" failures="0" skipped="0" errors="0" time="17.590889">
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-22T13:50:23.776Z" hostname="ui-desktop" tests="2" failures="0" skipped="0" time="8.252" errors="0">
+<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="3.722">
+</testcase>
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="4.53">
+</testcase>
+</testsuite>
+<testsuite name="ui-smoke.spec.ts" timestamp="2026-10-22T13:50:23.776Z" hostname="ui-mobile" tests="2" failures="0" skipped="0" time="7.675" errors="0">
+<testcase name="public responsive forms, keyboard shortcut, validation and API unavailable state" classname="ui-smoke.spec.ts" time="2.735">
+</testcase>
+<testcase name="authenticated modules, mobile reflow, dirty Back, dialog focus and committed ACK" classname="ui-smoke.spec.ts" time="4.94">
+</testcase>
+</testsuite>
+</testsuites>

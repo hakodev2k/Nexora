@@ -1,0 +1,2 @@
+feature,action_key,screen,requirements,backend,api,sql,frontend,disposition,verification,remaining
+FX34,automation.definition.purge,FX34-S01,P06-AUT-006/009/013/014;TRS-003/004/006,SqlAutomationPurge.cs,GET purge-preview;POST purge,existing owner tables;tombstones;0053 permission only,AutomationPurgeDialog.tsx+AutomationScreen.tsx,PARTIALLY_IMPLEMENTED,build/static/sourceReviewPASS;runtimeNOT_RUN,D08 retained-history purge;humanQA;globalTrash integration

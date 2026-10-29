@@ -1,0 +1,13 @@
+# Started Career appointment / Skill evidence-merge verification
+
+Task owner learning_completion; coordinator root. PR4 `impl/m01-s00-scaffold`, local base `a0215f7b3e85d33503cff9077b41cc065240cb81` plus current integrated worktree. Current user instruction and DEC014 automated-QA amendment authorize bounded local synthetic browser/API/SQL verification. Existing native `CareerAppointments`, `SkillEvidencePanel` and `SkillScreen` merge/history are genuinely installed started workflows; this is not new Resume/Plan/provider scope.
+
+Loaded mandatory AGENTS/engineering/profile/technical-lead/core, baseline/evidence and frontend routing; system/module39/module40 goals, current delivery and DEC014 authority. Source bindings: FX39BR005/AC004 and FX39-S04/action catalog `career.appointment.read/link_event/unlink_event`, Calendar current owner/source-read rules; NXG-FX39-G03, SYS02/03/05/08/09/13/14. Skill FX40BR003/006, P07-SKL001, common AC001–006, `r1-20261024-skill-merge-contract.md`, native FX40-S02, `learning.skill.read/evidence/merge` and `learning.course.read`; NXG-FX40-G01, P07-01 and same system invariants. Old code-only execution statements in historical contracts are superseded only by current QA authority, not by product scope changes.
+
+Test-only authored files:
+
+- `functional/started-flow-access.ts`: normal SuperAdmin form login, requires existing Ready modules, uses preview/commit policies and grants, finally restores/asserts exact module/grant prestate. No readiness or action promotion.
+- `functional/career-appointments.spec.ts`: native existing Scheduled Event picker, real link/read/reload/unlink; duplicate denied; foreign owner Job/source denied; exact Calendar SQL row and source payload preserved. Atomic create-and-link/fault/retry/terminal-state acceptance is not implied by this one scenario.
+- `functional/skill-evidence-merge.spec.ts`: native Course evidence on both Skills with distinct notes, duplicate denied, explicit target preview/merge with overlap, source readonly tombstone/history/original note, target note/level preserved; foreign evidence/history denied. No inferred proficiency or new evidence-provider family.
+
+Standalone strict TypeScript compile of all3 final files passed exit0 (2.16s), including added duplicate/readonly negative assertions. Browser execution is **NOT RUN**, awaiting coordinator exclusive writer window; screenshots/evidence will be recorded only after actual execution. Product code unchanged. These are planned assertions, not successful acceptance. Independent security review, final broad regression, delivered-commit trace, D09 and human UI acceptance remain pending.

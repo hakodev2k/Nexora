@@ -1,0 +1,92 @@
+[
+  {
+    "route": "/login",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+    "route": "/login",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "route": "/login",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "route": "/login",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+  },
+  {
+    "route": "/",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+    "route": "/",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 422 (Unprocessable Entity)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 409 (Conflict)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 412 (Precondition Failed)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 409 (Conflict)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+    "route": "/",
+    "type": "error",
+    "message": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+    "route": "/learning/work-log",
+    "type": "error",
+    "message": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+  }
+]

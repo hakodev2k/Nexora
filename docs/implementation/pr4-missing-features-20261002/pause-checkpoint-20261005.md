@@ -1,0 +1,7 @@
+# Paused continuation checkpoint
+
+## Explicit user pause — 2026-10-05
+
+Parent PAUSED at the human request: stop here, commit all source changes to GitHub and mark the next continuation. Monitoring source is installed and built; final realSQL122/122, backend47/47, native30pass4existingplatformskips, frontend83pass1existingDSTskip, TS/Vitepass684.94kBwarning. Final265browser was interrupted by user pause; at least174 passing cases were confirmed in terminal output, no failure observed before interruption, but no completed report exists and the full regression is NOT PASSED. Existing reporter JSON still belongs to historical focusedReminder5/5; never use it as the interrupted full run. Product source23canonical binding is held. No local API/Vite listeners were observed after interruption. Retained synthetic SQL data is preserved.
+
+All reviewed uninstalled News drafts copied into staging/news/ under this evidence directory for Git checkpoint; no News migration/build/runtime claim. Resume: verify PR4 published head/tree and held hashes, restart isolated API/Vite using private retained state without reseed, run complete265browser from the beginning, replay normal46migrations/readiness, finish Monitoring evidence, then integrate News exact3category keys/identityhooks and actual evidence.0045 applied immutable;0046 draft unapplied. Never use the draft migration as active without integration. No merge/newPR/provider/production. Credential/raw artifact/generated helper/runtime files remain excluded.

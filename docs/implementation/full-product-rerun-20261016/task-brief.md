@@ -1,0 +1,15 @@
+# Full requirements audit and UI smoke rerun — 2026-10-16
+
+User explicitly requests execution of updated attached Pasted text(4).txt and UI functional/layout smoke tests. This authorizes isolated local tests/synthetic fixtures/browser verification and supersedes the earlier code-only execution amendment for this run. Production/public exposure, real provider effects, real data/secrets, paid services, main writes and merge remain excluded.
+
+Main requirements revision8782f46be51f4b0f3cb54f0f0f7a06eae3b0d3e3. PR4 baseline1cd27a46a2ba1f24ab2b6f32f84771230f4b1761, exact remote treeb02b8efc9c6181a14d8788dab6c920e08c24c944 verified through host connector. Original worktree atc072a97 and all its unpublished changes are preserved untouched. New isolated checkout Nexora-current receives only reconciled deltas; latest Documents/Tags/Search/Reading and patched dependency graphs must survive. Historical tests/source reviews do not certify the integrated new state.
+
+Accountable owner root: shared client, manifest/signature maintenance, CI/runtime, integrated verification and publication. Finance author owns Finance only; Book/Reading author owns current lifecycle/receipt/ETag repairs and matching tests; UI author owns current frontend reconciliation and smoke specifications; requirements reader owns new semantic/source ledgers; auth_review remains independent reviewer. No overlapping writes without handoff.
+
+Scope: fresh source inventory/RTM and deep flow audit; dependency-ordered current confirmed defects; real production code; focused unit/SQL/API/browser positive/negative/edge checks; desktop/mobile/keyboard/accessibility/layout evidence; full re-audit and remaining gaps with exact limitations. Goals NXG-SYS02/03/05/08/09/11/13/14/16 and affected FX20/21/23/24/25/27 source/action/UX contracts. Sources main shared behavior FX-COM001..017/AC001..006, global authorization steps1..8 and mutation response rule; latest implementation contracts refine engineering without changing business requirements.
+
+Skill/rules: nexora-engineering, AGENTS, implementation profile, Technical Lead core, verification, routing, current delivery/goals startup; matching backend/frontend/security/database/owner/verification instructions before affected changes. Required independent source review is distinct from runtime acceptance.
+
+Starting limitations:303-document/733-action inventories are not certified requirement denominators. Prior nativeSQL2022/2025 provisioning failed before usable runtime, so no prior SQL acceptance result is carried forward. Prior c072 unit64pass and public browser fixtures2pass are historical only. Current baseline CI/build/tests must be inspected and run afresh; compiler or source review does not prove functional completion.
+
+Rollback: source revert only; no rewrite of applied migrations/checksums or retained data. CI uses disposable owned loopback SQL and private per-run environment; cleanup must prove ownership. Existing modules/defaults/grants are not auto-enabled. Keep PR4 draft/unmerged and checkpoint with expected-head lease.

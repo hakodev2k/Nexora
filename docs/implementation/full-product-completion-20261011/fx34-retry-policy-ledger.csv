@@ -1,0 +1,4 @@
+feature,action,requirements,disposition,backend,frontend,verification,next
+FX34,automation.step.dispatch,P06-AUT-008,PARTIALLY_IMPLEMENTED,AutomationLocalExecutionLimits.cs;SqlAutomationTaskWorker.cs,AutomationRunPanel.tsx,Build/static PASS;runtime NOT_RUN,Human retry/deadline/recovery QA
+FX34,automation.run.retry_step,P06-AUT-004/008,IMPLEMENTED_UNVERIFIED,SqlAutomationRetryStep.cs,AutomationRunPanel.tsx,Build/static PASS;runtime NOT_RUN,Human cumulative attempts and known-no-effect QA
+FX34,automation.run.read,P06-AUT-008,IMPLEMENTED_UNVERIFIED,SqlAutomationManualRuns.cs,automationApi.ts;AutomationRunPanel.tsx,Build/typecheck PASS;browser NOT_RUN,Human current policy refresh QA

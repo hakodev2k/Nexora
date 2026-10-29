@@ -1,0 +1,89 @@
+{
+  "parent": "e414895a5e05980630015c8c4cc37b709bd3aa0c",
+  "sources": [
+    {
+      "path": "src/Nexora.Infrastructure/Nexora.Infrastructure.csproj",
+      "sha256": "fa49627e7962d75b7c64911c7f013b3c3573d765b32663435e0f3b422d4675b1",
+      "publishedLfSha256": "f51f6b5df70477ec105727136e231fe852f2b2153fbf4185021a7fa8ae67f6cf"
+    },
+    {
+      "path": "src/Nexora.Infrastructure/packages.lock.json",
+      "sha256": "21fdf79eb502035ea16f4766d072ad9f675c932135ca85eaadbab688e5078bee",
+      "publishedLfSha256": "80816f10b2d371bd7a873b163c2d504d88f66a7932bffec6ad5c61d6b9bbf8af"
+    },
+    {
+      "path": "src/Nexora.Api/packages.lock.json",
+      "sha256": "5a084ea9af96f36fae9fc526b91ccac66049285b6113a55f293437a6a40520f0",
+      "publishedLfSha256": "b0b869ea68de7f3621e974c15d397e28ce9783c649f6467b23eeecd964e18725"
+    },
+    {
+      "path": "src/Nexora.Bootstrap/packages.lock.json",
+      "sha256": "fd234c6b665e97c014b62a8d7aa387591918dcff7effbc9994ae55a87703ed4d",
+      "publishedLfSha256": "63396238aba7c891c024c103b6c5489cd7caa875cd80868857ccb7a1a718cee4"
+    },
+    {
+      "path": "src/Nexora.Local/packages.lock.json",
+      "sha256": "fd234c6b665e97c014b62a8d7aa387591918dcff7effbc9994ae55a87703ed4d",
+      "publishedLfSha256": "63396238aba7c891c024c103b6c5489cd7caa875cd80868857ccb7a1a718cee4"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/packages.lock.json",
+      "sha256": "366a5eccf35d472fe0fc83c65a354b7a992d0ac258f20ceb3d32d5e518f78e37",
+      "publishedLfSha256": "00ae5a41db85a043e4e23813f4560c66a399d96dfa51b5df4ee0f72082608be0"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/packages.lock.json",
+      "sha256": "8c1b813d5cb6e213301b066b3a3934d9f86e9be7b23d2ca985c0500e4e15591c",
+      "publishedLfSha256": "8d5dce568c4689d282850cf7af2c0a8ab910f4dd987eca901a0f0bb47c222213"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/packages.lock.json",
+      "sha256": "fd234c6b665e97c014b62a8d7aa387591918dcff7effbc9994ae55a87703ed4d",
+      "publishedLfSha256": "63396238aba7c891c024c103b6c5489cd7caa875cd80868857ccb7a1a718cee4"
+    }
+  ],
+  "resolvedGraph": [
+    {
+      "path": "src/Nexora.Infrastructure/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Direct"
+    },
+    {
+      "path": "src/Nexora.Api/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Transitive"
+    },
+    {
+      "path": "src/Nexora.Bootstrap/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Transitive"
+    },
+    {
+      "path": "src/Nexora.Local/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Transitive"
+    },
+    {
+      "path": "tests/Nexora.UnitTests/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Transitive"
+    },
+    {
+      "path": "tests/Nexora.IntegrationTests/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Transitive"
+    },
+    {
+      "path": "tests/Nexora.FunctionalTestOperator/packages.lock.json",
+      "framework": "net10.0",
+      "resolved": "9.0.21",
+      "type": "Transitive"
+    }
+  ]
+}

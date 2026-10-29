@@ -4,7 +4,12 @@
 
 FX-32 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** FX32-S01/S02 pure local subset is implemented on PR #4 under DEC-20260909-014. Network, history and unimplemented tool families remain gated; the source rules below still apply.
+
+Implementation overlay: the current slice provides a versioned, memory-only
+catalog and bounded Base64, URL, HTML entity, hash, UUID, password, JSON and
+regex operations. It does not execute code, make provider calls, persist
+input/output or read the clipboard automatically.
 
 ## Phạm vi và tham chiếu
 

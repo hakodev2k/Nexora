@@ -1,0 +1,23 @@
+.templates-screen { max-width: 1180px; }
+.templates-note { display: flex; gap: .85rem; align-items: center; margin: 1.25rem 0; padding: 1rem 1.2rem; border: 1px solid #cfdcf3; border-radius: 16px; background: #f0f5ff; color: #365077; }
+.templates-note > span { font-size: 1.6rem; color: #416bc1; }
+.templates-note p { margin: 0; }
+.templates-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: .75rem; margin: 1.3rem 0; }
+.templates-toolbar label { display: grid; gap: .35rem; font-weight: 600; }
+.templates-toolbar label:first-child { flex: 1; min-width: min(100%, 240px); }
+.templates-toolbar input, .templates-toolbar select { min-height: 44px; width: 100%; border: 1px solid #cbd6e6; border-radius: 10px; background: #fff; padding: .65rem .8rem; }
+.templates-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 1rem; }
+.template-card { min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: .8rem; }
+.template-card h2 { margin-top: .7rem; overflow-wrap: anywhere; }
+.template-kind { display: inline-flex; padding: .3rem .65rem; color: #365b95; background: #edf3ff; border-radius: 99px; font-size: .82rem; font-weight: 600; }
+.templates-empty { text-align: center; background: #fff; border: 1px dashed #bacbe3; border-radius: 20px; padding: clamp(1.5rem,5vw,3rem); margin: 1.5rem 0; }
+.templates-empty > span { color: #527dbd; font-size: 2.5rem; }
+.templates-empty h2 { margin-top: .8rem; }
+.templates-empty p { color: #5a6b83; margin-bottom: 0; }
+.template-preview { padding: 1.3rem; margin-top: 1.2rem; border: 1px solid #d3deed; border-radius: 16px; background: #fff; overflow-wrap: anywhere; }
+.template-preview dt { font-size: .85rem; color: #52657e; font-weight: 600; margin-top: .8rem; }
+.template-preview dd { margin: .3rem 0 .9rem; white-space: pre-wrap; }
+.templates-screen fieldset { display: grid; gap: .8rem; min-width: 0; border: 1px solid #d2dceb; border-radius: 12px; padding: 1rem; }
+.templates-screen fieldset legend { padding: 0 .4rem; color: #4c607e; }
+.templates-screen .resource-actions { flex-wrap: wrap; }
+@media(max-width: 600px) { .templates-toolbar > label, .templates-toolbar > button { width: 100%; } .template-card .resource-actions > button { flex: 1 1 auto; min-height: 44px; } .templates-note { margin-block: .75rem; padding: .75rem; font-size: .9rem; } .templates-toolbar { margin-block: .85rem; } }

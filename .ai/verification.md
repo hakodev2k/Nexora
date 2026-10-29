@@ -1,5 +1,52 @@
 # Verification of the Nexora agent baseline
 
+## Authorized local application QA and human acceptance
+
+The 2026-10-25 amendment to DEC-20260909-014 in
+`docs/requirements/12-owner-decisions-local-e2e-implementation.md#local-automated-qa-20261025`
+supersedes the old code-only/human-executes-QA restriction. Agents may create/update
+and run applicable unit, component, API/integration, real isolated SQL, E2E,
+regression, negative/permission/isolation/security, concurrency/idempotency/recovery,
+responsive/accessibility and static checks. Agents own ordinary automated QA,
+synthetic fixture preparation and local runtime/browser verification, without
+repeated PO approval inside the approved contract-complete local scope.
+
+Standard workflow: Requirements → Implementation → Automated QA → Defect
+Remediation → Runtime/Browser Verification → Human UI Review. Use focused checks
+during work; after final relevant edits rerun affected scenarios and release-critical
+regression on the final revision. Record failures and diagnose implementation,
+oracle, fixture, environment or requirement ambiguity; fix authorized root causes
+and retain meaningful assertions. Never delete/disable/skip failures or weaken
+production validation/security merely for green. Record exact blockers and continue
+independently executable work. Source review/build/old CI cannot prove full AC coverage.
+
+Run actual allowed/denied UI/API/SQL journeys with persistence/reload, error/recovery
+and desktop/mobile states. Use unique run-owned disposable test DBs, synthetic
+identities/grants through legitimate application flows, isolated browser/configuration,
+least privilege and labelled local simulations. Prove ownership before cleanup;
+never use real data/secrets, unknown DBs, authorization bypass or live providers.
+SQL Server remains authority; mocks/in-memory/Redis cannot prove SQL semantics or
+real provider integration. Never commit passwords/credentials/private browser storage.
+
+Every result records exact commit SHA, environment, test case, command/result and
+sanitized evidence. Worktree runs record tree/source identity and are reconciled to
+the delivered commit; later relevant changes invalidate affected evidence. Use
+PASS (executed successfully), FAIL (executed and failed), PARTIAL (defined subset),
+NOT TESTED (not executed), BLOCKED (documented blocker), NOT APPLICABLE (justified).
+Track Requirement → AC → Code → Test Case → Execution Evidence → Release Status.
+
+Before handoff, complete authorized automated verification possible, resolve
+actionable failures and provide source/evidence, exact blockers, startup/review
+instructions and a concise UI acceptance checklist. Record separately
+IMPLEMENTATION COMPLETE, AUTOMATED QA VERIFIED, HUMAN UI REVIEW PENDING,
+HUMAN UI REVIEW ACCEPTED, BLOCKED and NOT VERIFIED. Automated QA does not imply
+human acceptance; only explicit human confirmation for the relevant scope/revision
+sets ACCEPTED. Mandatory human UI/product acceptance, independent review and D09
+current-head CI/traceability still prevent RELEASE READY while pending. This policy
+does not retroactively execute tests or change D01–D09/product/deployment authority.
+
+## Agent-kit validation
+
 Run from the repository root with Python 3.9+ (standard library only):
 
 ```sh

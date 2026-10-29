@@ -1,0 +1,33 @@
+{
+  "CaseId": "QA-FINANCE-CURRENT-UI",
+  "RequirementRef": "FX27 current explicit currency/nonnegative decimal28,8/date/usage guard",
+  "Status": "PASS",
+  "resources": [
+    {
+      "id": "075e62e6-bda2-45c1-ad6b-7340e2f2bb39",
+      "type": "FinanceCategory",
+      "expected": "In use",
+      "layer": "UI"
+    },
+    {
+      "id": "42ca1acc-9569-4cef-9a31-d1fa7b00bea0",
+      "type": "FinanceRecord",
+      "expected": "7.25000000 VND /2026-10-16",
+      "layer": "UI"
+    }
+  ],
+  "Actual": {
+    "initial": "123456.12345678",
+    "afterEdit": [
+      {
+        "Amount": "7.25000000",
+        "CurrencyCode": "VND",
+        "OccurredOn": "2026-10-16"
+      }
+    ],
+    "usageGuard": true,
+    "explicitCurrency": true,
+    "deleted": false,
+    "limitation": "No ledger/account/delete/void invented; current basic manual records only"
+  }
+}

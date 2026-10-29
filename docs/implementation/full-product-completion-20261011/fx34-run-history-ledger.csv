@@ -1,0 +1,2 @@
+feature,action_key,screen,requirements,backend,api,sql,frontend,disposition,verification,remaining
+FX34,automation.run.read,FX34-S04+FX34-S05,P06-AUT-007/009/014,SqlAutomationManualRuns.cs,GET definitions/{id}/runs state+version+createdFrom+createdBefore,existing Run+DefinitionVersion;no migration,AutomationRunPanel.tsx,IMPLEMENTED_UNVERIFIED,build/static/sourceReviewPASS;runtimeNOT_RUN,human SQL/API/browser acceptance;other execution contract gaps

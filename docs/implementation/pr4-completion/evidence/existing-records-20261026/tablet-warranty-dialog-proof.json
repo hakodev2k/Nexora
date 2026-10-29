@@ -1,0 +1,14 @@
+{
+  "viewport": {
+    "width": 768,
+    "height": 1024
+  },
+  "topAndActionsCaptured": true,
+  "keyboardCancelFocused": true,
+  "visibleFocusIndicator": true,
+  "before": {
+    "y": 1311,
+    "max": 1311
+  },
+  "after": 1311
+}

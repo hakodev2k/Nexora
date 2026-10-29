@@ -1,0 +1,375 @@
+{
+  "sourceCommit": "ba692f8e0ac072079184676996c6ee4fe5000110",
+  "sourceTree": "c29de98c9728460c37c277de68d2693307ae3854",
+  "fullScopePassed": false,
+  "independentReview": "Pending",
+  "runtime": "SQL Server 2025 Developer; .NET 10.0.100; Chromium 153.0.8010.12; HTTPS API and Vite; isolated synthetic accounts with normal paced form logins",
+  "migrations": 34,
+  "stats": {
+    "startTime": "2026-10-01T17:14:25.847Z",
+    "duration": 512916.15400000004,
+    "expected": 15,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "results": [
+    {
+      "title": "FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real offline completion",
+      "project": "desktop-large",
+      "status": "passed",
+      "durationMs": 73215,
+      "retry": 0
+    },
+    {
+      "title": "FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real offline completion",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 71860,
+      "retry": 0
+    },
+    {
+      "title": "FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real offline completion",
+      "project": "tablet",
+      "status": "passed",
+      "durationMs": 75733,
+      "retry": 0
+    },
+    {
+      "title": "FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real offline completion",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 71865,
+      "retry": 0
+    },
+    {
+      "title": "FN-042 Focus: SQL preferences, one active slot, pause/reload, cancel, real offline completion",
+      "project": "mobile-small",
+      "status": "passed",
+      "durationMs": 76506,
+      "retry": 0
+    },
+    {
+      "title": "FN-043 Time access: Admin SELF grants, read-only UI, timer separation and foreign-owner 404",
+      "project": "desktop-large",
+      "status": "passed",
+      "durationMs": 16336,
+      "retry": 0
+    },
+    {
+      "title": "FN-043 Time access: Admin SELF grants, read-only UI, timer separation and foreign-owner 404",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 15987,
+      "retry": 0
+    },
+    {
+      "title": "FN-043 Time access: Admin SELF grants, read-only UI, timer separation and foreign-owner 404",
+      "project": "tablet",
+      "status": "passed",
+      "durationMs": 16603,
+      "retry": 0
+    },
+    {
+      "title": "FN-043 Time access: Admin SELF grants, read-only UI, timer separation and foreign-owner 404",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 16133,
+      "retry": 0
+    },
+    {
+      "title": "FN-043 Time access: Admin SELF grants, read-only UI, timer separation and foreign-owner 404",
+      "project": "mobile-small",
+      "status": "passed",
+      "durationMs": 16051,
+      "retry": 0
+    },
+    {
+      "title": "FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, resume and Trash/Restore",
+      "project": "desktop-large",
+      "status": "passed",
+      "durationMs": 11026,
+      "retry": 0
+    },
+    {
+      "title": "FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, resume and Trash/Restore",
+      "project": "desktop",
+      "status": "passed",
+      "durationMs": 10926,
+      "retry": 0
+    },
+    {
+      "title": "FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, resume and Trash/Restore",
+      "project": "tablet",
+      "status": "passed",
+      "durationMs": 10380,
+      "retry": 0
+    },
+    {
+      "title": "FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, resume and Trash/Restore",
+      "project": "mobile",
+      "status": "passed",
+      "durationMs": 10963,
+      "retry": 0
+    },
+    {
+      "title": "FN-041 Time Tracking: SQL create/edit/history, overlap, ETag, timer race, resume and Trash/Restore",
+      "project": "mobile-small",
+      "status": "passed",
+      "durationMs": 11171,
+      "retry": 0
+    }
+  ],
+  "sourceSha256": {
+    "src/Nexora.Application/TimeTracking/TimeTrackingContracts.cs": "0aa443ce1780899369b6690a1cf4ce957b5592f4850e3e726d0380a57c7d139b",
+    "src/Nexora.Application/Focus/FocusContracts.cs": "86fe120c889e53b5f91179415e88473a778a461b397c4846a3fa0e3d09a2e704",
+    "src/Nexora.Infrastructure/TimeTracking/SqlTimeTrackingService.cs": "a2c7a732e6ff5e6e98592ef950113a59f786722cda13fb7d3321d6f52da8a82a",
+    "src/Nexora.Infrastructure/Focus/SqlFocusService.cs": "cb8893486c11b37bfefce99ff09ba870f32cf8caa6ed059b892fc3aa759a507c",
+    "src/Nexora.Api/Features/TimeTracking/TimeTrackingEndpoints.cs": "326668aadececb0988c71e5744807b4b390597d81cb18655ad288e6ed8a4d597",
+    "src/Nexora.Api/Features/Focus/FocusPhaseWorker.cs": "62f01c9a6e6f91d4d95487ab227f379df303eea746a24424199553560297c3c0",
+    "src/Nexora.Api/Features/Focus/FocusEndpoints.cs": "3809622d1ecbbfa244cf43ccc9b02d261a2e4b4ab47fafa91c440d94cbec0467",
+    "web/Nexora.Web/src/TimeTrackingScreen.tsx": "6a30012e1af31f9fd57376b5bf9d10142b93f32b91b255aa0acd0bd331c8e858",
+    "web/Nexora.Web/src/FocusScreen.tsx": "474a1d21f6643fb4a9b8a4c8a68ecf528a47866b0b27c4969a3017459c90a13f",
+    "web/Nexora.Web/src/timeApi.ts": "a034200ec20334cdcbf2f3b3639481a576b11e8441bb3dad015a717555cc8869",
+    "web/Nexora.Web/src/focusApi.ts": "e9aa9110346d7d1f57cc53a1a0170fe6f7224097cbeba50effd9bcdd6419c1cf"
+  },
+  "limitations": [
+    "17 SELF action keys have tested subsets; no exhaustive action or module sign-off",
+    "Five-viewport run began before a helper-only static import was changed to a variable with the identical browser URL for TypeScript resolution; product code remained unchanged",
+    "Historical 200-workflow and 733-action ledger is unchanged historical evidence",
+    "Task/Project source links, Time purge/Trash provider, Focus conversion and actual configured Email/Push delivery remain open",
+    "13 missing candidate API groups and 3 existing-handler gated groups remain open"
+  ],
+  "supplementaryTimeReportRun": {
+    "stats": {
+      "startTime": "2026-10-01T17:29:13.424Z",
+      "duration": 72285.85399999999,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "result": "5/5 passed",
+    "assertion": "Read stopped-entry UTC timestamp series from real SQL, independently sum each duration in JavaScript, compare exact gross total and count to API, and assert actual overlap flag",
+    "reason": "Strengthen time.report.read data oracle after the full 15-pass workflow run"
+  },
+  "regressions": {
+    "sqlIntegration": {
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "reference": "VSTest real SQL, fresh generated databases, migrations replay/readiness"
+    },
+    "dotnetUnit": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    "frontendUnit": {
+      "passed": 69,
+      "failed": 0,
+      "skipped": 1,
+      "skip": "pre-existing"
+    },
+    "apiBuild": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "operatorBuild": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "functionalTypecheck": {
+      "passed": true,
+      "nodeTypeRootsExplicit": true
+    }
+  },
+  "catalog": {
+    "modules": 40,
+    "ready": 24,
+    "blocked": 13,
+    "paused": 3,
+    "permissionRows": 207,
+    "missingCandidateApiGroups": [
+      "FX10",
+      "FX28",
+      "FX29",
+      "FX30",
+      "FX31",
+      "FX33",
+      "FX34",
+      "FX35",
+      "FX36",
+      "FX37",
+      "FX38",
+      "FX39",
+      "FX40"
+    ]
+  },
+  "actionBindings": [
+    {
+      "key": "time.timer.read",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": "FN-043"
+    },
+    {
+      "key": "time.timer.start",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "time.timer.stop",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "time.timer.resume",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "time.entry.read",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": "FN-043"
+    },
+    {
+      "key": "time.entry.create",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": "FN-043"
+    },
+    {
+      "key": "time.entry.update",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "time.entry.trash",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "time.entry.restore",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "time.entry.history",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": "FN-043"
+    },
+    {
+      "key": "time.report.read",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-041",
+      "additionalNegativeWorkflow": "FN-043"
+    },
+    {
+      "key": "focus.session.read",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "focus.session.start",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "focus.session.pause",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "focus.session.resume",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "focus.session.cancel",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "focus.preference.update",
+      "context": "SELF",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    },
+    {
+      "key": "focus.session.finish_phase",
+      "context": "SYSTEM",
+      "status": "Partial-tested-subset",
+      "fullActionPassed": false,
+      "workflow": "FN-042",
+      "additionalNegativeWorkflow": null
+    }
+  ],
+  "continuationTestSourceSha256": {
+    "tests/Nexora.FunctionalTestOperator/Program.cs": "5c9728db77bc06edf02e55a5221acb195693fe44f8dd6276986d7ea49c50f4b8",
+    "web/Nexora.Web/functional/fixtures.ts": "a84a5d6b8c2016fbf5a47869fb98241fd8a2e28d498dc90a03b13c591c04f9b4",
+    "web/Nexora.Web/functional/time-focus-helpers.ts": "3bdb99792b710ef54f030a5dab5620ccdf52920e4b1730abaf8f4d9e4dfe062c",
+    "web/Nexora.Web/functional/time.spec.ts": "0b09e566b43e15f9179336a5f2ecbda7edf17f357dd75c790111abf1158dd947",
+    "web/Nexora.Web/functional/focus.spec.ts": "efb6fd62eb059ceaec9c103468de67a11c9a0ce938ee3981d12a92130a0d1499",
+    "web/Nexora.Web/functional/time-access.spec.ts": "fea57b89582817040688259266efa7048d1cda1954f4e441ba0a8d6c156eb262"
+  },
+  "supplementaryDependencyRun": {
+    "stats": {
+      "startTime": "2026-10-01T17:39:11.889Z",
+      "duration": 74722.262,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "result": "5/5 passed",
+    "assertion": "Enable Focus using normal signed grant preview; disable Time and its dependent Focus atomically; restore both and assert dependency state; restore original Focus grant"
+  }
+}

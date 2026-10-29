@@ -2,7 +2,7 @@
 
 Product phase: **P03** · Delivery: **RM09** · Phase 8/RM16–RM22 kiểm chứng tích hợp và phát hành.
 
-**Trạng thái:** Specified; chưa approve implementation, chưa Implemented/Verified. Goals có điều kiện không là quyền code. FX-24 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
+**Trạng thái:** FX24-S01 Tag catalog `SLICE_IMPLEMENTED (local)` trên PR #4; assignment, Collections và Templates vẫn gated, runtime chưa verify. Goals có điều kiện không là quyền code. FX-24 phải đọc cùng [goals toàn hệ thống](../01-system-goals.md), [hợp đồng dùng goals](../README.md) và sources hiện hành.
 
 ## Mục tiêu và bằng chứng chấp nhận
 
@@ -11,6 +11,14 @@ Product phase: **P03** · Delivery: **RM09** · Phase 8/RM16–RM22 kiểm chứ
 | NXG-FX24-G01 | Tag/Collection tôn trọng namespace và resource authority. | Project/Task chung tags, Documents riêng một Tag/page; collection không cấp quyền hoặc lộ count/title ẩn. |
 | NXG-FX24-G02 | Template tạo dữ liệu mới hợp lệ, không copy authority/history. | Không copy owner/IDs/shares/secrets/sent reminders; Documents vẫn chọn mode/type; Task vẫn cần active Project/dates. |
 | NXG-FX24-G03 | Xóa/sửa cấu trúc tổ chức không làm mất nguồn. | Template update không sửa resource cũ; collection delete giữ members; Documents tag đang current/Archived/Trash bị chặn xóa. |
+
+## Slice overlay trên PR #4
+
+FX24-S01 hiện thực mục tiêu Tag catalog ở phạm vi local: tag owner-scoped,
+namespace cố định (`projects`, `documents`, `bookmarks`, `snippets`), tên unique
+case-insensitive, màu tùy chọn, usage projection và ETag/If-Match. `TagInUse`
+chặn xóa khi `ResourceTag` có tham chiếu. Không suy ra rằng goal đã hoàn tất
+cho assignment, Collections hoặc Templates; các phần đó cần slice riêng.
 
 ## Ownership, dependencies và giới hạn
 

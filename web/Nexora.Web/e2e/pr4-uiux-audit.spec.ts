@@ -1,0 +1,407 @@
+/**
+ * PR #4 synthetic UI/UX evidence scanner. NOT a business acceptance test or
+ * a substitute for a human visual reviewer. All writes use job-owned SQL only.
+ * Screenshots contain SYNTHETIC TEST PERSONAS; never run against real users.
+ */
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+type Finding = { code: string; severity: 'P1' | 'P2' | 'P3'; detail: string };
+type Observation = {
+  route: string; persona: string; viewport: string; status: string;
+  h1?: string; screenshot?: string; checks?: Record<string, number | boolean | string>;
+  dialogs?: Array<{ trigger: string; visible: boolean; screenshot?: string; scrollOverflow?: boolean }>;
+  tabs?: Array<{ title: string; accessible: boolean; screenshot?: string }>;
+  findings: Finding[];
+};
+const localWorker = process.env.NEXORA_UIUX_WORKER_ID ?? '';
+if (localWorker && !/^[a-z-]{1,32}$/.test(localWorker)) throw new Error('Invalid UIUX evidence worker ID');
+const artifactRoot = join(process.cwd(), 'artifacts', 'uiux-audit', localWorker);
+const screenshotRoot = join(artifactRoot, 'screenshots');
+const modules = Array.from({ length: 40 }, (_, i) => '/modules/FX' + String(i + 1).padStart(2, '0'));
+const publicRoutes = ['/login', '/register', '/verify-email', '/password/forgot', '/password/reset', '/share/synthetic-invalid-token'];
+const visiblePanelTriggers = /^(Thêm|Tạo|Xem|Chi tiết|Lịch sử|Chỉnh sửa|Sửa|Bộ lọc|Tùy chỉnh|Thiết lập|Cấu hình|Add |New |Create |View |Edit |Filter |History |Import |Export )/i;
+const prohibitedTriggers = /(Đăng xuất|Lưu|Gửi|Xóa|Purge|Archive|Remove|Delete|Khôi phục|Chạy|Áp dụng|Confirm|Revoke|Phê duyệt|Logout|Save|Run |Submit|Execute|Thực thi|Bật|Tắt)/i;
+
+function safeSlug(value: string) { return value.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 86) || 'home'; }
+
+test('shared modal: mixed-axis inline overflow survives nested isolation', async ({ page }) => {
+  await page.goto('/login');
+  const result = await page.evaluate(async () => {
+    const modulePath = '/src/modalIsolation.ts'; const { isolateModalLayer } = await import(modulePath);
+    // Use the browser's real CSSOM in an isolated document; no live page style,
+    // authentication state or visual evidence is modified by this regression.
+    const doc = document.implementation.createHTMLDocument('Synthetic modal styles');
+    doc.documentElement.style.setProperty('overflow-x', 'scroll', 'important'); doc.documentElement.style.setProperty('overflow-y', 'auto');
+    doc.body.style.setProperty('overflow-x', 'clip'); doc.body.style.setProperty('overflow-y', 'scroll', 'important');
+    const values = () => [doc.documentElement, doc.body].map(el => ['overflow-x', 'overflow-y'].map(key => ({ value: el.style.getPropertyValue(key), priority: el.style.getPropertyPriority(key) })));
+    const before = values(), parent = doc.createElement('div'), child = doc.createElement('div');
+    doc.body.append(parent); const closeParent = isolateModalLayer(parent);
+    doc.body.append(child); const closeChild = isolateModalLayer(child);
+    closeParent(); closeParent(); closeChild();
+    return { before, after: values() };
+  });
+  expect(result.after).toEqual(result.before);
+});
+
+test('shared foundation: Bookmark create/edit visual and rendered control contrast', async ({ page }, info) => {
+  await logIn(page, 'UserA');
+  await page.goto('/bookmarks');
+  await expect(page.getByRole('button', { name: 'Thêm bookmark', exact: true })).toBeEnabled();
+  const title = `Synthetic UI Foundation Bookmark ${page.viewportSize()?.width}-${Date.now()}`;
+  await page.getByRole('button', { name: 'Thêm bookmark', exact: true }).click();
+  const seedDialog = page.getByRole('dialog');
+  await seedDialog.getByLabel('URL', { exact: true }).fill('https://example.invalid/ui-foundation');
+  await seedDialog.getByLabel('Tiêu đề', { exact: true }).fill(title);
+  await seedDialog.getByRole('button', { name: 'Tạo bookmark', exact: true }).click();
+  await expect(seedDialog).toBeHidden();
+  await expect(page.getByRole('heading', { name: title, exact: true })).toBeVisible();
+  const images: string[] = [await screenshot(page, 'UserA', '/bookmarks', 'foundation-populated')];
+  const controls: Array<{ field: string; border: string; background: string; contrast: number }> = [];
+  for (const mode of ['create', 'edit'] as const) {
+    if (mode === 'create') await page.getByRole('button', { name: 'Thêm bookmark', exact: true }).click();
+    else await page.locator('.resource-card').filter({ has: page.getByRole('heading', { name: title, exact: true }) }).getByRole('button', { name: 'Sửa', exact: true }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: mode === 'create' ? 'Bookmark mới' : 'Sửa bookmark', exact: true })).toHaveCount(1);
+    for (const field of ['URL', 'Tiêu đề', 'Mô tả']) {
+      const input = dialog.getByLabel(field, { exact: field !== 'Mô tả' });
+      const rendered = await input.evaluate(el => {
+        const style = getComputedStyle(el);
+        const rawToken = style.getPropertyValue('--nx-border-control').trim();
+        const token = /^#[\da-f]{6}$/i.test(rawToken)
+          ? `rgb(${[1, 3, 5].map(offset => parseInt(rawToken.slice(offset, offset + 2), 16)).join(', ')})` : rawToken;
+        const luminance = (value: string) => {
+          const rgb = (value.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number).map(v => { const n = v / 255; return n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4; });
+          return rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722;
+        };
+        const a = luminance(style.borderTopColor), b = luminance(style.backgroundColor);
+        return { border: style.borderTopColor, background: style.backgroundColor, token, contrast: (Math.max(a, b) + .05) / (Math.min(a, b) + .05) };
+      });
+      expect(rendered.border, `${field} uses the shared control boundary`).toBe(rendered.token);
+      expect(rendered.contrast, `${field} rendered boundary contrast`).toBeGreaterThanOrEqual(3);
+      controls.push({ field, border: rendered.border, background: rendered.background, contrast: rendered.contrast });
+    }
+    images.push(await screenshot(page, 'UserA', '/bookmarks', `foundation-${mode}`));
+    await page.keyboard.press('Escape'); await expect(dialog).toBeHidden();
+  }
+  mkdirSync(artifactRoot, { recursive: true });
+  writeFileSync(join(artifactRoot, `${info.project.name}-foundation-controls.json`), JSON.stringify({ testedSha: process.env.GITHUB_SHA ?? 'WORKTREE', project: info.project.name, images, controls, scope: 'Rendered Bookmark form boundaries and selected screenshots only; no full accessibility acceptance.' }, null, 2));
+});
+function finding(code: string, severity: 'P1' | 'P2' | 'P3', detail: string): Finding { return { code, severity, detail }; }
+async function screenshot(page: Page, persona: string, route: string, suffix: string) {
+  mkdirSync(screenshotRoot, { recursive: true });
+  const base = safeSlug(persona + '-' + (page.viewportSize()?.width ?? 'na') + '-' + route + '-' + suffix);
+  const relative = 'screenshots/' + base + '.png';
+  await page.screenshot({
+    path: join(artifactRoot, relative), animations: 'disabled', timeout: 10_000,
+    fullPage: false, mask: [page.locator('input[type="password"], input[autocomplete="current-password"], input[autocomplete="new-password"]')],
+  });
+  return relative;
+}
+async function logIn(page: Page, role: string) {
+  const path = process.env.NEXORA_E2E_ACCOUNTS;
+  if (!path) throw new Error('Missing isolated synthetic accounts path');
+  const accounts = JSON.parse(readFileSync(path, 'utf8')) as Array<{ role: string; email: string; password: string }>;
+  const account = accounts.find(a => a.role === role);
+  if (!account || !account.email.endsWith('@example.invalid')) throw new Error('Synthetic role unavailable');
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(account.email);
+  await page.getByLabel('Mật khẩu').fill(account.password);
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
+  await expect(page).toHaveURL('/', { timeout: 20_000 });
+  await expect(page.locator('main')).toBeVisible();
+  // Do not include credential/email in report or test logs.
+}
+async function trySeed(page: Page, records: string[], domain: string) {
+  const fixtureSuffix = '-' + String(page.viewportSize()?.width ?? 'view');
+  const projectLabel = 'Synthetic UIUX Project' + fixtureSuffix;
+  const taskLabel = 'Synthetic UIUX Task' + fixtureSuffix;
+  const categoryLabel = 'Synthetic UIUX category' + fixtureSuffix;
+  if (domain === 'knowledge') try {
+    // Each UI write goes to this run's disposable SQL, not mocked network or production.
+    await page.goto('/bookmarks');
+    await page.getByRole('button', { name: 'Thêm bookmark' }).click({ timeout: 5_000 });
+    const dialog = page.getByRole('dialog').first();
+    await dialog.getByLabel('URL', { exact: true }).fill('https://example.invalid/nexora-uiux-bookmark');
+    await dialog.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic UIUX Bookmarks item');
+    await dialog.getByRole('button', { name: 'Tạo bookmark', exact: true }).click({ timeout: 5_000 });
+    await expect(dialog).toBeHidden({ timeout: 5_000 });
+    await expect(page.getByRole('heading', { name: 'Synthetic UIUX Bookmarks item', exact: true }).first()).toBeVisible({ timeout: 5_000 });
+    records.push('Bookmarks: synthetic real SQL UI creation confirmed');
+  } catch { records.push('Bookmarks: UI seeding unverified/blocked (do not claim populated)'); }
+  if (domain === 'knowledge') try {
+    await page.goto('/modules/FX22');
+    await page.getByLabel('Tiêu đề', { exact: true }).fill('Synthetic UIUX snippet');
+    await page.getByLabel('Language', { exact: true }).fill('csharp');
+    await page.getByLabel('Source code / text', { exact: true }).fill('public static int Add(int a, int b) => a + b;');
+    await page.getByRole('button', { name: 'Tạo snippet', exact: true }).click();
+    await expect(page.locator('.snippet-code code')).toBeVisible({ timeout: 5_000 });
+    records.push('Snippets: synthetic real SQL UI creation confirmed');
+  } catch { records.push('Snippets: UI seeding unverified/blocked'); }
+  if (domain === 'productivity') try {
+    await page.goto('/modules/FX11');
+    await page.locator('#project-name').fill(projectLabel);
+    await page.locator('#project-description').fill('Synthetic isolated QA project for populated screenshots');
+    await page.locator('#project-start').fill('2026-10-20T09:00');
+    await page.locator('#project-end').fill('2026-11-20T18:00');
+    await page.getByRole('button', { name: 'Tạo Project', exact: true }).click();
+    await expect(page.getByRole('heading', { name: projectLabel })).toBeVisible({ timeout: 5_000 });
+    records.push('Projects: synthetic real SQL UI creation confirmed');
+  } catch { records.push('Projects: UI seeding unverified/blocked'); }
+  if (domain === 'productivity') try {
+    await page.goto('/modules/FX12');
+    await page.locator('#task-project').selectOption({ label: projectLabel });
+    await page.locator('#task-title').fill(taskLabel);
+    await page.locator('#task-start').fill('2026-10-21T09:00');
+    await page.locator('#task-end').fill('2026-10-22T18:00');
+    await page.getByRole('button', { name: 'Tạo Task', exact: true }).click();
+    await expect(page.getByRole('heading', { name: taskLabel })).toBeVisible({ timeout: 5_000 });
+    records.push('Tasks: synthetic real SQL UI creation confirmed');
+  } catch { records.push('Tasks: UI seeding unverified/blocked'); }
+  if (domain === 'business') try {
+    await page.goto('/finance');
+    await page.getByRole('button', { name: 'Thêm category' }).click();
+    await page.locator('#finance-category-title').fill(categoryLabel);
+    await page.getByRole('dialog').getByRole('button', { name: 'Tạo category' }).click();
+    await page.getByRole('button', { name: 'Thêm record' }).click();
+    await page.locator('#finance-record-category').selectOption({ label: categoryLabel });
+    await page.locator('#finance-record-amount').fill('123456.125');
+    await page.locator('#finance-record-currency').fill('VND');
+    await page.locator('#finance-record-date').fill('2026-10-19');
+    await page.getByRole('dialog').getByRole('button', { name: 'Tạo record' }).click();
+    await expect(page.getByText('123456.125', { exact: false }).first()).toBeVisible({ timeout: 5_000 });
+    records.push('Finance: synthetic category plus explicit-VND real SQL record confirmed');
+  } catch { records.push('Finance: category/record UI seeding unverified/blocked'); }
+  if (domain === 'knowledge') try {
+    const op = process.env.NEXORA_E2E_SQL_OPERATOR;
+    const state = await page.request.get('/api/v1/me');
+    const profile = await state.json() as { id?: string };
+    if (!op || !state.ok() || !/^[a-f0-9-]{36}$/i.test(profile.id ?? '')) throw Error('Synthetic owner identity not ready');
+    execFileSync(op, ['seed-notification', profile.id!, 'Synthetic UX Notification'], { encoding: 'utf8', timeout: 15_000, stdio: ['ignore', 'pipe', 'pipe'] });
+    records.push('Notifications: local SQL synthetic notification with no provider dispatch');
+  } catch { records.push('Notifications: synthetic SQL fixture unverified/blocked'); }
+}
+async function observe(page: Page, route: string, persona: string, testInfo: TestInfo): Promise<Observation> {
+  const out: Observation = { route, persona, viewport: testInfo.project.name, status: 'NOT_RUN', dialogs: [], tabs: [], findings: [] };
+  let jsErrors = 0;
+  const onError = () => { jsErrors += 1; };
+  page.on('pageerror', onError);
+  try {
+    const response = await page.goto(route, { waitUntil: 'domcontentloaded', timeout: 25_000 });
+    // FX25-S02 is a dialog surface; its empty inert background is not a page.
+    if (route === '/command-palette') {
+      const dialog = page.getByRole('dialog', { name: 'Command Palette', exact: true });
+      const query = dialog.getByRole('combobox', { name: 'Tìm lệnh hoặc nguồn', exact: true });
+      await expect(dialog).toBeVisible();
+      await expect(query).toBeFocused();
+      await expect(query).toHaveAttribute('aria-expanded', 'true');
+      await expect(dialog.getByRole('listbox', { name: 'Lệnh và nguồn khả dụng' })).toBeAttached();
+      const axe = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+      for (const v of axe.violations) out.findings.push(finding('AXE_' + v.id, 'P2', 'Dialog axe rule ' + v.id + ' affects ' + v.nodes.length + ' elements'));
+      out.screenshot = await screenshot(page, persona, route, 'dialog');
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(page).toHaveURL('/');
+      await expect(page.locator('main #home-title')).toBeVisible();
+      const focusOutsideClosedDialog = await page.evaluate(() => !!document.activeElement && !document.activeElement.closest('[role="dialog"]'));
+      expect(focusOutsideClosedDialog).toBe(true);
+      out.checks = { statusCode: response?.status() ?? 0, modalContract: true, namedCombobox: true, initialFocus: true, escapeCloses: true, homeRestored: true, focusOutsideClosedDialog, axeViolations: axe.violations.length, jsErrors };
+      out.status = 'AUTO_PROBED';
+      return out;
+    }
+    const subject = page.locator('main').first();
+    const hasMain = await subject.waitFor({ state: 'visible', timeout: 8_000 }).then(() => true).catch(() => false);
+    if (!hasMain) {
+      out.findings.push(finding('NO_MAIN_LANDMARK', 'P1', 'No visible main; could be a modal-only route or an incomplete public error state'));
+      out.screenshot = await screenshot(page, persona, route, 'missing-main').catch(() => undefined);
+      out.checks = { statusCode: response?.status() ?? 0, actualRoute: new URL(page.url()).pathname, hasMain: false };
+      out.status = 'BLOCKED_RUNTIME';
+      return out;
+    }
+    await page.waitForTimeout(200);
+    const stats = await page.evaluate(() => {
+      const main = document.querySelector('main');
+      const dialogs = [...document.querySelectorAll('[role="dialog"],[role="alertdialog"]')];
+      const badTargets = [...document.querySelectorAll('main button, main a, main input, main select')].filter(el => {
+        const node = el as HTMLElement;
+        const r = node.getBoundingClientRect();
+        const visible = r.width > 0 && r.height > 0 && getComputedStyle(node).visibility !== 'hidden';
+        return visible && (r.height < 28 || r.width < 28);
+      }).length;
+      const unlabeledControls = [...document.querySelectorAll('main button, main input, main select, main textarea')].filter(el => {
+        const node = el as HTMLElement;
+        const visible = node.getBoundingClientRect().height > 0;
+        if (!visible) return false;
+        if (node.tagName === 'INPUT' && (el as HTMLInputElement).type === 'hidden') return false;
+        return !node.getAttribute('aria-label') && !node.getAttribute('aria-labelledby') && !node.getAttribute('title') &&
+          !node.textContent?.trim() && !(node as HTMLInputElement).labels?.length;
+      }).length;
+      return {
+        documentWidth: document.documentElement.scrollWidth, viewportWidth: innerWidth,
+        mainWidth: Math.round(main?.getBoundingClientRect().width ?? 0),
+        scrollHeight: document.documentElement.scrollHeight,
+        totalButtons: document.querySelectorAll('main button').length,
+        dialogs: dialogs.length, unlabeledControls, smallTargets: badTargets,
+      };
+    });
+    // Modal routes have a named dialog heading; an absent page h1 must not
+    // consume the route timeout or pretend the modal was a full page.
+    out.h1 = ((await page.locator('main h1').first().textContent({ timeout: 5_000 }).catch(() => '')) ?? '').trim().slice(0, 150);
+    const actualRoute = new URL(page.url()).pathname;
+    // Initialize check data before assigning bound actual route metadata.
+    if (actualRoute !== route && !route.startsWith('/share/')) out.findings.push(finding('ROUTE_REDIRECT_OR_DENIAL', 'P2', 'Requested ' + route + ', actual ' + actualRoute + '; do not classify the requested page as observed.'));
+    const bodyTitle = out.h1.toLowerCase();
+    const mainText = await subject.innerText().catch(() => '');
+    const shellText = mainText.slice(0, 1200);
+    if (/module entry|feature CRUD.*chưa nằm|chưa có dữ liệu hiển thị/i.test(shellText)) out.findings.push(finding('PLACEHOLDER_NOT_FEATURE_UX', 'P2', 'Rendered page is a generic module placeholder, not a working feature'));
+    if (route.startsWith('/modules/') && /không khả dụng|chưa khả dụng|unavailable|disabled|chưa triển khai/.test(bodyTitle)) out.findings.push(finding('MODULE_UNAVAILABLE_NOT_FEATURE_IMPLEMENTED', 'P2', 'Only the module unavailable state was observed, not the target feature.'));
+
+    out.checks = { statusCode: response?.status() ?? 0, ...stats, jsErrors, actualRoute };
+    out.status = 'AUTO_PROBED';
+    if (!out.h1) out.findings.push(finding('MISSING_H1', 'P2', 'No visible <h1> in main after initial load'));
+    if (stats.documentWidth > stats.viewportWidth + 1) out.findings.push(finding('PAGE_HORIZONTAL_OVERFLOW', 'P1', 'Entire page scrollWidth exceeds viewport by ' + (stats.documentWidth - stats.viewportWidth) + 'px'));
+    if (stats.unlabeledControls) out.findings.push(finding('UNNAMED_CONTROLS', 'P2', String(stats.unlabeledControls) + ' visible input/button controls lack a programmatic name'));
+    if (stats.smallTargets > 3) out.findings.push(finding('SMALL_INTERACTIVE_TARGETS', 'P3', String(stats.smallTargets) + ' visible controls under 28px in one dimension; manual overlap/spacing review needed'));
+    if (jsErrors) out.findings.push(finding('BROWSER_RUNTIME_ERRORS', 'P1', String(jsErrors) + ' uncaught JS exceptions; raw messages redacted'));
+    if (mainText.includes('Đang tải các widget')) {
+      out.findings.push(finding('POSSIBLE_UNSETTLED_DASHBOARD', 'P2', 'Dashboard loading observed; re-evaluate whether it settles after API response'));
+    }
+    try {
+      const sampleAxe = !route.startsWith('/modules/') || /\/modules\/FX(11|12|20|24|27|40)$/.test(route);
+      if (!sampleAxe) { out.checks.axeCoverage = 'NOT_RUN_SAMPLED'; }
+      else {
+      const axe = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
+      out.checks.axeViolations = axe.violations.length;
+      for (const v of axe.violations.slice(0, 8)) out.findings.push(finding('AXE_' + v.id, 'P2', 'axe rule ' + v.id + ' affects ' + v.nodes.length + ' element(s); selectors=' + v.nodes.slice(0, 3).flatMap(n => n.target).join(',').slice(0, 220) + '; WCAG review required'));
+      }
+    } catch { out.findings.push(finding('AXE_NOT_EXECUTED', 'P3', 'Axe could not complete on this state')); }
+    out.screenshot = await screenshot(page, persona, route, 'initial').catch(() => undefined);
+    if (!out.screenshot) out.findings.push(finding('SCREENSHOT_MISSING', 'P1', 'No reviewable visual evidence captured; NOT accepted'));
+    // Only open clearly non-destructive interactive disclosures. Never submit/save/revoke/delete.
+    if (!route.startsWith('/modules/FX30') && !route.startsWith('/modules/FX34') && !route.startsWith('/modules/FX35')) {
+      const candidates = await page.locator('main button:visible').evaluateAll(nodes =>
+        nodes.map((node, index) => ({
+          index,
+          name: (node.getAttribute('aria-label') || node.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 90),
+          disabled: (node as HTMLButtonElement).disabled,
+        })).filter(c => c.name));
+      let opened = 0;
+      for (const candidate of candidates) {
+        if (opened >= (route.startsWith('/modules/') ? 1 : 2)) break;
+        if (candidate.disabled || !visiblePanelTriggers.test(candidate.name) || prohibitedTriggers.test(candidate.name)) continue;
+        if (candidate.name.includes('Tạo tài khoản') || candidate.name.includes('Tạo snippet')) continue;
+        try {
+          await page.goto(route);
+          await page.locator('main').first().waitFor({ state: 'visible' });
+          const button = page.locator('main button:visible').filter({ hasText: candidate.name }).first();
+          if (!(await button.count()) || !(await button.isEnabled())) continue;
+          await button.click({ timeout: 2_000 });
+          const modal = page.locator('[role="dialog"],[role="alertdialog"]').first();
+          if (await modal.isVisible({ timeout: 700 }).catch(() => false)) {
+            const width = await modal.evaluate(el => ({ width: el.scrollWidth, client: el.clientWidth }));
+            out.dialogs!.push({
+              trigger: candidate.name, visible: true,
+              scrollOverflow: width.width > width.client + 1,
+              screenshot: await screenshot(page, persona, route, 'dialog-' + opened).catch(() => undefined),
+            });
+            if (width.width > width.client + 1) out.findings.push(finding('DIALOG_HORIZONTAL_OVERFLOW', 'P1', 'Dialog opened by ' + candidate.name + ' exceeds own width'));
+            opened++;
+            await page.keyboard.press('Escape').catch(() => undefined);
+          }
+        } catch { /* The candidate is not a stable dialog trigger; report only observed dialogs. */ }
+      }
+    }
+    // Real tab controls are audited separately from action buttons; do not fake subpage success.
+    await page.goto(route);
+    const tabs = page.getByRole('tab');
+    const tabCount = Math.min(await tabs.count(), 5);
+    for (let i = 0; i < tabCount; i++) {
+      const tab = tabs.nth(i);
+      const name = (await tab.getAttribute('aria-label')) || (await tab.textContent()) || 'Tab';
+      try {
+        await tab.click({ timeout: 1500 });
+        out.tabs!.push({ title: name.trim().slice(0, 90), accessible: await tab.getAttribute('aria-selected') !== null, screenshot: await screenshot(page, persona, route, 'tab-' + i).catch(() => undefined) });
+      } catch { out.tabs!.push({ title: name.trim().slice(0, 90), accessible: false }); }
+    }
+    return out;
+  } catch {
+    out.status = 'BLOCKED_RUNTIME';
+    out.findings.push(finding('ROUTE_NOT_AUDITED', 'P1', 'Route could not reach a stable main landmark; failure sanitized'));
+    return out;
+  } finally { page.off('pageerror', onError); }
+}
+function persist(testInfo: TestInfo, name: string, results: Observation[], seed: string[]) {
+  mkdirSync(artifactRoot, { recursive: true });
+  const artifact = {
+    schemaVersion: 1, scope: 'PR4 synthetic SQL/API/React browser UX evidence; no professional-design signoff',
+    testedSha: process.env.GITHUB_SHA ?? 'unverified', project: testInfo.project.name, persona: name,
+    results, syntheticSeeding: seed,
+    counts: {
+      attempted: results.length, autoProbed: results.filter(r => r.status === 'AUTO_PROBED').length,
+      blocked: results.filter(r => r.status !== 'AUTO_PROBED').length,
+      screenshots: results.filter(r => r.screenshot).length,
+      dialogs: results.reduce((acc, r) => acc + (r.dialogs?.length ?? 0), 0),
+      findings: results.reduce((acc, r) => acc + r.findings.length, 0),
+    },
+    explicitLimits: ['No personal/prod account or live provider effects', 'Empty states are not populated UX acceptance',
+      'Axe is not a WCAG audit', 'Visible-dialog probe is not exhaustive hidden-state coverage',
+      'Qualitative professional design evaluation requires manual screenshot inspection'],
+  };
+  writeFileSync(join(artifactRoot, safeSlug(testInfo.project.name + '-' + name) + '.json'), JSON.stringify(artifact, null, 2));
+}
+
+// Independent GitHub Actions matrix reviewers. No shard reads another shard's SQL,
+// browser session, credential file, logs or artifacts. Unselected shards do no work.
+type AuditGroup = { group: string; role: string; routes: string[]; seed: string };
+const groups: AuditGroup[] = [
+  { group: 'auth', role: 'Anonymous', routes: publicRoutes, seed: 'none' },
+  { group: 'navigation', role: 'UserA', routes: ['/', '/search', '/search/saved', '/favorites', '/recent', '/command-palette', '/settings/profile', '/settings/security', '/notifications', '/trash'], seed: 'none' },
+  { group: 'productivity', role: 'UserA', routes: ['/goals', '/planner', '/habits', ...modules.slice(10, 19)], seed: 'productivity' },
+  { group: 'knowledge', role: 'UserA', routes: ['/bookmarks', '/snippets', '/read-later', '/organize/tags', '/collections', '/organize/templates', '/files', '/learning/work-log', '/sharing', ...modules.slice(19, 24)], seed: 'knowledge' },
+  { group: 'business', role: 'UserA', routes: ['/finance', '/modules/FX27', '/modules/FX29', '/modules/FX31', '/shopping/sellers', '/shopping/orders', '/shopping/warranties', '/learning/certifications', '/modules/FX32', '/modules/FX36', '/modules/FX37', '/modules/FX38', '/modules/FX39', '/modules/FX40'], seed: 'business' },
+  { group: 'platform', role: 'UserA', routes: modules.slice(0, 10), seed: 'none' },
+  { group: 'gated', role: 'UserA', routes: ['/developer/tools', '/support', '/modules/FX25', '/modules/FX26', '/modules/FX28', '/modules/FX30', '/modules/FX33', '/modules/FX34', '/modules/FX35'], seed: 'none' },
+  { group: 'admin', role: 'SuperAdmin', routes: ['/','/admin/access','/admin/modules','/settings/security','/support','/sharing','/notifications'], seed: 'none' },
+  { group: 'restricted', role: 'Restricted', routes: ['/', '/modules/FX11', '/modules/FX20', '/sharing', '/files', '/settings/profile'], seed: 'none' },
+];
+for (const group of groups) {
+  test('parallel UIUX group: ' + group.group, async ({ page }, info) => {
+    const results: Observation[] = [];
+    const seed: string[] = [];
+    try {
+      if (group.role !== 'Anonymous') await logIn(page, group.role);
+      // Seeding must never prevent *all* route screenshots. The knowledge
+      // fixture previously left dirty editor state and yielded zero evidence.
+      if (group.seed !== 'none') {
+        try { await trySeed(page, seed, group.seed); }
+        catch { seed.push('SEED_BLOCKED: continue independent route probes'); }
+      }
+      for (const route of group.routes) {
+        let isolated: Page | undefined;
+        try {
+          isolated = await page.context().newPage();
+          results.push(await observe(isolated, route, group.role, info));
+        } catch {
+          results.push({route, persona: group.role, viewport: info.project.name,
+            status: 'BLOCKED_RUNTIME', findings: [{
+              code: 'ROUTE_ISOLATION_ERROR', severity: 'P1',
+              detail: 'Independent tab could not be opened or examined; no private exception published'
+            }]});
+        } finally {
+          if (isolated) await isolated.close().catch(() => undefined);
+          persist(info, group.role + '-' + group.group, results, seed);
+        }
+      }
+    } catch {
+      seed.push('ROLE_OR_SEED_BLOCKED: no private credentials or secret exception details are logged');
+    } finally { persist(info, group.role + '-' + group.group, results, seed); }
+    if (results.length !== group.routes.length)
+      throw new Error('AUDIT_PARTIAL: group ' + group.group + ' observed ' + results.length + '/' + group.routes.length + ' routes; see sanitized JSON.');
+    const blocked = results.filter(r => r.status !== 'AUTO_PROBED' || !r.screenshot);
+    if (blocked.length) throw new Error('AUDIT_INCOMPLETE: group ' + group.group + ' has ' + blocked.length + ' blocked/unscreened routes; JSON records remain available.');
+  });
+}

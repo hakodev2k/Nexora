@@ -1,0 +1,11 @@
+import { apiFetch } from './api';
+export type IntegrationConnector = { providerKey: string; version: number; name: string; implementationState: string; realOperationsAvailable: boolean; authModes: string[]; inboundCommands: string[]; outboundEvents: string[]; blockingDecisions: string[] };
+export type IntegrationConnection = { id: string; providerKey: string; connectorVersion: number; title: string; endpoint: string; state: string; updatedAt: string; lastTestAt: string | null; etag: string; authMode: string; realOperationsAvailable: boolean };
+export type IntegrationConnectionCommand = { schemaVersion: 1; providerKey: string; connectorVersion: number; title: string; endpoint: string };
+const root = '/api/v1/integrations/connections';
+export const integrationCapabilities = () => apiFetch<Record<string, boolean>>(root + '/capabilities');
+export const integrationConnectors = () => apiFetch<IntegrationConnector[]>(root + '/connectors');
+export const integrationList = (filters: { query: string; provider: string; state: string }, cursor?: string) => apiFetch<{ items: IntegrationConnection[]; nextCursor: string | null }>(root + '/?' + new URLSearchParams({ ...filters, ...(cursor ? { cursor } : {}) }));
+export const integrationGet = (id: string) => apiFetch<IntegrationConnection>(root + '/' + encodeURIComponent(id));
+export const integrationSave = (id: string | null, etag: string | null, body: IntegrationConnectionCommand, key: string) => apiFetch<{ id: string }>(root + '/' + (id ? encodeURIComponent(id) : ''), { method: id ? 'PUT' : 'POST', headers: { 'Idempotency-Key': key, ...(etag ? { 'If-Match': etag } : {}) }, body: JSON.stringify(body) }, id ? 200 : 201);
+export const integrationDisable = (id: string, etag: string, key: string) => apiFetch<{ id: string }>(root + '/' + encodeURIComponent(id) + '/disable', { method: 'POST', headers: { 'Idempotency-Key': key, 'If-Match': etag }, body: JSON.stringify({ confirmed: true }) }, 200);

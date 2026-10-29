@@ -1,0 +1,47 @@
+{
+  "results": [
+    {
+      "CaseId": "QA-RESPONSE-LOST",
+      "Status": "PASS",
+      "Expected": "One-boundary abort AFTER genuine server commit; UI retry retains original body/key and exactly one SQL row",
+      "Actual": {
+        "requests": 2,
+        "identicalOriginalIntent": true,
+        "sqlCount": 1,
+        "sourceId": "10f98259-196e-4cbd-9e50-c33fdd5cce05",
+        "injection": "Only first response dropped; route.fetch reached real API/service/SQL"
+      },
+      "Layer": "REAL_BROWSER_API_SQL"
+    },
+    {
+      "CaseId": "QA-REVOKE-DIRTY",
+      "Status": "PASS",
+      "Expected": "Revocation in separate SuperAdmin context denies stale save, clears private modal and leaves SQL unchanged",
+      "Actual": {
+        "status": 403,
+        "modalCleared": true,
+        "persistenceUnchanged": true,
+        "revocation": "Genuine preview/commit before PUT; no timing-only race assertion"
+      },
+      "Layer": "REAL_BROWSER_API_SQL"
+    },
+    {
+      "CaseId": "QA-ANONYMOUS-HISTORY",
+      "Status": "PASS",
+      "Expected": "Anonymous cannot read own-source URLs/history without an authenticated session",
+      "Actual": [
+        401,
+        401
+      ],
+      "Layer": "REAL_BROWSER_API_SQL"
+    }
+  ],
+  "resources": [
+    {
+      "id": "10f98259-196e-4cbd-9e50-c33fdd5cce05",
+      "type": "WorkLog",
+      "creation": "UI real server, response dropped after commit",
+      "expected": "Active"
+    }
+  ]
+}

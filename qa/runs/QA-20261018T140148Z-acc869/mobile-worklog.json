@@ -1,0 +1,32 @@
+{
+  "CaseId": "QA-WRK-MOBILE-LIFECYCLE",
+  "Status": "PASS",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "resources": [
+    {
+      "id": "5c5adc1f-3c37-4958-9803-a1c6d3e60375",
+      "type": "WorkLog",
+      "expected": "Purged",
+      "creation": "Mobile UI"
+    }
+  ],
+  "Actual": {
+    "minutes": 90,
+    "states": [
+      "Active",
+      "Archived",
+      "Trash",
+      "Archived",
+      "Trash",
+      "Purged"
+    ],
+    "archiveRestoreReadonly": true,
+    "historyBeforeSecondTrash": 5,
+    "allCommands": "Native UI, real API/service/SQL",
+    "focus": "Cancel first on confirmation dialogs",
+    "emulation": "CSS viewport only, not physical phone"
+  }
+}

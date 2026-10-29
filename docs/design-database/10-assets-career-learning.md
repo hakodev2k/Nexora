@@ -799,20 +799,46 @@ Ordered plan resource reference. Profile **O**. Status: **Technical decision**.
 | UpdatedByUserId | uniqueidentifier | Yes | Actual most recent actor; null only system/anonymized identity | FK UpdatedByUserId → Id; [identity.User](02-core-identity-platform.md#identity-user); NO ACTION |
 | RowVersion | rowversion | No | SQL-generated 8-byte optimistic concurrency token; not content history or clock | DB generated; exclude from inserts/updates |
 | PlanId | uniqueidentifier | No | Plan | FK (OwnerId, PlanId) → (OwnerId, Id); [learning.Plan](10-assets-career-learning.md#learning-plan); NO ACTION |
-| ResourceId | uniqueidentifier | No | Course/skill/task target | FK (OwnerId, ResourceId) → (OwnerId, Id); [platform.Resource](02-core-identity-platform.md#platform-resource); NO ACTION |
+| ResourceKind | varchar(16) | No | Exact Goal, Task or Course discriminator; Skill and unknown kinds rejected | CHECK allowed kinds; binary collation in migration0086 |
+| ResourceId | uniqueidentifier | No | Goal/Task/Course target only per owner D06=A; must be checked with source ResourceKind | FK (OwnerId, ResourceId) → (OwnerId, Id); [platform.Resource](02-core-identity-platform.md#platform-resource); NO ACTION |
 | Position | int | No | Order | No implicit default unless stated |
 | TargetOn | date | Yes | Planning target, not source reschedule | No implicit default unless stated |
 
-**Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). UQ OwnerId,PlanId,Position; UQ OwnerId,PlanId,ResourceId
+**Keys/index candidates:** PK(Id) nonclustered; internal clustering strategy in conventions. UQ(OwnerId,Id); IX(OwnerId,CreatedAt,Id). UQ OwnerId,PlanId,Position; UQ OwnerId,PlanId,ResourceKind,ResourceId
+
+**Owner-confirmed PlanItem source discriminator — 2026-10-19 D06=A:** Current logical design previously lacked `ResourceKind` while labeling ResourceId “Course/skill/task”. The approved domain contract now permits **Goal, Task, Course** only; the additive `ResourceKind varchar(16) NOT NULL CHECK ('Goal','Task','Course')` column and unique key `(OwnerId,PlanId,ResourceKind,ResourceId)` must be reconciled with the actual Resource registry and database owner FKs **before migration**. Existing physically deployed tables/migrations are not changed by this document. Unsupported Skill/unknown kinds must be rejected; no automatic backfill or source relabeling. [Decision](../requirements/13-owner-decisions-20261019-pr4-blockers.md) · [implementation contract](../implementation/pr4-decision-contracts-20261019/04-learning-plan.md).
 
 **Integrity / transaction:** Current source access/lifecycle rechecked; target date does not change Task Start/End.
 
 **Lifecycle / classification:** All writes check RowVersion; lifecycle guard also applies to import, automation, bulk and restore. Payload classification defaults Private owner; credential/encrypted/hash columns are never list/search/log data. [Per-field classification](15-field-classification.md#learning-planitem). No ON DELETE CASCADE; approved purge service orders dependencies, rejects live references, preserves minimal audit. User-owned Trash retention is not inferred from job-log retention.
 
+**Local implementation candidate 0086 (not runtime acceptance):** New `Plan`/`PlanItem` tables enforce the typed discriminator, same-owner Plan/Resource FKs, typed source uniqueness and unique position without cascading source deletion. Existing unexpected physical Plan tables or registry versions abort upgrade; no inferred backfill. Goal/Task module participants validate source payload and current source read in the same Serializable transaction before enrolling a reference registry identity; registry freshness never replaces source lifecycle checks. This participant choice remains gated for independent source-owner/DB/security review. Local service readiness defaults false; permissions are not activated by this migration. Trash/restore/purge and archive/unarchive handlers remain outside this installed subset. Preserve tables/receipts/audit when rolling back code.
+
 <a id="learning-worklog"></a>
 ## learning.WorkLog
 
 Personal learning/work reflection. Profile **R**. Status: **Technical decision**.
+
+**Physical local subset —0080:** Manual WorkLog only, Minutes NOT NULL1..1440;
+title/day/notes/category/employer, Active/Archived with actual prior Active,
+owner-composite Resource identity, actor timestamps/rowversion and paging index.
+TimeEntry/Course/Task/Project references and TrashBatchId in the target design below
+were not installed/exposed by0080.0083 now adds TrashBatchId/PreTrashState; source-link fields remain unimplemented/rejected.
+WorkLog resource contract is worklog-manual-v1, with share/support/search/Trash
+capabilities false in0080;0083 enables only native Trash for that exact registry contract. Gross per-day reporting does not infer overlap or payroll.
+No migration/backfill/data execution or runtime acceptance is claimed.
+
+**Physical continuation —0081:** `learning.WorkLogVersion`, composite PK
+`(OwnerId,WorkLogId,Sequence)`, same-owner FK to WorkLog, actor FK,
+unique original source binary8 revision and bounded manual field/status snapshots.
+Created/Updated/Archived/Unarchived capture after the source write; legacy first
+later mutation captures actual pre-command state as HistoryStarted. Capture time
+is distinct from source UpdatedAt. All snapshots share the command transaction,
+never receipt replay. No history backfill/edit/restore or cascade delete. Future
+purge must explicitly account for these private dependent rows. Own current
+WorkLog read authority is mandatory on every history page. Category list/report
+filter uses literal equality under current SQL collation. Migration NOT EXECUTED;
+[contract](../implementation/remediation-plan-20261016/worklog-filter-history-contract-20261018.md).
 
 | Field | SQL Server type | Nullable | Meaning / validation | Key / default / reference |
 | --- | --- | --- | --- | --- |
@@ -1013,3 +1039,19 @@ erDiagram
 | RowVersion | rowversion | No;generated | Concurrency |
 
 UQ(OwnerId,Id); UQ(OwnerId,JobApplicationId,CalendarEventId). No Start/End/Reminder/meetingURL/participants/feedback columns: Calendar owns them. Cross-module API contract performs same-owner check even though database defense includes composite FK. Create-and-link transaction preserves idempotency; unlink removes reference only. Source Event may later become terminal; reading link shows current state, no forced reopen. career.Interview proposal is superseded for current scope, not an extra live workflow.
+
+## Local Work Log lifecycle continuation —0083
+
+WorkLog now adds PreTrashState(Active/Archived), owner-composite TrashBatchId FK,
+strong paired state/previous/archive CHECKs and statusTrash. WorkLogVersion accepts
+Trashed/Restored/Trash snapshots. Migration resolves only old exact-column CHECKs,
+expands them, updates exact worklog-manual-v1 metadata and inserts absent permission
+keys; no Allow grant/backfill/data deletion. Schema locks/CHECK validation and
+runtime rehearsal remain unexecuted. Runtime native commands require signed5min
+revision/cohort/dependency preview and current own source/read/action. One-root
+TrashBatch/Member preserves actual prior state; restore never guesses Active.
+Explicit Trash-only purge blocks retained ResourceLinks, deletes owned versions
+then source, retains registry Purged tombstone and audit/receipt/cohort. Final proof
+rechecks registry/domain/cohort/prior/version count and retained references for
+purge after audit/receipt writes. No automatic expiry purge or in-app undo.
+[Contract](../implementation/remediation-plan-20261016/worklog-trash-contract-20261018.md).

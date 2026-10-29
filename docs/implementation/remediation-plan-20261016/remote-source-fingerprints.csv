@@ -1,0 +1,9 @@
+Path,Revision,GitBlobSHA,ReadingScope
+src/Nexora.Infrastructure/Goals/SqlGoalService.cs,f0611fad590269fdc73a3397fd785a97d2c0ef5e,9ab382f16fc99f2b79231bd567b92b902659166d,selected source methods or bounded range; see source-ledger.md
+src/Nexora.Infrastructure/Habits/SqlHabitService.cs,f0611fad590269fdc73a3397fd785a97d2c0ef5e,8b93652514fe948c20f37a785317f1ebbd34006d,selected source methods or bounded range; see source-ledger.md
+src/Nexora.Infrastructure/Planner/SqlPlannerService.cs,f0611fad590269fdc73a3397fd785a97d2c0ef5e,c0caf98e04a3601abe66a60515a3e842cc5dfbbc,selected source methods or bounded range; see source-ledger.md
+web/Nexora.Web/src/App.tsx,f0611fad590269fdc73a3397fd785a97d2c0ef5e,0fce2638a33a8964657e0ab6062a6a977bbb9292,selected source methods or bounded range; see source-ledger.md
+web/Nexora.Web/src/api.ts,f0611fad590269fdc73a3397fd785a97d2c0ef5e,373b79fa224e892bd3ab22a30930187f0a108b3c,selected source methods or bounded range; see source-ledger.md
+.github/workflows/m01-ci.yml,f0611fad590269fdc73a3397fd785a97d2c0ef5e,91f46f21737936a3fd4d3cfac2788025e1c9be78,selected source methods or bounded range; see source-ledger.md
+scripts/dev/start-ci-sql.sh,f0611fad590269fdc73a3397fd785a97d2c0ef5e,55513eb54796b730fdc41c9739a4ecdaa0e7e382,selected source methods or bounded range; see source-ledger.md
+scripts/dev/start-e2e-target.py,f0611fad590269fdc73a3397fd785a97d2c0ef5e,0fc6778e3ccd28c42b0443b7f1e2c27367e4aa38,selected source methods or bounded range; see source-ledger.md

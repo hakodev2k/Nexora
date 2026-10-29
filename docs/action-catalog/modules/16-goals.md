@@ -1,5 +1,28 @@
 # FX-16 — Goals: actions
 
+> **Current implementation overlay — 2026-09-10:** `goals.goal.read`,
+> `goals.goal.create`, `goals.goal.update`, `goals.goal.start`,
+> `goals.goal.complete`, `goals.goal.abandon`, `goals.goal.reopen`,
+> `goals.target.read`, `goals.target.create` and
+> `goals.target.record_progress` are implemented for the local numeric slice.
+> They are SQL-backed, owner-scoped and still require the normal module/action
+> guard. Other rows below remain inventory/gated; the implementation does not
+> imply Tasks targets, Trash, reminders or providers.
+> **2026-10-18:** target.create/read/record_progress also have a local Boolean
+> implementation; see [contract](../../implementation/remediation-plan-20261016/goals-boolean-contract-20261018.md).
+> No new action/grant; runtime and independent review pending.
+> Goal history also reads original Numeric/Boolean target-definition snapshots,
+> including removed targets, requiring current history+Goal-read+target-read.
+> [Contract](../../implementation/remediation-plan-20261016/goals-target-history-contract-20261018.md).
+> Existing `goals.goal.history` now has a bounded local immutable progress query;
+> [contract](../../implementation/remediation-plan-20261016/goals-progress-history-contract-20261018.md).
+> No Allow grants; lifecycle state history and Goal metadata versions are additionally code-present, including Numeric/Boolean target-definition versions.
+> Existing target.create also supports adding Numeric targets to an existing Goal;
+> target.update/remove have revision-bound impact previews and retained evidence;
+> goal.archive/unarchive preserve exact prior state. See [target management](../../implementation/remediation-plan-20261016/goals-target-management-contract-20261018.md)
+> and [archive](../../implementation/remediation-plan-20261016/goals-archive-contract-20261018.md)
+> contracts.0078/0079 add metadata, never Allow grants; runtime/review Pending.
+
 Catalog v1 · 2026-09-07 · Docs-only. New key decomposition = Resolved delegated; source business decisions giữ nguyên; Blocked rows không được kích hoạt bằng grant.
 
 ## Sources và phạm vi

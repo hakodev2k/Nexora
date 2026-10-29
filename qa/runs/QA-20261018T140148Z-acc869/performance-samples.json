@@ -1,0 +1,72 @@
+[
+  {
+    "operation": "WorkLog warm route readiness",
+    "sample": 1,
+    "ms": 120,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog open modal",
+    "sample": 1,
+    "ms": 25,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog warm route readiness",
+    "sample": 2,
+    "ms": 112,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog open modal",
+    "sample": 2,
+    "ms": 32,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog warm route readiness",
+    "sample": 3,
+    "ms": 100,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog open modal",
+    "sample": 3,
+    "ms": 25,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog warm route readiness",
+    "sample": 4,
+    "ms": 111,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog open modal",
+    "sample": 4,
+    "ms": 26,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog warm route readiness",
+    "sample": 5,
+    "ms": 104,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  },
+  {
+    "operation": "WorkLog open modal",
+    "sample": 5,
+    "ms": 24,
+    "profile": "production local/no throttle",
+    "dataset": 53
+  }
+]

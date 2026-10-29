@@ -2,7 +2,29 @@
 
 FX-25 · Feature specification · 2026-09-06 · Baseline requirements: d0d8418
 
-**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Tài liệu không cấp phép implement.
+**Trạng thái:** yêu cầu đã xác nhận được giữ nguyên; chi tiết bổ sung bên dưới là **Resolved (delegated)** theo DEC-GOV-001. Mục Q còn mở là proposal, chưa được duyệt. Local code on the PR #4 branch covers bounded source-query Search/Favorites, typed Saved Search, seven-source Recents and a finite Command Palette registry. Continuation is uncommitted; runtime and independent review remain Pending, and PR synchronization is not claimed.
+
+## Current PR #4 implementation overlay
+
+`FX25-S01` is implemented locally as `GET /api/v1/search` (`search`). It
+queries owner-scoped Projects, Tasks, Calendar Events, Documents, Bookmarks,
+Snippets and Goals with bounded query/type/date/archive filters, safe previews,
+deterministic ranking and per-source availability states. No persisted search
+index or cross-user/share/support projection is introduced. `FX25-S03` is
+implemented locally as typed owner references through `GET/POST/DELETE/PUT
+/api/v1/favorites...`; source access, lifecycle and active Trash are rechecked,
+unavailable references expose no stale metadata, and rank mutations use ETag /
+If-Match. Saved Search stores versioned query definitions and revalidates current
+providers when run. Recents captures successful registered SELF detail reads,
+keeps at most100 metadata-only typed refs and hides unavailable sources before
+paging. Clear uses an owner-wide rowversion preview and idempotency; newer opens
+survive and source/Audit remain. Command Palette lists15 registered navigation,
+native create and Clear-Recents handoffs under current actions; resource results
+are reauthorized on selection and actual source GET/Save/confirm remains canonical.
+No destructive mutation occurs on highlight/selection. Contracts:
+[Recents](../implementation/remediation-plan-20261016/discovery-recents-contract-20261018.md),
+[Palette](../implementation/remediation-plan-20261016/discovery-palette-contract-20261018.md).
+Additional providers/facets and full runtime/source traceability remain incomplete.
 
 ## Phạm vi và tham chiếu
 
@@ -16,7 +38,9 @@ Global Search xuyên module, saved queries, favorite/recent và commands.
 
 **Áp dụng cho Nexora:** Notion/Raindrop tham chiếu search/navigation; không thay local Documents Title/Tag-only search.
 
-**Màn hình:** `/search, /favorites, Ctrl/Cmd+K`. Routes là thiết kế đề xuất; không phải endpoint đã implement.
+**Màn hình:** `/search, /favorites, Ctrl/Cmd+K`. `/search` và `/favorites`
+đã có local code; `/recent` và `/command-palette` cũng có route nội bộ.
+Saved Search dùng cùng form định nghĩa chuẩn tại `/search` và `/search/saved`.
 
 ## Luồng sử dụng
 
